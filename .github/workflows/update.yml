@@ -10,15 +10,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
       - run: pip install yfinance pandas
       - run: python update_data.py
-      - run: |
+      - name: Commit and push
+        run: |
           git config user.name "bot"
           git config user.email "bot@bot.com"
+          git stash
           git pull --rebase origin main
+          git stash pop
           git add data.json
-          git commit -m "update" || exit 0
+          git commit -m "update data" || echo "no changes to commit"
           git push
