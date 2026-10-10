@@ -1,12 +1,20 @@
 {
-    "signal": "WAITING",
-    "reason": "Fetching live market data. Please run the Python script.",
-    "price": "0.0000",
-    "entry": "0.0000",
-    "sl": "0.0000",
-    "tp": "0.0000",
-    "valid": "Pending",
-    "candle_current": "Waiting for the first hourly candle to close.",
-    "candle_1h": "Awaiting data.",
-    "candle_4h": "Awaiting data."
+    "signal": "SELL",
+    "reason": "Technical signal: Price below 20 EMA, RSI at 28.3.",
+    "confidence": "MEDIUM",
+    "price": "1.1206",
+    "entry": "1.1206",
+    "sl": "1.1206",
+    "tp": "1.1206",
+    "valid": "17:40 UTC",
+    "candle_current": "Bearish candle. Open: 1.1206, Now: 1.1206. Sellers pushing down.",
+    "candle_1h": "1H candle closed at 1.1206. Below 20 EMA - downtrend.",
+    "candle_4h": "4H trend: bearish below moving averages.",
+    "news_bias": "unavailable",
+    "news_score": 0,
+    "patterns": [
+        "No clear pattern"
+    ],
+    "session": "Off-Session",
+    "volatility": "low"
 }
