@@ -49,6 +49,16 @@ MOTIVATIONS = [
 ]
 
 
+def load_personal_context():
+    """Load the personal context file if it exists."""
+    try:
+        with open("personal_context.json", "r") as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"Could not load personal_context.json: {e}")
+        return None
+
+
 def calculate_support_resistance(df):
     recent = df.tail(50)
     recent_high = round(recent['High'].max(), 4)
@@ -75,13 +85,9 @@ def get_market_context(df):
 
 
 def call_gemini(prompt):
-    """Try multiple Gemini models until one works."""
     if not (HAS_GEMINI and os.environ.get("GEMINI_API_KEY")):
         return None
-    
     genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
-    
-    # Google retires model names periodically. Try latest first.
     model_names = [
         "gemini-2.0-flash",
         "gemini-2.0-flash-exp",
@@ -91,19 +97,63 @@ def call_gemini(prompt):
         "gemini-flash-latest",
         "gemini-pro"
     ]
-    
     for m_name in model_names:
         try:
             model = genai.GenerativeModel(m_name)
             response = model.generate_content(prompt)
-            raw_text = response.text.strip()
             print(f"Gemini model used: {m_name}")
-            return raw_text
+            return response.text.strip()
         except Exception as e:
             print(f"Model {m_name} failed: {e}")
             continue
-    
     return None
+
+
+def build_personal_section(personal):
+    """Format the personal context for the AI prompt."""
+    if not personal:
+        return "No personal context provided."
+    
+    lines = []
+    name = personal.get("name", "Boss")
+    lines.append(f"Client's preferred name: {name}")
+    
+    family = personal.get("family", {})
+    if family:
+        lines.append("\nFAMILY:")
+        if "wife" in family:
+            w = family["wife"]
+            lines.append(f"- Wife: {w.get('name')} (currently in {w.get('location')})")
+        if "daughters" in family:
+            for d in family["daughters"]:
+                lines.append(f"- Daughter: {d.get('name')}, {d.get('grade')}, birthday {d.get('birthday')}")
+        if "cat" in family:
+            lines.append(f"- Cat: {family['cat']}")
+        if "parents" in family:
+            lines.append(f"- Parents: {', '.join(family['parents'])}")
+        if "brothers" in family:
+            lines.append(f"- Brothers: {', '.join(family['brothers'])}")
+    
+    routine = personal.get("daily_routine", [])
+    if routine:
+        lines.append("\nDAILY ROUTINE REMINDERS:")
+        for r in routine:
+            lines.append(f"- {r}")
+    
+    style = personal.get("trading_style", {})
+    if style:
+        lines.append("\nTRADING STYLE:")
+        lines.append(f"- Monthly goal: {style.get('monthly_goal')}")
+        lines.append(f"- Preferred sessions: {', '.join(style.get('preferred_sessions', []))}")
+        lines.append(f"- Risk tolerance: {style.get('risk_tolerance')}")
+    
+    personality = personal.get("ai_personality", {})
+    if personality:
+        lines.append("\nAI PERSONALITY:")
+        lines.append(f"- Tone: {personality.get('tone')}")
+        lines.append(f"- Always call the client: {personality.get('should_call_user', 'Boss')}")
+    
+    return "\n".join(lines)
 
 
 def get_analysis():
@@ -116,7 +166,6 @@ def get_analysis():
                 continue
             df = df.dropna()
 
-            # Indicators
             df['EMA_20'] = df['Close'].ewm(span=20, adjust=False).mean()
             df['EMA_50'] = df['Close'].ewm(span=50, adjust=False).mean()
             delta = df['Close'].diff()
@@ -198,15 +247,34 @@ def get_analysis():
 
             verdict = tech_signal
             llm_reason = f"Technical signal: Price {'above' if latest['Close'] > latest['EMA_20'] else 'below'} 20 EMA, RSI at {rsi}."
+            personal_message = ""
             confidence = "MEDIUM"
 
-            # --- GEMINI AI REASONING ---
+            # Load personal context
+            personal = load_personal_context()
+            personal_section = build_personal_section(personal)
+
+            # Build a time-of-day greeting based on IST
+            ist_now = datetime.utcnow() + timedelta(hours=5, minutes=30)
+            ist_hour = ist_now.hour
+            if ist_hour < 12:
+                time_greeting = "Good morning"
+            elif ist_hour < 17:
+                time_greeting = "Good afternoon"
+            else:
+                time_greeting = "Good evening"
+
             last_5_text = "\n".join([
                 f"  Candle {i+1}: O={c['open']} H={c['high']} L={c['low']} C={c['close']} ({c['direction']})"
                 for i, c in enumerate(last_5)
             ])
 
-            prompt = f"""You are a professional EUR/USD trader with 10 years of experience at a hedge fund. You are analyzing the 1-hour chart for a client named Boss.
+            prompt = f"""You are a professional EUR/USD trader AND a personal assistant to a client named Boss. You have 10 years of hedge fund experience, and you also care about Boss's daily life, family, and health.
+
+TIME: {ist_now.strftime('%H:%M IST, %A')} — Start with a "{time_greeting}".
+
+PERSONAL CONTEXT:
+{personal_section}
 
 MARKET DATA:
 - Current Price: {price}
@@ -228,23 +296,29 @@ NEWS BIAS: {news_bias} (score: {news_score})
 SESSION: {session} ({volatility} volatility)
 TECHNICAL SIGNAL: {tech_signal}
 
-YOUR TASK:
-Give a professional trading verdict. Think like a real trader:
-- Is the trend clear or choppy?
-- Is the price at a good entry level or exhausted?
-- Does the news support the technical setup?
-- What invalidates this trade?
+YOUR TASK — Return TWO things:
 
-RULES:
-- If signals conflict (e.g., bullish pattern but bearish news), say HOLD
-- If price is mid-range with no clear pattern, say HOLD
-- Only BUY or SELL with MEDIUM or HIGH confidence
+1) TRADING VERDICT: BUY / SELL / HOLD with reason (3-4 sentences) explaining the setup, what confirms it, and what would invalidate it. Speak directly to Boss. If signals conflict or confidence is low, say HOLD.
 
-Respond ONLY with valid JSON (no markdown, no extra text):
-{{"verdict": "BUY/SELL/HOLD", "reason": "3-4 sentences explaining the setup, what confirms it, and what would invalidate it. Speak directly to Boss.", "confidence": "LOW/MEDIUM/HIGH"}}"""
+2) PERSONAL MESSAGE: A short, friendly check-in (2-3 sentences) that includes:
+   - Time-appropriate greeting ("{time_greeting}, Boss")
+   - ONE relevant reminder from Boss's daily routine (don't list all of them — pick one that fits the time of day)
+   - A warm, motivational or funny line
+   - Optionally mention ONE family member naturally if appropriate (like asking about Sadia in Dubai, or the daughters, or Cookie the cat) — don't overdo it, only if it flows naturally
+
+RULES FOR PERSONAL MESSAGE:
+- Keep it warm, funny, motivating
+- Never sound robotic or list-like
+- Boss's wife Sadia is in Dubai — you can occasionally ask if he's spoken to her
+- Boss has BP tablets — always remind him after breakfast and dinner
+- Boss cooks for his daughters — recognize this as important work
+- Be a friend, not a nag
+
+Respond ONLY with valid JSON (no markdown):
+{{"verdict": "BUY/SELL/HOLD", "reason": "3-4 sentences of trading reasoning", "confidence": "LOW/MEDIUM/HIGH", "personal_message": "2-3 sentences of warm personal check-in"}}"""
 
             raw_response = call_gemini(prompt)
-            
+
             if raw_response:
                 try:
                     clean = raw_response.strip()
@@ -253,18 +327,19 @@ Respond ONLY with valid JSON (no markdown, no extra text):
                         if clean.startswith("json"):
                             clean = clean[4:]
                     clean = clean.strip()
-                    
+
                     result = json.loads(clean)
                     verdict = result.get("verdict", tech_signal)
                     llm_reason = result.get("reason", llm_reason)
                     confidence = result.get("confidence", "MEDIUM")
+                    personal_message = result.get("personal_message", "")
                     print(f"AI verdict: {verdict} ({confidence})")
                     print(f"AI reason: {llm_reason[:100]}...")
+                    print(f"Personal: {personal_message[:100]}...")
                 except Exception as e:
                     print(f"JSON parse error: {e}")
-                    print(f"Raw response: {raw_response[:200]}")
+                    print(f"Raw response: {raw_response[:300]}")
 
-            # Candle text
             if latest['Close'] > latest['Open']:
                 candle_current = f"Bullish candle. Open: {latest['Open']:.4f}, Now: {price}. Buyers in control."
             else:
@@ -284,7 +359,6 @@ Respond ONLY with valid JSON (no markdown, no extra text):
                 sl = round(price - (atr * 1.5), 4)
                 tp = round(price + (atr * 3.0), 4)
 
-            ist_now = datetime.utcnow() + timedelta(hours=5, minutes=30)
             valid_until = (ist_now + timedelta(hours=1)).strftime("%H:%M IST")
 
             if random.random() < 0.5:
@@ -295,6 +369,7 @@ Respond ONLY with valid JSON (no markdown, no extra text):
             return {
                 "signal": verdict,
                 "reason": llm_reason,
+                "personal_message": personal_message or f"{time_greeting}, Boss. Stay disciplined today.",
                 "confidence": confidence,
                 "price": str(price),
                 "entry": str(entry),
@@ -327,8 +402,9 @@ if __name__ == "__main__":
             json.dump(data, f, indent=4)
         print("=" * 60)
         print("SUCCESS: data.json updated.")
-        print(f"Price: {data['price']} | Signal: {data['signal']} | Confidence: {data['confidence']}")
-        print(f"Reason: {data['reason'][:200]}")
+        print(f"Signal: {data['signal']} | Confidence: {data['confidence']}")
+        print(f"Reason: {data['reason'][:150]}...")
+        print(f"Personal: {data['personal_message']}")
         print("=" * 60)
     else:
         print("FAILED: Could not fetch data.")
