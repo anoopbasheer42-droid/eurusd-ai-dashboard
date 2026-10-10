@@ -6,6 +6,7 @@ import random
 from datetime import datetime, timedelta
 import time
 
+# Optional imports
 try:
     import pandas_ta_classic as ta
     HAS_TA = True
@@ -14,11 +15,11 @@ except ImportError:
     print("pandas_ta_classic not installed")
 
 try:
-    from groq import Groq
-    HAS_GROQ = True
+    import google.generativeai as genai
+    HAS_GEMINI = True
 except ImportError:
-    HAS_GROQ = False
-    print("groq not installed")
+    HAS_GEMINI = False
+    print("google-generativeai not installed")
 
 
 JOKES = [
@@ -49,17 +50,14 @@ MOTIVATIONS = [
 
 
 def calculate_support_resistance(df):
-    """Find recent swing highs and lows to identify support/resistance."""
     recent = df.tail(50)
     recent_high = round(recent['High'].max(), 4)
     recent_low = round(recent['Low'].min(), 4)
-    # Approximate mid-range
     mid = round((recent_high + recent_low) / 2, 4)
     return recent_high, recent_low, mid
 
 
 def get_market_context(df):
-    """Build a rich context object for the LLM."""
     recent = df.tail(5)
     last_5 = []
     for _, row in recent.iterrows():
@@ -70,12 +68,9 @@ def get_market_context(df):
             "close": round(row['Close'], 4),
             "direction": "up" if row['Close'] > row['Open'] else "down"
         })
-    
-    # Momentum: compare last 3 candle ranges
     ranges = (df['High'] - df['Low']).tail(3).tolist()
     momentum = "expanding" if ranges[-1] > ranges[-2] > ranges[-3] else \
                "contracting" if ranges[-1] < ranges[-2] < ranges[-3] else "mixed"
-    
     return last_5, momentum
 
 
@@ -89,7 +84,6 @@ def get_analysis():
                 continue
             df = df.dropna()
 
-            # --- INDICATORS ---
             df['EMA_20'] = df['Close'].ewm(span=20, adjust=False).mean()
             df['EMA_50'] = df['Close'].ewm(span=50, adjust=False).mean()
             delta = df['Close'].diff()
@@ -117,10 +111,7 @@ def get_analysis():
                 if atr < 0.0003:
                     atr = 0.0015
 
-            # --- SUPPORT & RESISTANCE ---
             resistance, support, mid_range = calculate_support_resistance(df)
-            
-            # Where is price relative to the range?
             if price > resistance * 0.998:
                 location = "near recent resistance"
             elif price < support * 1.002:
@@ -128,10 +119,8 @@ def get_analysis():
             else:
                 location = "middle of the recent range"
 
-            # --- RECENT CANDLES & MOMENTUM ---
             last_5, momentum = get_market_context(df)
 
-            # --- NEWS SENTIMENT ---
             news_bias, news_score = "unavailable", 0
             try:
                 from fxnewsbias import Client
@@ -142,7 +131,6 @@ def get_analysis():
             except Exception as e:
                 print(f"News error: {e}")
 
-            # --- CANDLESTICK PATTERNS ---
             patterns_list = ["No clear pattern"]
             if HAS_TA:
                 try:
@@ -158,7 +146,6 @@ def get_analysis():
                 except Exception as e:
                     print(f"Pattern error: {e}")
 
-            # --- SESSION ---
             hour = datetime.utcnow().hour
             if 7 <= hour < 10:
                 session, volatility = "London Kill Zone", "high"
@@ -169,7 +156,6 @@ def get_analysis():
             else:
                 session, volatility = "Off-Session", "low"
 
-            # --- TECHNICAL SIGNAL ---
             if latest['Close'] > latest['EMA_20'] and rsi > 50:
                 tech_signal = "BUY"
             elif latest['Close'] < latest['EMA_20'] and rsi < 50:
@@ -177,14 +163,14 @@ def get_analysis():
             else:
                 tech_signal = "HOLD"
 
-            # --- LLM VERDICT (ENHANCED PROMPT) ---
             verdict = tech_signal
             llm_reason = f"Technical signal: Price {'above' if latest['Close'] > latest['EMA_20'] else 'below'} 20 EMA, RSI at {rsi}."
             confidence = "MEDIUM"
 
-            if HAS_GROQ and os.environ.get("GROQ_API_KEY"):
+            if HAS_GEMINI and os.environ.get("GEMINI_API_KEY"):
                 try:
-                    client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+                    genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+                    model = genai.GenerativeModel("gemini-1.5-flash")
                     
                     last_5_text = "\n".join([
                         f"  Candle {i+1}: O={c['open']} H={c['high']} L={c['low']} C={c['close']} ({c['direction']})"
@@ -208,7 +194,6 @@ LAST 5 CANDLES:
 {last_5_text}
 
 MOMENTUM: {momentum}
-
 CANDLESTICK PATTERNS: {', '.join(patterns_list)}
 NEWS BIAS: {news_bias} (score: {news_score})
 SESSION: {session} ({volatility} volatility)
@@ -224,28 +209,28 @@ Give a professional trading verdict. Think like a real trader:
 RULES:
 - If signals conflict (e.g., bullish pattern but bearish news), say HOLD
 - If price is mid-range with no clear pattern, say HOLD
-- If confidence is LOW, say HOLD instead
 - Only BUY or SELL with MEDIUM or HIGH confidence
 
-Respond ONLY with valid JSON:
+Respond ONLY with valid JSON (no markdown, no extra text):
 {{"verdict": "BUY/SELL/HOLD", "reason": "3-4 sentences explaining the setup, what confirms it, and what would invalidate it. Speak directly to Boss.", "confidence": "LOW/MEDIUM/HIGH"}}"""
 
-                    response = client.chat.completions.create(
-                        model="llama-3.3-70b-versatile",
-                        messages=[{"role": "user", "content": prompt}],
-                        temperature=0.3,
-                        max_tokens=700,
-                        response_format={"type": "json_object"}
-                    )
-                    result = json.loads(response.choices[0].message.content)
+                    response = model.generate_content(prompt)
+                    raw_text = response.text.strip()
+                    # Clean up any markdown formatting
+                    if raw_text.startswith("```"):
+                        raw_text = raw_text.split("```")[1]
+                        if raw_text.startswith("json"):
+                            raw_text = raw_text[4:]
+                    raw_text = raw_text.strip()
+                    
+                    result = json.loads(raw_text)
                     verdict = result.get("verdict", tech_signal)
                     llm_reason = result.get("reason", llm_reason)
                     confidence = result.get("confidence", "MEDIUM")
-                    print(f"LLM verdict: {verdict} ({confidence})")
+                    print(f"Gemini verdict: {verdict} ({confidence})")
                 except Exception as e:
-                    print(f"LLM error: {e}")
+                    print(f"Gemini error: {e}")
 
-            # --- CANDLE TEXT ---
             if latest['Close'] > latest['Open']:
                 candle_current = f"Bullish candle. Open: {latest['Open']:.4f}, Now: {price}. Buyers in control."
             else:
@@ -254,7 +239,6 @@ Respond ONLY with valid JSON:
             c1h = f"1H candle at {price}. " + ("Above 20 EMA - uptrend." if latest['Close'] > latest['EMA_20'] else "Below 20 EMA - downtrend.")
             c4h = f"4H trend: " + ("bullish above moving averages." if latest['Close'] > latest['EMA_50'] else "bearish below moving averages.")
 
-            # --- SL/TP ---
             entry = price
             if verdict == "BUY":
                 sl = round(price - (atr * 1.5), 4)
@@ -266,11 +250,9 @@ Respond ONLY with valid JSON:
                 sl = round(price - (atr * 1.5), 4)
                 tp = round(price + (atr * 3.0), 4)
 
-            # --- VALID UNTIL IN IST ---
             ist_now = datetime.utcnow() + timedelta(hours=5, minutes=30)
             valid_until = (ist_now + timedelta(hours=1)).strftime("%H:%M IST")
 
-            # --- WISE WORDS ---
             if random.random() < 0.5:
                 wise_words = f"Joke: {random.choice(JOKES)}"
             else:
@@ -310,6 +292,6 @@ if __name__ == "__main__":
         with open("data.json", "w") as f:
             json.dump(data, f, indent=4)
         print("SUCCESS: data.json updated.")
-        print(f"Price: {data['price']} | Signal: {data['signal']} | Valid: {data['valid']}")
+        print(f"Price: {data['price']} | Signal: {data['signal']} | Confidence: {data['confidence']} | Valid: {data['valid']}")
     else:
         print("FAILED: Could not fetch data.")
