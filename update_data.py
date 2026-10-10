@@ -1,12 +1,25 @@
 import yfinance as yf
 import pandas as pd
-import pandas_ta_classic as ta
 import json
 import os
 from datetime import datetime, timedelta
 import time
-from fxnewsbias import Client
-from groq import Groq
+
+# Optional imports - wrapped so they don't crash the script
+try:
+    import pandas_ta_classic as ta
+    HAS_TA = True
+except ImportError:
+    HAS_TA = False
+    print("pandas_ta_classic not installed - pattern detection disabled")
+
+try:
+    from groq import Groq
+    HAS_GROQ = True
+except ImportError:
+    HAS_GROQ = False
+    print("groq not installed - LLM reasoning disabled")
+
 
 def get_analysis():
     for attempt in range(3):
@@ -33,30 +46,32 @@ def get_analysis():
             rsi = round(latest['RSI'], 1)
             ema20 = round(latest['EMA_20'], 4)
 
-            # --- RULE 1: NEWS SENTIMENT ---
+            # --- RULE 1: NEWS SENTIMENT (optional) ---
             news_bias, news_score = "unavailable", 0
             try:
+                from fxnewsbias import Client
                 fx = Client()
                 s = fx.sentiment()
                 news_bias = s.favours("EUR/USD") or "flat"
                 news_score = s.spread("EUR/USD")
             except Exception as e:
-                print(f"News error: {e}")
+                print(f"News error (skipping): {e}")
 
             # --- RULE 2: CANDLESTICK PATTERNS ---
             patterns_list = ["No clear pattern"]
-            try:
-                patterns = df.ta.cdl_pattern(name="all")
-                patterns_list = []
-                for col in patterns.columns:
-                    if patterns[col].iloc[-1] != 0:
-                        name = col.replace("CDL_", "").replace("_", " ").title()
-                        direction = "bullish" if patterns[col].iloc[-1] > 0 else "bearish"
-                        patterns_list.append(f"{name} ({direction})")
-                if not patterns_list:
-                    patterns_list = ["No clear pattern"]
-            except Exception as e:
-                print(f"Pattern error: {e}")
+            if HAS_TA:
+                try:
+                    patterns = df.ta.cdl_pattern(name="all")
+                    patterns_list = []
+                    for col in patterns.columns:
+                        if patterns[col].iloc[-1] != 0:
+                            name = col.replace("CDL_", "").replace("_", " ").title()
+                            direction = "bullish" if patterns[col].iloc[-1] > 0 else "bearish"
+                            patterns_list.append(f"{name} ({direction})")
+                    if not patterns_list:
+                        patterns_list = ["No clear pattern"]
+                except Exception as e:
+                    print(f"Pattern error: {e}")
 
             # --- RULE 3: SESSION TIMING ---
             hour = datetime.utcnow().hour
@@ -77,13 +92,15 @@ def get_analysis():
             else:
                 tech_signal = "HOLD"
 
-            # --- RULE 4: LLM VERDICT ---
+            # --- RULE 4: LLM VERDICT (optional) ---
             verdict = tech_signal
-            llm_reason = "Technical analysis only."
+            llm_reason = f"Technical signal: Price {'above' if latest['Close'] > latest['EMA_20'] else 'below'} 20 EMA, RSI at {rsi}."
             confidence = "MEDIUM"
-            try:
-                client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
-                prompt = f"""You are a professional EUR/USD trader. Analyze:
+            
+            if HAS_GROQ and os.environ.get("GROQ_API_KEY"):
+                try:
+                    client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+                    prompt = f"""You are a professional EUR/USD trader. Analyze:
 Price: {price}, RSI: {rsi}, EMA20: {ema20}
 News Bias: {news_bias} (score: {news_score})
 Patterns: {', '.join(patterns_list)}
@@ -91,19 +108,20 @@ Session: {session} ({volatility} volatility)
 Technical Signal: {tech_signal}
 
 Give final verdict (BUY/SELL/HOLD), reason (2 sentences), confidence (LOW/MEDIUM/HIGH).
-JSON: {{"verdict": "...", "reason": "...", "confidence": "..."}}"""
-                response = client.chat.completions.create(
-                    model="llama-3.3-70b-versatile",
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=0.1, max_tokens=500,
-                    response_format={"type": "json_object"}
-                )
-                result = json.loads(response.choices[0].message.content)
-                verdict = result.get("verdict", tech_signal)
-                llm_reason = result.get("reason", "Technical analysis.")
-                confidence = result.get("confidence", "MEDIUM")
-            except Exception as e:
-                print(f"LLM error: {e}")
+Respond ONLY with JSON like: {{"verdict": "BUY", "reason": "...", "confidence": "HIGH"}}"""
+                    
+                    response = client.chat.completions.create(
+                        model="llama-3.3-70b-versatile",
+                        messages=[{"role": "user", "content": prompt}],
+                        temperature=0.1, max_tokens=500,
+                        response_format={"type": "json_object"}
+                    )
+                    result = json.loads(response.choices[0].message.content)
+                    verdict = result.get("verdict", tech_signal)
+                    llm_reason = result.get("reason", llm_reason)
+                    confidence = result.get("confidence", "MEDIUM")
+                except Exception as e:
+                    print(f"LLM error (using technical signal): {e}")
 
             # --- CANDLE TEXT ---
             if latest['Close'] > latest['Open']:
@@ -144,11 +162,13 @@ JSON: {{"verdict": "...", "reason": "...", "confidence": "..."}}"""
             time.sleep(5)
     return None
 
+
 if __name__ == "__main__":
     data = get_analysis()
     if data:
         with open("data.json", "w") as f:
             json.dump(data, f, indent=4)
-        print("data.json updated with full rule set.")
+        print("SUCCESS: data.json updated with live EUR/USD data.")
+        print(f"Price: {data['price']} | Signal: {data['signal']} | Confidence: {data['confidence']}")
     else:
-        print("All attempts failed.")
+        print("FAILED: Could not fetch EUR/USD data.")
