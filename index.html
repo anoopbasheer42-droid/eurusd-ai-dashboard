@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>EUR/USD AI Pro Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -24,7 +27,7 @@
         .signal-text { font-size: 3rem; font-weight: 800; transition: color 0.5s; }
         .signal-text.buy { color: var(--green); text-shadow: 0 0 20px rgba(0,255,136,0.4); }
         .signal-text.sell { color: var(--red); text-shadow: 0 0 20px rgba(255,51,102,0.4); }
-        .signal-text.hold { color: var(--yellow); text-shadow: 0 0 20px rgba(255,204,0,0.4); }
+        .signal-text.hold, .signal-text.waiting { color: var(--yellow); text-shadow: 0 0 20px rgba(255,204,0,0.4); }
         .reason-box { background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; font-size: 0.9rem; color: var(--muted); margin-bottom: 20px; border-left: 3px solid var(--accent); }
         .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .data-item { background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; }
@@ -36,8 +39,6 @@
         .voice-btn:hover { opacity: 0.9; }
         .news-item { padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
         .news-item:last-child { border-bottom: none; }
-        .tag-bullish { color: var(--green); font-weight: 600; }
-        .tag-bearish { color: var(--red); font-weight: 600; }
         .candle-analysis { margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 10px; font-size: 0.85rem; line-height: 1.6; }
         .candle-item { margin-bottom: 12px; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 8px; }
         .candle-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
@@ -59,13 +60,14 @@
 
         <div class="card">
             <h2>Current Signal</h2>
-            <div class="signal-display"><div id="signal" class="signal-text hold">LOADING</div></div>
+            <div class="signal-display"><div id="signal" class="signal-text waiting">WAITING</div></div>
             <div id="reason" class="reason-box">Connecting to live data...</div>
             <div class="data-grid">
-                <div class="data-item"><div class="data-label">Entry Price</div><div id="entry" class="data-value">-</div></div>
+                <div class="data-item"><div class="data-label">Live Price</div><div id="price" class="data-value">-</div></div>
+                <div class="data-item"><div class="data-label">Valid Until</div><div id="valid" class="data-value">-</div></div>
+                <div class="data-item"><div class="data-label">Entry</div><div id="entry" class="data-value">-</div></div>
                 <div class="data-item"><div class="data-label">Stop Loss</div><div id="sl" class="data-value">-</div></div>
                 <div class="data-item"><div class="data-label">Take Profit</div><div id="tp" class="data-value">-</div></div>
-                <div class="data-item"><div class="data-label">Valid Until</div><div id="valid" class="data-value">-</div></div>
             </div>
             <div class="voice-controls">
                 <button class="voice-btn" onclick="speakSignal()">🔊 Play Voice</button>
@@ -76,17 +78,17 @@
         <div class="card" style="grid-column: 1 / -1;">
             <h2>Multi-Timeframe Analysis</h2>
             <div class="candle-analysis">
-                <div class="candle-item"><span class="candle-timeframe">5 Minute Candle:</span><span id="candle_5m">Analyzing...</span></div>
-                <div class="candle-item"><span class="candle-timeframe">1 Hour Candle:</span><span id="candle_1h">Analyzing...</span></div>
-                <div class="candle-item"><span class="candle-timeframe">4 Hour Candle:</span><span id="candle_4h">Analyzing...</span></div>
+                <div class="candle-item"><span class="candle-timeframe">Current Candle:</span><span id="candle_current">Waiting...</span></div>
+                <div class="candle-item"><span class="candle-timeframe">1 Hour Candle:</span><span id="candle_1h">Waiting...</span></div>
+                <div class="candle-item"><span class="candle-timeframe">4 Hour Candle:</span><span id="candle_4h">Waiting...</span></div>
             </div>
         </div>
 
         <div class="card" style="grid-column: 1 / -1;">
             <h2>Live Market News</h2>
             <div id="news-feed">
-                <div class="news-item"><div>ECB officials hint at potential rate cut in Q4. <span class="tag-bearish">BEARISH EUR</span></div></div>
-                <div class="news-item"><div>US NFP data comes in stronger than expected. <span class="tag-bullish">BULLISH USD</span></div></div>
+                <div class="news-item"><div>ECB officials hint at potential rate cut in Q4. <span style="color:var(--red);font-weight:600;">BEARISH EUR</span></div></div>
+                <div class="news-item"><div>US NFP data comes in stronger than expected. <span style="color:var(--green);font-weight:600;">BULLISH USD</span></div></div>
             </div>
         </div>
     </div>
@@ -120,16 +122,14 @@
         // --- FETCH LIVE DATA FROM GITHUB ---
         async function loadLiveData() {
             try {
-                // Fetch the data.json file generated by our Python script
-                const response = await fetch('data.json?t=' + Date.now()); // added timestamp to bypass cache
+                const response = await fetch('data.json?t=' + Date.now()); 
                 if (!response.ok) throw new Error("Data not generated yet");
                 const data = await response.json();
                 updateDashboard(data);
             } catch (error) {
                 console.log("Waiting for live data...", error);
-                document.getElementById("reason").innerText = "Waiting for the Python backend to generate data.json...";
-                // Retry in 30 seconds
-                setTimeout(loadLiveData, 30000);
+                document.getElementById("reason").innerText = "Boss, waiting for the Python backend to generate live data. Please run the GitHub Action.";
+                setTimeout(loadLiveData, 15000); 
             }
         }
 
@@ -138,24 +138,49 @@
             signalEl.innerText = data.signal;
             signalEl.className = `signal-text ${data.signal.toLowerCase()}`;
             document.getElementById("reason").innerText = data.reason;
+            document.getElementById("price").innerText = data.price || data.entry;
             document.getElementById("entry").innerText = data.entry;
             document.getElementById("sl").innerText = data.sl;
             document.getElementById("tp").innerText = data.tp;
             document.getElementById("valid").innerText = data.valid;
-            document.getElementById("candle_5m").innerText = data.candle_5m;
+            document.getElementById("candle_current").innerText = data.candle_current || "No data.";
             document.getElementById("candle_1h").innerText = data.candle_1h;
             document.getElementById("candle_4h").innerText = data.candle_4h;
+            
             if (data.signal === "BUY") material.color.setHex(0x00ff88);
             else if (data.signal === "SELL") material.color.setHex(0xff3366);
             else material.color.setHex(0xffcc00);
         }
 
-        // --- VOICE ---
+        // --- VOICE SYNTHESIS (Pro Trader Explaining to Boss) ---
         function speakSignal() {
-            const text = `Let me explain the EUR USD market. Signal: ${document.getElementById("signal").innerText}. Reason: ${document.getElementById("reason").innerText}. The 5 minute candle shows: ${document.getElementById("candle_5m").innerText}. The 1 hour candle: ${document.getElementById("candle_1h").innerText}. The 4 hour candle: ${document.getElementById("candle_4h").innerText}. Entry at ${document.getElementById("entry").innerText}, Stop Loss at ${document.getElementById("sl").innerText}, Take Profit at ${document.getElementById("tp").innerText}. Valid until ${document.getElementById("valid").innerText}.`;
+            const signal = document.getElementById("signal").innerText;
+            const reason = document.getElementById("reason").innerText;
+            const price = document.getElementById("price").innerText;
+            const entry = document.getElementById("entry").innerText;
+            const sl = document.getElementById("sl").innerText;
+            const tp = document.getElementById("tp").innerText;
+            const valid = document.getElementById("valid").innerText;
+            const cCurrent = document.getElementById("candle_current").innerText;
+            const c1h = document.getElementById("candle_1h").innerText;
+            const c4h = document.getElementById("candle_4h").innerText;
+
+            // Constructing the "Boss" report
+            const text = `Boss, here is the live market update for EUR USD. 
+            The current live price is ${price}. 
+            The current candle is showing: ${cCurrent}. 
+            On the 1 hour timeframe: ${c1h}. 
+            On the 4 hour timeframe: ${c4h}. 
+            Evaluating entry possibilities right now, the signal is ${signal}. 
+            Here is why: ${reason}. 
+            If you enter, the suggested Entry is ${entry}, Stop Loss at ${sl}, and Take Profit at ${tp}. 
+            This setup is valid until ${valid}. 
+            I will keep monitoring and update you next hour, Boss.`;
+
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.rate = 0.95;
+            utterance.pitch = 1.0;
             window.speechSynthesis.speak(utterance);
         }
 
