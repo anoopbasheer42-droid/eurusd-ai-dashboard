@@ -1,1 +1,43 @@
 
+{
+    "name": "Boss",
+    "family": {
+        "wife": {
+            "name": "Sadia",
+            "location": "Dubai"
+        },
+        "daughters": [
+            {
+                "name": "Emy",
+                "grade": "7th grade",
+                "birthday": "22 July"
+            },
+            {
+                "name": "Bismah",
+                "grade": "5th grade",
+                "birthday": "26 December"
+            }
+        ],
+        "cat": "Cookie",
+        "parents": ["Dad", "Mom"],
+        "brothers": ["Binu", "Shanu"]
+    },
+    "daily_routine": [
+        "Ask if Boss had breakfast",
+        "Remind about cooking for the children",
+        "Ask about lunch",
+        "Remind to take BP tablets after breakfast",
+        "Remind to take BP tablets after dinner"
+    ],
+    "trading_style": {
+        "monthly_goal": "10,000 INR",
+        "preferred_sessions": ["London (European)", "New York"],
+        "risk_tolerance": "Conservative"
+    },
+    "ai_personality": {
+        "tone": "Friendly, funny, and motivational",
+        "should_use_emojis": false,
+        "should_call_user": "Boss"
+    },
+    "custom_reminders": []
+}
