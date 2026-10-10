@@ -26,7 +26,6 @@
         .signal-text.buy { color: var(--green); text-shadow: 0 0 20px rgba(0,255,136,0.4); }
         .signal-text.sell { color: var(--red); text-shadow: 0 0 20px rgba(255,51,102,0.4); }
         .signal-text.hold, .signal-text.waiting { color: var(--yellow); text-shadow: 0 0 20px rgba(255,204,0,0.4); }
-        .reason-box { background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; font-size: 0.9rem; color: var(--muted); margin-bottom: 20px; border-left: 3px solid var(--accent); line-height: 1.6; }
         .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .data-item { background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; }
         .data-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
@@ -35,7 +34,7 @@
         .voice-btn { flex: 1; padding: 16px; background: linear-gradient(135deg, var(--accent), var(--purple)); border: none; border-radius: 12px; color: white; font-size: 1rem; font-weight: 600; cursor: pointer; transition: 0.2s; }
         .voice-btn.stop { background: linear-gradient(135deg, #ff3366, #cc0033); flex: 0.4; }
         .voice-btn:hover { opacity: 0.9; }
-        .candle-analysis { margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 10px; font-size: 0.85rem; line-height: 1.6; }
+        .candle-analysis { padding: 15px; background: rgba(0,0,0,0.2); border-radius: 10px; font-size: 0.85rem; line-height: 1.6; }
         .candle-item { margin-bottom: 12px; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 8px; }
         .candle-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
         .candle-timeframe { color: var(--accent); font-weight: 600; margin-right: 5px; }
@@ -45,6 +44,8 @@
         .level-item { background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px; font-size: 0.8rem; }
         .level-label { color: var(--muted); font-size: 0.7rem; text-transform: uppercase; }
         .level-value { font-family: monospace; font-weight: 600; margin-top: 2px; }
+        .ai-reason-box { background: rgba(0,0,0,0.3); padding: 20px; border-radius: 12px; font-size: 0.95rem; line-height: 1.7; color: #e2e8f0; border-left: 4px solid var(--accent); }
+        .ai-reason-label { display: block; font-weight: 600; color: var(--accent); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -63,7 +64,6 @@
         <div class="card">
             <h2>Current Signal</h2>
             <div class="signal-display"><div id="signal" class="signal-text waiting">WAITING</div></div>
-            <div id="reason" class="reason-box">Connecting to live data...</div>
             <div class="data-grid">
                 <div class="data-item"><div class="data-label">Live Price</div><div id="price" class="data-value">-</div></div>
                 <div class="data-item"><div class="data-label">Valid Until</div><div id="valid" class="data-value">-</div></div>
@@ -97,6 +97,14 @@
                     <div class="level-item"><div class="level-label">Support</div><div class="level-value" id="support">-</div></div>
                     <div class="level-item"><div class="level-label">Resistance</div><div class="level-value" id="resistance">-</div></div>
                 </div>
+            </div>
+        </div>
+
+        <div class="card" style="grid-column: 1 / -1;">
+            <h2>AI Trader's Reasoning 🧠</h2>
+            <div class="ai-reason-box">
+                <span class="ai-reason-label">Why this signal?</span>
+                <span id="ai_reason">Waiting for AI analysis...</span>
             </div>
         </div>
     </div>
@@ -136,7 +144,7 @@
                 const data = await response.json();
                 updateDashboard(data);
             } catch (error) {
-                document.getElementById("reason").innerText = "Boss, waiting for the Python backend. Please run the GitHub Action.";
+                document.getElementById("ai_reason").innerText = "Boss, waiting for the Python backend. Please run the GitHub Action.";
                 setTimeout(loadLiveData, 15000);
             }
         }
@@ -146,7 +154,6 @@
             const signalEl = document.getElementById("signal");
             signalEl.innerText = data.signal;
             signalEl.className = `signal-text ${data.signal.toLowerCase()}`;
-            document.getElementById("reason").innerText = data.reason;
             document.getElementById("price").innerText = data.price || data.entry;
             document.getElementById("entry").innerText = data.entry;
             document.getElementById("sl").innerText = data.sl;
@@ -159,6 +166,7 @@
             document.getElementById("session").innerText = (data.session || "-") + " (" + (data.volatility || "-") + " volatility)";
             document.getElementById("support").innerText = data.support || "-";
             document.getElementById("resistance").innerText = data.resistance || "-";
+            document.getElementById("ai_reason").innerText = data.reason || "No analysis yet.";
             
             if (data.wise_words) {
                 const wiseBox = document.getElementById("wise_box");
@@ -202,32 +210,16 @@
         function getBestVoice() {
             const voices = window.speechSynthesis.getVoices();
             if (!voices.length) return null;
-            
-            // Priority list of preferred voices (male, professional, various accents)
             const preferredNames = [
-                "Google UK English Male",
-                "Microsoft Ryan Online",
-                "Microsoft Guy Online",
-                "Google US English",
-                "Microsoft Mark",
-                "Daniel",
-                "Alex",
-                "Google UK English Female",
-                "Samantha"
+                "Google UK English Male", "Microsoft Ryan Online", "Microsoft Guy Online",
+                "Google US English", "Microsoft Mark", "Daniel", "Alex",
+                "Google UK English Female", "Samantha"
             ];
-            
             const englishVoices = voices.filter(v => v.lang.startsWith("en"));
-            
-            // Randomly pick from preferred voices that exist
             const matches = preferredNames
                 .map(name => englishVoices.find(v => v.name.includes(name.split(" ")[0])))
                 .filter(v => v);
-            
-            if (matches.length) {
-                return pickRandom(matches);
-            }
-            
-            // Fallback: any English voice
+            if (matches.length) return pickRandom(matches);
             if (englishVoices.length) return pickRandom(englishVoices);
             return voices[0];
         }
@@ -251,9 +243,6 @@
             text += `Live price is ${d.price}. `;
             text += `My verdict is ${d.signal}, with ${d.confidence} confidence. `;
             text += `${transition} ${d.reason} `;
-            text += `The current candle shows: ${d.candle_current} `;
-            text += `On the one hour: ${d.candle_1h} `;
-            text += `On the four hour: ${d.candle_4h} `;
             text += `Key levels to watch — support at ${d.support || 'unknown'}, resistance at ${d.resistance || 'unknown'}. `;
             text += `Suggested entry ${d.entry}, stop loss at ${d.sl}, take profit at ${d.tp}. `;
             text += `Signal valid until ${d.valid}. `;
@@ -266,22 +255,16 @@
             text += closing;
 
             window.speechSynthesis.cancel();
-            
             const utterance = new SpeechSynthesisUtterance(text);
             const voice = getBestVoice();
             if (voice) utterance.voice = voice;
-            
-            // Random subtle variation each time
-            utterance.rate = 0.88 + Math.random() * 0.15;   // 0.88 - 1.03
-            utterance.pitch = 0.85 + Math.random() * 0.25;  // 0.85 - 1.10
+            utterance.rate = 0.88 + Math.random() * 0.15;
+            utterance.pitch = 0.85 + Math.random() * 0.25;
             utterance.volume = 1.0;
-            
             window.speechSynthesis.speak(utterance);
         }
 
         function stopVoice() { window.speechSynthesis.cancel(); }
-
-        // Load voices when they're ready (needed for some browsers)
         window.speechSynthesis.onvoiceschanged = () => { getBestVoice(); };
 
         loadLiveData();
