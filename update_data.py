@@ -74,6 +74,38 @@ def get_market_context(df):
     return last_5, momentum
 
 
+def call_gemini(prompt):
+    """Try multiple Gemini models until one works."""
+    if not (HAS_GEMINI and os.environ.get("GEMINI_API_KEY")):
+        return None
+    
+    genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+    
+    # Google retires model names periodically. Try latest first.
+    model_names = [
+        "gemini-2.0-flash",
+        "gemini-2.0-flash-exp",
+        "gemini-2.5-flash",
+        "gemini-1.5-flash-latest",
+        "gemini-1.5-flash",
+        "gemini-flash-latest",
+        "gemini-pro"
+    ]
+    
+    for m_name in model_names:
+        try:
+            model = genai.GenerativeModel(m_name)
+            response = model.generate_content(prompt)
+            raw_text = response.text.strip()
+            print(f"Gemini model used: {m_name}")
+            return raw_text
+        except Exception as e:
+            print(f"Model {m_name} failed: {e}")
+            continue
+    
+    return None
+
+
 def get_analysis():
     for attempt in range(3):
         try:
@@ -84,6 +116,7 @@ def get_analysis():
                 continue
             df = df.dropna()
 
+            # Indicators
             df['EMA_20'] = df['Close'].ewm(span=20, adjust=False).mean()
             df['EMA_50'] = df['Close'].ewm(span=50, adjust=False).mean()
             delta = df['Close'].diff()
@@ -167,17 +200,13 @@ def get_analysis():
             llm_reason = f"Technical signal: Price {'above' if latest['Close'] > latest['EMA_20'] else 'below'} 20 EMA, RSI at {rsi}."
             confidence = "MEDIUM"
 
-            if HAS_GEMINI and os.environ.get("GEMINI_API_KEY"):
-                try:
-                    genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
-                    model = genai.GenerativeModel("gemini-1.5-flash")
-                    
-                    last_5_text = "\n".join([
-                        f"  Candle {i+1}: O={c['open']} H={c['high']} L={c['low']} C={c['close']} ({c['direction']})"
-                        for i, c in enumerate(last_5)
-                    ])
-                    
-                    prompt = f"""You are a professional EUR/USD trader with 10 years of experience at a hedge fund. You are analyzing the 1-hour chart for a client named Boss.
+            # --- GEMINI AI REASONING ---
+            last_5_text = "\n".join([
+                f"  Candle {i+1}: O={c['open']} H={c['high']} L={c['low']} C={c['close']} ({c['direction']})"
+                for i, c in enumerate(last_5)
+            ])
+
+            prompt = f"""You are a professional EUR/USD trader with 10 years of experience at a hedge fund. You are analyzing the 1-hour chart for a client named Boss.
 
 MARKET DATA:
 - Current Price: {price}
@@ -214,23 +243,28 @@ RULES:
 Respond ONLY with valid JSON (no markdown, no extra text):
 {{"verdict": "BUY/SELL/HOLD", "reason": "3-4 sentences explaining the setup, what confirms it, and what would invalidate it. Speak directly to Boss.", "confidence": "LOW/MEDIUM/HIGH"}}"""
 
-                    response = model.generate_content(prompt)
-                    raw_text = response.text.strip()
-                    # Clean up any markdown formatting
-                    if raw_text.startswith("```"):
-                        raw_text = raw_text.split("```")[1]
-                        if raw_text.startswith("json"):
-                            raw_text = raw_text[4:]
-                    raw_text = raw_text.strip()
+            raw_response = call_gemini(prompt)
+            
+            if raw_response:
+                try:
+                    clean = raw_response.strip()
+                    if clean.startswith("```"):
+                        clean = clean.split("```")[1]
+                        if clean.startswith("json"):
+                            clean = clean[4:]
+                    clean = clean.strip()
                     
-                    result = json.loads(raw_text)
+                    result = json.loads(clean)
                     verdict = result.get("verdict", tech_signal)
                     llm_reason = result.get("reason", llm_reason)
                     confidence = result.get("confidence", "MEDIUM")
-                    print(f"Gemini verdict: {verdict} ({confidence})")
+                    print(f"AI verdict: {verdict} ({confidence})")
+                    print(f"AI reason: {llm_reason[:100]}...")
                 except Exception as e:
-                    print(f"Gemini error: {e}")
+                    print(f"JSON parse error: {e}")
+                    print(f"Raw response: {raw_response[:200]}")
 
+            # Candle text
             if latest['Close'] > latest['Open']:
                 candle_current = f"Bullish candle. Open: {latest['Open']:.4f}, Now: {price}. Buyers in control."
             else:
@@ -291,7 +325,10 @@ if __name__ == "__main__":
     if data:
         with open("data.json", "w") as f:
             json.dump(data, f, indent=4)
+        print("=" * 60)
         print("SUCCESS: data.json updated.")
-        print(f"Price: {data['price']} | Signal: {data['signal']} | Confidence: {data['confidence']} | Valid: {data['valid']}")
+        print(f"Price: {data['price']} | Signal: {data['signal']} | Confidence: {data['confidence']}")
+        print(f"Reason: {data['reason'][:200]}")
+        print("=" * 60)
     else:
         print("FAILED: Could not fetch data.")
