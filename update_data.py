@@ -6,20 +6,19 @@ import random
 from datetime import datetime, timedelta
 import time
 
-# Optional imports
 try:
     import pandas_ta_classic as ta
     HAS_TA = True
 except ImportError:
     HAS_TA = False
-    print("pandas_ta_classic not installed - pattern detection disabled")
+    print("pandas_ta_classic not installed")
 
 try:
     from groq import Groq
     HAS_GROQ = True
 except ImportError:
     HAS_GROQ = False
-    print("groq not installed - LLM reasoning disabled")
+    print("groq not installed")
 
 
 JOKES = [
@@ -49,6 +48,37 @@ MOTIVATIONS = [
 ]
 
 
+def calculate_support_resistance(df):
+    """Find recent swing highs and lows to identify support/resistance."""
+    recent = df.tail(50)
+    recent_high = round(recent['High'].max(), 4)
+    recent_low = round(recent['Low'].min(), 4)
+    # Approximate mid-range
+    mid = round((recent_high + recent_low) / 2, 4)
+    return recent_high, recent_low, mid
+
+
+def get_market_context(df):
+    """Build a rich context object for the LLM."""
+    recent = df.tail(5)
+    last_5 = []
+    for _, row in recent.iterrows():
+        last_5.append({
+            "open": round(row['Open'], 4),
+            "high": round(row['High'], 4),
+            "low": round(row['Low'], 4),
+            "close": round(row['Close'], 4),
+            "direction": "up" if row['Close'] > row['Open'] else "down"
+        })
+    
+    # Momentum: compare last 3 candle ranges
+    ranges = (df['High'] - df['Low']).tail(3).tolist()
+    momentum = "expanding" if ranges[-1] > ranges[-2] > ranges[-3] else \
+               "contracting" if ranges[-1] < ranges[-2] < ranges[-3] else "mixed"
+    
+    return last_5, momentum
+
+
 def get_analysis():
     for attempt in range(3):
         try:
@@ -68,7 +98,6 @@ def get_analysis():
             rs = gain / loss
             df['RSI'] = 100 - (100 / (1 + rs))
 
-            # Proper 14-period ATR
             tr1 = df['High'] - df['Low']
             tr2 = (df['High'] - df['Close'].shift()).abs()
             tr3 = (df['Low'] - df['Close'].shift()).abs()
@@ -79,6 +108,7 @@ def get_analysis():
             price = round(latest['Close'], 4)
             rsi = round(latest['RSI'], 1)
             ema20 = round(latest['EMA_20'], 4)
+            ema50 = round(latest['EMA_50'], 4)
             atr = round(latest['ATR'], 4)
 
             if pd.isna(atr) or atr < 0.0005:
@@ -87,7 +117,21 @@ def get_analysis():
                 if atr < 0.0003:
                     atr = 0.0015
 
-            # --- RULE 1: NEWS SENTIMENT ---
+            # --- SUPPORT & RESISTANCE ---
+            resistance, support, mid_range = calculate_support_resistance(df)
+            
+            # Where is price relative to the range?
+            if price > resistance * 0.998:
+                location = "near recent resistance"
+            elif price < support * 1.002:
+                location = "near recent support"
+            else:
+                location = "middle of the recent range"
+
+            # --- RECENT CANDLES & MOMENTUM ---
+            last_5, momentum = get_market_context(df)
+
+            # --- NEWS SENTIMENT ---
             news_bias, news_score = "unavailable", 0
             try:
                 from fxnewsbias import Client
@@ -96,9 +140,9 @@ def get_analysis():
                 news_bias = s.favours("EUR/USD") or "flat"
                 news_score = s.spread("EUR/USD")
             except Exception as e:
-                print(f"News error (skipping): {e}")
+                print(f"News error: {e}")
 
-            # --- RULE 2: CANDLESTICK PATTERNS ---
+            # --- CANDLESTICK PATTERNS ---
             patterns_list = ["No clear pattern"]
             if HAS_TA:
                 try:
@@ -114,7 +158,7 @@ def get_analysis():
                 except Exception as e:
                     print(f"Pattern error: {e}")
 
-            # --- RULE 3: SESSION TIMING ---
+            # --- SESSION ---
             hour = datetime.utcnow().hour
             if 7 <= hour < 10:
                 session, volatility = "London Kill Zone", "high"
@@ -133,7 +177,7 @@ def get_analysis():
             else:
                 tech_signal = "HOLD"
 
-            # --- RULE 4: LLM VERDICT ---
+            # --- LLM VERDICT (ENHANCED PROMPT) ---
             verdict = tech_signal
             llm_reason = f"Technical signal: Price {'above' if latest['Close'] > latest['EMA_20'] else 'below'} 20 EMA, RSI at {rsi}."
             confidence = "MEDIUM"
@@ -141,27 +185,56 @@ def get_analysis():
             if HAS_GROQ and os.environ.get("GROQ_API_KEY"):
                 try:
                     client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
-                    prompt = f"""You are a professional EUR/USD trader with 10 years experience. Analyze:
+                    
+                    last_5_text = "\n".join([
+                        f"  Candle {i+1}: O={c['open']} H={c['high']} L={c['low']} C={c['close']} ({c['direction']})"
+                        for i, c in enumerate(last_5)
+                    ])
+                    
+                    prompt = f"""You are a professional EUR/USD trader with 10 years of experience at a hedge fund. You are analyzing the 1-hour chart for a client named Boss.
 
-Price: {price}
-RSI(14): {rsi}
-EMA20: {ema20}
-ATR: {atr}
-News Bias: {news_bias} (score: {news_score})
-Patterns: {', '.join(patterns_list)}
-Session: {session} ({volatility} volatility)
-Technical Signal: {tech_signal}
+MARKET DATA:
+- Current Price: {price}
+- RSI(14): {rsi}
+- EMA20: {ema20}
+- EMA50: {ema50}
+- ATR(14): {atr}
+- Recent Resistance: {resistance}
+- Recent Support: {support}
+- Mid-Range: {mid_range}
+- Price Location: {location}
 
-Give your final verdict (BUY / SELL / HOLD), a reason in 2-3 sentences explaining WHY, and a confidence level (LOW / MEDIUM / HIGH).
+LAST 5 CANDLES:
+{last_5_text}
 
-Respond ONLY with valid JSON in this exact format:
-{{"verdict": "BUY", "reason": "your explanation here", "confidence": "HIGH"}}"""
+MOMENTUM: {momentum}
+
+CANDLESTICK PATTERNS: {', '.join(patterns_list)}
+NEWS BIAS: {news_bias} (score: {news_score})
+SESSION: {session} ({volatility} volatility)
+TECHNICAL SIGNAL: {tech_signal}
+
+YOUR TASK:
+Give a professional trading verdict. Think like a real trader:
+- Is the trend clear or choppy?
+- Is the price at a good entry level or exhausted?
+- Does the news support the technical setup?
+- What invalidates this trade?
+
+RULES:
+- If signals conflict (e.g., bullish pattern but bearish news), say HOLD
+- If price is mid-range with no clear pattern, say HOLD
+- If confidence is LOW, say HOLD instead
+- Only BUY or SELL with MEDIUM or HIGH confidence
+
+Respond ONLY with valid JSON:
+{{"verdict": "BUY/SELL/HOLD", "reason": "3-4 sentences explaining the setup, what confirms it, and what would invalidate it. Speak directly to Boss.", "confidence": "LOW/MEDIUM/HIGH"}}"""
 
                     response = client.chat.completions.create(
                         model="llama-3.3-70b-versatile",
                         messages=[{"role": "user", "content": prompt}],
-                        temperature=0.1,
-                        max_tokens=500,
+                        temperature=0.3,
+                        max_tokens=700,
                         response_format={"type": "json_object"}
                     )
                     result = json.loads(response.choices[0].message.content)
@@ -170,7 +243,7 @@ Respond ONLY with valid JSON in this exact format:
                     confidence = result.get("confidence", "MEDIUM")
                     print(f"LLM verdict: {verdict} ({confidence})")
                 except Exception as e:
-                    print(f"LLM error (using technical signal): {e}")
+                    print(f"LLM error: {e}")
 
             # --- CANDLE TEXT ---
             if latest['Close'] > latest['Open']:
@@ -178,10 +251,10 @@ Respond ONLY with valid JSON in this exact format:
             else:
                 candle_current = f"Bearish candle. Open: {latest['Open']:.4f}, Now: {price}. Sellers pushing down."
 
-            c1h = f"1H candle closed at {price}. " + ("Above 20 EMA - uptrend." if latest['Close'] > latest['EMA_20'] else "Below 20 EMA - downtrend.")
+            c1h = f"1H candle at {price}. " + ("Above 20 EMA - uptrend." if latest['Close'] > latest['EMA_20'] else "Below 20 EMA - downtrend.")
             c4h = f"4H trend: " + ("bullish above moving averages." if latest['Close'] > latest['EMA_50'] else "bearish below moving averages.")
 
-            # --- SL/TP with proper ATR-based risk (1:2 R:R) ---
+            # --- SL/TP ---
             entry = price
             if verdict == "BUY":
                 sl = round(price - (atr * 1.5), 4)
@@ -212,6 +285,8 @@ Respond ONLY with valid JSON in this exact format:
                 "sl": str(sl),
                 "tp": str(tp),
                 "atr": str(atr),
+                "support": str(support),
+                "resistance": str(resistance),
                 "valid": valid_until,
                 "candle_current": candle_current,
                 "candle_1h": c1h,
@@ -235,6 +310,6 @@ if __name__ == "__main__":
         with open("data.json", "w") as f:
             json.dump(data, f, indent=4)
         print("SUCCESS: data.json updated.")
-        print(f"Price: {data['price']} | Signal: {data['signal']} | SL: {data['sl']} | TP: {data['tp']} | Valid: {data['valid']}")
+        print(f"Price: {data['price']} | Signal: {data['signal']} | Valid: {data['valid']}")
     else:
         print("FAILED: Could not fetch data.")
