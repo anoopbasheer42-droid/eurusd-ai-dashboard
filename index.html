@@ -1,1 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EUR/USD AI Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #1e1e1e; color: #fff; padding: 20px; }
+        .card { background: #2d2d2d; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        .buy { color: #00ff00; }
+        .sell { color: #ff0000; }
+        .hold { color: #ffff00; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>EUR/USD AI Dashboard</h1>
 
+    <div class="card">
+        <h2>Current Signal</h2>
+        <h1 id="signal" class="hold">LOADING...</h1>
+        <p id="reason">Waiting for AI analysis...</p>
+        <p><strong>Entry:</strong> <span id="entry">-</span></p>
+        <p><strong>Stop Loss:</strong> <span id="sl">-</span></p>
+        <p><strong>Take Profit:</strong> <span id="tp">-</span></p>
+        <p><strong>Valid Until:</strong> <span id="valid">-</span></p>
+    </div>
+
+    <div class="card">
+        <h2>Voice Control</h2>
+        <button onclick="speakSignal()">🔊 Play Voice Update</button>
+    </div>
+
+    <script>
+        // Placeholder data - we will load this from the AI later
+        const mockData = {
+            signal: "BUY",
+            reason: "MACD bullish crossover + positive EUR news.",
+            entry: "1.0852",
+            sl: "1.0820",
+            tp: "1.0910",
+            valid: "18:00 UTC"
+        };
+
+        function updateDashboard(data) {
+            document.getElementById("signal").innerText = data.signal;
+            document.getElementById("signal").className = data.signal.toLowerCase();
+            document.getElementById("reason").innerText = data.reason;
+            document.getElementById("entry").innerText = data.entry;
+            document.getElementById("sl").innerText = data.sl;
+            document.getElementById("tp").innerText = data.tp;
+            document.getElementById("valid").innerText = data.valid;
+        }
+
+        function speakSignal() {
+            const text = `Signal: ${mockData.signal}. Reason: ${mockData.reason}`;
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 0.9;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // Load the mock data when the page opens
+        updateDashboard(mockData);
+    </script>
+</body>
+</html>
