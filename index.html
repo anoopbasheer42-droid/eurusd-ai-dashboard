@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EUR/USD AI Pro Dashboard</title>
-    <!-- Google Fonts for professional typography -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
-    <!-- Three.js for 3D Animation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     
     <style>
@@ -22,11 +20,7 @@
             --accent: #3b82f6;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
             font-family: 'Inter', sans-serif;
@@ -37,7 +31,6 @@
             background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #0a0e17 70%);
         }
 
-        /* Header */
         header {
             display: flex;
             justify-content: space-between;
@@ -47,30 +40,20 @@
             border-bottom: 1px solid var(--border-color);
         }
 
-        h1 {
-            font-size: 1.5rem;
-            font-weight: 800;
-            letter-spacing: -0.5px;
-        }
+        h1 { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.5px; }
 
         .status-badge {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.8rem;
-            font-weight: 600;
+            display: flex; align-items: center; gap: 8px;
+            font-size: 0.8rem; font-weight: 600;
             color: var(--green);
             background: rgba(0, 255, 136, 0.1);
-            padding: 6px 12px;
-            border-radius: 20px;
+            padding: 6px 12px; border-radius: 20px;
             border: 1px solid rgba(0, 255, 136, 0.2);
         }
 
         .pulse-dot {
-            width: 8px;
-            height: 8px;
-            background-color: var(--green);
-            border-radius: 50%;
+            width: 8px; height: 8px;
+            background-color: var(--green); border-radius: 50%;
             animation: pulse 1.5s infinite;
         }
 
@@ -80,23 +63,18 @@
             100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 255, 136, 0); }
         }
 
-        /* Grid Layout */
         .dashboard-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 20px;
         }
 
-        @media (max-width: 768px) {
-            .dashboard-grid { grid-template-columns: 1fr; }
-        }
+        @media (max-width: 768px) { .dashboard-grid { grid-template-columns: 1fr; } }
 
-        /* Cards */
         .card {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 24px;
+            border-radius: 16px; padding: 24px;
             backdrop-filter: blur(10px);
             transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
@@ -108,109 +86,89 @@
         }
 
         .card h2 {
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--text-muted);
+            font-size: 0.9rem; text-transform: uppercase;
+            letter-spacing: 1px; color: var(--text-muted);
             margin-bottom: 20px;
         }
 
-        /* 3D Model Container */
         #canvas-container {
-            width: 100%;
-            height: 250px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            width: 100%; height: 250px;
+            display: flex; justify-content: center; align-items: center;
             position: relative;
         }
 
-        /* Signal Card */
-        .signal-display {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
+        .signal-display { text-align: center; margin-bottom: 20px; }
         .signal-text {
-            font-size: 3rem;
-            font-weight: 800;
-            letter-spacing: 2px;
+            font-size: 3rem; font-weight: 800; letter-spacing: 2px;
             transition: color 0.5s ease;
         }
-
         .signal-text.buy { color: var(--green); text-shadow: 0 0 20px rgba(0, 255, 136, 0.4); }
         .signal-text.sell { color: var(--red); text-shadow: 0 0 20px rgba(255, 51, 102, 0.4); }
         .signal-text.hold { color: var(--yellow); text-shadow: 0 0 20px rgba(255, 204, 0, 0.4); }
 
         .reason-box {
             background: rgba(0, 0, 0, 0.3);
-            padding: 15px;
-            border-radius: 10px;
-            font-size: 0.9rem;
-            line-height: 1.5;
-            color: var(--text-muted);
-            margin-bottom: 20px;
+            padding: 15px; border-radius: 10px;
+            font-size: 0.9rem; line-height: 1.5;
+            color: var(--text-muted); margin-bottom: 20px;
             border-left: 3px solid var(--accent);
         }
 
-        /* Data Grid */
         .data-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 15px;
         }
 
         .data-item {
             background: rgba(0, 0, 0, 0.2);
-            padding: 12px;
-            border-radius: 8px;
+            padding: 12px; border-radius: 8px;
         }
 
         .data-label {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            margin-bottom: 4px;
+            font-size: 0.75rem; color: var(--text-muted);
+            text-transform: uppercase; margin-bottom: 4px;
         }
 
-        .data-value {
-            font-size: 1.1rem;
-            font-weight: 600;
-            font-family: monospace;
+        .data-value { font-size: 1.1rem; font-weight: 600; font-family: monospace; }
+
+        .voice-controls {
+            display: flex; gap: 10px; margin-top: 20px;
         }
 
-        /* Voice Button */
         .voice-btn {
-            width: 100%;
-            padding: 16px;
-            margin-top: 20px;
+            flex: 1; padding: 16px;
             background: linear-gradient(135deg, var(--accent), #8b5cf6);
-            border: none;
-            border-radius: 12px;
-            color: white;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 10px;
-            transition: opacity 0.2s;
+            border: none; border-radius: 12px;
+            color: white; font-size: 1rem; font-weight: 600;
+            cursor: pointer; display: flex; justify-content: center;
+            align-items: center; gap: 10px; transition: opacity 0.2s;
+        }
+
+        .voice-btn.stop {
+            background: linear-gradient(135deg, #ff3366, #cc0033);
+            flex: 0.4;
         }
 
         .voice-btn:hover { opacity: 0.9; }
         .voice-btn:active { transform: scale(0.98); }
 
-        /* News Feed */
         .news-item {
-            padding: 12px 0;
-            border-bottom: 1px solid var(--border-color);
+            padding: 12px 0; border-bottom: 1px solid var(--border-color);
             font-size: 0.9rem;
         }
         .news-item:last-child { border-bottom: none; }
         .news-time { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; }
         .tag-bullish { color: var(--green); font-weight: 600; }
         .tag-bearish { color: var(--red); font-weight: 600; }
+        
+        .candle-analysis {
+            margin-top: 20px; padding: 15px;
+            background: rgba(0, 0, 0, 0.2); border-radius: 10px;
+            font-size: 0.85rem; line-height: 1.6;
+        }
+        .candle-analysis h3 { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px; text-transform: uppercase; }
+        .candle-item { margin-bottom: 12px; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 8px; }
+        .candle-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        .candle-timeframe { color: var(--accent); font-weight: 600; margin-right: 5px; }
     </style>
 </head>
 <body>
@@ -261,12 +219,35 @@
                 </div>
             </div>
 
-            <button class="voice-btn" onclick="speakSignal()">
-                🔊 Play Voice Update
-            </button>
+            <div class="voice-controls">
+                <button class="voice-btn" onclick="speakSignal()">
+                    🔊 Play Voice Update
+                </button>
+                <button class="voice-btn stop" onclick="stopVoice()">
+                    ⏹ Stop
+                </button>
+            </div>
         </div>
 
-        <!-- Bottom: News Feed (Spans full width) -->
+        <!-- Bottom: Candle Analysis & News -->
+        <div class="card" style="grid-column: 1 / -1;">
+            <h2>Multi-Timeframe Analysis</h2>
+            <div class="candle-analysis">
+                <div class="candle-item">
+                    <span class="candle-timeframe">5 Minute Candle:</span>
+                    <span id="candle_5m">Analyzing...</span>
+                </div>
+                <div class="candle-item">
+                    <span class="candle-timeframe">1 Hour Candle:</span>
+                    <span id="candle_1h">Analyzing...</span>
+                </div>
+                <div class="candle-item">
+                    <span class="candle-timeframe">4 Hour Candle:</span>
+                    <span id="candle_4h">Analyzing...</span>
+                </div>
+            </div>
+        </div>
+
         <div class="card" style="grid-column: 1 / -1;">
             <h2>Live Market News</h2>
             <div id="news-feed">
@@ -297,18 +278,13 @@
         renderer.setSize(container.clientWidth, container.clientHeight);
         container.appendChild(renderer.domElement);
 
-        // Create the 3D Core (Icosahedron)
         const geometry = new THREE.IcosahedronGeometry(1.5, 1);
         const material = new THREE.MeshBasicMaterial({ 
-            color: 0xffcc00, // Default yellow
-            wireframe: true,
-            transparent: true,
-            opacity: 0.8
+            color: 0xffcc00, wireframe: true, transparent: true, opacity: 0.8
         });
         const core = new THREE.Mesh(geometry, material);
         scene.add(core);
 
-        // Add inner glowing sphere
         const innerGeo = new THREE.IcosahedronGeometry(0.8, 0);
         const innerMat = new THREE.MeshBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.4 });
         const innerCore = new THREE.Mesh(innerGeo, innerMat);
@@ -316,24 +292,17 @@
 
         camera.position.z = 4;
 
-        // Animation Loop
         function animate() {
             requestAnimationFrame(animate);
-            
-            // Rotate the core
             core.rotation.x += 0.005;
             core.rotation.y += 0.01;
-
-            // Pulse effect
             const time = Date.now() * 0.002;
             const scale = 1 + Math.sin(time) * 0.05;
             core.scale.set(scale, scale, scale);
-
             renderer.render(scene, camera);
         }
         animate();
 
-        // Handle window resize
         window.addEventListener('resize', () => {
             camera.aspect = container.clientWidth / container.clientHeight;
             camera.updateProjectionMatrix();
@@ -342,14 +311,17 @@
 
 
         // --- 2. DASHBOARD DATA LOGIC ---
-        // This is mock data. In the next step, we will fetch this from a JSON file.
+        // Expanded mock data to include explanations
         const mockData = {
             signal: "BUY",
             reason: "MACD bullish crossover on 1H chart. RSI at 58 and rising. Positive EUR news sentiment from ECB. Price holding above 1.0850 support.",
             entry: "1.0852",
             sl: "1.0820",
             tp: "1.0910",
-            valid: "18:00 UTC"
+            valid: "18:00 UTC",
+            candle_5m: "The last 5-minute candle closed as a bullish engulfing pattern, indicating short-term buyers are stepping in after a brief pullback.",
+            candle_1h: "The 1-hour candle shows a clear break above the 20 EMA with increasing volume, confirming the intraday uptrend.",
+            candle_4h: "The 4-hour candle is forming a higher low structure, suggesting the broader trend is shifting to the upside."
         };
 
         function updateDashboard(data) {
@@ -362,6 +334,11 @@
             document.getElementById("sl").innerText = data.sl;
             document.getElementById("tp").innerText = data.tp;
             document.getElementById("valid").innerText = data.valid;
+            
+            // New Candle Analysis
+            document.getElementById("candle_5m").innerText = data.candle_5m;
+            document.getElementById("candle_1h").innerText = data.candle_1h;
+            document.getElementById("candle_4h").innerText = data.candle_4h;
 
             // Change 3D Model color based on signal
             if (data.signal === "BUY") material.color.setHex(0x00ff88);
@@ -369,7 +346,7 @@
             else material.color.setHex(0xffcc00);
         }
 
-        // --- 3. VOICE SYNTHESIS ---
+        // --- 3. VOICE SYNTHESIS (Explanatory Style) ---
         function speakSignal() {
             const signal = document.getElementById("signal").innerText;
             const reason = document.getElementById("reason").innerText;
@@ -377,16 +354,30 @@
             const sl = document.getElementById("sl").innerText;
             const tp = document.getElementById("tp").innerText;
             const valid = document.getElementById("valid").innerText;
+            const c5m = document.getElementById("candle_5m").innerText;
+            const c1h = document.getElementById("candle_1h").innerText;
+            const c4h = document.getElementById("candle_4h").innerText;
 
-            const text = `Signal: ${signal}. Reason: ${reason}. Entry at ${entry}, Stop Loss at ${sl}, Take Profit at ${tp}. Valid until ${valid}.`;
-            
+            const text = `Let me explain the current EUR USD market situation. 
+            The current signal is ${signal}. 
+            Here is why: ${reason}. 
+            Looking at the lower timeframes, the 5-minute candle shows: ${c5m}. 
+            On the 1-hour chart: ${c1h}. 
+            And on the 4-hour chart: ${c4h}. 
+            The entry is at ${entry}, with a stop loss at ${sl}, and a take profit target of ${tp}. 
+            This signal is valid until ${valid}.`;
+
             // Cancel any ongoing speech
             window.speechSynthesis.cancel();
             
             const utterance = new SpeechSynthesisUtterance(text);
-            utterance.rate = 0.9;
+            utterance.rate = 0.95; // Slightly slower for clarity
             utterance.pitch = 1.0;
             window.speechSynthesis.speak(utterance);
+        }
+
+        function stopVoice() {
+            window.speechSynthesis.cancel();
         }
 
         // Initialize the dashboard
