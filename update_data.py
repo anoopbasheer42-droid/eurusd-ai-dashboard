@@ -59,6 +59,7 @@ def get_analysis():
                 continue
             df = df.dropna()
 
+            # --- INDICATORS ---
             df['EMA_20'] = df['Close'].ewm(span=20, adjust=False).mean()
             df['EMA_50'] = df['Close'].ewm(span=50, adjust=False).mean()
             delta = df['Close'].diff()
@@ -67,6 +68,7 @@ def get_analysis():
             rs = gain / loss
             df['RSI'] = 100 - (100 / (1 + rs))
 
+            # Proper 14-period ATR
             tr1 = df['High'] - df['Low']
             tr2 = (df['High'] - df['Close'].shift()).abs()
             tr3 = (df['Low'] - df['Close'].shift()).abs()
@@ -78,13 +80,14 @@ def get_analysis():
             rsi = round(latest['RSI'], 1)
             ema20 = round(latest['EMA_20'], 4)
             atr = round(latest['ATR'], 4)
-            
+
             if pd.isna(atr) or atr < 0.0005:
                 recent_ranges = (df['High'] - df['Low']).tail(10)
                 atr = round(recent_ranges.mean(), 4)
                 if atr < 0.0003:
                     atr = 0.0015
 
+            # --- RULE 1: NEWS SENTIMENT ---
             news_bias, news_score = "unavailable", 0
             try:
                 from fxnewsbias import Client
@@ -95,6 +98,7 @@ def get_analysis():
             except Exception as e:
                 print(f"News error (skipping): {e}")
 
+            # --- RULE 2: CANDLESTICK PATTERNS ---
             patterns_list = ["No clear pattern"]
             if HAS_TA:
                 try:
@@ -110,6 +114,7 @@ def get_analysis():
                 except Exception as e:
                     print(f"Pattern error: {e}")
 
+            # --- RULE 3: SESSION TIMING ---
             hour = datetime.utcnow().hour
             if 7 <= hour < 10:
                 session, volatility = "London Kill Zone", "high"
@@ -120,6 +125,7 @@ def get_analysis():
             else:
                 session, volatility = "Off-Session", "low"
 
+            # --- TECHNICAL SIGNAL ---
             if latest['Close'] > latest['EMA_20'] and rsi > 50:
                 tech_signal = "BUY"
             elif latest['Close'] < latest['EMA_20'] and rsi < 50:
@@ -127,6 +133,7 @@ def get_analysis():
             else:
                 tech_signal = "HOLD"
 
+            # --- RULE 4: LLM VERDICT ---
             verdict = tech_signal
             llm_reason = f"Technical signal: Price {'above' if latest['Close'] > latest['EMA_20'] else 'below'} 20 EMA, RSI at {rsi}."
             confidence = "MEDIUM"
@@ -134,29 +141,38 @@ def get_analysis():
             if HAS_GROQ and os.environ.get("GROQ_API_KEY"):
                 try:
                     client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
-                    prompt = f"""You are a professional EUR/USD trader. Analyze:
-Price: {price}, RSI: {rsi}, EMA20: {ema20}, ATR: {atr}
+                    prompt = f"""You are a professional EUR/USD trader with 10 years experience. Analyze:
+
+Price: {price}
+RSI(14): {rsi}
+EMA20: {ema20}
+ATR: {atr}
 News Bias: {news_bias} (score: {news_score})
 Patterns: {', '.join(patterns_list)}
 Session: {session} ({volatility} volatility)
 Technical Signal: {tech_signal}
 
-Give final verdict (BUY/SELL/HOLD), reason (2 sentences), confidence (LOW/MEDIUM/HIGH).
-Respond ONLY with JSON like: {{"verdict": "BUY", "reason": "...", "confidence": "HIGH"}}"""
+Give your final verdict (BUY / SELL / HOLD), a reason in 2-3 sentences explaining WHY, and a confidence level (LOW / MEDIUM / HIGH).
+
+Respond ONLY with valid JSON in this exact format:
+{{"verdict": "BUY", "reason": "your explanation here", "confidence": "HIGH"}}"""
 
                     response = client.chat.completions.create(
                         model="llama-3.3-70b-versatile",
                         messages=[{"role": "user", "content": prompt}],
-                        temperature=0.1, max_tokens=500,
+                        temperature=0.1,
+                        max_tokens=500,
                         response_format={"type": "json_object"}
                     )
                     result = json.loads(response.choices[0].message.content)
                     verdict = result.get("verdict", tech_signal)
                     llm_reason = result.get("reason", llm_reason)
                     confidence = result.get("confidence", "MEDIUM")
+                    print(f"LLM verdict: {verdict} ({confidence})")
                 except Exception as e:
                     print(f"LLM error (using technical signal): {e}")
 
+            # --- CANDLE TEXT ---
             if latest['Close'] > latest['Open']:
                 candle_current = f"Bullish candle. Open: {latest['Open']:.4f}, Now: {price}. Buyers in control."
             else:
@@ -165,6 +181,7 @@ Respond ONLY with JSON like: {{"verdict": "BUY", "reason": "...", "confidence": 
             c1h = f"1H candle closed at {price}. " + ("Above 20 EMA - uptrend." if latest['Close'] > latest['EMA_20'] else "Below 20 EMA - downtrend.")
             c4h = f"4H trend: " + ("bullish above moving averages." if latest['Close'] > latest['EMA_50'] else "bearish below moving averages.")
 
+            # --- SL/TP with proper ATR-based risk (1:2 R:R) ---
             entry = price
             if verdict == "BUY":
                 sl = round(price - (atr * 1.5), 4)
@@ -176,8 +193,11 @@ Respond ONLY with JSON like: {{"verdict": "BUY", "reason": "...", "confidence": 
                 sl = round(price - (atr * 1.5), 4)
                 tp = round(price + (atr * 3.0), 4)
 
-            valid_until = (datetime.utcnow() + timedelta(hours=1)).strftime("%H:%M UTC")
+            # --- VALID UNTIL IN IST ---
+            ist_now = datetime.utcnow() + timedelta(hours=5, minutes=30)
+            valid_until = (ist_now + timedelta(hours=1)).strftime("%H:%M IST")
 
+            # --- WISE WORDS ---
             if random.random() < 0.5:
                 wise_words = f"Joke: {random.choice(JOKES)}"
             else:
@@ -215,6 +235,6 @@ if __name__ == "__main__":
         with open("data.json", "w") as f:
             json.dump(data, f, indent=4)
         print("SUCCESS: data.json updated.")
-        print(f"Price: {data['price']} | Signal: {data['signal']} | SL: {data['sl']} | TP: {data['tp']}")
+        print(f"Price: {data['price']} | Signal: {data['signal']} | SL: {data['sl']} | TP: {data['tp']} | Valid: {data['valid']}")
     else:
         print("FAILED: Could not fetch data.")
