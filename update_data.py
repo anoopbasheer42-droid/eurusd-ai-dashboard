@@ -2,10 +2,11 @@ import yfinance as yf
 import pandas as pd
 import json
 import os
+import random
 from datetime import datetime, timedelta
 import time
 
-# Optional imports - wrapped so they don't crash the script
+# Optional imports
 try:
     import pandas_ta_classic as ta
     HAS_TA = True
@@ -21,10 +22,36 @@ except ImportError:
     print("groq not installed - LLM reasoning disabled")
 
 
+JOKES = [
+    "Why did the trader break up with his girlfriend? Because she wanted a long-term commitment, but he only believed in scalping.",
+    "I told my wife I was a forex trader. She said, 'So you're unemployed with extra steps?'",
+    "Why do forex traders make terrible comedians? Because their timing is always off by a pip.",
+    "A trader walked into a bar. He ordered a beer. Then he ordered another. Then he realized he was in a bear market.",
+    "My stop loss is like my ex - always triggering at the worst possible moment.",
+    "Why don't traders play hide and seek? Because good luck hiding from a volatile market.",
+    "I asked the market for a direction. It said 'yes'.",
+    "The market can stay irrational longer than you can stay solvent. That's not a joke, that's just life.",
+    "What's the difference between a forex trader and a pizza? A pizza can feed a family of four.",
+    "I only trade what I see. Sadly, I see four screens and a headache."
+]
+
+MOTIVATIONS = [
+    "Remember Boss, the market rewards patience, not prediction. Wait for your setup.",
+    "Discipline beats conviction. The best trade is often the one you don't take.",
+    "Every loss is tuition. The market is the teacher, and you are the student.",
+    "The trend is your friend until it bends. Respect your stop loss.",
+    "Boss, protect your capital first. Opportunities are infinite, but your account is not.",
+    "Rome wasn't built in a day, and fortunes aren't made in one trade. Stay consistent.",
+    "Fear and greed are the only two enemies. Master them, and you master the market.",
+    "Cut losses short, let winners run. The math will handle the rest.",
+    "A calm mind catches more pips than a desperate one.",
+    "You don't need to be right every time, Boss. You just need to be profitable overall."
+]
+
+
 def get_analysis():
     for attempt in range(3):
         try:
-            # --- FETCH CANDLES ---
             ticker = yf.Ticker("EURUSD=X")
             df = ticker.history(period="5d", interval="1h")
             if df.empty:
@@ -32,7 +59,6 @@ def get_analysis():
                 continue
             df = df.dropna()
 
-            # --- INDICATORS ---
             df['EMA_20'] = df['Close'].ewm(span=20, adjust=False).mean()
             df['EMA_50'] = df['Close'].ewm(span=50, adjust=False).mean()
             delta = df['Close'].diff()
@@ -41,12 +67,24 @@ def get_analysis():
             rs = gain / loss
             df['RSI'] = 100 - (100 / (1 + rs))
 
+            tr1 = df['High'] - df['Low']
+            tr2 = (df['High'] - df['Close'].shift()).abs()
+            tr3 = (df['Low'] - df['Close'].shift()).abs()
+            df['TR'] = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+            df['ATR'] = df['TR'].rolling(window=14).mean()
+
             latest = df.iloc[-1]
             price = round(latest['Close'], 4)
             rsi = round(latest['RSI'], 1)
             ema20 = round(latest['EMA_20'], 4)
+            atr = round(latest['ATR'], 4)
+            
+            if pd.isna(atr) or atr < 0.0005:
+                recent_ranges = (df['High'] - df['Low']).tail(10)
+                atr = round(recent_ranges.mean(), 4)
+                if atr < 0.0003:
+                    atr = 0.0015
 
-            # --- RULE 1: NEWS SENTIMENT (optional) ---
             news_bias, news_score = "unavailable", 0
             try:
                 from fxnewsbias import Client
@@ -57,7 +95,6 @@ def get_analysis():
             except Exception as e:
                 print(f"News error (skipping): {e}")
 
-            # --- RULE 2: CANDLESTICK PATTERNS ---
             patterns_list = ["No clear pattern"]
             if HAS_TA:
                 try:
@@ -73,7 +110,6 @@ def get_analysis():
                 except Exception as e:
                     print(f"Pattern error: {e}")
 
-            # --- RULE 3: SESSION TIMING ---
             hour = datetime.utcnow().hour
             if 7 <= hour < 10:
                 session, volatility = "London Kill Zone", "high"
@@ -84,7 +120,6 @@ def get_analysis():
             else:
                 session, volatility = "Off-Session", "low"
 
-            # --- TECHNICAL SIGNAL ---
             if latest['Close'] > latest['EMA_20'] and rsi > 50:
                 tech_signal = "BUY"
             elif latest['Close'] < latest['EMA_20'] and rsi < 50:
@@ -92,16 +127,15 @@ def get_analysis():
             else:
                 tech_signal = "HOLD"
 
-            # --- RULE 4: LLM VERDICT (optional) ---
             verdict = tech_signal
             llm_reason = f"Technical signal: Price {'above' if latest['Close'] > latest['EMA_20'] else 'below'} 20 EMA, RSI at {rsi}."
             confidence = "MEDIUM"
-            
+
             if HAS_GROQ and os.environ.get("GROQ_API_KEY"):
                 try:
                     client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
                     prompt = f"""You are a professional EUR/USD trader. Analyze:
-Price: {price}, RSI: {rsi}, EMA20: {ema20}
+Price: {price}, RSI: {rsi}, EMA20: {ema20}, ATR: {atr}
 News Bias: {news_bias} (score: {news_score})
 Patterns: {', '.join(patterns_list)}
 Session: {session} ({volatility} volatility)
@@ -109,7 +143,7 @@ Technical Signal: {tech_signal}
 
 Give final verdict (BUY/SELL/HOLD), reason (2 sentences), confidence (LOW/MEDIUM/HIGH).
 Respond ONLY with JSON like: {{"verdict": "BUY", "reason": "...", "confidence": "HIGH"}}"""
-                    
+
                     response = client.chat.completions.create(
                         model="llama-3.3-70b-versatile",
                         messages=[{"role": "user", "content": prompt}],
@@ -123,7 +157,6 @@ Respond ONLY with JSON like: {{"verdict": "BUY", "reason": "...", "confidence": 
                 except Exception as e:
                     print(f"LLM error (using technical signal): {e}")
 
-            # --- CANDLE TEXT ---
             if latest['Close'] > latest['Open']:
                 candle_current = f"Bullish candle. Open: {latest['Open']:.4f}, Now: {price}. Buyers in control."
             else:
@@ -132,12 +165,23 @@ Respond ONLY with JSON like: {{"verdict": "BUY", "reason": "...", "confidence": 
             c1h = f"1H candle closed at {price}. " + ("Above 20 EMA - uptrend." if latest['Close'] > latest['EMA_20'] else "Below 20 EMA - downtrend.")
             c4h = f"4H trend: " + ("bullish above moving averages." if latest['Close'] > latest['EMA_50'] else "bearish below moving averages.")
 
-            # --- SL/TP ---
-            atr = (latest['High'] - latest['Low']) * 1.5
             entry = price
-            sl = round(price - atr, 4) if verdict == "BUY" else round(price + atr, 4)
-            tp = round(price + (atr * 2), 4) if verdict == "BUY" else round(price - (atr * 2), 4)
+            if verdict == "BUY":
+                sl = round(price - (atr * 1.5), 4)
+                tp = round(price + (atr * 3.0), 4)
+            elif verdict == "SELL":
+                sl = round(price + (atr * 1.5), 4)
+                tp = round(price - (atr * 3.0), 4)
+            else:
+                sl = round(price - (atr * 1.5), 4)
+                tp = round(price + (atr * 3.0), 4)
+
             valid_until = (datetime.utcnow() + timedelta(hours=1)).strftime("%H:%M UTC")
+
+            if random.random() < 0.5:
+                wise_words = f"Joke: {random.choice(JOKES)}"
+            else:
+                wise_words = f"Motivation: {random.choice(MOTIVATIONS)}"
 
             return {
                 "signal": verdict,
@@ -147,6 +191,7 @@ Respond ONLY with JSON like: {{"verdict": "BUY", "reason": "...", "confidence": 
                 "entry": str(entry),
                 "sl": str(sl),
                 "tp": str(tp),
+                "atr": str(atr),
                 "valid": valid_until,
                 "candle_current": candle_current,
                 "candle_1h": c1h,
@@ -155,7 +200,8 @@ Respond ONLY with JSON like: {{"verdict": "BUY", "reason": "...", "confidence": 
                 "news_score": news_score,
                 "patterns": patterns_list,
                 "session": session,
-                "volatility": volatility
+                "volatility": volatility,
+                "wise_words": wise_words
             }
         except Exception as e:
             print(f"Attempt {attempt+1} error: {e}")
@@ -168,7 +214,7 @@ if __name__ == "__main__":
     if data:
         with open("data.json", "w") as f:
             json.dump(data, f, indent=4)
-        print("SUCCESS: data.json updated with live EUR/USD data.")
-        print(f"Price: {data['price']} | Signal: {data['signal']} | Confidence: {data['confidence']}")
+        print("SUCCESS: data.json updated.")
+        print(f"Price: {data['price']} | Signal: {data['signal']} | SL: {data['sl']} | TP: {data['tp']}")
     else:
-        print("FAILED: Could not fetch EUR/USD data.")
+        print("FAILED: Could not fetch data.")
