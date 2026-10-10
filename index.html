@@ -10,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        :root { --bg: #0a0e17; --card: rgba(255,255,255,0.03); --border: rgba(255,255,255,0.08); --text: #e2e8f0; --muted: #94a3b8; --green: #00ff88; --red: #ff3366; --yellow: #ffcc00; --accent: #3b82f6; }
+        :root { --bg: #0a0e17; --card: rgba(255,255,255,0.03); --border: rgba(255,255,255,0.08); --text: #e2e8f0; --muted: #94a3b8; --green: #00ff88; --red: #ff3366; --yellow: #ffcc00; --accent: #3b82f6; --purple: #8b5cf6; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 20px; background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #0a0e17 70%); }
         header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 15px; border-bottom: 1px solid var(--border); }
@@ -34,7 +34,7 @@
         .data-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
         .data-value { font-size: 1.1rem; font-weight: 600; font-family: monospace; }
         .voice-controls { display: flex; gap: 10px; margin-top: 20px; }
-        .voice-btn { flex: 1; padding: 16px; background: linear-gradient(135deg, var(--accent), #8b5cf6); border: none; border-radius: 12px; color: white; font-size: 1rem; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .voice-btn { flex: 1; padding: 16px; background: linear-gradient(135deg, var(--accent), var(--purple)); border: none; border-radius: 12px; color: white; font-size: 1rem; font-weight: 600; cursor: pointer; transition: 0.2s; }
         .voice-btn.stop { background: linear-gradient(135deg, #ff3366, #cc0033); flex: 0.4; }
         .voice-btn:hover { opacity: 0.9; }
         .news-item { padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
@@ -43,6 +43,8 @@
         .candle-item { margin-bottom: 12px; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 8px; }
         .candle-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
         .candle-timeframe { color: var(--accent); font-weight: 600; margin-right: 5px; }
+        .wise-box { background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(59,130,246,0.15)); padding: 20px; border-radius: 12px; border-left: 4px solid var(--purple); font-style: italic; font-size: 0.95rem; line-height: 1.7; color: #cbd5e1; }
+        .wise-label { display: block; font-style: normal; font-weight: 600; color: var(--purple); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
     </style>
 </head>
 <body>
@@ -68,10 +70,19 @@
                 <div class="data-item"><div class="data-label">Entry</div><div id="entry" class="data-value">-</div></div>
                 <div class="data-item"><div class="data-label">Stop Loss</div><div id="sl" class="data-value">-</div></div>
                 <div class="data-item"><div class="data-label">Take Profit</div><div id="tp" class="data-value">-</div></div>
+                <div class="data-item"><div class="data-label">Confidence</div><div id="confidence" class="data-value">-</div></div>
             </div>
             <div class="voice-controls">
                 <button class="voice-btn" onclick="speakSignal()">🔊 Play Voice</button>
                 <button class="voice-btn stop" onclick="stopVoice()">⏹ Stop</button>
+            </div>
+        </div>
+
+        <div class="card" style="grid-column: 1 / -1;">
+            <h2>Boss's Wisdom Corner 💡</h2>
+            <div id="wise_box" class="wise-box">
+                <span class="wise-label">Loading...</span>
+                Waiting for the market to speak...
             </div>
         </div>
 
@@ -81,14 +92,14 @@
                 <div class="candle-item"><span class="candle-timeframe">Current Candle:</span><span id="candle_current">Waiting...</span></div>
                 <div class="candle-item"><span class="candle-timeframe">1 Hour Candle:</span><span id="candle_1h">Waiting...</span></div>
                 <div class="candle-item"><span class="candle-timeframe">4 Hour Candle:</span><span id="candle_4h">Waiting...</span></div>
+                <div class="candle-item"><span class="candle-timeframe">Session:</span><span id="session">-</span></div>
             </div>
         </div>
 
         <div class="card" style="grid-column: 1 / -1;">
             <h2>Live Market News</h2>
             <div id="news-feed">
-                <div class="news-item"><div>ECB officials hint at potential rate cut in Q4. <span style="color:var(--red);font-weight:600;">BEARISH EUR</span></div></div>
-                <div class="news-item"><div>US NFP data comes in stronger than expected. <span style="color:var(--green);font-weight:600;">BULLISH USD</span></div></div>
+                <div class="news-item"><div>News sentiment rule is active when API key is set. <span style="color:var(--muted);">(pending setup)</span></div></div>
             </div>
         </div>
     </div>
@@ -119,7 +130,9 @@
         }
         animate();
 
-        // --- FETCH LIVE DATA FROM GITHUB ---
+        // --- FETCH LIVE DATA ---
+        let latestData = null;
+        
         async function loadLiveData() {
             try {
                 const response = await fetch('data.json?t=' + Date.now()); 
@@ -128,12 +141,13 @@
                 updateDashboard(data);
             } catch (error) {
                 console.log("Waiting for live data...", error);
-                document.getElementById("reason").innerText = "Boss, waiting for the Python backend to generate live data. Please run the GitHub Action.";
-                setTimeout(loadLiveData, 15000); 
+                document.getElementById("reason").innerText = "Boss, waiting for the Python backend. Please run the GitHub Action.";
+                setTimeout(loadLiveData, 15000);
             }
         }
 
         function updateDashboard(data) {
+            latestData = data;
             const signalEl = document.getElementById("signal");
             signalEl.innerText = data.signal;
             signalEl.className = `signal-text ${data.signal.toLowerCase()}`;
@@ -143,39 +157,53 @@
             document.getElementById("sl").innerText = data.sl;
             document.getElementById("tp").innerText = data.tp;
             document.getElementById("valid").innerText = data.valid;
+            document.getElementById("confidence").innerText = data.confidence || "MEDIUM";
             document.getElementById("candle_current").innerText = data.candle_current || "No data.";
             document.getElementById("candle_1h").innerText = data.candle_1h;
             document.getElementById("candle_4h").innerText = data.candle_4h;
+            document.getElementById("session").innerText = (data.session || "-") + " (" + (data.volatility || "-") + " volatility)";
+            
+            // Wise words (joke or motivation)
+            if (data.wise_words) {
+                const wiseBox = document.getElementById("wise_box");
+                const isJoke = data.wise_words.toLowerCase().startsWith("joke");
+                wiseBox.innerHTML = `<span class="wise-label">${isJoke ? '😂 Joke of the Hour' : '💪 Motivation of the Hour'}</span>${data.wise_words.replace(/^Joke:\s*|^Motivation:\s*/i, '')}`;
+            }
             
             if (data.signal === "BUY") material.color.setHex(0x00ff88);
             else if (data.signal === "SELL") material.color.setHex(0xff3366);
             else material.color.setHex(0xffcc00);
         }
 
-        // --- VOICE SYNTHESIS (Pro Trader Explaining to Boss) ---
+        // --- VOICE SYNTHESIS (Boss Report + Wisdom) ---
         function speakSignal() {
-            const signal = document.getElementById("signal").innerText;
-            const reason = document.getElementById("reason").innerText;
-            const price = document.getElementById("price").innerText;
-            const entry = document.getElementById("entry").innerText;
-            const sl = document.getElementById("sl").innerText;
-            const tp = document.getElementById("tp").innerText;
-            const valid = document.getElementById("valid").innerText;
-            const cCurrent = document.getElementById("candle_current").innerText;
-            const c1h = document.getElementById("candle_1h").innerText;
-            const c4h = document.getElementById("candle_4h").innerText;
-
-            // Constructing the "Boss" report
-            const text = `Boss, here is the live market update for EUR USD. 
-            The current live price is ${price}. 
-            The current candle is showing: ${cCurrent}. 
-            On the 1 hour timeframe: ${c1h}. 
-            On the 4 hour timeframe: ${c4h}. 
-            Evaluating entry possibilities right now, the signal is ${signal}. 
-            Here is why: ${reason}. 
-            If you enter, the suggested Entry is ${entry}, Stop Loss at ${sl}, and Take Profit at ${tp}. 
-            This setup is valid until ${valid}. 
-            I will keep monitoring and update you next hour, Boss.`;
+            if (!latestData) {
+                const utterance = new SpeechSynthesisUtterance("Boss, I don't have any live data yet. Please wait.");
+                window.speechSynthesis.speak(utterance);
+                return;
+            }
+            
+            const d = latestData;
+            const isJoke = (d.wise_words || "").toLowerCase().startsWith("joke");
+            const wisdom = (d.wise_words || "").replace(/^Joke:\s*|^Motivation:\s*/i, '');
+            
+            let text = `Boss, here is the live market update for EUR USD. `;
+            text += `The current live price is ${d.price}. `;
+            text += `The signal is ${d.signal}, with ${d.confidence} confidence. `;
+            text += `Here is why: ${d.reason} `;
+            text += `The current candle: ${d.candle_current} `;
+            text += `On the 1 hour timeframe: ${d.candle_1h} `;
+            text += `On the 4 hour timeframe: ${d.candle_4h} `;
+            text += `Suggested entry at ${d.entry}, stop loss at ${d.sl}, take profit at ${d.tp}. `;
+            text += `This setup is valid until ${d.valid}. `;
+            
+            if (isJoke) {
+                text += `Now for a joke, Boss. ${wisdom} `;
+            } else {
+                text += `Now for some motivation, Boss. ${wisdom} `;
+            }
+            
+            text += `I will keep monitoring and update you next hour, Boss.`;
 
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(text);
