@@ -3,39 +3,349 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EUR/USD AI Dashboard</title>
+    <title>EUR/USD AI Pro Dashboard</title>
+    <!-- Google Fonts for professional typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <!-- Three.js for 3D Animation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
     <style>
-        body { font-family: Arial, sans-serif; background-color: #1e1e1e; color: #fff; padding: 20px; }
-        .card { background: #2d2d2d; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
-        .buy { color: #00ff00; }
-        .sell { color: #ff0000; }
-        .hold { color: #ffff00; }
-        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+        :root {
+            --bg-color: #0a0e17;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+            --green: #00ff88;
+            --red: #ff3366;
+            --yellow: #ffcc00;
+            --accent: #3b82f6;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 20px;
+            background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #0a0e17 70%);
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--green);
+            background: rgba(0, 255, 136, 0.1);
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid rgba(0, 255, 136, 0.2);
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--green);
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(0, 255, 136, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 255, 136, 0); }
+        }
+
+        /* Grid Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid { grid-template-columns: 1fr; }
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(10px);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .card h2 {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+        }
+
+        /* 3D Model Container */
+        #canvas-container {
+            width: 100%;
+            height: 250px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        /* Signal Card */
+        .signal-display {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .signal-text {
+            font-size: 3rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            transition: color 0.5s ease;
+        }
+
+        .signal-text.buy { color: var(--green); text-shadow: 0 0 20px rgba(0, 255, 136, 0.4); }
+        .signal-text.sell { color: var(--red); text-shadow: 0 0 20px rgba(255, 51, 102, 0.4); }
+        .signal-text.hold { color: var(--yellow); text-shadow: 0 0 20px rgba(255, 204, 0, 0.4); }
+
+        .reason-box {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+            border-left: 3px solid var(--accent);
+        }
+
+        /* Data Grid */
+        .data-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .data-item {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 12px;
+            border-radius: 8px;
+        }
+
+        .data-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .data-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            font-family: monospace;
+        }
+
+        /* Voice Button */
+        .voice-btn {
+            width: 100%;
+            padding: 16px;
+            margin-top: 20px;
+            background: linear-gradient(135deg, var(--accent), #8b5cf6);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            transition: opacity 0.2s;
+        }
+
+        .voice-btn:hover { opacity: 0.9; }
+        .voice-btn:active { transform: scale(0.98); }
+
+        /* News Feed */
+        .news-item {
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.9rem;
+        }
+        .news-item:last-child { border-bottom: none; }
+        .news-time { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; }
+        .tag-bullish { color: var(--green); font-weight: 600; }
+        .tag-bearish { color: var(--red); font-weight: 600; }
     </style>
 </head>
 <body>
-    <h1>EUR/USD AI Dashboard</h1>
 
-    <div class="card">
-        <h2>Current Signal</h2>
-        <h1 id="signal" class="hold">LOADING...</h1>
-        <p id="reason">Waiting for AI analysis...</p>
-        <p><strong>Entry:</strong> <span id="entry">-</span></p>
-        <p><strong>Stop Loss:</strong> <span id="sl">-</span></p>
-        <p><strong>Take Profit:</strong> <span id="tp">-</span></p>
-        <p><strong>Valid Until:</strong> <span id="valid">-</span></p>
-    </div>
+    <header>
+        <h1>⚡ EUR/USD AI PRO</h1>
+        <div class="status-badge">
+            <div class="pulse-dot"></div>
+            LIVE ANALYSIS
+        </div>
+    </header>
 
-    <div class="card">
-        <h2>Voice Control</h2>
-        <button onclick="speakSignal()">🔊 Play Voice Update</button>
+    <div class="dashboard-grid">
+        
+        <!-- Left Column: 3D Model & Chart -->
+        <div class="card">
+            <h2>AI Neural Core</h2>
+            <div id="canvas-container"></div>
+            <p style="text-align: center; color: var(--text-muted); font-size: 0.8rem; margin-top: 10px;">
+                Real-time sentiment visualization
+            </p>
+        </div>
+
+        <!-- Right Column: Signal & Data -->
+        <div class="card">
+            <h2>Current Signal</h2>
+            <div class="signal-display">
+                <div id="signal" class="signal-text hold">LOADING</div>
+            </div>
+            <div id="reason" class="reason-box">Waiting for AI analysis...</div>
+            
+            <div class="data-grid">
+                <div class="data-item">
+                    <div class="data-label">Entry Price</div>
+                    <div id="entry" class="data-value">-</div>
+                </div>
+                <div class="data-item">
+                    <div class="data-label">Stop Loss</div>
+                    <div id="sl" class="data-value">-</div>
+                </div>
+                <div class="data-item">
+                    <div class="data-label">Take Profit</div>
+                    <div id="tp" class="data-value">-</div>
+                </div>
+                <div class="data-item">
+                    <div class="data-label">Valid Until</div>
+                    <div id="valid" class="data-value">-</div>
+                </div>
+            </div>
+
+            <button class="voice-btn" onclick="speakSignal()">
+                🔊 Play Voice Update
+            </button>
+        </div>
+
+        <!-- Bottom: News Feed (Spans full width) -->
+        <div class="card" style="grid-column: 1 / -1;">
+            <h2>Live Market News</h2>
+            <div id="news-feed">
+                <div class="news-item">
+                    <div class="news-time">Just now</div>
+                    <div>ECB officials hint at potential rate cut in Q4. <span class="tag-bearish">BEARISH EUR</span></div>
+                </div>
+                <div class="news-item">
+                    <div class="news-time">1 hour ago</div>
+                    <div>US NFP data comes in stronger than expected. <span class="tag-bullish">BULLISH USD</span></div>
+                </div>
+                <div class="news-item">
+                    <div class="news-time">3 hours ago</div>
+                    <div>Eurozone CPI remains stable at 2.4%. <span class="tag-bullish">NEUTRAL</span></div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <script>
-        // Placeholder data - we will load this from the AI later
+        // --- 1. THREE.JS 3D ANIMATION ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+        
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        container.appendChild(renderer.domElement);
+
+        // Create the 3D Core (Icosahedron)
+        const geometry = new THREE.IcosahedronGeometry(1.5, 1);
+        const material = new THREE.MeshBasicMaterial({ 
+            color: 0xffcc00, // Default yellow
+            wireframe: true,
+            transparent: true,
+            opacity: 0.8
+        });
+        const core = new THREE.Mesh(geometry, material);
+        scene.add(core);
+
+        // Add inner glowing sphere
+        const innerGeo = new THREE.IcosahedronGeometry(0.8, 0);
+        const innerMat = new THREE.MeshBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.4 });
+        const innerCore = new THREE.Mesh(innerGeo, innerMat);
+        core.add(innerCore);
+
+        camera.position.z = 4;
+
+        // Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Rotate the core
+            core.rotation.x += 0.005;
+            core.rotation.y += 0.01;
+
+            // Pulse effect
+            const time = Date.now() * 0.002;
+            const scale = 1 + Math.sin(time) * 0.05;
+            core.scale.set(scale, scale, scale);
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        });
+
+
+        // --- 2. DASHBOARD DATA LOGIC ---
+        // This is mock data. In the next step, we will fetch this from a JSON file.
         const mockData = {
             signal: "BUY",
-            reason: "MACD bullish crossover + positive EUR news.",
+            reason: "MACD bullish crossover on 1H chart. RSI at 58 and rising. Positive EUR news sentiment from ECB. Price holding above 1.0850 support.",
             entry: "1.0852",
             sl: "1.0820",
             tp: "1.0910",
@@ -43,23 +353,43 @@
         };
 
         function updateDashboard(data) {
-            document.getElementById("signal").innerText = data.signal;
-            document.getElementById("signal").className = data.signal.toLowerCase();
+            const signalEl = document.getElementById("signal");
+            signalEl.innerText = data.signal;
+            signalEl.className = `signal-text ${data.signal.toLowerCase()}`;
+            
             document.getElementById("reason").innerText = data.reason;
             document.getElementById("entry").innerText = data.entry;
             document.getElementById("sl").innerText = data.sl;
             document.getElementById("tp").innerText = data.tp;
             document.getElementById("valid").innerText = data.valid;
+
+            // Change 3D Model color based on signal
+            if (data.signal === "BUY") material.color.setHex(0x00ff88);
+            else if (data.signal === "SELL") material.color.setHex(0xff3366);
+            else material.color.setHex(0xffcc00);
         }
 
+        // --- 3. VOICE SYNTHESIS ---
         function speakSignal() {
-            const text = `Signal: ${mockData.signal}. Reason: ${mockData.reason}`;
+            const signal = document.getElementById("signal").innerText;
+            const reason = document.getElementById("reason").innerText;
+            const entry = document.getElementById("entry").innerText;
+            const sl = document.getElementById("sl").innerText;
+            const tp = document.getElementById("tp").innerText;
+            const valid = document.getElementById("valid").innerText;
+
+            const text = `Signal: ${signal}. Reason: ${reason}. Entry at ${entry}, Stop Loss at ${sl}, Take Profit at ${tp}. Valid until ${valid}.`;
+            
+            // Cancel any ongoing speech
+            window.speechSynthesis.cancel();
+            
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.rate = 0.9;
+            utterance.pitch = 1.0;
             window.speechSynthesis.speak(utterance);
         }
 
-        // Load the mock data when the page opens
+        // Initialize the dashboard
         updateDashboard(mockData);
     </script>
 </body>
