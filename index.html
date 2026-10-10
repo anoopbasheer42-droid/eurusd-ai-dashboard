@@ -6,382 +6,162 @@
     <title>EUR/USD AI Pro Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    
     <style>
-        :root {
-            --bg-color: #0a0e17;
-            --card-bg: rgba(255, 255, 255, 0.03);
-            --border-color: rgba(255, 255, 255, 0.08);
-            --text-main: #e2e8f0;
-            --text-muted: #94a3b8;
-            --green: #00ff88;
-            --red: #ff3366;
-            --yellow: #ffcc00;
-            --accent: #3b82f6;
-        }
-
+        :root { --bg: #0a0e17; --card: rgba(255,255,255,0.03); --border: rgba(255,255,255,0.08); --text: #e2e8f0; --muted: #94a3b8; --green: #00ff88; --red: #ff3366; --yellow: #ffcc00; --accent: #3b82f6; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            min-height: 100vh;
-            padding: 20px;
-            background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #0a0e17 70%);
-        }
-
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        h1 { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.5px; }
-
-        .status-badge {
-            display: flex; align-items: center; gap: 8px;
-            font-size: 0.8rem; font-weight: 600;
-            color: var(--green);
-            background: rgba(0, 255, 136, 0.1);
-            padding: 6px 12px; border-radius: 20px;
-            border: 1px solid rgba(0, 255, 136, 0.2);
-        }
-
-        .pulse-dot {
-            width: 8px; height: 8px;
-            background-color: var(--green); border-radius: 50%;
-            animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(0, 255, 136, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 255, 136, 0); }
-        }
-
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 20px; background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #0a0e17 70%); }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 15px; border-bottom: 1px solid var(--border); }
+        h1 { font-size: 1.5rem; font-weight: 800; }
+        .status-badge { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; font-weight: 600; color: var(--green); background: rgba(0,255,136,0.1); padding: 6px 12px; border-radius: 20px; border: 1px solid rgba(0,255,136,0.2); }
+        .pulse-dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0,255,136,0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(0,255,136,0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0,255,136,0); } }
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         @media (max-width: 768px) { .dashboard-grid { grid-template-columns: 1fr; } }
-
-        .card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 16px; padding: 24px;
-            backdrop-filter: blur(10px);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            border-color: rgba(255, 255, 255, 0.15);
-        }
-
-        .card h2 {
-            font-size: 0.9rem; text-transform: uppercase;
-            letter-spacing: 1px; color: var(--text-muted);
-            margin-bottom: 20px;
-        }
-
-        #canvas-container {
-            width: 100%; height: 250px;
-            display: flex; justify-content: center; align-items: center;
-            position: relative;
-        }
-
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; backdrop-filter: blur(10px); transition: 0.2s; }
+        .card h2 { font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 20px; }
+        #canvas-container { width: 100%; height: 250px; display: flex; justify-content: center; align-items: center; }
         .signal-display { text-align: center; margin-bottom: 20px; }
-        .signal-text {
-            font-size: 3rem; font-weight: 800; letter-spacing: 2px;
-            transition: color 0.5s ease;
-        }
-        .signal-text.buy { color: var(--green); text-shadow: 0 0 20px rgba(0, 255, 136, 0.4); }
-        .signal-text.sell { color: var(--red); text-shadow: 0 0 20px rgba(255, 51, 102, 0.4); }
-        .signal-text.hold { color: var(--yellow); text-shadow: 0 0 20px rgba(255, 204, 0, 0.4); }
-
-        .reason-box {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 15px; border-radius: 10px;
-            font-size: 0.9rem; line-height: 1.5;
-            color: var(--text-muted); margin-bottom: 20px;
-            border-left: 3px solid var(--accent);
-        }
-
-        .data-grid {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 15px;
-        }
-
-        .data-item {
-            background: rgba(0, 0, 0, 0.2);
-            padding: 12px; border-radius: 8px;
-        }
-
-        .data-label {
-            font-size: 0.75rem; color: var(--text-muted);
-            text-transform: uppercase; margin-bottom: 4px;
-        }
-
+        .signal-text { font-size: 3rem; font-weight: 800; transition: color 0.5s; }
+        .signal-text.buy { color: var(--green); text-shadow: 0 0 20px rgba(0,255,136,0.4); }
+        .signal-text.sell { color: var(--red); text-shadow: 0 0 20px rgba(255,51,102,0.4); }
+        .signal-text.hold { color: var(--yellow); text-shadow: 0 0 20px rgba(255,204,0,0.4); }
+        .reason-box { background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; font-size: 0.9rem; color: var(--muted); margin-bottom: 20px; border-left: 3px solid var(--accent); }
+        .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .data-item { background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; }
+        .data-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
         .data-value { font-size: 1.1rem; font-weight: 600; font-family: monospace; }
-
-        .voice-controls {
-            display: flex; gap: 10px; margin-top: 20px;
-        }
-
-        .voice-btn {
-            flex: 1; padding: 16px;
-            background: linear-gradient(135deg, var(--accent), #8b5cf6);
-            border: none; border-radius: 12px;
-            color: white; font-size: 1rem; font-weight: 600;
-            cursor: pointer; display: flex; justify-content: center;
-            align-items: center; gap: 10px; transition: opacity 0.2s;
-        }
-
-        .voice-btn.stop {
-            background: linear-gradient(135deg, #ff3366, #cc0033);
-            flex: 0.4;
-        }
-
+        .voice-controls { display: flex; gap: 10px; margin-top: 20px; }
+        .voice-btn { flex: 1; padding: 16px; background: linear-gradient(135deg, var(--accent), #8b5cf6); border: none; border-radius: 12px; color: white; font-size: 1rem; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .voice-btn.stop { background: linear-gradient(135deg, #ff3366, #cc0033); flex: 0.4; }
         .voice-btn:hover { opacity: 0.9; }
-        .voice-btn:active { transform: scale(0.98); }
-
-        .news-item {
-            padding: 12px 0; border-bottom: 1px solid var(--border-color);
-            font-size: 0.9rem;
-        }
+        .news-item { padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
         .news-item:last-child { border-bottom: none; }
-        .news-time { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; }
         .tag-bullish { color: var(--green); font-weight: 600; }
         .tag-bearish { color: var(--red); font-weight: 600; }
-        
-        .candle-analysis {
-            margin-top: 20px; padding: 15px;
-            background: rgba(0, 0, 0, 0.2); border-radius: 10px;
-            font-size: 0.85rem; line-height: 1.6;
-        }
-        .candle-analysis h3 { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px; text-transform: uppercase; }
+        .candle-analysis { margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 10px; font-size: 0.85rem; line-height: 1.6; }
         .candle-item { margin-bottom: 12px; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 8px; }
         .candle-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
         .candle-timeframe { color: var(--accent); font-weight: 600; margin-right: 5px; }
     </style>
 </head>
 <body>
-
     <header>
         <h1>⚡ EUR/USD AI PRO</h1>
-        <div class="status-badge">
-            <div class="pulse-dot"></div>
-            LIVE ANALYSIS
-        </div>
+        <div class="status-badge"><div class="pulse-dot"></div>LIVE ANALYSIS</div>
     </header>
 
     <div class="dashboard-grid">
-        
-        <!-- Left Column: 3D Model & Chart -->
         <div class="card">
             <h2>AI Neural Core</h2>
             <div id="canvas-container"></div>
-            <p style="text-align: center; color: var(--text-muted); font-size: 0.8rem; margin-top: 10px;">
-                Real-time sentiment visualization
-            </p>
+            <p style="text-align:center; color:var(--muted); font-size:0.8rem; margin-top:10px;">Real-time sentiment visualization</p>
         </div>
 
-        <!-- Right Column: Signal & Data -->
         <div class="card">
             <h2>Current Signal</h2>
-            <div class="signal-display">
-                <div id="signal" class="signal-text hold">LOADING</div>
-            </div>
-            <div id="reason" class="reason-box">Waiting for AI analysis...</div>
-            
+            <div class="signal-display"><div id="signal" class="signal-text hold">LOADING</div></div>
+            <div id="reason" class="reason-box">Connecting to live data...</div>
             <div class="data-grid">
-                <div class="data-item">
-                    <div class="data-label">Entry Price</div>
-                    <div id="entry" class="data-value">-</div>
-                </div>
-                <div class="data-item">
-                    <div class="data-label">Stop Loss</div>
-                    <div id="sl" class="data-value">-</div>
-                </div>
-                <div class="data-item">
-                    <div class="data-label">Take Profit</div>
-                    <div id="tp" class="data-value">-</div>
-                </div>
-                <div class="data-item">
-                    <div class="data-label">Valid Until</div>
-                    <div id="valid" class="data-value">-</div>
-                </div>
+                <div class="data-item"><div class="data-label">Entry Price</div><div id="entry" class="data-value">-</div></div>
+                <div class="data-item"><div class="data-label">Stop Loss</div><div id="sl" class="data-value">-</div></div>
+                <div class="data-item"><div class="data-label">Take Profit</div><div id="tp" class="data-value">-</div></div>
+                <div class="data-item"><div class="data-label">Valid Until</div><div id="valid" class="data-value">-</div></div>
             </div>
-
             <div class="voice-controls">
-                <button class="voice-btn" onclick="speakSignal()">
-                    🔊 Play Voice Update
-                </button>
-                <button class="voice-btn stop" onclick="stopVoice()">
-                    ⏹ Stop
-                </button>
+                <button class="voice-btn" onclick="speakSignal()">🔊 Play Voice</button>
+                <button class="voice-btn stop" onclick="stopVoice()">⏹ Stop</button>
             </div>
         </div>
 
-        <!-- Bottom: Candle Analysis & News -->
         <div class="card" style="grid-column: 1 / -1;">
             <h2>Multi-Timeframe Analysis</h2>
             <div class="candle-analysis">
-                <div class="candle-item">
-                    <span class="candle-timeframe">5 Minute Candle:</span>
-                    <span id="candle_5m">Analyzing...</span>
-                </div>
-                <div class="candle-item">
-                    <span class="candle-timeframe">1 Hour Candle:</span>
-                    <span id="candle_1h">Analyzing...</span>
-                </div>
-                <div class="candle-item">
-                    <span class="candle-timeframe">4 Hour Candle:</span>
-                    <span id="candle_4h">Analyzing...</span>
-                </div>
+                <div class="candle-item"><span class="candle-timeframe">5 Minute Candle:</span><span id="candle_5m">Analyzing...</span></div>
+                <div class="candle-item"><span class="candle-timeframe">1 Hour Candle:</span><span id="candle_1h">Analyzing...</span></div>
+                <div class="candle-item"><span class="candle-timeframe">4 Hour Candle:</span><span id="candle_4h">Analyzing...</span></div>
             </div>
         </div>
 
         <div class="card" style="grid-column: 1 / -1;">
             <h2>Live Market News</h2>
             <div id="news-feed">
-                <div class="news-item">
-                    <div class="news-time">Just now</div>
-                    <div>ECB officials hint at potential rate cut in Q4. <span class="tag-bearish">BEARISH EUR</span></div>
-                </div>
-                <div class="news-item">
-                    <div class="news-time">1 hour ago</div>
-                    <div>US NFP data comes in stronger than expected. <span class="tag-bullish">BULLISH USD</span></div>
-                </div>
-                <div class="news-item">
-                    <div class="news-time">3 hours ago</div>
-                    <div>Eurozone CPI remains stable at 2.4%. <span class="tag-bullish">NEUTRAL</span></div>
-                </div>
+                <div class="news-item"><div>ECB officials hint at potential rate cut in Q4. <span class="tag-bearish">BEARISH EUR</span></div></div>
+                <div class="news-item"><div>US NFP data comes in stronger than expected. <span class="tag-bullish">BULLISH USD</span></div></div>
             </div>
         </div>
-
     </div>
 
     <script>
-        // --- 1. THREE.JS 3D ANIMATION ---
+        // --- 3D MODEL ---
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-        
         renderer.setSize(container.clientWidth, container.clientHeight);
         container.appendChild(renderer.domElement);
 
         const geometry = new THREE.IcosahedronGeometry(1.5, 1);
-        const material = new THREE.MeshBasicMaterial({ 
-            color: 0xffcc00, wireframe: true, transparent: true, opacity: 0.8
-        });
+        const material = new THREE.MeshBasicMaterial({ color: 0xffcc00, wireframe: true, transparent: true, opacity: 0.8 });
         const core = new THREE.Mesh(geometry, material);
         scene.add(core);
-
-        const innerGeo = new THREE.IcosahedronGeometry(0.8, 0);
-        const innerMat = new THREE.MeshBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.4 });
-        const innerCore = new THREE.Mesh(innerGeo, innerMat);
+        const innerCore = new THREE.Mesh(new THREE.IcosahedronGeometry(0.8, 0), new THREE.MeshBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.4 }));
         core.add(innerCore);
-
         camera.position.z = 4;
 
         function animate() {
             requestAnimationFrame(animate);
-            core.rotation.x += 0.005;
-            core.rotation.y += 0.01;
-            const time = Date.now() * 0.002;
-            const scale = 1 + Math.sin(time) * 0.05;
+            core.rotation.x += 0.005; core.rotation.y += 0.01;
+            const scale = 1 + Math.sin(Date.now() * 0.002) * 0.05;
             core.scale.set(scale, scale, scale);
             renderer.render(scene, camera);
         }
         animate();
 
-        window.addEventListener('resize', () => {
-            camera.aspect = container.clientWidth / container.clientHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(container.clientWidth, container.clientHeight);
-        });
-
-
-        // --- 2. DASHBOARD DATA LOGIC ---
-        // Expanded mock data to include explanations
-        const mockData = {
-            signal: "BUY",
-            reason: "MACD bullish crossover on 1H chart. RSI at 58 and rising. Positive EUR news sentiment from ECB. Price holding above 1.0850 support.",
-            entry: "1.0852",
-            sl: "1.0820",
-            tp: "1.0910",
-            valid: "18:00 UTC",
-            candle_5m: "The last 5-minute candle closed as a bullish engulfing pattern, indicating short-term buyers are stepping in after a brief pullback.",
-            candle_1h: "The 1-hour candle shows a clear break above the 20 EMA with increasing volume, confirming the intraday uptrend.",
-            candle_4h: "The 4-hour candle is forming a higher low structure, suggesting the broader trend is shifting to the upside."
-        };
+        // --- FETCH LIVE DATA FROM GITHUB ---
+        async function loadLiveData() {
+            try {
+                // Fetch the data.json file generated by our Python script
+                const response = await fetch('data.json?t=' + Date.now()); // added timestamp to bypass cache
+                if (!response.ok) throw new Error("Data not generated yet");
+                const data = await response.json();
+                updateDashboard(data);
+            } catch (error) {
+                console.log("Waiting for live data...", error);
+                document.getElementById("reason").innerText = "Waiting for the Python backend to generate data.json...";
+                // Retry in 30 seconds
+                setTimeout(loadLiveData, 30000);
+            }
+        }
 
         function updateDashboard(data) {
             const signalEl = document.getElementById("signal");
             signalEl.innerText = data.signal;
             signalEl.className = `signal-text ${data.signal.toLowerCase()}`;
-            
             document.getElementById("reason").innerText = data.reason;
             document.getElementById("entry").innerText = data.entry;
             document.getElementById("sl").innerText = data.sl;
             document.getElementById("tp").innerText = data.tp;
             document.getElementById("valid").innerText = data.valid;
-            
-            // New Candle Analysis
             document.getElementById("candle_5m").innerText = data.candle_5m;
             document.getElementById("candle_1h").innerText = data.candle_1h;
             document.getElementById("candle_4h").innerText = data.candle_4h;
-
-            // Change 3D Model color based on signal
             if (data.signal === "BUY") material.color.setHex(0x00ff88);
             else if (data.signal === "SELL") material.color.setHex(0xff3366);
             else material.color.setHex(0xffcc00);
         }
 
-        // --- 3. VOICE SYNTHESIS (Explanatory Style) ---
+        // --- VOICE ---
         function speakSignal() {
-            const signal = document.getElementById("signal").innerText;
-            const reason = document.getElementById("reason").innerText;
-            const entry = document.getElementById("entry").innerText;
-            const sl = document.getElementById("sl").innerText;
-            const tp = document.getElementById("tp").innerText;
-            const valid = document.getElementById("valid").innerText;
-            const c5m = document.getElementById("candle_5m").innerText;
-            const c1h = document.getElementById("candle_1h").innerText;
-            const c4h = document.getElementById("candle_4h").innerText;
-
-            const text = `Let me explain the current EUR USD market situation. 
-            The current signal is ${signal}. 
-            Here is why: ${reason}. 
-            Looking at the lower timeframes, the 5-minute candle shows: ${c5m}. 
-            On the 1-hour chart: ${c1h}. 
-            And on the 4-hour chart: ${c4h}. 
-            The entry is at ${entry}, with a stop loss at ${sl}, and a take profit target of ${tp}. 
-            This signal is valid until ${valid}.`;
-
-            // Cancel any ongoing speech
+            const text = `Let me explain the EUR USD market. Signal: ${document.getElementById("signal").innerText}. Reason: ${document.getElementById("reason").innerText}. The 5 minute candle shows: ${document.getElementById("candle_5m").innerText}. The 1 hour candle: ${document.getElementById("candle_1h").innerText}. The 4 hour candle: ${document.getElementById("candle_4h").innerText}. Entry at ${document.getElementById("entry").innerText}, Stop Loss at ${document.getElementById("sl").innerText}, Take Profit at ${document.getElementById("tp").innerText}. Valid until ${document.getElementById("valid").innerText}.`;
             window.speechSynthesis.cancel();
-            
             const utterance = new SpeechSynthesisUtterance(text);
-            utterance.rate = 0.95; // Slightly slower for clarity
-            utterance.pitch = 1.0;
+            utterance.rate = 0.95;
             window.speechSynthesis.speak(utterance);
         }
 
-        function stopVoice() {
-            window.speechSynthesis.cancel();
-        }
+        function stopVoice() { window.speechSynthesis.cancel(); }
 
-        // Initialize the dashboard
-        updateDashboard(mockData);
+        loadLiveData();
     </script>
 </body>
 </html>
