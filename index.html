@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        :root { --bg: #0a0e17; --card: rgba(255,255,255,0.03); --border: rgba(255,255,255,0.08); --text: #e2e8f0; --muted: #94a3b8; --green: #00ff88; --red: #ff3366; --yellow: #ffcc00; --accent: #3b82f6; --purple: #8b5cf6; }
+        :root { --bg: #0a0e17; --card: rgba(255,255,255,0.03); --border: rgba(255,255,255,0.08); --text: #e2e8f0; --muted: #94a3b8; --green: #00ff88; --red: #ff3366; --yellow: #ffcc00; --accent: #3b82f6; --purple: #8b5cf6; --pink: #ec4899; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 20px; background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #0a0e17 70%); }
         header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 15px; border-bottom: 1px solid var(--border); }
@@ -46,6 +46,8 @@
         .level-value { font-family: monospace; font-weight: 600; margin-top: 2px; }
         .ai-reason-box { background: rgba(0,0,0,0.3); padding: 20px; border-radius: 12px; font-size: 0.95rem; line-height: 1.7; color: #e2e8f0; border-left: 4px solid var(--accent); }
         .ai-reason-label { display: block; font-weight: 600; color: var(--accent); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+        .personal-box { background: linear-gradient(135deg, rgba(236,72,153,0.15), rgba(139,92,246,0.15)); padding: 20px; border-radius: 12px; border-left: 4px solid var(--pink); font-size: 0.95rem; line-height: 1.7; color: #f1f5f9; }
+        .personal-label { display: block; font-weight: 600; color: var(--pink); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -75,6 +77,14 @@
             <div class="voice-controls">
                 <button class="voice-btn" onclick="speakSignal()">🔊 Play Voice</button>
                 <button class="voice-btn stop" onclick="stopVoice()">⏹ Stop</button>
+            </div>
+        </div>
+
+        <div class="card" style="grid-column: 1 / -1;">
+            <h2>💚 Daily Check-In</h2>
+            <div class="personal-box">
+                <span class="personal-label">From your AI companion</span>
+                <span id="personal_message">Waiting for the next update...</span>
             </div>
         </div>
 
@@ -167,13 +177,14 @@
             document.getElementById("support").innerText = data.support || "-";
             document.getElementById("resistance").innerText = data.resistance || "-";
             document.getElementById("ai_reason").innerText = data.reason || "No analysis yet.";
-            
+            document.getElementById("personal_message").innerText = data.personal_message || "Waiting for the next update...";
+
             if (data.wise_words) {
                 const wiseBox = document.getElementById("wise_box");
                 const isJoke = data.wise_words.toLowerCase().startsWith("joke");
                 wiseBox.innerHTML = `<span class="wise-label">${isJoke ? '😂 Joke of the Hour' : '💪 Motivation of the Hour'}</span>${data.wise_words.replace(/^Joke:\s*|^Motivation:\s*/i, '')}`;
             }
-            
+
             if (data.signal === "BUY") material.color.setHex(0x00ff88);
             else if (data.signal === "SELL") material.color.setHex(0xff3366);
             else material.color.setHex(0xffcc00);
@@ -246,6 +257,11 @@
             text += `Key levels to watch — support at ${d.support || 'unknown'}, resistance at ${d.resistance || 'unknown'}. `;
             text += `Suggested entry ${d.entry}, stop loss at ${d.sl}, take profit at ${d.tp}. `;
             text += `Signal valid until ${d.valid}. `;
+
+            // Personal message
+            if (d.personal_message) {
+                text += `Before I go, ${d.personal_message} `;
+            }
 
             if (isJoke) {
                 text += `Quick joke for you, Boss. ${wisdom} `;
