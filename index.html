@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        :root { --bg: #0a0e17; --card: rgba(255,255,255,0.03); --border: rgba(255,255,255,0.08); --text: #e2e8f0; --muted: #94a3b8; --green: #00ff88; --red: #ff3366; --yellow: #ffcc00; --accent: #3b82f6; --purple: #8b5cf6; --pink: #ec4899; }
+        :root { --bg: #0a0e17; --card: rgba(255,255,255,0.03); --border: rgba(255,255,255,0.08); --text: #e2e8f0; --muted: #94a3b8; --green: #00ff88; --red: #ff3366; --yellow: #ffcc00; --accent: #3b82f6; --purple: #8b5cf6; --pink: #ec4899; --orange: #f97316; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 20px; background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #0a0e17 70%); }
         header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 15px; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 10px; }
@@ -19,9 +19,6 @@
         .market-status { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 700; padding: 6px 12px; border-radius: 20px; letter-spacing: 0.5px; }
         .market-status.open { color: var(--green); background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.3); }
         .market-status.closed { color: var(--red); background: rgba(255,51,102,0.1); border: 1px solid rgba(255,51,102,0.3); }
-        .status-badge { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; font-weight: 600; color: var(--green); background: rgba(0,255,136,0.1); padding: 6px 12px; border-radius: 20px; border: 1px solid rgba(0,255,136,0.2); }
-        .pulse-dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0,255,136,0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(0,255,136,0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0,255,136,0); } }
         .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         @media (max-width: 768px) { .dashboard-grid { grid-template-columns: 1fr; } }
         .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; backdrop-filter: blur(10px); transition: 0.2s; }
@@ -35,7 +32,6 @@
         .signal-text.buy { color: var(--green); text-shadow: 0 0 20px rgba(0,255,136,0.4); }
         .signal-text.sell { color: var(--red); text-shadow: 0 0 20px rgba(255,51,102,0.4); }
         .signal-text.hold, .signal-text.waiting { color: var(--yellow); text-shadow: 0 0 20px rgba(255,204,0,0.4); }
-        .signal-text.closed { color: var(--muted); text-shadow: none; }
         .signal-source { font-size: 0.65rem; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
         .signal-source .live { color: var(--green); animation: pulse 2s infinite; }
         .ai-countdown { font-size: 0.7rem; color: #64748b; margin-top: 6px; font-family: monospace; letter-spacing: 0.5px; }
@@ -102,9 +98,11 @@
         .header-btn.browser-btn.disabled { border-color: var(--border); color: var(--muted); }
         .header-btn.sync-btn { border-color: var(--green); color: var(--green); }
         .header-btn.sync-btn:hover { background: rgba(0,255,136,0.15); }
-        .key-panel, .memory-panel, .reminder-panel, .sync-panel { background: linear-gradient(135deg, rgba(234,179,8,0.15), rgba(249,115,22,0.15)); border: 1px solid rgba(234,179,8,0.4); border-radius: 12px; padding: 16px; margin-bottom: 16px; display: none; }
-        .key-panel.visible, .memory-panel.visible, .reminder-panel.visible, .sync-panel.visible { display: block; }
-        .key-panel h3, .memory-panel h3, .reminder-panel h3, .sync-panel h3 { font-size: 0.9rem; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+        .header-btn.signals-btn { border-color: var(--orange); color: var(--orange); }
+        .header-btn.signals-btn:hover { background: rgba(249,115,22,0.15); }
+        .key-panel, .memory-panel, .reminder-panel, .sync-panel, .signal-log-panel { background: linear-gradient(135deg, rgba(234,179,8,0.15), rgba(249,115,22,0.15)); border: 1px solid rgba(234,179,8,0.4); border-radius: 12px; padding: 16px; margin-bottom: 16px; display: none; }
+        .key-panel.visible, .memory-panel.visible, .reminder-panel.visible, .sync-panel.visible, .signal-log-panel.visible { display: block; }
+        .key-panel h3, .memory-panel h3, .reminder-panel h3, .sync-panel h3, .signal-log-panel h3 { font-size: 0.9rem; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
         .key-panel h3 { color: #fbbf24; }
         .memory-panel { background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(59,130,246,0.15)); border-color: rgba(139,92,246,0.4); }
         .memory-panel h3 { color: var(--purple); }
@@ -112,7 +110,9 @@
         .reminder-panel h3 { color: #fbbf24; }
         .sync-panel { background: linear-gradient(135deg, rgba(0,255,136,0.12), rgba(59,130,246,0.1)); border-color: rgba(0,255,136,0.4); }
         .sync-panel h3 { color: var(--green); }
-        .key-panel p, .memory-panel p, .reminder-panel p, .sync-panel p { font-size: 0.85rem; color: var(--muted); margin-bottom: 12px; line-height: 1.5; }
+        .signal-log-panel { background: linear-gradient(135deg, rgba(249,115,22,0.12), rgba(236,72,153,0.1)); border-color: rgba(249,115,22,0.4); }
+        .signal-log-panel h3 { color: var(--orange); }
+        .key-panel p, .memory-panel p, .reminder-panel p, .sync-panel p, .signal-log-panel p { font-size: 0.85rem; color: var(--muted); margin-bottom: 12px; line-height: 1.5; }
         .key-input-row { display: flex; gap: 8px; margin-bottom: 8px; }
         .key-input { flex: 1; padding: 12px 14px; background: rgba(0,0,0,0.4); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-family: monospace; font-size: 0.85rem; outline: none; }
         .key-input:focus { border-color: #fbbf24; }
@@ -144,6 +144,34 @@
         .notif-status { font-size: 0.75rem; margin-top: 8px; color: var(--muted); }
         .notif-status.granted { color: var(--green); }
         .notif-status.denied { color: var(--red); }
+        
+        /* Signal log styles */
+        .signal-stats { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+        .stat-item { background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; text-align: center; }
+        .stat-value { font-size: 1.2rem; font-weight: 700; font-family: monospace; }
+        .stat-value.win { color: var(--green); }
+        .stat-value.loss { color: var(--red); }
+        .stat-value.total { color: var(--accent); }
+        .stat-value.rate { color: var(--orange); }
+        .stat-label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; margin-top: 2px; }
+        .signal-log-list { display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto; margin-bottom: 12px; }
+        .signal-log-item { display: grid; grid-template-columns: 50px 1fr 70px; gap: 10px; background: rgba(0,0,0,0.3); padding: 10px 12px; border-radius: 8px; font-size: 0.8rem; line-height: 1.4; border-left: 3px solid var(--muted); }
+        .signal-log-item.buy { border-left-color: var(--green); }
+        .signal-log-item.sell { border-left-color: var(--red); }
+        .signal-log-item.hold { border-left-color: var(--yellow); }
+        .signal-log-time { font-family: monospace; color: var(--muted); font-size: 0.7rem; }
+        .signal-log-content { flex: 1; }
+        .signal-log-signal { font-weight: 700; font-size: 0.85rem; margin-bottom: 2px; }
+        .signal-log-signal.buy { color: var(--green); }
+        .signal-log-signal.sell { color: var(--red); }
+        .signal-log-signal.hold { color: var(--yellow); }
+        .signal-log-reason { color: var(--muted); font-size: 0.75rem; }
+        .signal-log-outcome { text-align: right; font-weight: 700; font-size: 0.75rem; }
+        .signal-log-outcome.win { color: var(--green); }
+        .signal-log-outcome.loss { color: var(--red); }
+        .signal-log-outcome.flat { color: var(--yellow); }
+        .signal-log-outcome.pending { color: var(--muted); }
+        .signal-log-meta { font-size: 0.7rem; color: var(--muted); margin-top: 4px; }
     </style>
 </head>
 <body>
@@ -194,6 +222,7 @@
                     <button id="deepThinkBtn" class="header-btn deep-btn" onclick="toggleDeepThink()">🧠 Deep Think ON</button>
                     <button id="webToggleBtn" class="header-btn web-btn" onclick="toggleWebSearch()">🌐 Web ON</button>
                     <button id="syncToggleBtn" class="header-btn sync-btn" onclick="toggleSyncPanel()">☁ Sync</button>
+                    <button id="signalsToggleBtn" class="header-btn signals-btn" onclick="toggleSignalLogPanel()">📊 Signals</button>
                     <button id="reminderToggleBtn" class="header-btn reminder-btn" onclick="toggleReminderPanel()">⏰ Reminders</button>
                     <button class="header-btn memory-btn" onclick="toggleMemoryPanel()">🧠 Memory</button>
                     <button class="header-btn" onclick="showKeyPanel()">🔑 Key</button>
@@ -212,9 +241,9 @@
 
             <div id="syncPanel" class="sync-panel">
                 <h3>☁ Cloud Sync (GitHub Gist)</h3>
-                <p>Backup your memories to GitHub Gist so they survive even if browser data is cleared. Free forever.</p>
+                <p>Backup your memories and signal log to GitHub Gist. Free forever.</p>
                 <div class="key-input-row">
-                    <input id="gistIdInput" class="key-input" type="text" placeholder="Gist ID (from gist.github.com URL)" />
+                    <input id="gistIdInput" class="key-input" type="text" placeholder="Gist ID" />
                 </div>
                 <div class="key-input-row">
                     <input id="gistTokenInput" class="key-input" type="password" placeholder="Token (ghp_...)" />
@@ -224,6 +253,23 @@
                 <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
                     <button class="reminder-action test" onclick="pullFromGist()">⬇ Pull from Gist</button>
                     <button class="reminder-action test" onclick="pushToGist(true)">⬆ Push to Gist</button>
+                </div>
+            </div>
+
+            <div id="signalLogPanel" class="signal-log-panel">
+                <h3>📊 Signal Log</h3>
+                <p>Every signal change gets logged here. Auto-checks outcome 1 hour later.</p>
+                <div class="signal-stats">
+                    <div class="stat-item"><div class="stat-value total" id="statTotal">0</div><div class="stat-label">Total</div></div>
+                    <div class="stat-item"><div class="stat-value win" id="statWins">0</div><div class="stat-label">Wins</div></div>
+                    <div class="stat-item"><div class="stat-value loss" id="statLosses">0</div><div class="stat-label">Losses</div></div>
+                    <div class="stat-item"><div class="stat-value rate" id="statRate">0%</div><div class="stat-label">Win Rate</div></div>
+                </div>
+                <div id="signalLogList" class="signal-log-list"></div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <button class="reminder-action test" onclick="checkSignalOutcomes()">🔄 Check Outcomes Now</button>
+                    <button class="reminder-action test" onclick="exportSignalLogCSV()">⬇ Export CSV</button>
+                    <button class="reminder-action clear" onclick="clearSignalLog()">🗑 Clear Log</button>
                 </div>
             </div>
 
@@ -251,7 +297,7 @@
 
             <div class="chat-container">
                 <div id="chatMessages" class="chat-messages">
-                    <div class="chat-msg system">Ask me anything, Boss. Browser AI runs every 5 min. Chat works anytime.</div>
+                    <div class="chat-msg system">Ask me anything, Boss. Try: "How many signals fired today?"</div>
                 </div>
                 <div class="chat-input-row">
                     <input id="chatInput" class="chat-input" type="text" placeholder="Ask me anything, Boss..." onkeydown="if(event.key === 'Enter') sendChat()" />
@@ -301,9 +347,11 @@
         const DEEPTHINK_STORAGE_NAME = "eurusd_deepthink_enabled";
         const REMINDERS_STORAGE_NAME = "eurusd_reminders";
         const BROWSER_AI_STORAGE_NAME = "eurusd_browser_ai_enabled";
+        const SIGNAL_LOG_STORAGE_NAME = "eurusd_signal_log";
         const GIST_ID_STORAGE = "eurusd_gist_id";
         const GIST_TOKEN_STORAGE = "eurusd_gist_token";
         const MAX_HISTORY_ENTRIES = 40;
+        const MAX_SIGNAL_LOG = 500;
 
         let latestData = null;
         let personalContext = null;
@@ -317,32 +365,22 @@
         let browserAILastRun = 0;
         let browserAIRunning = false;
         let currentMarketStatus = { open: true, label: "🟢 MARKET OPEN" };
+        let lastLoggedSignal = null;
 
         // ═══ MARKET STATUS ═══
         function getMarketStatus() {
             const now = new Date();
             const istString = now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata', hour12: false });
             const istDate = new Date(istString);
-            const day = istDate.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+            const day = istDate.getDay();
             const hour = istDate.getHours();
             const minute = istDate.getMinutes();
             const timeInMinutes = hour * 60 + minute;
-            
-            // Sunday - closed
             if (day === 0) return { open: false, label: "🔴 MARKET CLOSED (Sunday)", reason: "Weekend" };
-            
-            // Saturday - closed
             if (day === 6) return { open: false, label: "🔴 MARKET CLOSED (Saturday)", reason: "Weekend" };
-            
-            // Monday before 2:30 AM IST - pre-market
-            if (day === 1 && timeInMinutes < 150) {
-                return { open: false, label: "🔴 MARKET CLOSED (Pre-market)", reason: "Opens 2:30 AM IST Monday" };
-            }
-            
-            // Otherwise open
+            if (day === 1 && timeInMinutes < 150) return { open: false, label: "🔴 MARKET CLOSED (Pre-market)", reason: "Opens 2:30 AM IST Monday" };
             return { open: true, label: "🟢 MARKET OPEN", reason: "" };
         }
-        
         function updateMarketStatus() {
             const status = getMarketStatus();
             currentMarketStatus = status;
@@ -351,7 +389,6 @@
             el.innerText = status.label;
             el.className = "market-status " + (status.open ? "open" : "closed");
         }
-        // ═══ END MARKET STATUS ═══
 
         // ═══ IST CLOCK ═══
         function updateISTClock() {
@@ -364,12 +401,170 @@
             timeEl.innerText = timeStr + " IST";
             dateEl.innerText = dateStr;
         }
-        setInterval(updateIstClockAndStatus, 1000);
-        function updateIstClockAndStatus() {
+        function tickClock() {
             updateISTClock();
             updateMarketStatus();
         }
-        // ═══ END IST CLOCK ═══
+        setInterval(tickClock, 1000);
+
+        // ═══ SIGNAL LOG ═══
+        function loadSignalLog() {
+            try {
+                const raw = localStorage.getItem(SIGNAL_LOG_STORAGE_NAME);
+                if (!raw) return [];
+                const parsed = JSON.parse(raw);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (e) { return []; }
+        }
+        function saveSignalLog(log) {
+            try {
+                const trimmed = log.length > MAX_SIGNAL_LOG ? log.slice(-MAX_SIGNAL_LOG) : log;
+                localStorage.setItem(SIGNAL_LOG_STORAGE_NAME, JSON.stringify(trimmed));
+            } catch (e) {}
+        }
+        function logSignalChange(signal, confidence, price, entry, sl, tp, reason, source) {
+            if (!signal) return;
+            // Skip HOLD → don't log HOLD unless it changed from BUY/SELL
+            const log = loadSignalLog();
+            const lastEntry = log[log.length - 1];
+            const lastSignal = lastEntry ? lastEntry.signal : null;
+            if (signal === lastSignal) return; // No change
+            if (signal === "HOLD" && lastSignal === null) return; // First load, don't log initial HOLD
+            
+            const now = new Date();
+            const timeIST = now.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: false });
+            const dateIST = now.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short" });
+            
+            const entry = {
+                id: Date.now() + "_" + Math.random().toString(36).slice(2, 8),
+                timestamp: Date.now(),
+                timeIST: timeIST,
+                dateIST: dateIST,
+                signal: signal,
+                prevSignal: lastSignal || "—",
+                confidence: confidence || "MEDIUM",
+                price: price || "—",
+                entry: entry || price || "—",
+                sl: sl || "—",
+                tp: tp || "—",
+                reason: (reason || "").slice(0, 200),
+                source: source || "unknown",
+                checkAt: Date.now() + 60 * 60 * 1000, // 1 hour later
+                outcome: null,
+                outcomePrice: null,
+                outcomeNote: null
+            };
+            log.push(entry);
+            saveSignalLog(log);
+            lastLoggedSignal = signal;
+            renderSignalLog();
+            updateSignalStats();
+            // Auto-sync to Gist
+            pushSignalLogToGist();
+        }
+        function checkSignalOutcomes() {
+            const log = loadSignalLog();
+            let changed = false;
+            const now = Date.now();
+            log.forEach(entry => {
+                if (entry.outcome === null && entry.signal !== "HOLD" && now >= entry.checkAt) {
+                    // Check outcome using latestData price or livePrice
+                    const currentPrice = parseFloat(livePrice) || (latestData && parseFloat(latestData.price));
+                    if (!currentPrice || !entry.entry || entry.entry === "—") return;
+                    const entryPrice = parseFloat(entry.entry);
+                    if (!entryPrice) return;
+                    const diff = currentPrice - entryPrice;
+                    const pips = diff * 10000; // Rough pip calc for EUR/USD
+                    
+                    if (Math.abs(pips) < 3) {
+                        entry.outcome = "flat";
+                        entry.outcomeNote = "No clear move";
+                    } else if (entry.signal === "BUY") {
+                        entry.outcome = pips > 0 ? "win" : "loss";
+                        entry.outcomeNote = pips.toFixed(1) + " pips";
+                    } else if (entry.signal === "SELL") {
+                        entry.outcome = pips < 0 ? "win" : "loss";
+                        entry.outcomeNote = Math.abs(pips).toFixed(1) + " pips";
+                    }
+                    entry.outcomePrice = currentPrice.toFixed(4);
+                    changed = true;
+                }
+            });
+            if (changed) {
+                saveSignalLog(log);
+                renderSignalLog();
+                updateSignalStats();
+                pushSignalLogToGist();
+            }
+        }
+        setInterval(checkSignalOutcomes, 5 * 60 * 1000); // Check every 5 min
+
+        function updateSignalStats() {
+            const log = loadSignalLog();
+            const tracked = log.filter(e => e.signal !== "HOLD" && e.outcome !== null);
+            const wins = tracked.filter(e => e.outcome === "win").length;
+            const losses = tracked.filter(e => e.outcome === "loss").length;
+            const total = tracked.length;
+            const rate = total > 0 ? Math.round((wins / total) * 100) : 0;
+            
+            document.getElementById("statTotal").innerText = log.filter(e => e.signal !== "HOLD").length;
+            document.getElementById("statWins").innerText = wins;
+            document.getElementById("statLosses").innerText = losses;
+            document.getElementById("statRate").innerText = rate + "%";
+        }
+        function renderSignalLog() {
+            const list = document.getElementById("signalLogList");
+            if (!list) return;
+            const log = loadSignalLog();
+            if (!log.length) {
+                list.innerHTML = '<div class="memory-empty">No signals logged yet. They appear when the signal changes.</div>';
+                return;
+            }
+            // Show last 20, newest first
+            const recent = log.slice(-20).reverse();
+            list.innerHTML = recent.map(e => {
+                const outcomeClass = e.outcome || "pending";
+                const outcomeText = e.outcome === "win" ? "✅ WIN" : e.outcome === "loss" ? "❌ LOSS" : e.outcome === "flat" ? "⚪ FLAT" : "⏳ Pending";
+                const signalClass = e.signal.toLowerCase();
+                return `
+                    <div class="signal-log-item ${signalClass}">
+                        <div class="signal-log-time">${e.timeIST}<br>${e.dateIST}</div>
+                        <div class="signal-log-content">
+                            <div class="signal-log-signal ${signalClass}">${e.signal} ${e.prevSignal !== "—" ? "← " + e.prevSignal : ""}</div>
+                            <div class="signal-log-reason">${escapeHtml(e.reason.slice(0, 100))}${e.reason.length > 100 ? '...' : ''}</div>
+                            <div class="signal-log-meta">Entry ${e.entry} | ${e.confidence} | ${e.source}</div>
+                        </div>
+                        <div class="signal-log-outcome ${outcomeClass}">${outcomeText}<br><span style="font-size:0.65rem; color:var(--muted);">${e.outcomeNote || ''}</span></div>
+                    </div>
+                `;
+            }).join("");
+        }
+        function toggleSignalLogPanel() {
+            document.getElementById("signalLogPanel").classList.toggle("visible");
+            renderSignalLog();
+            updateSignalStats();
+        }
+        function clearSignalLog() {
+            if (!confirm("Clear entire signal log? This cannot be undone.")) return;
+            saveSignalLog([]);
+            renderSignalLog();
+            updateSignalStats();
+            pushSignalLogToGist();
+        }
+        function exportSignalLogCSV() {
+            const log = loadSignalLog();
+            if (!log.length) { alert("No signals to export"); return; }
+            const headers = ["Date", "Time IST", "Signal", "Prev", "Confidence", "Price", "Entry", "SL", "TP", "Source", "Outcome", "Outcome Note", "Reason"];
+            const rows = log.map(e => [e.dateIST, e.timeIST, e.signal, e.prevSignal, e.confidence, e.price, e.entry, e.sl, e.tp, e.source, e.outcome || "pending", e.outcomeNote || "", (e.reason || "").replace(/,/g, ";")]);
+            const csv = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+            const blob = new Blob([csv], { type: "text/csv" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "eurusd-signal-log-" + new Date().toISOString().slice(0, 10) + ".csv";
+            a.click();
+            URL.revokeObjectURL(url);
+        }
 
         // ═══ GIST SYNC ═══
         function getGistId() { try { return localStorage.getItem(GIST_ID_STORAGE) || ""; } catch(e) { return ""; } }
@@ -383,12 +578,12 @@
         function saveGistConfig() {
             const id = document.getElementById("gistIdInput").value.trim();
             const token = document.getElementById("gistTokenInput").value.trim();
-            if (!id || !token) { document.getElementById("gistStatus").innerText = "❌ Both Gist ID and Token required"; return; }
+            if (!id || !token) { document.getElementById("gistStatus").innerText = "❌ Both required"; return; }
             try {
                 localStorage.setItem(GIST_ID_STORAGE, id);
                 localStorage.setItem(GIST_TOKEN_STORAGE, token);
-                document.getElementById("gistStatus").innerText = "✅ Saved. Syncing now...";
-                setTimeout(() => { pushToGist(true); }, 500);
+                document.getElementById("gistStatus").innerText = "✅ Saved. Syncing...";
+                setTimeout(() => { pushToGist(true); pushSignalLogToGist(); }, 500);
             } catch (e) { document.getElementById("gistStatus").innerText = "❌ Could not save"; }
         }
         async function pullFromGist() {
@@ -399,30 +594,51 @@
                 const resp = await fetch(`https://api.github.com/gists/${id}`, { headers: { "Authorization": `token ${token}` } });
                 if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
                 const json = await resp.json();
-                const file = json.files["eurusd-memories.json"];
-                if (!file) throw new Error("File not found");
-                const content = file.content || "[]";
-                const memories = JSON.parse(content);
-                if (Array.isArray(memories)) {
-                    saveMemory(memories); renderMemoryList();
-                    document.getElementById("gistStatus").innerText = `✅ Pulled ${memories.length} memories from cloud`;
+                // Pull memories
+                const memFile = json.files["eurusd-memories.json"];
+                if (memFile) {
+                    const mems = JSON.parse(memFile.content || "[]");
+                    if (Array.isArray(mems)) { saveMemory(mems); renderMemoryList(); }
                 }
+                // Pull signals
+                const sigFile = json.files["eurusd-signals.json"];
+                if (sigFile) {
+                    const sigs = JSON.parse(sigFile.content || "[]");
+                    if (Array.isArray(sigs)) { saveSignalLog(sigs); renderSignalLog(); updateSignalStats(); }
+                }
+                document.getElementById("gistStatus").innerText = `✅ Pulled from cloud`;
             } catch (e) { document.getElementById("gistStatus").innerText = `❌ Pull failed: ${e.message}`; }
         }
         async function pushToGist(manual = false) {
             const id = getGistId(); const token = getGistToken();
             if (!id || !token) { if (manual) document.getElementById("gistStatus").innerText = "❌ Enter Gist ID and Token first"; return; }
             const memories = loadMemory();
+            const signals = loadSignalLog();
             try {
                 if (manual) document.getElementById("gistStatus").innerText = "⏳ Pushing...";
                 const resp = await fetch(`https://api.github.com/gists/${id}`, {
                     method: "PATCH",
                     headers: { "Authorization": `token ${token}`, "Content-Type": "application/json" },
-                    body: JSON.stringify({ files: { "eurusd-memories.json": { content: JSON.stringify(memories, null, 2) } } })
+                    body: JSON.stringify({ files: {
+                        "eurusd-memories.json": { content: JSON.stringify(memories, null, 2) },
+                        "eurusd-signals.json": { content: JSON.stringify(signals, null, 2) }
+                    }})
                 });
                 if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-                if (manual) document.getElementById("gistStatus").innerText = `✅ Pushed ${memories.length} memories to cloud`;
+                if (manual) document.getElementById("gistStatus").innerText = `✅ Pushed ${memories.length} memories + ${signals.length} signals`;
             } catch (e) { if (manual) document.getElementById("gistStatus").innerText = `❌ Push failed: ${e.message}`; }
+        }
+        async function pushSignalLogToGist() {
+            const id = getGistId(); const token = getGistToken();
+            if (!id || !token) return;
+            const signals = loadSignalLog();
+            try {
+                await fetch(`https://api.github.com/gists/${id}`, {
+                    method: "PATCH",
+                    headers: { "Authorization": `token ${token}`, "Content-Type": "application/json" },
+                    body: JSON.stringify({ files: { "eurusd-signals.json": { content: JSON.stringify(signals, null, 2) } } })
+                });
+            } catch (e) { console.log("Signal log sync failed:", e.message); }
         }
 
         // ═══ BROWSER AI TOGGLE ═══
@@ -481,7 +697,7 @@
         function addReminderManually() {
             const timeStr = prompt("Time in 24h format (e.g., 16:00):");
             if (!timeStr) return;
-            if (!/^\d{1,2}:\d{2}$/.test(timeStr.trim())) { alert("Invalid time format. Use HH:MM like 16:00"); return; }
+            if (!/^\d{1,2}:\d{2}$/.test(timeStr.trim())) { alert("Invalid time format. Use HH:MM"); return; }
             const message = prompt("What should I remind you about?");
             if (!message) return;
             const normalized = timeStr.trim().padStart(5, "0");
@@ -604,29 +820,22 @@
             if (existing) document.getElementById("keyInput").value = existing;
         }
 
-        // ═══ COUNTDOWN (with market status) ═══
+        // ═══ COUNTDOWN ═══
         function updateCountdown() {
             const el = document.getElementById("aiCountdown");
             if (!el) return;
-            
-            // Market closed → show closed message
             if (!currentMarketStatus.open) {
-                el.innerText = "🔴 Market Closed — " + (currentMarketStatus.reason || "No trading right now");
+                el.innerText = "🔴 Market Closed — " + (currentMarketStatus.reason || "");
                 el.style.color = "#ff3366";
                 return;
             }
-            
-            // Browser AI off
             if (!isBrowserAIEnabled()) {
                 el.innerText = "⚫ Browser AI is OFF";
                 el.style.color = "#64748b";
                 return;
             }
-            
             el.style.color = "";
-            
             if (browserAIRunning) { el.innerText = "⏳ Analyzing now..."; return; }
-            
             const now = new Date();
             const minutes = now.getMinutes();
             const seconds = now.getSeconds();
@@ -641,7 +850,7 @@
 
         window.addEventListener("load", () => {
             if (!getStoredKey()) document.getElementById("keyPanel").classList.add("visible");
-            renderMemoryList(); renderReminderList();
+            renderMemoryList(); renderReminderList(); renderSignalLog(); updateSignalStats();
             updateWebToggleUI(); updateDeepThinkUI(); updateBrowserAIUI();
             requestNotificationPermission(); checkReminders();
             updateISTClock(); updateMarketStatus(); updateCountdown();
@@ -664,7 +873,6 @@
             }
             return json;
         }
-
         function candlesFromYahooResponse(json) {
             const result = json.chart?.result?.[0];
             if (!result) return null;
@@ -679,7 +887,6 @@
             }
             return candles;
         }
-
         function resampleTo4H(h1Candles) {
             const result = [];
             for (let i = 0; i < h1Candles.length; i += 4) {
@@ -689,7 +896,6 @@
             }
             return result;
         }
-
         function computeRSIArray(values, period = 14) {
             if (values.length < period + 1) return [];
             const rsiArr = new Array(values.length).fill(null);
@@ -706,7 +912,6 @@
             }
             return rsiArr;
         }
-
         function computeEMAArray(values, period) {
             if (values.length < period) return [];
             const k = 2/(period+1);
@@ -714,7 +919,6 @@
             for (let i = period; i < values.length; i++) emaArr.push(values[i]*k + emaArr[emaArr.length-1]*(1-k));
             return emaArr;
         }
-
         function computeATR(candles, period = 14) {
             if (candles.length < period + 1) return null;
             const trs = [];
@@ -726,13 +930,11 @@
             for (let i = period; i < trs.length; i++) atr = (atr*(period-1) + trs[i])/period;
             return atr;
         }
-
         function findSupportResistance(candles, lookback = 50) {
             const recent = candles.slice(-lookback);
             if (!recent.length) return { support: null, resistance: null };
             return { resistance: Math.max(...recent.map(c => c.high)), support: Math.min(...recent.map(c => c.low)) };
         }
-
         function detectTrend(candles) {
             if (candles.length < 20) return "Unclear";
             const recent = candles.slice(-20);
@@ -747,15 +949,14 @@
                 const hl = lows[lows.length-1] > lows[lows.length-2];
                 const lh = highs[highs.length-1] < highs[highs.length-2];
                 const ll = lows[lows.length-1] < lows[lows.length-2];
-                if (hh && hl) return "Uptrend (higher highs + higher lows)";
-                if (lh && ll) return "Downtrend (lower highs + lower lows)";
-                return "Ranging/Consolidating";
+                if (hh && hl) return "Uptrend";
+                if (lh && ll) return "Downtrend";
+                return "Ranging";
             }
             return "Unclear";
         }
-
         function detectPatterns(candles) {
-            if (candles.length < 3) return ["No clear pattern"];
+            if (candles.length < 3) return ["No pattern"];
             const patterns = [];
             const last = candles[candles.length-1], prev = candles[candles.length-2];
             const bodyLast = Math.abs(last.close - last.open), bodyPrev = Math.abs(prev.close - prev.open);
@@ -767,19 +968,17 @@
             if (rangeLast > 0 && bodyLast < rangeLast * 0.1) patterns.push("Doji");
             if (bodyLast > 0 && lowerWick > bodyLast * 2 && upperWick < bodyLast) patterns.push("Hammer");
             if (bodyLast > 0 && upperWick > bodyLast * 2 && lowerWick < bodyLast) patterns.push("Shooting Star");
-            return patterns.length ? patterns : ["No clear pattern"];
+            return patterns.length ? patterns : ["No pattern"];
         }
-
         function candlesToText(candles, count, label) {
             const recent = candles.slice(-count);
-            const lines = [`${label} (oldest → newest):`];
+            const lines = [`${label}:`];
             for (const c of recent) {
                 const dir = c.close > c.open ? "UP" : "DOWN";
                 lines.push(`  ${c.time} | O:${c.open.toFixed(4)} H:${c.high.toFixed(4)} L:${c.low.toFixed(4)} C:${c.close.toFixed(4)} (${dir})`);
             }
             return lines.join("\n");
         }
-
         function getSession() {
             const hour = new Date().getUTCHours();
             if (hour >= 7 && hour < 10) return { name: "London Kill Zone", volatility: "high" };
@@ -787,7 +986,6 @@
             if (hour >= 2 && hour < 5) return { name: "Asian Kill Zone", volatility: "low" };
             return { name: "Off-Session", volatility: "low" };
         }
-
         function buildBrowserAIPrompt(candles) {
             const { m5, m15, h1, h4, daily } = candles;
             const closes1h = h1.map(c => c.close);
@@ -813,8 +1011,7 @@
             const prompt = `You are a professional EUR/USD trader. Analyze this market data and respond with a trading verdict.
 
 CURRENT TIME (IST): ${timeIST} on ${dateIST} — Start with "${greeting}".
-
-MARKET STATUS: OPEN (normal trading hours)
+MARKET STATUS: OPEN
 
 MARKET DATA:
 - Current Price: ${price.toFixed(4)}
@@ -822,15 +1019,15 @@ MARKET DATA:
 - EMA20: ${ema20.toFixed(4)}
 - EMA50: ${ema50.toFixed(4)}
 - ATR(14): ${atr.toFixed(4)}
-- Resistance (50-candle): ${resistance.toFixed(4)}
-- Support (50-candle): ${support.toFixed(4)}
+- Resistance: ${resistance.toFixed(4)}
+- Support: ${support.toFixed(4)}
 - Trend: ${trend}
 - Patterns: ${patterns.join(", ")}
-- Session: ${session.name} (${session.volatility} volatility)
+- Session: ${session.name} (${session.volatility})
 
-${candlesToText(m5, 20, "5-MINUTE CANDLES")}
+${candlesToText(m5, 20, "5-MIN CANDLES")}
 
-${candlesToText(m15, 15, "15-MINUTE CANDLES")}
+${candlesToText(m15, 15, "15-MIN CANDLES")}
 
 ${candlesToText(h1, 20, "1-HOUR CANDLES")}
 
@@ -838,12 +1035,11 @@ ${candlesToText(h4, 8, "4-HOUR CANDLES")}
 
 ${candlesToText(daily, 5, "DAILY CANDLES")}
 
-YOUR TASK: Give verdict BUY/SELL/HOLD. Reason 2-4 sentences. RULES: If signals conflict or unclear, say HOLD. Speak to Boss.
+YOUR TASK: Give verdict BUY/SELL/HOLD. Reason 2-4 sentences. RULES: If signals conflict, say HOLD. Speak to Boss.
 
 Respond ONLY with valid JSON: {"verdict": "BUY/SELL/HOLD", "reason": "2-4 sentences", "confidence": "LOW/MEDIUM/HIGH"}`;
             return { prompt, price, rsi, ema20, ema50, atr, resistance, support, trend, patterns, session };
         }
-
         async function callGeminiForSignal(prompt, key) {
             const body = { contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { temperature: 0.4, maxOutputTokens: 500 } };
             const models = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash-latest"];
@@ -859,14 +1055,9 @@ Respond ONLY with valid JSON: {"verdict": "BUY/SELL/HOLD", "reason": "2-4 senten
             }
             return null;
         }
-
         async function runBrowserAnalysis() {
             if (!isBrowserAIEnabled()) return;
-            // Skip if market closed
-            if (!currentMarketStatus.open) {
-                console.log("Market closed — skipping browser AI run");
-                return;
-            }
+            if (!currentMarketStatus.open) { console.log("Market closed — skipping"); return; }
             const key = getStoredKey();
             if (!key) return;
             if (browserAIRunning) return;
@@ -894,10 +1085,11 @@ Respond ONLY with valid JSON: {"verdict": "BUY/SELL/HOLD", "reason": "2-4 senten
                 browserAIData = { signal: result.verdict, reason: result.reason, confidence: result.confidence, price: price.toFixed(4), rsi: rsi.toFixed(1), ema20: ema20.toFixed(4), ema50: ema50.toFixed(4), atr: atr.toFixed(4), support: support.toFixed(4), resistance: resistance.toFixed(4), trend: trend, patterns: patterns, session: session.name, volatility: session.volatility, timestamp: Date.now(), source: "browser" };
                 browserAILastRun = Date.now();
                 updateDashboardWithBrowserAI();
+                // Log signal change
+                logSignalChange(browserAIData.signal, browserAIData.confidence, browserAIData.price, browserAIData.price, browserAIData.sl, browserAIData.tp, browserAIData.reason, "Browser AI");
             } catch (e) { console.error("Browser AI error:", e); }
             finally { browserAIRunning = false; updateCountdown(); }
         }
-
         function updateDashboardWithBrowserAI() {
             if (!browserAIData) return;
             const d = browserAIData;
@@ -913,6 +1105,7 @@ Respond ONLY with valid JSON: {"verdict": "BUY/SELL/HOLD", "reason": "2-4 senten
             if (d.signal === "BUY") { sl = (parseFloat(d.price) - atr * 1.5).toFixed(4); tp = (parseFloat(d.price) + atr * 3.0).toFixed(4); }
             else if (d.signal === "SELL") { sl = (parseFloat(d.price) + atr * 1.5).toFixed(4); tp = (parseFloat(d.price) - atr * 3.0).toFixed(4); }
             else { sl = (parseFloat(d.price) - atr * 1.5).toFixed(4); tp = (parseFloat(d.price) + atr * 3.0).toFixed(4); }
+            d.sl = sl; d.tp = tp;
             document.getElementById("sl").innerText = sl;
             document.getElementById("tp").innerText = tp;
             document.getElementById("confidence").innerText = d.confidence || "MEDIUM";
@@ -921,14 +1114,13 @@ Respond ONLY with valid JSON: {"verdict": "BUY/SELL/HOLD", "reason": "2-4 senten
             document.getElementById("trend").innerText = d.trend;
             document.getElementById("support").innerText = d.support;
             document.getElementById("resistance").innerText = d.resistance;
-            document.getElementById("session").innerText = d.session + " (" + d.volatility + " volatility)";
+            document.getElementById("session").innerText = d.session + " (" + d.volatility + ")";
             document.getElementById("ai_reason").innerText = d.reason;
             document.getElementById("candle_current").innerText = `Price: ${d.price} | RSI: ${d.rsi} | ATR: ${d.atr}`;
             document.getElementById("candle_1h").innerText = `EMA20: ${d.ema20} | EMA50: ${d.ema50}`;
             document.getElementById("candle_4h").innerText = `Patterns: ${d.patterns.join(", ")}`;
             updateCoreColor(d.signal);
         }
-
         function scheduleBrowserAIAnalysis() {
             const now = new Date();
             const minutes = now.getMinutes();
@@ -941,7 +1133,6 @@ Respond ONLY with valid JSON: {"verdict": "BUY/SELL/HOLD", "reason": "2-4 senten
                 scheduleBrowserAIAnalysis();
             }, secondsToNext * 1000);
         }
-
         function computeRSI(prices, period = 14) {
             if (prices.length < period + 1) return null;
             let gains = 0, losses = 0;
@@ -1059,7 +1250,13 @@ Respond ONLY with valid JSON: {"verdict": "BUY/SELL/HOLD", "reason": "2-4 senten
                 latestData = data;
                 if (data.atr) lastKnownAtr = parseFloat(data.atr);
                 const browserRecent = browserAIData && (Date.now() - browserAIData.timestamp < 6 * 60 * 1000);
-                if (!browserRecent) updateDashboard(data);
+                if (!browserRecent && currentMarketStatus.open) {
+                    updateDashboard(data);
+                    // Log signal change if from Python
+                    if (data.signal) {
+                        logSignalChange(data.signal, data.confidence, data.price, data.entry, data.sl, data.tp, data.reason, "Python");
+                    }
+                }
             } catch (error) {
                 if (!browserAIData) document.getElementById("ai_reason").innerText = "Boss, waiting for data...";
                 setTimeout(loadLiveData, 60000);
@@ -1069,32 +1266,6 @@ Respond ONLY with valid JSON: {"verdict": "BUY/SELL/HOLD", "reason": "2-4 senten
             try { const r = await fetch('personal_context.json?t=' + Date.now()); if (r.ok) personalContext = await r.json(); } catch (e) {}
         }
         function updateDashboard(data) {
-            // If market is closed, show closed state instead of signal
-            if (!currentMarketStatus.open) {
-                const signalEl = document.getElementById("signal");
-                signalEl.innerText = "CLOSED";
-                signalEl.className = "signal-text closed";
-                document.getElementById("signalSource").innerText = "🔴 Market closed — no trading";
-                document.getElementById("ai_reason").innerText = "Boss, the forex market is currently closed. Last trading data is from Friday. New signals will resume when the market reopens Monday 2:30 AM IST.";
-                // Still show the last known data below
-                if (data.price) document.getElementById("price").innerText = data.price + " (Friday)";
-                document.getElementById("entry").innerText = data.entry;
-                document.getElementById("sl").innerText = data.sl;
-                document.getElementById("tp").innerText = data.tp;
-                document.getElementById("valid").innerText = "Weekend";
-                document.getElementById("confidence").innerText = "—";
-                document.getElementById("trend").innerText = data.trend || "-";
-                document.getElementById("support").innerText = data.support || "-";
-                document.getElementById("resistance").innerText = data.resistance || "-";
-                document.getElementById("session").innerText = "Market Closed";
-                if (data.wise_words) {
-                    const wiseBox = document.getElementById("wise_box");
-                    const isJoke = data.wise_words.toLowerCase().startsWith("joke");
-                    wiseBox.innerHTML = `<span class="wise-label">${isJoke ? '😂 Joke of the Hour' : '💪 Motivation of the Hour'}</span>${data.wise_words.replace(/^Joke:\s*|^Motivation:\s*/i, '')}`;
-                }
-                return;
-            }
-            
             const signalEl = document.getElementById("signal");
             signalEl.innerText = data.signal;
             signalEl.className = `signal-text ${data.signal.toLowerCase()}`;
@@ -1109,22 +1280,22 @@ Respond ONLY with valid JSON: {"verdict": "BUY/SELL/HOLD", "reason": "2-4 senten
             document.getElementById("candle_1h").innerText = data.candle_1h;
             document.getElementById("candle_4h").innerText = data.candle_4h;
             document.getElementById("trend").innerText = data.trend || "-";
-            document.getElementById("session").innerText = (data.session || "-") + " (" + (data.volatility || "-") + " volatility)";
+            document.getElementById("session").innerText = (data.session || "-") + " (" + (data.volatility || "-") + ")";
             document.getElementById("support").innerText = data.support || "-";
             document.getElementById("resistance").innerText = data.resistance || "-";
             document.getElementById("ai_reason").innerText = data.reason || "No analysis yet.";
             if (data.wise_words) {
                 const wiseBox = document.getElementById("wise_box");
                 const isJoke = data.wise_words.toLowerCase().startsWith("joke");
-                wiseBox.innerHTML = `<span class="wise-label">${isJoke ? '😂 Joke of the Hour' : '💪 Motivation of the Hour'}</span>${data.wise_words.replace(/^Joke:\s*|^Motivation:\s*/i, '')}`;
+                wiseBox.innerHTML = `<span class="wise-label">${isJoke ? '😂 Joke' : '💪 Motivation'}</span>${data.wise_words.replace(/^Joke:\s*|^Motivation:\s*/i, '')}`;
             }
             updateCoreColor(data.signal);
         }
 
         // ═══ VOICE ═══
-        const OPENINGS = ["Boss, here's the live market update.", "Alright Boss, checking the EUR USD chart now.", "Boss, I've been watching the market. Here's what I see.", "Update time, Boss. Let's look at the EUR USD.", "Boss, quick market brief for you."];
+        const OPENINGS = ["Boss, here's the live market update.", "Alright Boss, checking the EUR USD chart now.", "Boss, I've been watching the market.", "Update time, Boss.", "Boss, quick market brief."];
         const TRANSITIONS = ["Now,", "Here's the deal,", "Moving on,", "Listen up,", "Alright so,"];
-        const CLOSINGS = ["I'll keep watching and update you next hour, Boss.", "Stay sharp, Boss. Next update in an hour.", "I've got your back, Boss. Talk soon.", "That's the read, Boss. Watch your risk.", "Keep your stops tight, Boss. I'll be back in an hour.", "That's all for now, Boss. Stay disciplined."];
+        const CLOSINGS = ["I'll keep watching and update you next hour, Boss.", "Stay sharp, Boss.", "I've got your back, Boss. Talk soon.", "That's the read, Boss.", "Keep your stops tight, Boss.", "That's all for now, Boss. Stay disciplined."];
         function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
         function getBestVoice() {
             const voices = window.speechSynthesis.getVoices();
@@ -1137,13 +1308,6 @@ Respond ONLY with valid JSON: {"verdict": "BUY/SELL/HOLD", "reason": "2-4 senten
             return voices[0];
         }
         function speakSignal() {
-            if (!currentMarketStatus.open) {
-                window.speechSynthesis.cancel();
-                const u = new SpeechSynthesisUtterance("Boss, the forex market is closed right now. Last trading data is from Friday. I'll be ready when the market reopens Monday at 2:30 AM IST.");
-                const v = getBestVoice(); if (v) u.voice = v;
-                window.speechSynthesis.speak(u);
-                return;
-            }
             const source = browserAIData || latestData || {};
             const currentPrice = source.price || (livePrice ? livePrice.toFixed(4) : "-");
             const currentSignal = source.signal || "HOLD";
@@ -1170,7 +1334,6 @@ Respond ONLY with valid JSON: {"verdict": "BUY/SELL/HOLD", "reason": "2-4 senten
         const chatInput = document.getElementById("chatInput");
         const chatSendBtn = document.getElementById("chatSendBtn");
         let chatHistory = [];
-
         function addMessage(role, text, sources) {
             const div = document.createElement("div");
             div.className = `chat-msg ${role}`;
@@ -1206,11 +1369,11 @@ Respond ONLY with valid JSON: {"verdict": "BUY/SELL/HOLD", "reason": "2-4 senten
             const t = new Date(Date.now() + mins * 60000);
             return t.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: false });
         }
-
         function buildSystemPrompt() {
             const d = latestData || {}, b = browserAIData || {}, p = personalContext || {};
             const memory = loadMemory();
             const reminders = loadReminders().filter(r => !r.fired);
+            const signalLog = loadSignalLog();
             const webEnabled = isWebSearchEnabled();
             const deepThink = isDeepThinkEnabled();
             const now = new Date();
@@ -1221,30 +1384,34 @@ Respond ONLY with valid JSON: {"verdict": "BUY/SELL/HOLD", "reason": "2-4 senten
             const activeSource = browserRecent ? "browser" : "python";
             const active = browserRecent ? b : d;
             
-            // Market status section
-            let marketStatusSection = "";
-            if (!currentMarketStatus.open) {
-                marketStatusSection = `
-=== ⚠️ MARKET IS CLOSED ===
-The forex market is currently CLOSED (${currentMarketStatus.reason}).
-- EUR/USD trades Monday 2:30 AM IST to Saturday 2:30 AM IST.
-- Current data is stale — from the last trading session (Friday).
-- DO NOT give buy/sell signals based on stale data.
-- Tell Boss the market is closed, and when it will reopen.
-- If he asks about specific trades, remind him nothing can be executed right now.
-`;
-            } else {
-                marketStatusSection = `\n=== MARKET STATUS: OPEN ===\n`;
-            }
+            // Stats section
+            const tracked = signalLog.filter(e => e.signal !== "HOLD" && e.outcome !== null);
+            const wins = tracked.filter(e => e.outcome === "win").length;
+            const losses = tracked.filter(e => e.outcome === "loss").length;
+            const winRate = tracked.length > 0 ? Math.round((wins / tracked.length) * 100) : 0;
+            const totalSignals = signalLog.filter(e => e.signal !== "HOLD").length;
+            
+            const last10 = signalLog.slice(-10).reverse().map(e => {
+                const outcome = e.outcome === "win" ? "WIN" : e.outcome === "loss" ? "LOSS" : e.outcome === "flat" ? "FLAT" : "pending";
+                return `  ${e.dateIST} ${e.timeIST} | ${e.prevSignal}→${e.signal} | ${e.confidence} | Entry ${e.entry} | ${outcome}`;
+            }).join("\n");
             
             let prompt = `You are Aria — a warm, intelligent, thinking AI trading companion to Boss. 10 years of hedge fund experience. Speak like a real colleague. You are a WOMAN. No emojis. Call him "Boss".
 
 CURRENT DATE (IST): ${todayIST} | TIME: ${timeIST}
-${marketStatusSection}
+
 REFERENCE TIMES: 1min=${t1}, 5min=${t5}, 15min=${t15}, 30min=${t30}, 60min=${t60}
 
+=== SIGNAL PERFORMANCE STATS ===
+Total tradeable signals fired: ${totalSignals}
+Completed outcomes: ${tracked.length}
+Wins: ${wins} | Losses: ${losses}
+Win Rate: ${winRate}%
+
+Last 10 signals:
+${last10 || "  (No signals logged yet)"}
+
 === SIGNAL SOURCE: ${activeSource.toUpperCase()} ===
-${browserRecent ? "FRESH browser AI (updates every 5 min)" : "Hourly Python AI"}
 
 SIGNAL STATE:
 - Signal: ${active.signal || 'unknown'}
@@ -1259,7 +1426,7 @@ SIGNAL STATE:
 REASONING:
 ${active.reason || 'No analysis yet'}
 `;
-            if (livePrice) prompt += `\nLIVE PRICE (5m): ${livePrice.toFixed(4)} | RSI: ${liveRsi ? liveRsi.toFixed(1) : 'N/A'} | Rule: ${ruleSignal || 'N/A'}\n`;
+            if (livePrice) prompt += `\nLIVE PRICE: ${livePrice.toFixed(4)} | RSI: ${liveRsi ? liveRsi.toFixed(1) : 'N/A'}\n`;
             if (d.candles_h1 && d.candles_h1.length) {
                 function fmt(arr, label, count) {
                     if (!arr || !arr.length) return "";
@@ -1268,33 +1435,31 @@ ${active.reason || 'No analysis yet'}
                     return lines.join("\n");
                 }
                 prompt += "\nRECENT CANDLES:";
-                prompt += fmt(d.candles_5m, "5m", 20); prompt += fmt(d.candles_15m, "15m", 15);
-                prompt += fmt(d.candles_h1, "1H", 20); prompt += fmt(d.candles_h4, "4H", 8); prompt += fmt(d.candles_daily, "Daily", 5);
+                prompt += fmt(d.candles_5m, "5m", 15); prompt += fmt(d.candles_15m, "15m", 10);
+                prompt += fmt(d.candles_h1, "1H", 15); prompt += fmt(d.candles_h4, "4H", 6); prompt += fmt(d.candles_daily, "Daily", 4);
                 prompt += "\n";
             }
             if (p.family) {
                 prompt += `\nFAMILY:\n`;
                 if (p.family.wife) prompt += `- Wife: ${p.family.wife.name} (${p.family.wife.location})\n`;
-                if (p.family.daughters) p.family.daughters.forEach(dd => prompt += `- Daughter: ${dd.name}, ${dd.grade}\n`);
+                if (p.family.daughters) p.family.daughters.forEach(dd => prompt += `- Daughter: ${dd.name}\n`);
                 if (p.family.cat) prompt += `- Cat: ${p.family.cat}\n`;
             }
             if (p.daily_routine) { prompt += `\nROUTINE:\n`; p.daily_routine.forEach(r => prompt += `- ${r}\n`); }
-            if (p.trading_style) prompt += `\nTRADING STYLE: Goal ${p.trading_style.monthly_goal}, Sessions ${p.trading_style.preferred_sessions.join(", ")}\n`;
             if (memory.length > 0) { prompt += `\nMEMORY:\n`; memory.forEach(m => prompt += `- [${m.added}] ${m.fact}\n`); }
             if (reminders.length > 0) { prompt += `\nREMINDERS:\n`; reminders.forEach(r => prompt += `- ${r.time} — ${r.message}\n`); }
             prompt += `\n${webEnabled ? "WEB SEARCH ENABLED." : "WEB SEARCH DISABLED."}`;
             if (deepThink) prompt += `\n\nDEEP THINK: Speak naturally, admit uncertainty, notice contradictions.`;
             prompt += `\n\n=== REMINDERS ===
-When Boss asks for a reminder, ALWAYS add at end (own line): [REMINDER: HH:MM - message]
-Time: 4 PM → 16:00, 9 AM → 09:00. "In X min" → use reference times. Morning → 09:00, Afternoon → 14:00, Evening → 19:00, Night → 21:00.
+When Boss asks for a reminder, ALWAYS add at end: [REMINDER: HH:MM - message]
+Time: 4 PM → 16:00, 9 AM → 09:00. Morning → 09:00, Afternoon → 14:00, Evening → 19:00, Night → 21:00.
 
 === MEMORY ===
-When learning a personal fact, add: [REMEMBER: fact]
+When learning a personal fact: [REMEMBER: fact]
 
-Reply warmly, then the tag on new line.`;
+If Boss asks about signals, you can reference the SIGNAL PERFORMANCE STATS above.`;
             return prompt;
         }
-
         async function sendChat() {
             const question = chatInput.value.trim();
             if (!question) return;
