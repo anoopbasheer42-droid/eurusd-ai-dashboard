@@ -133,7 +133,21 @@
             transition: all 0.4s ease-in-out;
             z-index: 2;
             position: relative;
+            margin-bottom: 5px;
+        }
+
+        /* NEW: 5 Minute Timer */
+        .timer-container {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--blue);
             margin-bottom: 15px;
+            background: rgba(74, 144, 226, 0.1);
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(74, 144, 226, 0.3);
         }
 
         .signal-details {
@@ -263,6 +277,10 @@
         <div class="card signal-card">
             <div class="card-title">Current Signal</div>
             <div id="signal-text">WAITING</div>
+            
+            <!-- NEW: 5 Minute Timer -->
+            <div class="timer-container" id="timer-display">05:00</div>
+
             <div class="signal-details" id="signal-details">
                 <div><span>Confidence:</span> <span id="val-confidence">-</span></div>
                 <div><span>Valid Until:</span> <span id="val-valid">-</span></div>
@@ -370,15 +388,55 @@
         let reminders = JSON.parse(localStorage.getItem('eurusd_reminders') || '[]');
         let apiKey = localStorage.getItem('eurusd_chat_key') || '';
 
+        // --- NEW: 5 MINUTE COUNTDOWN TIMER LOGIC ---
+        let timeLeft = 300; // 5 minutes in seconds
+        let timerInterval = null;
+
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            timeLeft = 300; // Reset to 5 minutes
+            updateTimerDisplay();
+            
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay();
+                
+                if (timeLeft <= 0) {
+                    // Timer hit zero: Trigger a fresh data fetch and reset
+                    clearInterval(timerInterval);
+                    document.getElementById('timer-display').innerText = "00:00";
+                    fetchData(); 
+                    startTimer(); 
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+            const seconds = (timeLeft % 60).toString().padStart(2, '0');
+            const display = document.getElementById('timer-display');
+            display.innerText = `${minutes}:${seconds}`;
+            
+            // Change color to red when under 1 minute
+            if (timeLeft < 60) {
+                display.style.color = 'var(--red)';
+                display.style.borderColor = 'rgba(231, 76, 60, 0.5)';
+                display.style.background = 'rgba(231, 76, 60, 0.1)';
+            } else {
+                display.style.color = 'var(--blue)';
+                display.style.borderColor = 'rgba(74, 144, 226, 0.3)';
+                display.style.background = 'rgba(74, 144, 226, 0.1)';
+            }
+        }
+
         // --- FIX 1: VOICE INITIALIZATION ON ANDROID ---
-        // Chrome blocks voices until user interacts. This forces it to load.
         document.body.addEventListener('click', () => {
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.getVoices();
             }
         }, { once: true });
 
-        // --- 1. THREE.JS NEURAL CORE (Clean: Glow sphere + inner/outer wireframes, NO rings, NO particles) ---
+        // --- 1. THREE.JS NEURAL CORE ---
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
@@ -389,19 +447,16 @@
         renderer.setPixelRatio(window.devicePixelRatio);
         container.appendChild(renderer.domElement);
 
-        // Central Glowing Sphere
         const glowGeo = new THREE.SphereGeometry(1.2, 32, 32);
         const glowMat = new THREE.MeshBasicMaterial({ color: 0x4a90e2, transparent: true, opacity: 0.15 });
         const glowSphere = new THREE.Mesh(glowGeo, glowMat);
         scene.add(glowSphere);
 
-        // Inner Wireframe Icosahedron (rotates fast, breathing)
         const innerGeo = new THREE.IcosahedronGeometry(1.0, 1);
         const innerMat = new THREE.MeshBasicMaterial({ color: 0x4a90e2, wireframe: true, transparent: true, opacity: 0.8 });
         const innerCore = new THREE.Mesh(innerGeo, innerMat);
         scene.add(innerCore);
 
-        // Outer Wireframe Shell (rotates slow, opposite direction)
         const outerGeo = new THREE.IcosahedronGeometry(1.8, 1);
         const outerMat = new THREE.MeshBasicMaterial({ color: 0x4a90e2, wireframe: true, transparent: true, opacity: 0.4 });
         const outerShell = new THREE.Mesh(outerGeo, outerMat);
@@ -411,19 +466,14 @@
 
         function animate() {
             requestAnimationFrame(animate);
-            
             pulseTime += 0.05;
             const scale = 1 + Math.sin(pulseTime) * 0.05;
             innerCore.scale.set(scale, scale, scale);
-
             innerCore.rotation.x += 0.01;
             innerCore.rotation.y += 0.015;
-            
             outerShell.rotation.x -= 0.003;
             outerShell.rotation.y -= 0.005;
-
             glowSphere.material.opacity = 0.1 + Math.sin(pulseTime * 0.5) * 0.05;
-
             renderer.render(scene, camera);
         }
         animate();
@@ -435,10 +485,9 @@
         });
 
         function updateCoreColor(signal) {
-            let color = 0xf1c40f; // Yellow HOLD
+            let color = 0xf1c40f; 
             if (signal === 'BUY') color = 0x2ecc71;
             if (signal === 'SELL') color = 0xe74c3c;
-            
             glowSphere.material.color.setHex(color);
             innerCore.material.color.setHex(color);
             outerShell.material.color.setHex(color);
@@ -466,7 +515,6 @@
 
         function updateUI(data) {
             document.getElementById('live-price').innerText = data.price || '1.00000';
-            
             const signalText = document.getElementById('signal-text');
             signalText.innerText = data.signal || 'WAITING';
             if (data.signal === 'BUY') { signalText.style.color = 'var(--green)'; signalText.style.textShadow = '0 0 30px rgba(46, 204, 113, 0.6)'; }
@@ -481,7 +529,6 @@
             document.getElementById('val-sl').innerText = data.sl || '-';
             document.getElementById('val-tp').innerText = data.tp || '-';
             document.getElementById('val-atr').innerText = data.atr || '-';
-
             document.getElementById('val-trend').innerText = data.trend || '-';
             document.getElementById('val-session').innerText = data.session || '-';
             document.getElementById('val-support').innerText = data.support || '-';
@@ -489,9 +536,11 @@
             document.getElementById('val-candle-current').innerText = data.candle_current || '-';
             document.getElementById('val-candle-1h').innerText = data.candle_1h || '-';
             document.getElementById('val-candle-4h').innerText = data.candle_4h || '-';
-
             document.getElementById('val-reason').innerText = data.reason || 'No reasoning provided.';
             document.getElementById('wise-words').innerText = data.wise_words || 'Stay disciplined, Boss.';
+            
+            // Restart timer whenever new data arrives
+            startTimer();
         }
 
         // --- 3. VOICE SYSTEM ---
@@ -504,7 +553,6 @@
         function playVoiceReport() {
             if (!globalData) return;
             if (isSpeaking) stopVoice();
-
             const opening = getRandom(OPENINGS);
             const transition = getRandom(TRANSITIONS);
             const closing = getRandom(CLOSINGS);
@@ -518,7 +566,6 @@
             if (globalData.personal_message) text += `${globalData.personal_message} `;
             if (globalData.wise_words) text += `${globalData.wise_words} `;
             text += `${closing}`;
-
             speakText(text);
         }
 
@@ -528,11 +575,9 @@
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.rate = 0.88 + Math.random() * 0.15;
                 utterance.pitch = 0.85 + Math.random() * 0.25;
-                
                 const voices = window.speechSynthesis.getVoices();
                 const preferred = voices.find(v => v.name.includes('Google UK English Male') || v.name.includes('Daniel') || v.name.includes('Alex'));
                 if (preferred) utterance.voice = preferred;
-
                 utterance.onstart = () => { isSpeaking = true; };
                 utterance.onend = () => { isSpeaking = false; };
                 window.speechSynthesis.speak(utterance);
@@ -640,26 +685,17 @@
                 { role: 'user', parts: [{ text: userText }] }
             ];
 
-            const payload = {
-                contents: contents,
-                tools: webSearchEnabled ? [{ google_search: {} }] : []
-            };
+            const payload = { contents: contents, tools: webSearchEnabled ? [{ google_search: {} }] : [] };
 
-            // FIX 2: Try 2.5-flash, fallback to 1.5-flash
             let model = 'gemini-2.5-flash';
             let response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
             });
 
             if (!response.ok) {
-                // Fallback if 2.5-flash fails (common with free tier)
                 model = 'gemini-1.5-flash';
                 response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
                 });
             }
 
@@ -671,7 +707,6 @@
             const data = await response.json();
             let reply = data.candidates[0].content.parts[0].text;
             
-            // FIX 3: Safe parsing for web search citations
             if (webSearchEnabled && data.candidates[0].groundingMetadata) {
                 const sources = data.candidates[0].groundingMetadata.groundingChunks;
                 if (sources && sources.length > 0) {
@@ -684,14 +719,7 @@
 
         // --- 5. REMINDER SYSTEM ---
         function addReminder(time, message) {
-            const reminder = {
-                id: Math.random().toString(36).substr(2, 9),
-                time: time,
-                message: message,
-                voice: true,
-                fired: false,
-                created: new Date().toISOString()
-            };
+            const reminder = { id: Math.random().toString(36).substr(2, 9), time: time, message: message, voice: true, fired: false, created: new Date().toISOString() };
             reminders.push(reminder);
             localStorage.setItem('eurusd_reminders', JSON.stringify(reminders));
             renderReminders();
@@ -716,15 +744,12 @@
             renderReminders();
         }
 
-        function testReminder() {
-            triggerNotification("Test Reminder", "This is a test notification, Boss!");
-        }
+        function testReminder() { triggerNotification("Test Reminder", "This is a test notification, Boss!"); }
 
         function triggerNotification(title, body) {
             if (!("Notification" in window)) { alert("This browser does not support desktop notification"); }
             else if (Notification.permission === "granted") {
                 const notif = new Notification(title, { body: body });
-                // FIX 4: Focus window on click
                 notif.onclick = () => { window.focus(); };
             } else if (Notification.permission !== "denied") {
                 Notification.requestPermission().then(function (permission) {
@@ -741,7 +766,6 @@
             const now = new Date();
             const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
             let updated = false;
-
             reminders.forEach(r => {
                 if (!r.fired && r.time === currentTime) {
                     r.fired = true;
@@ -749,7 +773,6 @@
                     triggerNotification("Boss Reminder", r.message);
                 }
             });
-
             if (updated) {
                 localStorage.setItem('eurusd_reminders', JSON.stringify(reminders));
                 renderReminders();
@@ -788,19 +811,16 @@
 
         // --- INITIALIZATION ---
         window.onload = () => {
-            fetchData();
+            fetchData(); // This will trigger startTimer() inside updateUI
             fetchContext();
             renderChat();
             renderReminders();
             renderMemory();
             if (apiKey) document.getElementById('web-toggle').style.display = 'block';
+            if ('speechSynthesis' in window) { window.speechSynthesis.getVoices(); }
             
-            // FIX 5: Force voice list load on startup
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.getVoices();
-            }
-            
-            setInterval(fetchData, 600000);
+            // Fallback: Start timer immediately in case fetch takes a moment
+            startTimer(); 
         };
     </script>
 </body>
