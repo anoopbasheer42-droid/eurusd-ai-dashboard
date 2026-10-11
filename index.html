@@ -48,6 +48,26 @@
         .ai-reason-label { display: block; font-weight: 600; color: var(--accent); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
         .personal-box { background: linear-gradient(135deg, rgba(236,72,153,0.15), rgba(139,92,246,0.15)); padding: 20px; border-radius: 12px; border-left: 4px solid var(--pink); font-size: 0.95rem; line-height: 1.7; color: #f1f5f9; }
         .personal-label { display: block; font-weight: 600; color: var(--pink); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+        
+        /* --- CHAT BOX STYLES --- */
+        .chat-container { display: flex; flex-direction: column; gap: 12px; }
+        .chat-messages { max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 10px; min-height: 120px; }
+        .chat-messages::-webkit-scrollbar { width: 6px; }
+        .chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        .chat-msg { padding: 12px 16px; border-radius: 12px; font-size: 0.9rem; line-height: 1.6; max-width: 85%; word-wrap: break-word; }
+        .chat-msg.user { background: linear-gradient(135deg, var(--accent), var(--purple)); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
+        .chat-msg.ai { background: rgba(255,255,255,0.05); color: var(--text); align-self: flex-start; border-bottom-left-radius: 4px; border-left: 3px solid var(--green); }
+        .chat-msg.system { background: rgba(148,163,184,0.1); color: var(--muted); align-self: center; font-size: 0.8rem; font-style: italic; text-align: center; }
+        .chat-msg.thinking { background: rgba(255,255,255,0.05); color: var(--muted); align-self: flex-start; font-style: italic; }
+        .chat-input-row { display: flex; gap: 10px; }
+        .chat-input { flex: 1; padding: 14px 16px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-size: 1rem; font-family: inherit; outline: none; transition: 0.2s; }
+        .chat-input:focus { border-color: var(--accent); }
+        .chat-input::placeholder { color: var(--muted); }
+        .chat-send { padding: 14px 20px; background: linear-gradient(135deg, var(--green), #00cc66); border: none; border-radius: 12px; color: #0a0e17; font-weight: 700; font-size: 1rem; cursor: pointer; transition: 0.2s; }
+        .chat-send:hover { opacity: 0.9; }
+        .chat-send:disabled { opacity: 0.4; cursor: not-allowed; }
+        .chat-clear { padding: 10px 16px; background: rgba(148,163,184,0.15); border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-size: 0.8rem; cursor: pointer; align-self: flex-end; }
+        .chat-clear:hover { color: var(--text); border-color: var(--accent); }
     </style>
 </head>
 <body>
@@ -117,9 +137,36 @@
                 <span id="ai_reason">Waiting for AI analysis...</span>
             </div>
         </div>
+
+        <!-- ========== CHAT BOX ========== -->
+        <div class="card" style="grid-column: 1 / -1;">
+            <h2>💬 Ask Your AI Trader</h2>
+            <div class="chat-container">
+                <div id="chatMessages" class="chat-messages">
+                    <div class="chat-msg system">Ask me anything, Boss. I know the current price, signal, and your routine.</div>
+                </div>
+                <div class="chat-input-row">
+                    <input 
+                        id="chatInput" 
+                        class="chat-input" 
+                        type="text" 
+                        placeholder="e.g. Should I enter now? Or: Remind me of my routine" 
+                        onkeydown="if(event.key === 'Enter') sendChat()"
+                    />
+                    <button id="chatSendBtn" class="chat-send" onclick="sendChat()">Send</button>
+                </div>
+                <button class="chat-clear" onclick="clearChat()">Clear chat</button>
+            </div>
+        </div>
     </div>
 
     <script>
+        // ============================================================
+        // ⚠️ PASTE YOUR CHAT API KEY BELOW (between the quotes) ⚠️
+        // ============================================================
+        const CHAT_API_KEY = "PASTE_YOUR_CHAT_KEY_HERE";
+        // ============================================================
+
         // --- 3D MODEL ---
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
@@ -147,6 +194,8 @@
 
         // --- FETCH LIVE DATA ---
         let latestData = null;
+        let personalContext = null;
+        
         async function loadLiveData() {
             try {
                 const response = await fetch('data.json?t=' + Date.now());
@@ -156,6 +205,17 @@
             } catch (error) {
                 document.getElementById("ai_reason").innerText = "Boss, waiting for the Python backend. Please run the GitHub Action.";
                 setTimeout(loadLiveData, 15000);
+            }
+        }
+        
+        async function loadPersonalContext() {
+            try {
+                const response = await fetch('personal_context.json?t=' + Date.now());
+                if (response.ok) {
+                    personalContext = await response.json();
+                }
+            } catch (error) {
+                console.log("No personal context loaded");
             }
         }
 
@@ -190,7 +250,7 @@
             else material.color.setHex(0xffcc00);
         }
 
-        // --- RANDOM VOICE VARIATIONS ---
+        // --- VOICE ---
         const OPENINGS = [
             "Boss, here's the live market update.",
             "Alright Boss, checking the EUR USD chart now.",
@@ -198,15 +258,7 @@
             "Update time, Boss. Let's look at the EUR USD.",
             "Boss, quick market brief for you."
         ];
-
-        const TRANSITIONS = [
-            "Now,",
-            "Here's the deal,",
-            "Moving on,",
-            "Listen up,",
-            "Alright so,"
-        ];
-
+        const TRANSITIONS = ["Now,", "Here's the deal,", "Moving on,", "Listen up,", "Alright so,"];
         const CLOSINGS = [
             "I'll keep watching and update you next hour, Boss.",
             "Stay sharp, Boss. Next update in an hour.",
@@ -221,15 +273,9 @@
         function getBestVoice() {
             const voices = window.speechSynthesis.getVoices();
             if (!voices.length) return null;
-            const preferredNames = [
-                "Google UK English Male", "Microsoft Ryan Online", "Microsoft Guy Online",
-                "Google US English", "Microsoft Mark", "Daniel", "Alex",
-                "Google UK English Female", "Samantha"
-            ];
+            const preferredNames = ["Google UK English Male", "Microsoft Ryan Online", "Microsoft Guy Online", "Google US English", "Microsoft Mark", "Daniel", "Alex", "Google UK English Female", "Samantha"];
             const englishVoices = voices.filter(v => v.lang.startsWith("en"));
-            const matches = preferredNames
-                .map(name => englishVoices.find(v => v.name.includes(name.split(" ")[0])))
-                .filter(v => v);
+            const matches = preferredNames.map(n => englishVoices.find(v => v.name.includes(n.split(" ")[0]))).filter(v => v);
             if (matches.length) return pickRandom(matches);
             if (englishVoices.length) return pickRandom(englishVoices);
             return voices[0];
@@ -237,52 +283,174 @@
 
         function speakSignal() {
             if (!latestData) {
-                const u = new SpeechSynthesisUtterance("Boss, I don't have data yet. Please wait.");
-                window.speechSynthesis.speak(u);
+                window.speechSynthesis.speak(new SpeechSynthesisUtterance("Boss, I don't have data yet. Please wait."));
                 return;
             }
-
             const d = latestData;
             const isJoke = (d.wise_words || "").toLowerCase().startsWith("joke");
             const wisdom = (d.wise_words || "").replace(/^Joke:\s*|^Motivation:\s*/i, '');
-
             const opening = pickRandom(OPENINGS);
             const transition = pickRandom(TRANSITIONS);
             const closing = pickRandom(CLOSINGS);
 
-            let text = `${opening} `;
-            text += `Live price is ${d.price}. `;
-            text += `My verdict is ${d.signal}, with ${d.confidence} confidence. `;
-            text += `${transition} ${d.reason} `;
-            text += `Key levels to watch — support at ${d.support || 'unknown'}, resistance at ${d.resistance || 'unknown'}. `;
-            text += `Suggested entry ${d.entry}, stop loss at ${d.sl}, take profit at ${d.tp}. `;
-            text += `Signal valid until ${d.valid}. `;
-
-            // Personal message
-            if (d.personal_message) {
-                text += `Before I go, ${d.personal_message} `;
-            }
-
-            if (isJoke) {
-                text += `Quick joke for you, Boss. ${wisdom} `;
-            } else {
-                text += `A word of motivation, Boss. ${wisdom} `;
-            }
+            let text = `${opening} Live price is ${d.price}. My verdict is ${d.signal}, with ${d.confidence} confidence. ${transition} ${d.reason} Key levels to watch — support at ${d.support || 'unknown'}, resistance at ${d.resistance || 'unknown'}. Suggested entry ${d.entry}, stop loss at ${d.sl}, take profit at ${d.tp}. Signal valid until ${d.valid}. `;
+            if (d.personal_message) text += `Before I go, ${d.personal_message} `;
+            if (isJoke) text += `Quick joke for you, Boss. ${wisdom} `;
+            else text += `A word of motivation, Boss. ${wisdom} `;
             text += closing;
 
             window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(text);
-            const voice = getBestVoice();
-            if (voice) utterance.voice = voice;
-            utterance.rate = 0.88 + Math.random() * 0.15;
-            utterance.pitch = 0.85 + Math.random() * 0.25;
-            utterance.volume = 1.0;
-            window.speechSynthesis.speak(utterance);
+            const u = new SpeechSynthesisUtterance(text);
+            const v = getBestVoice();
+            if (v) u.voice = v;
+            u.rate = 0.88 + Math.random() * 0.15;
+            u.pitch = 0.85 + Math.random() * 0.25;
+            window.speechSynthesis.speak(u);
         }
 
         function stopVoice() { window.speechSynthesis.cancel(); }
         window.speechSynthesis.onvoiceschanged = () => { getBestVoice(); };
 
+        // ============================================================
+        // --- CHAT BOX LOGIC ---
+        // ============================================================
+        const chatMessages = document.getElementById("chatMessages");
+        const chatInput = document.getElementById("chatInput");
+        const chatSendBtn = document.getElementById("chatSendBtn");
+        let chatHistory = [];
+
+        function addMessage(role, text) {
+            const div = document.createElement("div");
+            div.className = `chat-msg ${role}`;
+            div.innerText = text;
+            chatMessages.appendChild(div);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            return div;
+        }
+
+        function buildSystemPrompt() {
+            const d = latestData || {};
+            const p = personalContext || {};
+            
+            let prompt = `You are a professional EUR/USD trader AND personal assistant to a client named Boss. You have 10 years of hedge fund experience. Be friendly, funny, and motivational. Always call him "Boss".
+
+CURRENT MARKET STATE:
+- Live Price: ${d.price || 'unknown'}
+- Signal: ${d.signal || 'unknown'}
+- Confidence: ${d.confidence || 'unknown'}
+- Entry: ${d.entry || '-'} | SL: ${d.sl || '-'} | TP: ${d.tp || '-'}
+- Valid Until: ${d.valid || '-'}
+- Support: ${d.support || '-'} | Resistance: ${d.resistance || '-'}
+- Session: ${d.session || '-'} (${d.volatility || '-'} volatility)
+- Current Analysis: ${d.reason || 'No analysis yet'}
+`;
+
+            if (p.family) {
+                prompt += `\nBOSS'S FAMILY:\n`;
+                if (p.family.wife) prompt += `- Wife: ${p.family.wife.name} (in ${p.family.wife.location})\n`;
+                if (p.family.daughters) p.family.daughters.forEach(d => prompt += `- Daughter: ${d.name}, ${d.grade}, birthday ${d.birthday}\n`);
+                if (p.family.cat) prompt += `- Cat: ${p.family.cat}\n`;
+                if (p.family.parents) prompt += `- Parents: ${p.family.parents.join(", ")}\n`;
+                if (p.family.brothers) prompt += `- Brothers: ${p.family.brothers.join(", ")}\n`;
+            }
+            if (p.daily_routine) {
+                prompt += `\nDAILY ROUTINE:\n`;
+                p.daily_routine.forEach(r => prompt += `- ${r}\n`);
+            }
+            if (p.trading_style) {
+                prompt += `\nTRADING STYLE:\n- Monthly Goal: ${p.trading_style.monthly_goal}\n- Preferred Sessions: ${p.trading_style.preferred_sessions.join(", ")}\n- Risk: ${p.trading_style.risk_tolerance}\n`;
+            }
+
+            prompt += `\nINSTRUCTIONS:
+- Answer Boss's question clearly and directly.
+- Be warm, personal, and helpful.
+- If he asks about market/trades, use the current market data above.
+- If he asks about routine/family, reference the personal context above.
+- If you don't know something, say so honestly.
+- Keep responses concise (2-4 sentences usually, unless more detail is needed).
+- Do NOT use markdown formatting. Just plain text.`;
+
+            return prompt;
+        }
+
+        async function sendChat() {
+            const question = chatInput.value.trim();
+            if (!question) return;
+            if (CHAT_API_KEY === "PASTE_YOUR_CHAT_KEY_HERE") {
+                addMessage("ai", "Boss, the chat API key isn't set up yet. Please paste it into the HTML code.");
+                return;
+            }
+
+            addMessage("user", question);
+            chatInput.value = "";
+            chatSendBtn.disabled = true;
+
+            const thinkingEl = addMessage("thinking", "Thinking...");
+
+            try {
+                const systemPrompt = buildSystemPrompt();
+                chatHistory.push({ role: "user", parts: [{ text: question }] });
+
+                const requestBody = {
+                    system_instruction: { parts: [{ text: systemPrompt }] },
+                    contents: chatHistory,
+                    generationConfig: {
+                        temperature: 0.7,
+                        maxOutputTokens: 800
+                    }
+                };
+
+                const modelNames = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash-latest"];
+                let answer = null;
+
+                for (const model of modelNames) {
+                    try {
+                        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${CHAT_API_KEY}`;
+                        const resp = await fetch(url, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(requestBody)
+                        });
+                        if (!resp.ok) {
+                            const errText = await resp.text();
+                            console.log(`Model ${model} failed:`, errText);
+                            continue;
+                        }
+                        const json = await resp.json();
+                        answer = json.candidates?.[0]?.content?.parts?.[0]?.text;
+                        if (answer) break;
+                    } catch (e) {
+                        console.log(`Model ${model} exception:`, e);
+                    }
+                }
+
+                thinkingEl.remove();
+
+                if (answer) {
+                    addMessage("ai", answer.trim());
+                    chatHistory.push({ role: "model", parts: [{ text: answer.trim() }] });
+                    // Keep history manageable
+                    if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
+                } else {
+                    addMessage("ai", "Boss, I couldn't reach the AI right now. Try again in a moment.");
+                }
+            } catch (error) {
+                thinkingEl.remove();
+                addMessage("ai", "Boss, something went wrong. Please try again.");
+                console.error(error);
+            }
+
+            chatSendBtn.disabled = false;
+            chatInput.focus();
+        }
+
+        function clearChat() {
+            chatMessages.innerHTML = '<div class="chat-msg system">Ask me anything, Boss. I know the current price, signal, and your routine.</div>';
+            chatHistory = [];
+        }
+
+        // --- INIT ---
+        loadPersonalContext();
         loadLiveData();
     </script>
 </body>
