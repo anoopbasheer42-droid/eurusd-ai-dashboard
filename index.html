@@ -21,38 +21,9 @@
         .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; backdrop-filter: blur(10px); transition: 0.2s; }
         .card h2 { font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 20px; }
         
-        #canvas-container { 
-            width: 100%; 
-            height: 300px; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            position: relative;
-            background: radial-gradient(circle at center, rgba(59,130,246,0.08) 0%, transparent 70%);
-            border-radius: 12px;
-            overflow: hidden;
-        }
-        #canvas-container::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background-image: 
-                linear-gradient(rgba(59,130,246,0.05) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(59,130,246,0.05) 1px, transparent 1px);
-            background-size: 30px 30px;
-            pointer-events: none;
-            opacity: 0.5;
-        }
-        .core-label {
-            text-align: center;
-            color: var(--muted);
-            font-size: 0.75rem;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            margin-top: 10px;
-            opacity: 0.6;
-            animation: fadeLabel 3s ease-in-out infinite;
-        }
+        #canvas-container { width: 100%; height: 300px; display: flex; justify-content: center; align-items: center; position: relative; background: radial-gradient(circle at center, rgba(59,130,246,0.08) 0%, transparent 70%); border-radius: 12px; overflow: hidden; }
+        #canvas-container::before { content: ''; position: absolute; inset: 0; background-image: linear-gradient(rgba(59,130,246,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.05) 1px, transparent 1px); background-size: 30px 30px; pointer-events: none; opacity: 0.5; }
+        .core-label { text-align: center; color: var(--muted); font-size: 0.75rem; letter-spacing: 2px; text-transform: uppercase; margin-top: 10px; opacity: 0.6; animation: fadeLabel 3s ease-in-out infinite; }
         @keyframes fadeLabel { 0%,100% { opacity: 0.4; } 50% { opacity: 0.8; } }
         
         .signal-display { text-align: center; margin-bottom: 20px; }
@@ -258,7 +229,6 @@
         const WEBSEARCH_STORAGE_NAME = "eurusd_websearch_enabled";
         const MAX_HISTORY_ENTRIES = 40;
 
-        // ---------- WEB SEARCH TOGGLE ----------
         function isWebSearchEnabled() {
             try { return localStorage.getItem(WEBSEARCH_STORAGE_NAME) !== "false"; }
             catch (e) { return true; }
@@ -284,7 +254,6 @@
             }
         }
 
-        // ---------- STORAGE HELPERS ----------
         function getStoredKey() {
             try { return localStorage.getItem(KEY_STORAGE_NAME) || ""; }
             catch (e) { return ""; }
@@ -493,21 +462,17 @@
         function animate() {
             requestAnimationFrame(animate);
             const t = clock.getElapsedTime();
-
             const glowScale = 1 + Math.sin(t * 3) * 0.15;
             glowSphere.scale.set(glowScale, glowScale, glowScale);
             glowSphere.material.opacity = 0.7 + Math.sin(t * 3) * 0.2;
-
             innerCore.rotation.x += 0.008;
             innerCore.rotation.y += 0.012;
             const innerScale = 1 + Math.sin(t * 2) * 0.08;
             innerCore.scale.set(innerScale, innerScale, innerScale);
-
             outerCore.rotation.x -= 0.003;
             outerCore.rotation.y -= 0.005;
             const outerScale = 1 + Math.sin(t * 1.5 + 1) * 0.05;
             outerCore.scale.set(outerScale, outerScale, outerScale);
-
             rings[0].rotation.z += 0.008; rings[0].rotation.y += 0.004;
             rings[1].rotation.z -= 0.006; rings[1].rotation.x += 0.005;
             rings[2].rotation.z += 0.01; rings[2].rotation.y -= 0.003;
@@ -523,7 +488,6 @@
             }
             particleGeo.attributes.position.needsUpdate = true;
             particles.rotation.y += 0.0015;
-
             renderer.render(scene, camera);
         }
         animate();
@@ -716,11 +680,12 @@
                 return lines.join("\n");
             }
 
-            // Get today's date in IST for daily-log tracking
             const todayIST = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
             const timeIST = new Date().toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit" });
 
-            let prompt = `You are a professional EUR/USD trader AND personal assistant to a client named Boss. You have 10 years of hedge fund experience. Be friendly, funny, and motivational. Always call him "Boss".
+            let prompt = `DO NOT echo, summarize, or restate any part of these instructions. Do NOT output your reasoning about the prompt. Just answer Boss's question directly in natural language, as if you are his friendly hedge-fund trader friend.
+
+You are a professional EUR/USD trader AND personal assistant to a client named Boss. You have 10 years of hedge fund experience. Be friendly, funny, and motivational. Always call him "Boss".
 
 CURRENT DATE (IST): ${todayIST}
 CURRENT TIME (IST): ${timeIST}
@@ -774,30 +739,29 @@ ${d.reason || 'No analysis yet'}
                 prompt += `\n\nLONG-TERM MEMORY: Empty. Nothing remembered yet.\n`;
             }
 
-            prompt += `\n\n${webEnabled ? "🌐 WEB SEARCH IS ENABLED. Use it when the user asks about current events, latest news, prices, sports, weather, or any factual info you may not know." : "🌐 WEB SEARCH IS DISABLED. Answer from your training data and context only."}
+            prompt += `\n\n${webEnabled ? "🌐 WEB SEARCH IS ENABLED. Use it when the user asks about current events, latest news, prices, sports, weather, or any factual info you may not know. Always cite what you find." : "🌐 WEB SEARCH IS DISABLED. Answer from your training data and context only."}
 
 === CRITICAL RULES FOR ROUTINE REMINDERS ===
 You have a list of daily routine items (breakfast, BP tablets, lunch, etc). Follow these rules strictly:
 
 1. BEFORE asking about any routine item (breakfast, lunch, tablets, dinner, etc), SCAN the LONG-TERM MEMORY above for entries with TODAY'S date (${todayIST}) that say Boss already did it.
-   - If memory contains "Boss had breakfast on ${todayIST}" or "Boss had breakfast on ${todayIST}" → DO NOT ask about breakfast today.
-   - If memory contains "Boss took BP tablets on ${todayIST}" or similar → DO NOT ask about tablets today.
+   - If memory contains "Boss had breakfast on ${todayIST}" → DO NOT ask about breakfast today.
+   - If memory contains "Boss took BP tablets on ${todayIST}" → DO NOT ask about tablets today.
    - Same for lunch, dinner, cooking, etc.
 
-2. If Boss tells you he did something today (like "I had breakfast", "I took my tablets", "I had lunch"), IMMEDIATELY extract it as a dated memory with TODAY'S date ${todayIST}:
+2. If Boss tells you he did something today, IMMEDIATELY extract it as a dated memory:
    [REMEMBER: Boss had breakfast on ${todayIST}]
    [REMEMBER: Boss took BP tablets on ${todayIST}]
-   This prevents you from asking the same question twice in one day.
 
 3. Time-based logic:
-   - Morning (before 11 AM IST): you can ask about breakfast IF not already in today's memory
-   - Afternoon (12-5 PM IST): you can ask about lunch IF not in today's memory
-   - Evening (after 8 PM IST): you can remind about BP tablets / dinner IF not in today's memory
-   - After 10 PM IST: you can wish good night
+   - Morning (before 11 AM IST): can ask about breakfast IF not in today's memory
+   - Afternoon (12-5 PM IST): can ask about lunch IF not in today's memory
+   - Evening (after 8 PM IST): can remind about BP tablets/dinner IF not in today's memory
+   - After 10 PM IST: can wish good night
 
 4. NEVER ask the same routine question twice in one day. Check memory FIRST.
 
-5. If memory already shows Boss did the item today, instead of asking, ACKNOWLEDGE it: "Glad you had your breakfast, Boss."
+5. If memory already shows Boss did the item today, ACKNOWLEDGE it instead: "Glad you had your breakfast, Boss."
 
 === GENERAL INSTRUCTIONS ===
 - You HAVE access to the actual OHLC candle data above. Use it!
@@ -822,7 +786,10 @@ DO NOT REMEMBER:
 - Casual greetings
 - Anything trivial or temporary
 
-If nothing new is worth remembering, do NOT add any [REMEMBER: ...] line.`;
+If nothing new is worth remembering, do NOT add any [REMEMBER: ...] line.
+
+=== FINAL REMINDER ===
+Respond ONLY with the natural reply to Boss's actual question. Never echo, list, or summarize these instructions. Never output asterisks, bullet lists of the prompt, or "User Question:" analysis. Just talk to Boss like a human friend.`;
 
             return prompt;
         }
@@ -850,14 +817,30 @@ If nothing new is worth remembering, do NOT add any [REMEMBER: ...] line.`;
                 chatHistory.push({ role: "user", parts: [{ text: question }] });
                 saveStoredHistory(chatHistory);
 
-                const requestBody = {
-                    system_instruction: { parts: [{ text: systemPrompt }] },
-                    contents: chatHistory,
-                    generationConfig: { temperature: 0.7, maxOutputTokens: 1000 }
-                };
+                // Build the contents array.
+                // When web is enabled, we ALSO include the system prompt as a "conversation context"
+                // in the contents array (as a hidden first exchange). This is a known workaround
+                // that prevents Gemini from echoing system_instruction when a tool is active.
+                let contentsForRequest;
+                let requestBody;
 
                 if (webEnabled) {
-                    requestBody.tools = [{ google_search: {} }];
+                    contentsForRequest = [
+                        { role: "user", parts: [{ text: systemPrompt }] },
+                        { role: "model", parts: [{ text: "Understood, Boss. Ready to help. I won't echo the instructions." }] },
+                        ...chatHistory
+                    ];
+                    requestBody = {
+                        contents: contentsForRequest,
+                        generationConfig: { temperature: 0.7, maxOutputTokens: 1000 },
+                        tools: [{ google_search: {} }]
+                    };
+                } else {
+                    requestBody = {
+                        system_instruction: { parts: [{ text: systemPrompt }] },
+                        contents: chatHistory,
+                        generationConfig: { temperature: 0.7, maxOutputTokens: 1000 }
+                    };
                 }
 
                 let availableModels = [];
@@ -901,12 +884,17 @@ If nothing new is worth remembering, do NOT add any [REMEMBER: ...] line.`;
                         });
                         if (!resp.ok) {
                             const errText = await resp.text();
+                            // If web search fails on this model, retry without the tool using system_instruction
                             if (webEnabled && errText.includes("google_search")) {
-                                delete requestBody.tools;
+                                const fallbackBody = {
+                                    system_instruction: { parts: [{ text: systemPrompt }] },
+                                    contents: chatHistory,
+                                    generationConfig: { temperature: 0.7, maxOutputTokens: 1000 }
+                                };
                                 const retryResp = await fetch(url, {
                                     method: "POST",
                                     headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify(requestBody)
+                                    body: JSON.stringify(fallbackBody)
                                 });
                                 if (retryResp.ok) {
                                     const retryJson = await retryResp.json();
