@@ -629,6 +629,22 @@
             } catch (e) { document.getElementById('gist-status').innerText = "Error: " + e.message; }
         }
 
+        // --- CLEAN RESPONSE FUNCTION ---
+        function cleanResponse(text) {
+            // Remove bullet points and self-analysis lines that the AI sometimes outputs
+            let lines = text.split('\n');
+            let cleanLines = lines.filter(line => {
+                let l = line.trim().toLowerCase();
+                if (l.startsWith('*') || l.startsWith('-')) return false;
+                if (l.includes('friendly?') || l.includes('funny?') || l.includes('motivational?')) return false;
+                if (l.includes('call him "boss"?') || l.includes('checked') || l.includes('no emojis?')) return false;
+                if (l.includes('handle the gibberish') || l.includes('any reminders/facts to add')) return false;
+                if (l.startsWith('* "') || l.startsWith('"') && l.includes('"')) return false;
+                return true;
+            });
+            return cleanLines.join('\n').trim();
+        }
+
         async function sendChat() {
             const input = document.getElementById('chat-input');
             const text = input.value.trim();
@@ -646,7 +662,11 @@
             document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight;
 
             try {
-                const response = await callGeminiAPI(text);
+                let response = await callGeminiAPI(text);
+                
+                // Clean up the response before displaying or speaking
+                response = cleanResponse(response);
+
                 document.getElementById('chat-history').removeChild(loadingDiv);
                 
                 const reminderMatch = response.match(/\[REMINDER:\s*(\d{2}:\d{2})\s*-\s*(.*?)\]/);
@@ -658,7 +678,7 @@
                 chatHistory.push({ role: 'ai', text: response });
                 renderChat();
                 saveChatHistory();
-                speakText(response); // Voice only fires if text succeeds
+                speakText(response);
 
             } catch (error) {
                 document.getElementById('chat-history').removeChild(loadingDiv);
@@ -675,13 +695,11 @@
                 if (res.ok) {
                     const data = await res.json();
                     if (data.models && data.models.length > 0) {
-                        // Filter for models that support generateContent
                         const valid = data.models
                             .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
                             .map(m => m.name.replace('models/', ''));
                         
                         if (valid.length > 0) {
-                            // Sort to prefer 1.5-flash, then 1.5-pro, then others
                             valid.sort((a, b) => {
                                 if (a.includes('1.5-flash')) return -1;
                                 if (b.includes('1.5-flash')) return 1;
@@ -690,14 +708,12 @@
                                 return 0;
                             });
                             cachedModels = valid;
-                            console.log("Discovered models:", valid);
                             return valid;
                         }
                     }
                 }
             } catch(e) { console.log("Model discovery failed, using hardcoded fallback.", e); }
             
-            // Hardcoded fallback if the API listing fails
             return ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro'];
         }
 
@@ -706,12 +722,12 @@
             Current time: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST.
             Here is his personal context: ${JSON.stringify(personalContext)}.
             Here is what you remember about him: ${JSON.stringify(longTermMemory)}.
-            Rules: If he asks you to remind him of something, append [REMINDER: HH:MM - message] to your reply. If you learn a new fact about him, append [REMEMBER: fact] to your reply.`;
+            CRITICAL RULE: Do NOT output your thought process, self-evaluation, bullet points, or any internal dialogue. ONLY output the final spoken message to Boss.
+            If he asks you to remind him of something, append [REMINDER: HH:MM - message] to your reply. If you learn a new fact about him, append [REMEMBER: fact] to your reply.`;
             
             const contents = [ { role: 'user', parts: [{ text: systemPrompt }] }, ...chatHistory.map(msg => ({ role: msg.role === 'ai' ? 'model' : 'user', parts: [{ text: msg.text }] })), { role: 'user', parts: [{ text: userText }] } ];
             const payload = { contents: contents, tools: webSearchEnabled ? [{ google_search: {} }] : [] };
 
-            // DYNAMICALLY FETCH AVAILABLE MODELS
             const modelsToTry = await getAvailableGeminiModels();
             
             let lastError = null;
@@ -730,7 +746,7 @@
                                 reply += "\n\nSources:\n" + sources.map(s => `- ${s.web?.title || 'Source'}`).join('\n');
                             }
                         }
-                        return reply; // Success! Return the reply.
+                        return reply;
                     } else {
                         const err = await response.json();
                         lastError = err.error?.message || 'API request failed';
@@ -772,7 +788,7 @@
         function addLongTermMemory(fact) {
             longTermMemory.push({ fact: fact, added: new Date().toISOString().split('T')[0] });
             localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory));
-            saveMemoryToGist(); // Auto-save to Gist
+            saveMemoryToGist();
         }
         function renderMemory() {
             const list = document.getElementById('memory-list');
