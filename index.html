@@ -21,7 +21,7 @@
         .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; backdrop-filter: blur(10px); transition: 0.2s; }
         .card h2 { font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 20px; }
         
-        #canvas-container { width: 100%; height: 300px; display: flex; justify-content: center; align-items: center; position: relative; background: radial-gradient(circle at center, rgba(59,130,246,0.08) 0%, transparent 70%); border-radius: 12px; overflow: hidden; }
+        #canvas-container { width: 100%; height: 320px; display: flex; justify-content: center; align-items: center; position: relative; background: radial-gradient(circle at center, rgba(59,130,246,0.08) 0%, transparent 70%); border-radius: 12px; overflow: hidden; }
         #canvas-container::before { content: ''; position: absolute; inset: 0; background-image: linear-gradient(rgba(59,130,246,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.05) 1px, transparent 1px); background-size: 30px 30px; pointer-events: none; opacity: 0.5; }
         .core-label { text-align: center; color: var(--muted); font-size: 0.75rem; letter-spacing: 2px; text-transform: uppercase; margin-top: 10px; opacity: 0.6; animation: fadeLabel 3s ease-in-out infinite; }
         @keyframes fadeLabel { 0%,100% { opacity: 0.4; } 50% { opacity: 0.8; } }
@@ -127,9 +127,9 @@
 
     <div class="dashboard-grid">
         <div class="card">
-            <h2>AI Neural Core</h2>
+            <h2>AI Assistant</h2>
             <div id="canvas-container"></div>
-            <div class="core-label">Quantum Market Intelligence</div>
+            <div class="core-label">Your Personal Trading Companion</div>
         </div>
 
         <div class="card">
@@ -229,19 +229,17 @@
         const WEBSEARCH_STORAGE_NAME = "eurusd_websearch_enabled";
         const MAX_HISTORY_ENTRIES = 40;
 
+        // ---------- WEB SEARCH TOGGLE ----------
         function isWebSearchEnabled() {
             try { return localStorage.getItem(WEBSEARCH_STORAGE_NAME) !== "false"; }
             catch (e) { return true; }
         }
-
         function toggleWebSearch() {
-            const enabled = isWebSearchEnabled();
-            const newState = !enabled;
+            const newState = !isWebSearchEnabled();
             try { localStorage.setItem(WEBSEARCH_STORAGE_NAME, newState ? "true" : "false"); }
             catch (e) {}
             updateWebToggleUI();
         }
-
         function updateWebToggleUI() {
             const btn = document.getElementById("webToggleBtn");
             if (!btn) return;
@@ -254,11 +252,10 @@
             }
         }
 
+        // ---------- STORAGE ----------
         function getStoredKey() {
-            try { return localStorage.getItem(KEY_STORAGE_NAME) || ""; }
-            catch (e) { return ""; }
+            try { return localStorage.getItem(KEY_STORAGE_NAME) || ""; } catch (e) { return ""; }
         }
-
         function loadStoredHistory() {
             try {
                 const raw = localStorage.getItem(HISTORY_STORAGE_NAME);
@@ -267,17 +264,13 @@
                 return Array.isArray(parsed) ? parsed : [];
             } catch (e) { return []; }
         }
-
-        function saveStoredHistory(history) {
+        function saveStoredHistory(h) {
             try {
-                const trimmed = history.length > MAX_HISTORY_ENTRIES ? history.slice(-MAX_HISTORY_ENTRIES) : history;
+                const trimmed = h.length > MAX_HISTORY_ENTRIES ? h.slice(-MAX_HISTORY_ENTRIES) : h;
                 localStorage.setItem(HISTORY_STORAGE_NAME, JSON.stringify(trimmed));
             } catch (e) {}
         }
-
-        function clearStoredHistory() {
-            try { localStorage.removeItem(HISTORY_STORAGE_NAME); } catch (e) {}
-        }
+        function clearStoredHistory() { try { localStorage.removeItem(HISTORY_STORAGE_NAME); } catch (e) {} }
 
         function loadMemory() {
             try {
@@ -287,12 +280,7 @@
                 return Array.isArray(parsed) ? parsed : [];
             } catch (e) { return []; }
         }
-
-        function saveMemory(memory) {
-            try { localStorage.setItem(MEMORY_STORAGE_NAME, JSON.stringify(memory)); }
-            catch (e) {}
-        }
-
+        function saveMemory(m) { try { localStorage.setItem(MEMORY_STORAGE_NAME, JSON.stringify(m)); } catch (e) {} }
         function addFact(fact) {
             if (!fact || !fact.trim()) return;
             const memory = loadMemory();
@@ -302,30 +290,25 @@
             saveMemory(memory);
             renderMemoryList();
         }
-
         function deleteFact(index) {
             const memory = loadMemory();
             memory.splice(index, 1);
             saveMemory(memory);
             renderMemoryList();
         }
-
         function clearAllMemory() {
             if (!confirm("Clear ALL long-term memory? This cannot be undone.")) return;
             saveMemory([]);
             renderMemoryList();
         }
-
         function addMemoryManually() {
             const fact = prompt("What should I remember, Boss?");
             if (fact && fact.trim()) addFact(fact);
         }
-
         function toggleMemoryPanel() {
             document.getElementById("memoryPanel").classList.toggle("visible");
             renderMemoryList();
         }
-
         function renderMemoryList() {
             const list = document.getElementById("memoryList");
             const memory = loadMemory();
@@ -341,13 +324,11 @@
                 </div>
             `).join("");
         }
-
         function escapeHtml(text) {
             const div = document.createElement("div");
             div.innerText = text;
             return div.innerHTML;
         }
-
         function extractAndStripMemories(text) {
             const regex = /\[REMEMBER:\s*([^\]]+)\]/gi;
             const facts = [];
@@ -358,7 +339,6 @@
             const clean = text.replace(regex, "").replace(/\n\s*\n\s*\n/g, "\n\n").trim();
             return { clean, facts };
         }
-
         function saveKey() {
             const key = document.getElementById("keyInput").value.replace(/\s/g, "");
             if (!key || key.length < 20) {
@@ -377,7 +357,6 @@
                 document.getElementById("keyStatus").innerText = "❌ Could not save key";
             }
         }
-
         function showKeyPanel() {
             document.getElementById("keyPanel").classList.add("visible");
             const existing = getStoredKey();
@@ -390,93 +369,270 @@
             updateWebToggleUI();
         });
 
-        // ═══ NEURAL CORE ═══
+        // ═══════════════════════════════════════════════════════════════
+        // ═══ HOLOGRAPHIC 3D HUMAN HEAD — AI ASSISTANT ═══
+        // ═══════════════════════════════════════════════════════════════
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
+        const camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
         renderer.setSize(container.clientWidth, container.clientHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
 
-        const glowGeo = new THREE.SphereGeometry(0.35, 32, 32);
-        const glowMat = new THREE.MeshBasicMaterial({ color: 0xffcc00, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending });
-        const glowSphere = new THREE.Mesh(glowGeo, glowMat);
-        scene.add(glowSphere);
+        // ─── State ───
+        let currentSignal = "HOLD";
+        let currentColorHex = 0xffcc00;       // default yellow
+        const baseColor = new THREE.Color(0xffcc00);
+        const eyeColor = new THREE.Color(0xffcc00);
 
-        const innerGeo = new THREE.IcosahedronGeometry(0.7, 1);
-        const innerMat = new THREE.MeshBasicMaterial({ color: 0xffcc00, wireframe: true, transparent: true, opacity: 0.9 });
-        const innerCore = new THREE.Mesh(innerGeo, innerMat);
-        scene.add(innerCore);
+        // ─── Root group (everything bobs as one) ───
+        const headGroup = new THREE.Group();
+        scene.add(headGroup);
 
-        const outerGeo = new THREE.IcosahedronGeometry(1.4, 1);
-        const outerMat = new THREE.MeshBasicMaterial({ color: 0x3b82f6, wireframe: true, transparent: true, opacity: 0.35 });
-        const outerCore = new THREE.Mesh(outerGeo, outerMat);
-        scene.add(outerCore);
-
-        const rings = [];
-        const ringColors = [0x3b82f6, 0x8b5cf6, 0x00ff88];
-        for (let i = 0; i < 3; i++) {
-            const ringGeo = new THREE.TorusGeometry(1.9 + i * 0.25, 0.012, 16, 100);
-            const ringMat = new THREE.MeshBasicMaterial({ color: ringColors[i], transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending });
-            const ring = new THREE.Mesh(ringGeo, ringMat);
-            ring.rotation.x = Math.PI / 2 * i;
-            ring.rotation.y = Math.PI / 3 * i;
-            scene.add(ring);
-            rings.push(ring);
+        // ─── 1. HEAD (sphere with skin-like wireframe) ───
+        const headGeo = new THREE.SphereGeometry(1.0, 48, 48);
+        // Deform to make it head-like: slightly narrower at bottom
+        const posAttr = headGeo.attributes.position;
+        for (let i = 0; i < posAttr.count; i++) {
+            const y = posAttr.getY(i);
+            const x = posAttr.getX(i);
+            const z = posAttr.getZ(i);
+            // Taper the bottom (chin)
+            const taper = 1.0 - Math.max(0, -y) * 0.25;
+            // Slight elongation front to back
+            const newX = x * taper * 0.92;
+            const newY = y * 1.05;
+            const newZ = z * taper * 0.95;
+            posAttr.setXYZ(i, newX, newY, newZ);
         }
+        headGeo.computeVertexNormals();
 
-        const particleCount = 500;
+        const headMat = new THREE.MeshPhongMaterial({
+            color: 0x1a2540,
+            emissive: 0x0a1428,
+            specular: 0x3b82f6,
+            shininess: 30,
+            transparent: true,
+            opacity: 0.55,
+            flatShading: false
+        });
+        const head = new THREE.Mesh(headGeo, headMat);
+        headGroup.add(head);
+
+        // ─── Wireframe overlay ───
+        const wireMat = new THREE.MeshBasicMaterial({
+            color: 0x3b82f6,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.25
+        });
+        const headWire = new THREE.Mesh(headGeo.clone(), wireMat);
+        headGroup.add(headWire);
+
+        // ─── 2. EYES ───
+        const eyeGroupL = new THREE.Group();
+        const eyeGroupR = new THREE.Group();
+
+        // Eye white (socket)
+        const eyeSocketGeo = new THREE.SphereGeometry(0.11, 24, 24);
+        const eyeSocketMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 });
+
+        // Eye pupil (glowing)
+        const pupilGeo = new THREE.SphereGeometry(0.065, 20, 20);
+        const pupilMat = new THREE.MeshBasicMaterial({ color: 0xffcc00, transparent: true, opacity: 1.0, blending: THREE.AdditiveBlending });
+        const pupilL = new THREE.Mesh(pupilGeo, pupilMat);
+        const pupilR = new THREE.Mesh(pupilGeo, pupilMat.clone());
+
+        // Socket left
+        const socketL = new THREE.Mesh(eyeSocketGeo, eyeSocketMat);
+        socketL.scale.set(1.15, 0.85, 0.6);
+        socketL.position.set(-0.32, 0.12, 0.88);
+        socketL.rotation.x = -0.15;
+        headGroup.add(socketL);
+
+        // Socket right
+        const socketR = new THREE.Mesh(eyeSocketGeo, eyeSocketMat.clone());
+        socketR.scale.set(1.15, 0.85, 0.6);
+        socketR.position.set(0.32, 0.12, 0.88);
+        socketR.rotation.x = -0.15;
+        headGroup.add(socketR);
+
+        // Pupil left
+        pupilL.position.set(-0.32, 0.12, 0.95);
+        headGroup.add(pupilL);
+
+        // Pupil right
+        pupilR.position.set(0.32, 0.12, 0.95);
+        headGroup.add(pupilR);
+
+        // Eye glow (point lights)
+        const eyeLightL = new THREE.PointLight(0xffcc00, 1.2, 3);
+        eyeLightL.position.set(-0.32, 0.12, 1.1);
+        headGroup.add(eyeLightL);
+        const eyeLightR = new THREE.PointLight(0xffcc00, 1.2, 3);
+        eyeLightR.position.set(0.32, 0.12, 1.1);
+        headGroup.add(eyeLightR);
+
+        // ─── 3. EYEBROWS ───
+        function makeBrow(sign) {
+            const curve = new THREE.EllipseCurve(0, 0, 0.18, 0.04, 0, Math.PI, false, 0);
+            const points = curve.getPoints(20).map(p => new THREE.Vector3(p.x, p.y, 0));
+            const geo = new THREE.BufferGeometry().setFromPoints(points);
+            const mat = new THREE.LineBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.7 });
+            const line = new THREE.Line(geo, mat);
+            line.position.set(sign * 0.32, 0.32, 0.92);
+            return line;
+        }
+        const browL = makeBrow(-1);
+        const browR = makeBrow(1);
+        headGroup.add(browL);
+        headGroup.add(browR);
+
+        // ─── 4. MOUTH (curved line, expression changes) ───
+        const mouthCurveDefault = new THREE.EllipseCurve(0, 0, 0.2, 0.06, 0, Math.PI, false, 0).getPoints(20);
+        const mouthGeo = new THREE.BufferGeometry().setFromPoints(
+            mouthCurveDefault.map(p => new THREE.Vector3(p.x, -0.32 + p.y, 0))
+        );
+        const mouthMat = new THREE.LineBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.7 });
+        const mouth = new THREE.Line(mouthGeo, mouthMat);
+        mouth.position.set(0, 0, 0.9);
+        headGroup.add(mouth);
+
+        // ─── 5. HALO RING (orbiting around the head) ───
+        const haloGeo = new THREE.TorusGeometry(1.45, 0.008, 12, 120);
+        const haloMat = new THREE.MeshBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending });
+        const halo = new THREE.Mesh(haloGeo, haloMat);
+        halo.rotation.x = Math.PI / 2.2;
+        scene.add(halo);
+
+        // Second tilted halo
+        const halo2Geo = new THREE.TorusGeometry(1.6, 0.006, 12, 120);
+        const halo2Mat = new THREE.MeshBasicMaterial({ color: 0x8b5cf6, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending });
+        const halo2 = new THREE.Mesh(halo2Geo, halo2Mat);
+        halo2.rotation.x = Math.PI / 3;
+        halo2.rotation.y = Math.PI / 4;
+        scene.add(halo2);
+
+        // ─── 6. PARTICLES ───
+        const particleCount = 300;
         const particleGeo = new THREE.BufferGeometry();
         const positions = new Float32Array(particleCount * 3);
-        const particleColors = new Float32Array(particleCount * 3);
+        const pColors = new Float32Array(particleCount * 3);
         const speeds = [];
 
         for (let i = 0; i < particleCount; i++) {
-            const radius = 1.8 + Math.random() * 1.8;
+            const radius = 1.6 + Math.random() * 1.6;
             const theta = Math.random() * Math.PI * 2;
             const phi = Math.acos(2 * Math.random() - 1);
             positions[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
             positions[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
             positions[i * 3 + 2] = radius * Math.cos(phi);
-            const colorChoice = Math.random();
-            if (colorChoice < 0.6) {
-                particleColors[i * 3] = 0.23; particleColors[i * 3 + 1] = 0.51; particleColors[i * 3 + 2] = 0.96;
-            } else if (colorChoice < 0.85) {
-                particleColors[i * 3] = 0.55; particleColors[i * 3 + 1] = 0.36; particleColors[i * 3 + 2] = 0.96;
-            } else {
-                particleColors[i * 3] = 1.0; particleColors[i * 3 + 1] = 1.0; particleColors[i * 3 + 2] = 1.0;
-            }
-            speeds.push({ theta, phi, radius, dTheta: 0.001 + Math.random() * 0.003, dPhi: (Math.random() - 0.5) * 0.002 });
+            const cc = Math.random();
+            if (cc < 0.6) { pColors[i*3]=0.23; pColors[i*3+1]=0.51; pColors[i*3+2]=0.96; }
+            else if (cc < 0.85) { pColors[i*3]=0.55; pColors[i*3+1]=0.36; pColors[i*3+2]=0.96; }
+            else { pColors[i*3]=1.0; pColors[i*3+1]=1.0; pColors[i*3+2]=1.0; }
+            speeds.push({ theta, phi, radius, dTheta: 0.001 + Math.random() * 0.002, dPhi: (Math.random() - 0.5) * 0.0015 });
         }
-
         particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        particleGeo.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
-        const particleMat = new THREE.PointsMaterial({ size: 0.035, vertexColors: true, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, sizeAttenuation: true });
+        particleGeo.setAttribute('color', new THREE.BufferAttribute(pColors, 3));
+        const particleMat = new THREE.PointsMaterial({ size: 0.03, vertexColors: true, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, sizeAttenuation: true });
         const particles = new THREE.Points(particleGeo, particleMat);
         scene.add(particles);
 
-        camera.position.z = 5.5;
+        // ─── Lighting ───
+        scene.add(new THREE.AmbientLight(0x5566aa, 0.9));
+        const keyLight = new THREE.DirectionalLight(0x3b82f6, 1.2);
+        keyLight.position.set(1, 2, 3);
+        scene.add(keyLight);
+        const rimLight = new THREE.DirectionalLight(0xffcc00, 0.8);
+        rimLight.position.set(-2, 1, -2);
+        scene.add(rimLight);
+
+        // ─── Camera ───
+        camera.position.set(0, 0.1, 3.6);
+        camera.lookAt(0, 0, 0);
+
+        // ─── Animation ───
         const clock = new THREE.Clock();
+
+        // Eye tracking
+        let mouseX = 0;
+        let mouseY = 0;
+        let targetLookX = 0;
+        let targetLookY = 0;
+
+        container.addEventListener("mousemove", (e) => {
+            const rect = container.getBoundingClientRect();
+            mouseX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+            mouseY = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
+            targetLookX = mouseX * 0.15;
+            targetLookY = mouseY * 0.1;
+        });
+
+        container.addEventListener("touchmove", (e) => {
+            if (e.touches.length > 0) {
+                const rect = container.getBoundingClientRect();
+                const touch = e.touches[0];
+                mouseX = ((touch.clientX - rect.left) / rect.width) * 2 - 1;
+                mouseY = -(((touch.clientY - rect.top) / rect.height) * 2 - 1);
+                targetLookX = mouseX * 0.15;
+                targetLookY = mouseY * 0.1;
+            }
+        });
+
+        let blinkTimer = 0;
+        let nextBlinkAt = 2 + Math.random() * 3;
 
         function animate() {
             requestAnimationFrame(animate);
             const t = clock.getElapsedTime();
-            const glowScale = 1 + Math.sin(t * 3) * 0.15;
-            glowSphere.scale.set(glowScale, glowScale, glowScale);
-            glowSphere.material.opacity = 0.7 + Math.sin(t * 3) * 0.2;
-            innerCore.rotation.x += 0.008;
-            innerCore.rotation.y += 0.012;
-            const innerScale = 1 + Math.sin(t * 2) * 0.08;
-            innerCore.scale.set(innerScale, innerScale, innerScale);
-            outerCore.rotation.x -= 0.003;
-            outerCore.rotation.y -= 0.005;
-            const outerScale = 1 + Math.sin(t * 1.5 + 1) * 0.05;
-            outerCore.scale.set(outerScale, outerScale, outerScale);
-            rings[0].rotation.z += 0.008; rings[0].rotation.y += 0.004;
-            rings[1].rotation.z -= 0.006; rings[1].rotation.x += 0.005;
-            rings[2].rotation.z += 0.01; rings[2].rotation.y -= 0.003;
+            const dt = 0.016;
 
+            // Head bobbing (breathing)
+            headGroup.position.y = Math.sin(t * 1.2) * 0.04;
+            headGroup.rotation.y = Math.sin(t * 0.6) * 0.04;
+            headGroup.rotation.x = Math.sin(t * 0.8) * 0.02;
+
+            // Pupils follow cursor
+            const pupilOffsetX = targetLookX;
+            const pupilOffsetY = targetLookY;
+            pupilL.position.x = -0.32 + pupilOffsetX;
+            pupilL.position.y = 0.12 + pupilOffsetY;
+            pupilR.position.x = 0.32 + pupilOffsetX;
+            pupilR.position.y = 0.12 + pupilOffsetY;
+
+            // Eye lights follow pupils
+            eyeLightL.position.x = -0.32 + pupilOffsetX;
+            eyeLightL.position.y = 0.12 + pupilOffsetY;
+            eyeLightR.position.x = 0.32 + pupilOffsetX;
+            eyeLightR.position.y = 0.12 + pupilOffsetY;
+
+            // Blinking
+            blinkTimer += dt;
+            if (blinkTimer >= nextBlinkAt) {
+                // start blink
+                blinkTimer = 0;
+                nextBlinkAt = 2 + Math.random() * 3;
+                // Quick scale animation on sockets
+                blinkPhase = 1;
+            }
+            // (Simple blink visual handled by pulsing pupil intensity occasionally)
+            const blinkPulse = Math.max(0, Math.sin(t * 1.7) * 0.1);
+            pupilMat.opacity = 0.9 + blinkPulse;
+
+            // Mouth subtle movement
+            const mouthWobble = Math.sin(t * 2.3) * 0.02;
+            mouth.position.y = mouthWobble;
+
+            // Head wireframe slight rotation
+            headWire.rotation.y += 0.001;
+
+            // Halos
+            halo.rotation.z += 0.003;
+            halo2.rotation.z -= 0.002;
+
+            // Particles
             const positions = particleGeo.attributes.position.array;
             for (let i = 0; i < particleCount; i++) {
                 const s = speeds[i];
@@ -487,7 +643,12 @@
                 positions[i * 3 + 2] = s.radius * Math.cos(s.phi);
             }
             particleGeo.attributes.position.needsUpdate = true;
-            particles.rotation.y += 0.0015;
+            particles.rotation.y += 0.0008;
+
+            // Eye glow pulse
+            eyeLightL.intensity = 1.0 + Math.sin(t * 3) * 0.3;
+            eyeLightR.intensity = 1.0 + Math.sin(t * 3 + 0.5) * 0.3;
+
             renderer.render(scene, camera);
         }
         animate();
@@ -498,16 +659,72 @@
             renderer.setSize(container.clientWidth, container.clientHeight);
         });
 
-        function updateCoreColor(signal) {
-            let colorHex, color;
-            if (signal === "BUY") { colorHex = 0x00ff88; color = new THREE.Color(0x00ff88); }
-            else if (signal === "SELL") { colorHex = 0xff3366; color = new THREE.Color(0xff3366); }
-            else { colorHex = 0xffcc00; color = new THREE.Color(0xffcc00); }
-            glowSphere.material.color.setHex(colorHex);
-            innerCore.material.color.setHex(colorHex);
-            outerCore.material.color.copy(color).lerp(new THREE.Color(0x3b82f6), 0.5);
-            rings[2].material.color.copy(color);
+        // ─── Update face with signal ───
+        function updateFaceColor(signal) {
+            currentSignal = signal;
+            let colorHex;
+            if (signal === "BUY") { colorHex = 0x00ff88; }
+            else if (signal === "SELL") { colorHex = 0xff3366; }
+            else { colorHex = 0xffcc00; }
+
+            currentColorHex = colorHex;
+            const c = new THREE.Color(colorHex);
+
+            // Head emissive glow
+            headMat.emissive = c.clone().multiplyScalar(0.3);
+            headMat.specular = c.clone();
+            headMat.color = c.clone().multiplyScalar(0.15).add(new THREE.Color(0x0a1428));
+
+            // Wireframe color
+            wireMat.color = c.clone().multiplyScalar(0.9);
+
+            // Pupils
+            pupilL.material.color = c.clone();
+            pupilR.material.color = c.clone();
+
+            // Eye lights
+            eyeLightL.color = c.clone();
+            eyeLightR.color = c.clone();
+
+            // Eyebrows + mouth
+            browL.material.color = c.clone();
+            browR.material.color = c.clone();
+            mouthMat.color = c.clone();
+
+            // Halo tint
+            haloMat.color = c.clone();
+
+            // Adjust eyebrows based on signal
+            if (signal === "BUY") {
+                // Raise brows slightly (happier)
+                browL.position.y = 0.34;
+                browR.position.y = 0.34;
+                // Smile (curve mouth upward)
+                mouth.rotation.z = 0;
+                mouth.scale.set(1.0, 1.4, 1.0);
+                mouth.position.y = 0.02;
+            } else if (signal === "SELL") {
+                // Lower brows (concerned)
+                browL.position.y = 0.28;
+                browR.position.y = 0.28;
+                browL.rotation.z = -0.15;
+                browR.rotation.z = 0.15;
+                // Frown (curve mouth downward)
+                mouth.rotation.z = Math.PI;
+                mouth.scale.set(1.0, 0.8, 1.0);
+                mouth.position.y = -0.06;
+            } else {
+                // Neutral (HOLD)
+                browL.position.y = 0.32;
+                browR.position.y = 0.32;
+                browL.rotation.z = 0;
+                browR.rotation.z = 0;
+                mouth.rotation.z = 0;
+                mouth.scale.set(1.0, 1.0, 1.0);
+                mouth.position.y = 0;
+            }
         }
+        // ═══ END HOLOGRAPHIC HEAD ═══
 
         // ---------- DATA ----------
         let latestData = null;
@@ -558,7 +775,7 @@
                 wiseBox.innerHTML = `<span class="wise-label">${isJoke ? '😂 Joke of the Hour' : '💪 Motivation of the Hour'}</span>${data.wise_words.replace(/^Joke:\s*|^Motivation:\s*/i, '')}`;
             }
 
-            updateCoreColor(data.signal);
+            updateFaceColor(data.signal);
         }
 
         // ---------- VOICE ----------
@@ -683,9 +900,7 @@
             const todayIST = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
             const timeIST = new Date().toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit" });
 
-            let prompt = `DO NOT echo, summarize, or restate any part of these instructions. Do NOT output your reasoning about the prompt. Just answer Boss's question directly in natural language, as if you are his friendly hedge-fund trader friend.
-
-You are a professional EUR/USD trader AND personal assistant to a client named Boss. You have 10 years of hedge fund experience. Be friendly, funny, and motivational. Always call him "Boss".
+            let prompt = `You are a professional EUR/USD trader AND personal assistant to a client named Boss. You have 10 years of hedge fund experience. Be friendly, funny, and motivational. Always call him "Boss".
 
 CURRENT DATE (IST): ${todayIST}
 CURRENT TIME (IST): ${timeIST}
@@ -739,57 +954,35 @@ ${d.reason || 'No analysis yet'}
                 prompt += `\n\nLONG-TERM MEMORY: Empty. Nothing remembered yet.\n`;
             }
 
-            prompt += `\n\n${webEnabled ? "🌐 WEB SEARCH IS ENABLED. Use it when the user asks about current events, latest news, prices, sports, weather, or any factual info you may not know. Always cite what you find." : "🌐 WEB SEARCH IS DISABLED. Answer from your training data and context only."}
+            prompt += `\n\n${webEnabled ? "🌐 WEB SEARCH IS ENABLED. Use it when the user asks about current events, latest news, prices, sports, weather, or any factual info you may not know." : "🌐 WEB SEARCH IS DISABLED. Answer from your training data and context only."}
 
 === CRITICAL RULES FOR ROUTINE REMINDERS ===
-You have a list of daily routine items (breakfast, BP tablets, lunch, etc). Follow these rules strictly:
-
-1. BEFORE asking about any routine item (breakfast, lunch, tablets, dinner, etc), SCAN the LONG-TERM MEMORY above for entries with TODAY'S date (${todayIST}) that say Boss already did it.
-   - If memory contains "Boss had breakfast on ${todayIST}" → DO NOT ask about breakfast today.
-   - If memory contains "Boss took BP tablets on ${todayIST}" → DO NOT ask about tablets today.
-   - Same for lunch, dinner, cooking, etc.
-
-2. If Boss tells you he did something today, IMMEDIATELY extract it as a dated memory:
+1. BEFORE asking about any routine item (breakfast, lunch, tablets, dinner, etc), SCAN the LONG-TERM MEMORY above for entries with TODAY'S date (${todayIST}).
+2. If Boss tells you he did something today, IMMEDIATELY extract it as dated memory:
    [REMEMBER: Boss had breakfast on ${todayIST}]
-   [REMEMBER: Boss took BP tablets on ${todayIST}]
-
 3. Time-based logic:
-   - Morning (before 11 AM IST): can ask about breakfast IF not in today's memory
-   - Afternoon (12-5 PM IST): can ask about lunch IF not in today's memory
-   - Evening (after 8 PM IST): can remind about BP tablets/dinner IF not in today's memory
-   - After 10 PM IST: can wish good night
-
+   - Morning (before 11 AM IST): ask about breakfast IF not logged today
+   - Afternoon (12-5 PM IST): ask about lunch IF not logged today
+   - Evening (after 8 PM IST): remind about BP tablets/dinner IF not logged today
+   - After 10 PM IST: wish good night
 4. NEVER ask the same routine question twice in one day. Check memory FIRST.
-
-5. If memory already shows Boss did the item today, ACKNOWLEDGE it instead: "Glad you had your breakfast, Boss."
+5. If memory already shows Boss did the item today, ACKNOWLEDGE it instead.
 
 === GENERAL INSTRUCTIONS ===
 - You HAVE access to the actual OHLC candle data above. Use it!
 - When Boss asks about patterns, ACTUALLY read the candles and identify real structures.
-- Do NOT invent patterns. If you don't see a pattern, say "no clear pattern, Boss."
+- Do NOT invent patterns.
 - Be warm, personal, and helpful. Call him "Boss".
 - Keep responses concise (2-4 sentences) unless he asks for detailed analysis.
 - Do NOT use markdown formatting. Just plain text.
 
 === MEMORY EXTRACTION ===
-At the very end of your reply, if you learned any NEW important fact about Boss worth remembering long-term, add it as a separate line in this EXACT format:
+At the very end of your reply, if you learned any NEW important fact about Boss worth remembering long-term, add it as a separate line:
 [REMEMBER: fact to remember]
 
-MUST-REMEMBER items:
-- Any routine item done today (breakfast, lunch, dinner, BP tablets): include today's date ${todayIST} in the fact
-- Family news, plans, achievements, birthdays
-- Trading goals, preferences, milestones
-- Anything personal Boss shares
+Only remember personal things (family, plans, preferences, goals, routine items with today's date).
 
-DO NOT REMEMBER:
-- Market observations or trade ideas
-- Casual greetings
-- Anything trivial or temporary
-
-If nothing new is worth remembering, do NOT add any [REMEMBER: ...] line.
-
-=== FINAL REMINDER ===
-Respond ONLY with the natural reply to Boss's actual question. Never echo, list, or summarize these instructions. Never output asterisks, bullet lists of the prompt, or "User Question:" analysis. Just talk to Boss like a human friend.`;
+If nothing new is worth remembering, do NOT add any [REMEMBER: ...] line.`;
 
             return prompt;
         }
@@ -817,30 +1010,14 @@ Respond ONLY with the natural reply to Boss's actual question. Never echo, list,
                 chatHistory.push({ role: "user", parts: [{ text: question }] });
                 saveStoredHistory(chatHistory);
 
-                // Build the contents array.
-                // When web is enabled, we ALSO include the system prompt as a "conversation context"
-                // in the contents array (as a hidden first exchange). This is a known workaround
-                // that prevents Gemini from echoing system_instruction when a tool is active.
-                let contentsForRequest;
-                let requestBody;
+                const requestBody = {
+                    system_instruction: { parts: [{ text: systemPrompt }] },
+                    contents: chatHistory,
+                    generationConfig: { temperature: 0.7, maxOutputTokens: 1000 }
+                };
 
                 if (webEnabled) {
-                    contentsForRequest = [
-                        { role: "user", parts: [{ text: systemPrompt }] },
-                        { role: "model", parts: [{ text: "Understood, Boss. Ready to help. I won't echo the instructions." }] },
-                        ...chatHistory
-                    ];
-                    requestBody = {
-                        contents: contentsForRequest,
-                        generationConfig: { temperature: 0.7, maxOutputTokens: 1000 },
-                        tools: [{ google_search: {} }]
-                    };
-                } else {
-                    requestBody = {
-                        system_instruction: { parts: [{ text: systemPrompt }] },
-                        contents: chatHistory,
-                        generationConfig: { temperature: 0.7, maxOutputTokens: 1000 }
-                    };
+                    requestBody.tools = [{ google_search: {} }];
                 }
 
                 let availableModels = [];
@@ -884,17 +1061,12 @@ Respond ONLY with the natural reply to Boss's actual question. Never echo, list,
                         });
                         if (!resp.ok) {
                             const errText = await resp.text();
-                            // If web search fails on this model, retry without the tool using system_instruction
                             if (webEnabled && errText.includes("google_search")) {
-                                const fallbackBody = {
-                                    system_instruction: { parts: [{ text: systemPrompt }] },
-                                    contents: chatHistory,
-                                    generationConfig: { temperature: 0.7, maxOutputTokens: 1000 }
-                                };
+                                delete requestBody.tools;
                                 const retryResp = await fetch(url, {
                                     method: "POST",
                                     headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify(fallbackBody)
+                                    body: JSON.stringify(requestBody)
                                 });
                                 if (retryResp.ok) {
                                     const retryJson = await retryResp.json();
@@ -913,10 +1085,7 @@ Respond ONLY with the natural reply to Boss's actual question. Never echo, list,
                         if (groundingMeta && groundingMeta.groundingChunks) {
                             for (const chunk of groundingMeta.groundingChunks) {
                                 if (chunk.web && chunk.web.uri) {
-                                    sources.push({
-                                        uri: chunk.web.uri,
-                                        title: chunk.web.title || chunk.web.uri
-                                    });
+                                    sources.push({ uri: chunk.web.uri, title: chunk.web.title || chunk.web.uri });
                                 }
                             }
                         }
