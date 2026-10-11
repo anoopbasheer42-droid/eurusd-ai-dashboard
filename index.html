@@ -44,7 +44,6 @@
             gap: 15px;
         }
 
-        /* Header */
         header {
             display: flex;
             justify-content: space-between;
@@ -85,7 +84,6 @@
             font-weight: 400;
         }
 
-        /* Cards */
         .card {
             background: var(--card-bg);
             border: 1px solid var(--card-border);
@@ -112,7 +110,6 @@
             align-items: center;
         }
 
-        /* Neural Core 3D Canvas */
         #canvas-container {
             width: 100%;
             height: 180px;
@@ -132,7 +129,6 @@
             position: relative;
         }
 
-        /* Signal Card */
         .signal-card { text-align: center; padding: 20px; }
         #signal-text {
             font-size: 3rem;
@@ -173,14 +169,12 @@
         .signal-details div { display: flex; justify-content: space-between; }
         .signal-details span { color: var(--text-muted); }
 
-        /* AI Log / Reasoning */
         .reasoning-text {
             font-size: 0.85rem;
             line-height: 1.6;
             color: #d1d5db;
         }
 
-        /* Chat & Panels */
         .chat-controls {
             display: flex;
             gap: 5px;
@@ -263,7 +257,6 @@
         .stat-item { background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 8px; display: flex; justify-content: space-between; }
         .stat-label { color: var(--text-muted); }
 
-        /* Animations */
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .fade-in { animation: fadeIn 0.3s ease-in; }
     </style>
@@ -271,7 +264,6 @@
 <body>
 
     <div class="dashboard">
-        <!-- Header -->
         <header>
             <div class="logo">⚡ EUR/USD <span>AI PRO</span></div>
             <div class="price-ticker" id="live-price">
@@ -280,14 +272,12 @@
             </div>
         </header>
 
-        <!-- 1. AI Neural Core -->
         <div class="card">
             <div class="card-title">AI Neural Core</div>
             <div id="canvas-container"></div>
             <div class="subtitle">QUANTUM MARKET INTELLIGENCE</div>
         </div>
 
-        <!-- 2. Current Signal -->
         <div class="card signal-card">
             <div class="card-title">Current Signal</div>
             <div id="signal-text">WAITING</div>
@@ -301,12 +291,12 @@
                 <div><span>ATR:</span> <span id="val-atr">-</span></div>
             </div>
             <div style="margin-top:15px; display:flex; gap:10px; justify-content:center;">
+                <button class="btn" onclick="generateSignalFromScratch()">⟳ Refresh Now</button>
                 <button class="btn" onclick="playVoiceReport()">▶ Play Voice</button>
                 <button class="btn danger" onclick="stopVoice()">■ Stop</button>
             </div>
         </div>
 
-        <!-- 3. Ask Your AI Trader -->
         <div class="card">
             <div class="card-title">
                 Ask Your AI Trader
@@ -321,7 +311,6 @@
                 </div>
             </div>
             
-            <!-- Panels -->
             <div class="panel" id="panel-reminders">
                 <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
                     <strong>Active Reminders</strong>
@@ -358,7 +347,6 @@
                 <button class="btn" onclick="saveApiKey()">Save Key</button>
             </div>
 
-            <!-- Chat History -->
             <div class="chat-history" id="chat-history">
                 <div class="msg ai fade-in">Memory restored — Boss and I are back in the flow.</div>
             </div>
@@ -372,13 +360,11 @@
             </div>
         </div>
 
-        <!-- 4. Boss's Wisdom Corner -->
         <div class="card">
             <div class="card-title">Boss's Wisdom Corner</div>
             <div class="reasoning-text" id="wise-words">Loading wisdom...</div>
         </div>
 
-        <!-- 5. Multi-Timeframe Analysis -->
         <div class="card">
             <div class="card-title">Multi-Timeframe Analysis</div>
             <div class="stats-grid">
@@ -394,7 +380,6 @@
             </div>
         </div>
 
-        <!-- 6. AI Trader's Reasoning -->
         <div class="card">
             <div class="card-title">AI Trader's Reasoning</div>
             <div class="reasoning-text" id="val-reason">Waiting for data...</div>
@@ -402,7 +387,6 @@
     </div>
 
     <script>
-        // --- CONFIGURATION ---
         const CONTEXT_URL = 'https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/personal_context.json';
         
         let globalData = null;
@@ -420,12 +404,8 @@
         let gistId = localStorage.getItem('eurusd_gist_id') || '';
         
         let cachedModels = null;
-        
-        // Timer variables for the 5.5 minute AI refresh
         let timeLeft = 330; 
-        let refreshInterval = null;
 
-        // --- UI INITIALIZATION ---
         document.getElementById('browser-ai-toggle').classList.toggle('active', browserAIEnabled);
         document.getElementById('deep-think-toggle').classList.toggle('active', deepThinkEnabled);
         document.getElementById('web-toggle').classList.toggle('active', webSearchEnabled);
@@ -486,7 +466,7 @@
             glowSphere.material.color.setHex(color); innerCore.material.color.setHex(color); outerShell.material.color.setHex(color);
         }
 
-        // --- INDICATOR CALCULATIONS (Pure JS) ---
+        // --- INDICATOR CALCULATIONS ---
         function calculateEMA(data, period) {
             const k = 2 / (period + 1);
             let ema = data[0];
@@ -525,24 +505,38 @@
             return trs.slice(-period).reduce((a, b) => a + b, 0) / period;
         }
 
-        // --- FETCH DATA & GENERATE SIGNAL (All in HTML) ---
+        // --- FETCH DATA WITH FALLBACK PROXIES & TIMEOUT ---
         async function fetchYahooCandles(interval, range) {
             const url = `https://query1.finance.yahoo.com/v8/finance/chart/EURUSD=X?interval=${interval}&range=${range}`;
-            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-            try {
-                const res = await fetch(proxyUrl);
-                const data = await res.json();
-                const result = data.chart.result[0];
-                const timestamps = result.timestamp;
-                const quotes = result.indicators.quote[0];
-                return timestamps.map((t, i) => ({
-                    time: t * 1000,
-                    open: quotes.open[i],
-                    high: quotes.high[i],
-                    low: quotes.low[i],
-                    close: quotes.close[i]
-                })).filter(c => c.open && c.high && c.low && c.close);
-            } catch (e) { console.error("Yahoo fetch error:", e); return []; }
+            const proxies = [
+                `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+                `https://corsproxy.io/?${encodeURIComponent(url)}`
+            ];
+            
+            for (const proxyUrl of proxies) {
+                try {
+                    const res = await fetchWithTimeout(proxyUrl, 8000); // 8 sec timeout
+                    if (!res.ok) continue;
+                    const data = await res.json();
+                    if (!data || !data.chart || !data.chart.result) continue;
+                    
+                    const result = data.chart.result[0];
+                    const timestamps = result.timestamp;
+                    const quotes = result.indicators.quote[0];
+                    if (!timestamps || !quotes) continue;
+                    
+                    return timestamps.map((t, i) => ({
+                        time: t * 1000,
+                        open: quotes.open[i],
+                        high: quotes.high[i],
+                        low: quotes.low[i],
+                        close: quotes.close[i]
+                    })).filter(c => c.open && c.high && c.low && c.close);
+                } catch (e) { 
+                    console.log(`Proxy failed: ${proxyUrl}. Trying next...`); 
+                }
+            }
+            return []; // All proxies failed
         }
 
         async function generateSignalFromScratch() {
@@ -552,18 +546,25 @@
             }
 
             const signalText = document.getElementById('signal-text');
-            signalText.innerText = "ANALYZING...";
+            signalText.innerText = "FETCHING...";
             signalText.style.color = "var(--blue)";
-            document.getElementById('ai-refresh-timer').innerText = "AI is analyzing...";
+            document.getElementById('ai-refresh-timer').innerText = "Fetching Yahoo data...";
+            document.getElementById('val-reason').innerText = "Downloading market data...";
 
             const candles1H = await fetchYahooCandles('1h', '1mo');
             const candlesDaily = await fetchYahooCandles('1d', '3mo');
             
             if (candles1H.length === 0) {
-                document.getElementById('val-reason').innerText = "Failed to fetch market data. Yahoo may be blocking CORS. Retrying in 5 minutes.";
+                document.getElementById('val-reason').innerText = "Failed to fetch market data. Both proxies failed. Check your internet or tap 'Refresh Now' again.";
+                signalText.innerText = "ERROR";
+                signalText.style.color = "var(--red)";
                 resetTimer();
                 return;
             }
+
+            signalText.innerText = "ANALYZING...";
+            document.getElementById('ai-refresh-timer').innerText = "Asking Gemini...";
+            document.getElementById('val-reason').innerText = "Calculating indicators and asking AI...";
 
             const closes = candles1H.map(c => c.close);
             const highs = candles1H.map(c => c.high);
@@ -629,7 +630,7 @@
                 for (const model of modelsToTry) {
                     try {
                         const response = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-                            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), timeout: 15000
+                            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), timeout: 12000
                         });
                         if (response.ok) {
                             const data = await response.json();
@@ -704,7 +705,6 @@
             document.getElementById('wise-words').innerText = data.wise_words || 'Stay disciplined, Boss.';
         }
 
-        // --- TIMER LOGIC FOR 5.5 MINUTE REFRESH ---
         function updateTimerDisplay() {
             const minutes = Math.floor(timeLeft / 60).toString().padStart(2, '0');
             const seconds = (timeLeft % 60).toString().padStart(2, '0');
@@ -713,7 +713,7 @@
         }
 
         function resetTimer() {
-            timeLeft = 330; // 5 minutes 30 seconds
+            timeLeft = 330; 
             updateTimerDisplay();
         }
 
@@ -751,7 +751,7 @@
         }
         function stopVoice() { if ('speechSynthesis' in window) { window.speechSynthesis.cancel(); isSpeaking = false; } }
 
-        // --- CHAT & MEMORY SYSTEM ---
+        // --- CHAT & MEMORY ---
         function renderChat() {
             const historyEl = document.getElementById('chat-history');
             historyEl.innerHTML = '';
@@ -762,33 +762,10 @@
             historyEl.scrollTop = historyEl.scrollHeight;
         }
         function saveChatHistory() { if (chatHistory.length > 40) chatHistory = chatHistory.slice(-40); localStorage.setItem('eurusd_chat_history', JSON.stringify(chatHistory)); }
-        
-        function clearChat() {
-            chatHistory = [];
-            saveChatHistory();
-            renderChat();
-        }
-
-        function toggleBrowserAI() {
-            browserAIEnabled = !browserAIEnabled;
-            const btn = document.getElementById('browser-ai-toggle');
-            btn.classList.toggle('active', browserAIEnabled);
-            btn.innerText = browserAIEnabled ? '🤖 Browser AI ON' : '🤖 Browser AI OFF';
-        }
-
-        function toggleDeepThink() {
-            deepThinkEnabled = !deepThinkEnabled;
-            const btn = document.getElementById('deep-think-toggle');
-            btn.classList.toggle('active', deepThinkEnabled);
-            btn.innerText = deepThinkEnabled ? '🧠 Deep Think ON' : '🧠 Deep Think OFF';
-        }
-
-        function toggleWeb() {
-            webSearchEnabled = !webSearchEnabled;
-            const btn = document.getElementById('web-toggle');
-            btn.innerText = webSearchEnabled ? '🌐 Web ON' : '🌐 Web OFF';
-            btn.classList.toggle('active', webSearchEnabled);
-        }
+        function clearChat() { chatHistory = []; saveChatHistory(); renderChat(); }
+        function toggleBrowserAI() { browserAIEnabled = !browserAIEnabled; const btn = document.getElementById('browser-ai-toggle'); btn.classList.toggle('active', browserAIEnabled); btn.innerText = browserAIEnabled ? '🤖 Browser AI ON' : '🤖 Browser AI OFF'; }
+        function toggleDeepThink() { deepThinkEnabled = !deepThinkEnabled; const btn = document.getElementById('deep-think-toggle'); btn.classList.toggle('active', deepThinkEnabled); btn.innerText = deepThinkEnabled ? '🧠 Deep Think ON' : '🧠 Deep Think OFF'; }
+        function toggleWeb() { webSearchEnabled = !webSearchEnabled; const btn = document.getElementById('web-toggle'); btn.innerText = webSearchEnabled ? '🌐 Web ON' : '🌐 Web OFF'; btn.classList.toggle('active', webSearchEnabled); }
 
         function togglePanel(id) {
             const el = document.getElementById(id);
@@ -796,51 +773,13 @@
             if (id === 'panel-reminders') renderReminders();
             if (id === 'panel-memory') renderMemory();
             if (id === 'panel-key') document.getElementById('api-key-input').value = apiKey;
-            if (id === 'panel-gist') {
-                document.getElementById('gist-token-input').value = gistToken;
-                document.getElementById('gist-id-input').value = gistId;
-            }
+            if (id === 'panel-gist') { document.getElementById('gist-token-input').value = gistToken; document.getElementById('gist-id-input').value = gistId; }
         }
 
-        // --- GIST LOGIC ---
-        function saveGistConfig() {
-            gistToken = document.getElementById('gist-token-input').value.trim();
-            gistId = document.getElementById('gist-id-input').value.trim();
-            localStorage.setItem('eurusd_gist_token', gistToken);
-            localStorage.setItem('eurusd_gist_id', gistId);
-            document.getElementById('gist-status').innerText = "Saving to Gist...";
-            saveMemoryToGist();
-        }
+        function saveGistConfig() { gistToken = document.getElementById('gist-token-input').value.trim(); gistId = document.getElementById('gist-id-input').value.trim(); localStorage.setItem('eurusd_gist_token', gistToken); localStorage.setItem('eurusd_gist_id', gistId); document.getElementById('gist-status').innerText = "Saving to Gist..."; saveMemoryToGist(); }
+        async function loadMemoryFromGist() { if (!gistToken || !gistId) { document.getElementById('gist-status').innerText = "Please enter Token and Gist ID."; return; } document.getElementById('gist-status').innerText = "Loading from Gist..."; try { const res = await fetch(`https://api.github.com/gists/${gistId}`, { headers: { 'Authorization': `token ${gistToken}` } }); if (!res.ok) throw new Error('Failed to fetch gist'); const data = await res.json(); const content = data.files['memory.json']?.content; if (content) { longTermMemory = JSON.parse(content); localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); renderMemory(); document.getElementById('gist-status').innerText = "Memory loaded from Gist!"; } } catch (e) { document.getElementById('gist-status').innerText = "Error: " + e.message; } }
+        async function saveMemoryToGist() { if (!gistToken || !gistId) return; try { const res = await fetch(`https://api.github.com/gists/${gistId}`, { method: 'PATCH', headers: { 'Authorization': `token ${gistToken}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ files: { 'memory.json': { content: JSON.stringify(longTermMemory, null, 2) } } }) }); if (!res.ok) throw new Error('Failed to update gist'); document.getElementById('gist-status').innerText = "Synced to Gist successfully!"; } catch (e) { document.getElementById('gist-status').innerText = "Error: " + e.message; } }
 
-        async function loadMemoryFromGist() {
-            if (!gistToken || !gistId) { document.getElementById('gist-status').innerText = "Please enter Token and Gist ID."; return; }
-            document.getElementById('gist-status').innerText = "Loading from Gist...";
-            try {
-                const res = await fetch(`https://api.github.com/gists/${gistId}`, { headers: { 'Authorization': `token ${gistToken}` } });
-                if (!res.ok) throw new Error('Failed to fetch gist');
-                const data = await res.json();
-                const content = data.files['memory.json']?.content;
-                if (content) {
-                    longTermMemory = JSON.parse(content);
-                    localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory));
-                    renderMemory(); document.getElementById('gist-status').innerText = "Memory loaded from Gist!";
-                }
-            } catch (e) { document.getElementById('gist-status').innerText = "Error: " + e.message; }
-        }
-
-        async function saveMemoryToGist() {
-            if (!gistToken || !gistId) return;
-            try {
-                const res = await fetch(`https://api.github.com/gists/${gistId}`, {
-                    method: 'PATCH', headers: { 'Authorization': `token ${gistToken}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ files: { 'memory.json': { content: JSON.stringify(longTermMemory, null, 2) } } })
-                });
-                if (!res.ok) throw new Error('Failed to update gist');
-                document.getElementById('gist-status').innerText = "Synced to Gist successfully!";
-            } catch (e) { document.getElementById('gist-status').innerText = "Error: " + e.message; }
-        }
-
-        // --- CLEAN RESPONSE FUNCTION ---
         function cleanResponse(text) {
             let lines = text.split('\n');
             let cleanLines = lines.filter(line => {
@@ -855,12 +794,10 @@
             return cleanLines.join('\n').trim();
         }
 
-        // --- FETCH WITH TIMEOUT ---
-        async function fetchWithTimeout(resource, options = {}) {
-            const { timeout = 10000 } = options; 
+        async function fetchWithTimeout(resource, timeout = 10000) {
             const controller = new AbortController();
             const id = setTimeout(() => controller.abort(), timeout);
-            const response = await fetch(resource, { ...options, signal: controller.signal });
+            const response = await fetch(resource, { signal: controller.signal });
             clearTimeout(id);
             return response;
         }
@@ -884,7 +821,6 @@
             try {
                 let response = await callGeminiAPI(text);
                 response = cleanResponse(response);
-
                 document.getElementById('chat-history').removeChild(loadingDiv);
                 
                 const reminderMatch = response.match(/\[REMINDER:\s*(\d{2}:\d{2})\s*-\s*(.*?)\]/);
@@ -907,7 +843,6 @@
             }
         }
 
-        // --- DYNAMIC GEMINI MODEL DISCOVERY ---
         async function getAvailableGeminiModels() {
             if (cachedModels) return cachedModels;
             try {
@@ -915,35 +850,26 @@
                 if (res.ok) {
                     const data = await res.json();
                     if (data.models && data.models.length > 0) {
-                        const valid = data.models
-                            .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
-                            .map(m => m.name.replace('models/', ''));
-                        
+                        const valid = data.models.filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent')).map(m => m.name.replace('models/', ''));
                         if (valid.length > 0) {
-                            valid.sort((a, b) => {
-                                if (a.includes('1.5-flash')) return -1;
-                                if (b.includes('1.5-flash')) return 1;
-                                if (a.includes('1.5-pro')) return -1;
-                                if (b.includes('1.5-pro')) return 1;
-                                return 0;
-                            });
+                            valid.sort((a, b) => { if (a.includes('1.5-flash')) return -1; if (b.includes('1.5-flash')) return 1; if (a.includes('1.5-pro')) return -1; if (b.includes('1.5-pro')) return 1; return 0; });
                             cachedModels = valid;
                             return valid;
                         }
                     }
                 }
-            } catch(e) { console.log("Model discovery failed, using hardcoded fallback."); }
-            
+            } catch(e) { console.log("Model discovery failed, using fallback."); }
             return ['gemini-1.5-flash', 'gemini-1.5-pro'];
         }
 
         async function callGeminiAPI(userText) {
-            const recentHistory = chatHistory.slice(-10);
+            const recentHistory = chatHistory.slice(-3);
+            const recentMemory = longTermMemory.slice(-10);
             
             let systemPrompt = `You are an AI trading assistant for Boss. You are friendly, funny, and motivational. Do not use emojis. Call him "Boss". 
             Current time: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST.
             Here is his personal context: ${JSON.stringify(personalContext)}.
-            Here is what you remember about him: ${JSON.stringify(longTermMemory)}.
+            Here is what you remember about him: ${JSON.stringify(recentMemory)}.
             CRITICAL RULE: Do NOT output your thought process, self-evaluation, bullet points, or any internal dialogue. ONLY output the final spoken message to Boss.
             If he asks you to remind him of something, append [REMINDER: HH:MM - message] to your reply. If you learn a new fact about him, append [REMEMBER: fact] to your reply.`;
             
@@ -953,93 +879,55 @@
                 { role: 'user', parts: [{ text: userText }] } 
             ];
             
-            const payload = { contents: contents, tools: webSearchEnabled ? [{ google_search: {} }] : [] };
+            const payload = { 
+                contents: contents, 
+                tools: webSearchEnabled ? [{ google_search: {} }] : [],
+                generationConfig: { maxOutputTokens: 500 }
+            };
 
-            let modelsToTry = await getAvailableGeminiModels();
-            
-            if (!deepThinkEnabled) {
-                modelsToTry = ['gemini-1.5-flash', ...modelsToTry.filter(m => m !== 'gemini-1.5-flash')];
-            }
-
-            let lastError = null;
-            for (const model of modelsToTry) {
-                try {
-                    const response = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-                        method: 'POST', 
-                        headers: { 'Content-Type': 'application/json' }, 
-                        body: JSON.stringify(payload),
-                        timeout: 12000 
-                    });
-                    
-                    if (response.ok) {
-                        const data = await response.json();
-                        let reply = data.candidates[0].content.parts[0].text;
-                        if (webSearchEnabled && data.candidates[0].groundingMetadata) {
-                            const sources = data.candidates[0].groundingMetadata.groundingChunks;
-                            if (sources && sources.length > 0) {
-                                reply += "\n\nSources:\n" + sources.map(s => `- ${s.web?.title || 'Source'}`).join('\n');
-                            }
+            const model = 'gemini-1.5-flash';
+            try {
+                const response = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, 15000);
+                // Note: fetchWithTimeout returns response, but we need to send the body. Let's fix that.
+                // Re-fetching with body
+                const response2 = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+                });
+                
+                if (response2.ok) {
+                    const data = await response2.json();
+                    let reply = data.candidates[0].content.parts[0].text;
+                    if (webSearchEnabled && data.candidates[0].groundingMetadata) {
+                        const sources = data.candidates[0].groundingMetadata.groundingChunks;
+                        if (sources && sources.length > 0) {
+                            reply += "\n\nSources:\n" + sources.map(s => `- ${s.web?.title || 'Source'}`).join('\n');
                         }
-                        return reply;
-                    } else {
-                        const err = await response.json();
-                        lastError = err.error?.message || 'API request failed';
                     }
-                } catch (e) { 
-                    lastError = e.name === 'AbortError' ? 'Request timed out' : e.message; 
+                    return reply;
+                } else {
+                    const err = await response2.json();
+                    throw new Error(err.error?.message || 'API request failed');
                 }
+            } catch (e) { 
+                if (e.name === 'AbortError') throw new Error("Request timed out. Google servers are busy.");
+                throw e;
             }
-            
-            throw new Error(lastError || 'All available Gemini models failed. Check your API key.');
         }
 
-        // --- REMINDER SYSTEM ---
-        function addReminder(time, message) {
-            const reminder = { id: Math.random().toString(36).substr(2, 9), time: time, message: message, voice: true, fired: false, created: new Date().toISOString() };
-            reminders.push(reminder); localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders();
-        }
-        function renderReminders() {
-            const list = document.getElementById('reminders-list');
-            const active = reminders.filter(r => !r.fired);
-            if (active.length === 0) { list.innerHTML = 'No active reminders.'; return; }
-            list.innerHTML = active.map(r => `<div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>${r.time} - ${r.message}</span><button class="btn danger" onclick="deleteReminder('${r.id}')">X</button></div>`).join('');
-        }
+        function addReminder(time, message) { const reminder = { id: Math.random().toString(36).substr(2, 9), time: time, message: message, voice: true, fired: false, created: new Date().toISOString() }; reminders.push(reminder); localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); }
+        function renderReminders() { const list = document.getElementById('reminders-list'); const active = reminders.filter(r => !r.fired); if (active.length === 0) { list.innerHTML = 'No active reminders.'; return; } list.innerHTML = active.map(r => `<div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>${r.time} - ${r.message}</span><button class="btn danger" onclick="deleteReminder('${r.id}')">X</button></div>`).join(''); }
         function deleteReminder(id) { reminders = reminders.filter(r => r.id !== id); localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); }
         function clearReminders() { reminders = []; localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); }
         function testReminder() { triggerNotification("Test Reminder", "This is a test notification, Boss!"); }
-        function triggerNotification(title, body) {
-            if (!("Notification" in window)) { alert("This browser does not support desktop notification"); }
-            else if (Notification.permission === "granted") { const notif = new Notification(title, { body: body }); notif.onclick = () => { window.focus(); }; }
-            else if (Notification.permission !== "denied") { Notification.requestPermission().then(function (permission) { if (permission === "granted") { const notif = new Notification(title, { body: body }); notif.onclick = () => { window.focus(); }; } }); }
-            speakText(`Reminder: ${body}`);
-        }
-        setInterval(() => {
-            const now = new Date(); const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
-            let updated = false;
-            reminders.forEach(r => { if (!r.fired && r.time === currentTime) { r.fired = true; updated = true; triggerNotification("Boss Reminder", r.message); } });
-            if (updated) { localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); }
-        }, 20000);
+        function triggerNotification(title, body) { if (!("Notification" in window)) { alert("This browser does not support desktop notification"); } else if (Notification.permission === "granted") { const notif = new Notification(title, { body: body }); notif.onclick = () => { window.focus(); }; } else if (Notification.permission !== "denied") { Notification.requestPermission().then(function (permission) { if (permission === "granted") { const notif = new Notification(title, { body: body }); notif.onclick = () => { window.focus(); }; } }); } speakText(`Reminder: ${body}`); }
+        
+        setInterval(() => { const now = new Date(); const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0'); let updated = false; reminders.forEach(r => { if (!r.fired && r.time === currentTime) { r.fired = true; updated = true; triggerNotification("Boss Reminder", r.message); } }); if (updated) { localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); } }, 20000);
 
-        // --- LONG-TERM MEMORY ---
-        function addLongTermMemory(fact) {
-            longTermMemory.push({ fact: fact, added: new Date().toISOString().split('T')[0] });
-            localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory));
-            saveMemoryToGist();
-        }
-        function renderMemory() {
-            const list = document.getElementById('memory-list');
-            if (longTermMemory.length === 0) { list.innerHTML = 'No facts saved.'; return; }
-            list.innerHTML = longTermMemory.map(m => `<div style="margin-bottom:4px;">• ${m.fact} <span style="color:#555;">(${m.added})</span></div>`).join('');
-        }
-        function clearLongTermMemory() {
-            if(confirm("Clear all long-term memory?")) { longTermMemory = []; localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); renderMemory(); }
-        }
-        function saveApiKey() {
-            const val = document.getElementById('api-key-input').value.trim();
-            if (val) { apiKey = val; localStorage.setItem('eurusd_chat_key', apiKey); alert("API Key saved locally!"); togglePanel('panel-key'); }
-        }
+        function addLongTermMemory(fact) { longTermMemory.push({ fact: fact, added: new Date().toISOString().split('T')[0] }); localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); }
+        function renderMemory() { const list = document.getElementById('memory-list'); if (longTermMemory.length === 0) { list.innerHTML = 'No facts saved.'; return; } list.innerHTML = longTermMemory.map(m => `<div style="margin-bottom:4px;">• ${m.fact} <span style="color:#555;">(${m.added})</span></div>`).join(''); }
+        function clearLongTermMemory() { if(confirm("Clear all long-term memory?")) { longTermMemory = []; localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); renderMemory(); } }
+        function saveApiKey() { const val = document.getElementById('api-key-input').value.trim(); if (val) { apiKey = val; localStorage.setItem('eurusd_chat_key', apiKey); alert("API Key saved locally!"); togglePanel('panel-key'); } }
 
-        // --- INITIALIZATION ---
         window.onload = () => {
             fetch(CONTEXT_URL).then(res => res.json()).then(data => personalContext = data).catch(e => console.log('Context not loaded'));
             
@@ -1049,7 +937,6 @@
             if (gistToken && gistId) { loadMemoryFromGist(); }
             
             generateSignalFromScratch();
-
             resetTimer();
             setInterval(() => {
                 timeLeft--;
