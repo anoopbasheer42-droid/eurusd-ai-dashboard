@@ -46,8 +46,6 @@
         .level-value { font-family: monospace; font-weight: 600; margin-top: 2px; }
         .ai-reason-box { background: rgba(0,0,0,0.3); padding: 20px; border-radius: 12px; font-size: 0.95rem; line-height: 1.7; color: #e2e8f0; border-left: 4px solid var(--accent); }
         .ai-reason-label { display: block; font-weight: 600; color: var(--accent); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
-        .personal-box { background: linear-gradient(135deg, rgba(236,72,153,0.15), rgba(139,92,246,0.15)); padding: 20px; border-radius: 12px; border-left: 4px solid var(--pink); font-size: 0.95rem; line-height: 1.7; color: #f1f5f9; }
-        .personal-label { display: block; font-weight: 600; color: var(--pink); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
         
         .chat-container { display: flex; flex-direction: column; gap: 12px; }
         .chat-messages { max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 10px; min-height: 120px; }
@@ -160,44 +158,7 @@
             </div>
         </div>
 
-        <div class="card" style="grid-column: 1 / -1;">
-            <h2>💚 Daily Check-In</h2>
-            <div class="personal-box">
-                <span class="personal-label">From your AI companion</span>
-                <span id="personal_message">Waiting for the next update...</span>
-            </div>
-        </div>
-
-        <div class="card" style="grid-column: 1 / -1;">
-            <h2>Boss's Wisdom Corner 💡</h2>
-            <div id="wise_box" class="wise-box">
-                <span class="wise-label">Loading...</span>
-                Waiting for the market to speak...
-            </div>
-        </div>
-
-        <div class="card" style="grid-column: 1 / -1;">
-            <h2>Multi-Timeframe Analysis</h2>
-            <div class="candle-analysis">
-                <div class="candle-item"><span class="candle-timeframe">Current Candle:</span><span id="candle_current">Waiting...</span></div>
-                <div class="candle-item"><span class="candle-timeframe">1 Hour Candle:</span><span id="candle_1h">Waiting...</span></div>
-                <div class="candle-item"><span class="candle-timeframe">4 Hour Candle:</span><span id="candle_4h">Waiting...</span></div>
-                <div class="candle-item"><span class="candle-timeframe">Session:</span><span id="session">-</span></div>
-                <div class="level-grid">
-                    <div class="level-item"><div class="level-label">Support</div><div class="level-value" id="support">-</div></div>
-                    <div class="level-item"><div class="level-label">Resistance</div><div class="level-value" id="resistance">-</div></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="card" style="grid-column: 1 / -1;">
-            <h2>AI Trader's Reasoning 🧠</h2>
-            <div class="ai-reason-box">
-                <span class="ai-reason-label">Why this signal?</span>
-                <span id="ai_reason">Waiting for AI analysis...</span>
-            </div>
-        </div>
-
+        <!-- ========== CHAT BOX (moved up) ========== -->
         <div class="card" style="grid-column: 1 / -1;">
             <h2 style="display:flex; align-items:center;">💬 Ask Your AI Trader
                 <button class="change-key-btn" onclick="showKeyPanel()">🔑 Change Key</button>
@@ -225,6 +186,37 @@
                     <button class="chat-stop" onclick="stopVoice()">⏹ Stop Voice</button>
                     <button class="chat-clear" onclick="clearChat()">Clear chat</button>
                 </div>
+            </div>
+        </div>
+
+        <!-- ========== WISDOM CORNER ========== -->
+        <div class="card" style="grid-column: 1 / -1;">
+            <h2>Boss's Wisdom Corner 💡</h2>
+            <div id="wise_box" class="wise-box">
+                <span class="wise-label">Loading...</span>
+                Waiting for the market to speak...
+            </div>
+        </div>
+
+        <div class="card" style="grid-column: 1 / -1;">
+            <h2>Multi-Timeframe Analysis</h2>
+            <div class="candle-analysis">
+                <div class="candle-item"><span class="candle-timeframe">Current Candle:</span><span id="candle_current">Waiting...</span></div>
+                <div class="candle-item"><span class="candle-timeframe">1 Hour Candle:</span><span id="candle_1h">Waiting...</span></div>
+                <div class="candle-item"><span class="candle-timeframe">4 Hour Candle:</span><span id="candle_4h">Waiting...</span></div>
+                <div class="candle-item"><span class="candle-timeframe">Session:</span><span id="session">-</span></div>
+                <div class="level-grid">
+                    <div class="level-item"><div class="level-label">Support</div><div class="level-value" id="support">-</div></div>
+                    <div class="level-item"><div class="level-label">Resistance</div><div class="level-value" id="resistance">-</div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="grid-column: 1 / -1;">
+            <h2>AI Trader's Reasoning 🧠</h2>
+            <div class="ai-reason-box">
+                <span class="ai-reason-label">Why this signal?</span>
+                <span id="ai_reason">Waiting for AI analysis...</span>
             </div>
         </div>
     </div>
@@ -332,7 +324,6 @@
             document.getElementById("support").innerText = data.support || "-";
             document.getElementById("resistance").innerText = data.resistance || "-";
             document.getElementById("ai_reason").innerText = data.reason || "No analysis yet.";
-            document.getElementById("personal_message").innerText = data.personal_message || "Waiting for the next update...";
 
             if (data.wise_words) {
                 const wiseBox = document.getElementById("wise_box");
