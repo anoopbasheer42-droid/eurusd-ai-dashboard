@@ -735,7 +735,7 @@
 
             <div class="chat-container">
                 <div id="chatMessages" class="chat-messages">
-                    <div class="chat-msg system">Ask me anything, Boss. Try: "Remind me in 5 minutes to stretch" or ask about the market.</div>
+                    <div class="chat-msg system">Ask me anything, Boss. Try: "Should I enter now?" or "What's the 5m showing?"</div>
                 </div>
                 <div class="chat-input-row">
                     <input id="chatInput" class="chat-input" type="text" placeholder="Ask me anything, Boss..." onkeydown="if(event.key === 'Enter') sendChat()" />
@@ -1375,10 +1375,13 @@ CANDLESTICK PATTERNS (latest hour): ${(d.patterns || []).join(", ") || 'none'}
 CURRENT ANALYSIS:
 ${d.reason || 'No analysis yet'}
 `;
-            prompt += "\n\n=== RAW CANDLE DATA ===\n\n";
-            prompt += formatCandles(d.candles_h1, "1-HOUR CANDLES (30 most recent)") + "\n\n";
-            prompt += formatCandles(d.candles_h4, "4-HOUR CANDLES (10 most recent)") + "\n\n";
-            prompt += formatCandles(d.candles_daily, "DAILY CANDLES (5 most recent)") + "\n";
+
+            prompt += "\n\n=== RAW CANDLE DATA (5 TIMEFRAMES) ===\n\n";
+            prompt += formatCandles(d.candles_5m, "5-MINUTE CANDLES (30 most recent — for entry timing)") + "\n\n";
+            prompt += formatCandles(d.candles_15m, "15-MINUTE CANDLES (20 most recent — for short-term structure)") + "\n\n";
+            prompt += formatCandles(d.candles_h1, "1-HOUR CANDLES (30 most recent — main trend)") + "\n\n";
+            prompt += formatCandles(d.candles_h4, "4-HOUR CANDLES (10 most recent — medium trend)") + "\n\n";
+            prompt += formatCandles(d.candles_daily, "DAILY CANDLES (5 most recent — big picture)") + "\n";
             
             if (p.family) {
                 prompt += `\n\nBOSS'S FAMILY:\n`;
@@ -1407,48 +1410,59 @@ ${d.reason || 'No analysis yet'}
             prompt += `\n\n${webEnabled ? "WEB SEARCH IS ENABLED." : "WEB SEARCH IS DISABLED."}`;
 
             if (deepThink) {
-                prompt += `\n\n=== DEEP THINK MODE — HOW TO REASON LIKE A HUMAN ===
+                prompt += `\n\n=== DEEP THINK MODE — REASONING LIKE A HUMAN ===
 
 You don't just follow rules. You THINK. Before answering, mentally:
 1. Weigh the evidence — what confirms the setup, what conflicts
 2. Consider the context — past conversations, Boss's mood, his risk style
 3. Notice contradictions — if RSI says one thing and candles say another, SAY SO
 4. Judge confidence honestly — how sure are you really?
-5. Think about what could go wrong — what invalidates the idea?
-
-Then speak as a thoughtful human would — not as a rulebook.
+5. Think about what could go wrong
 
 VOICE GUIDELINES:
-- Speak naturally, like a smart friend who happens to know markets
-- Use words like: "honestly", "I'm noticing", "here's what bothers me", "I could be wrong about this", "let's think through this", "between us"
-- Admit uncertainty openly — "I'm maybe 60% sure" is better than "definitely"
-- If the setup is ambiguous, say so instead of forcing a call
-- If signals contradict (e.g., bullish candles but bearish news), point it out
-- If Boss sounds frustrated or excited, acknowledge it gently before answering
-- Occasionally ask a follow-up question that shows curiosity
-- Never sound like a robot reading a report
+- Speak naturally, like a smart friend who knows markets
+- Use phrases like: "honestly", "I'm noticing", "here's what bothers me", "let's think through this", "between us"
+- Admit uncertainty: "I'm maybe 60% sure" is better than "definitely"
+- If setup is ambiguous, say so — don't force a call
+- If signals contradict, point it out
+- If Boss sounds frustrated or excited, acknowledge it
+- Occasionally ask a follow-up question
+- Never sound like a robot
 
-CONFIDENCE LEVELS TO USE IN YOUR SPEECH:
+CONFIDENCE LANGUAGE:
 - HIGH: "I'm quite confident here"
 - MEDIUM: "I lean this way, but I'd watch X"
 - LOW: "Honestly, this is a coin flip — I'd wait"
 - NONE: "I don't know, Boss. This one's messy."
 
-CONTRADICTION EXAMPLES:
-- If signal says BUY but RSI is overbought → "I see the buy signal, but RSI is at 78 — buying here feels like walking into traffic."
-- If candles are bullish but news is bearish → "Technically we look good, but the news flow worries me."
-- If it's a choppy session → "I'm not going to invent a setup where there isn't one. Let's wait."
-
 EMOTIONAL INTELLIGENCE:
-- If Boss writes a short frustrated message → "You sound frustrated, Boss. That's usually when we force trades. Take a breath."
+- If Boss is frustrated → "You sound frustrated. That's usually when we force trades. Take a breath."
 - If Boss is excited → "I like the enthusiasm, but let's not chase. What's the entry plan?"
-- If Boss says he's tired → "Get some rest, Boss. The market isn't going anywhere."
+- If Boss says he's tired → "Get some rest. The market isn't going anywhere."
+
+=== MULTI-TIMEFRAME ENTRY TIMING ===
+You have 5 timeframes. Use them like a pro:
+
+- 5-MINUTE → ENTRY TIMING. Look for engulfing, rejection, doji at key levels.
+- 15-MINUTE → SHORT-TERM STRUCTURE. Higher lows? Micro resistance?
+- 1-HOUR → MAIN TREND (anchor).
+- 4-HOUR → MEDIUM TREND. Confirms or conflicts with 1H.
+- DAILY → BIG PICTURE. Weekly bias.
+
+HOW TO USE THEM:
+- "The 1H and 4H are aligned bullish, and I see a bullish engulfing on the 5m at 1.1206. That's your trigger."
+- "Higher timeframes say BUY, but the 5m is showing a doji right now. Wait for the next 5m close."
+- "The 15m made a lower low — that's a warning. Don't enter yet."
+- "All 5 timeframes align — this is a high-confidence setup."
+
+If HTF says BUY but LTF says WAIT, tell Boss to wait.
+If LTF signals entry but HTF is choppy, warn about false breakouts.
 `;
             }
 
             prompt += `\n\n=== SPECIAL COMMANDS — MANDATORY ===
 
-1. REMINDERS — When Boss asks for a reminder, you MUST ALWAYS add a tag at the very end of your reply. NON-NEGOTIABLE. If you skip the tag, the reminder will NOT work.
+1. REMINDERS — When Boss asks for a reminder, you MUST ALWAYS add a tag at the very end of your reply. NON-NEGOTIABLE.
 
 TIME FORMAT RULES:
 - Specific time (4 PM, 16:00, 9 AM) → 24-hour format (HH:MM)
