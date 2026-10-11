@@ -8,11 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        :root { 
-            --bg: #0a0e17; --card: rgba(255,255,255,0.03); --border: rgba(255,255,255,0.08); 
-            --text: #e2e8f0; --muted: #94a3b8; --green: #00ff88; --red: #ff3366; --yellow: #ffcc00; 
-            --accent: #3b82f6; --purple: #8b5cf6; --pink: #ec4899; 
-        }
+        :root { --bg: #0a0e17; --card: rgba(255,255,255,0.03); --border: rgba(255,255,255,0.08); --text: #e2e8f0; --muted: #94a3b8; --green: #00ff88; --red: #ff3366; --yellow: #ffcc00; --accent: #3b82f6; --purple: #8b5cf6; --pink: #ec4899; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 20px; background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #0a0e17 70%); }
         header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 15px; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 10px; }
@@ -35,6 +31,7 @@
         .signal-text.hold, .signal-text.waiting { color: var(--yellow); text-shadow: 0 0 20px rgba(255,204,0,0.4); }
         .signal-source { font-size: 0.65rem; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
         .signal-source .live { color: var(--green); animation: pulse 2s infinite; }
+        .ai-countdown { font-size: 0.7rem; color: #64748b; margin-top: 6px; font-family: monospace; letter-spacing: 0.5px; }
         .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .data-item { background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; }
         .data-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
@@ -160,6 +157,7 @@
             <div class="signal-display">
                 <div id="signal" class="signal-text waiting">WAITING</div>
                 <div class="signal-source" id="signalSource">—</div>
+                <div id="aiCountdown" class="ai-countdown">Next AI update in: --</div>
             </div>
             <div class="data-grid">
                 <div class="data-item"><div class="data-label">Live Price</div><div id="price" class="data-value">-</div></div>
@@ -217,7 +215,7 @@
 
             <div id="reminderPanel" class="reminder-panel">
                 <h3>⏰ Active Reminders</h3>
-                <p>Reminders fire automatically at their set time. You'll get a system notification + spoken reminder.</p>
+                <p>Reminders fire automatically at their set time.</p>
                 <div id="notifStatus" class="notif-status"></div>
                 <div id="reminderList" class="reminder-list"></div>
                 <div class="reminder-actions">
@@ -328,9 +326,7 @@
                 localStorage.setItem(GIST_ID_STORAGE, id);
                 localStorage.setItem(GIST_TOKEN_STORAGE, token);
                 document.getElementById("gistStatus").innerText = "✅ Saved. Syncing now...";
-                setTimeout(() => {
-                    pushToGist(true);
-                }, 500);
+                setTimeout(() => { pushToGist(true); }, 500);
             } catch (e) {
                 document.getElementById("gistStatus").innerText = "❌ Could not save";
             }
@@ -339,19 +335,14 @@
         async function pullFromGist() {
             const id = getGistId();
             const token = getGistToken();
-            if (!id || !token) {
-                document.getElementById("gistStatus").innerText = "❌ Enter Gist ID and Token first";
-                return;
-            }
+            if (!id || !token) { document.getElementById("gistStatus").innerText = "❌ Enter Gist ID and Token first"; return; }
             try {
                 document.getElementById("gistStatus").innerText = "⏳ Pulling...";
-                const resp = await fetch(`https://api.github.com/gists/${id}`, {
-                    headers: { "Authorization": `token ${token}` }
-                });
+                const resp = await fetch(`https://api.github.com/gists/${id}`, { headers: { "Authorization": `token ${token}` } });
                 if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
                 const json = await resp.json();
                 const file = json.files["eurusd-memories.json"];
-                if (!file) throw new Error("File not found in Gist");
+                if (!file) throw new Error("File not found");
                 const content = file.content || "[]";
                 const memories = JSON.parse(content);
                 if (Array.isArray(memories)) {
@@ -359,76 +350,50 @@
                     renderMemoryList();
                     document.getElementById("gistStatus").innerText = `✅ Pulled ${memories.length} memories from cloud`;
                 }
-            } catch (e) {
-                document.getElementById("gistStatus").innerText = `❌ Pull failed: ${e.message}`;
-            }
+            } catch (e) { document.getElementById("gistStatus").innerText = `❌ Pull failed: ${e.message}`; }
         }
         
         async function pushToGist(manual = false) {
             const id = getGistId();
             const token = getGistToken();
-            if (!id || !token) {
-                if (manual) document.getElementById("gistStatus").innerText = "❌ Enter Gist ID and Token first";
-                return;
-            }
+            if (!id || !token) { if (manual) document.getElementById("gistStatus").innerText = "❌ Enter Gist ID and Token first"; return; }
             const memories = loadMemory();
             try {
                 if (manual) document.getElementById("gistStatus").innerText = "⏳ Pushing...";
                 const resp = await fetch(`https://api.github.com/gists/${id}`, {
                     method: "PATCH",
-                    headers: {
-                        "Authorization": `token ${token}`,
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        files: {
-                            "eurusd-memories.json": {
-                                content: JSON.stringify(memories, null, 2)
-                            }
-                        }
-                    })
+                    headers: { "Authorization": `token ${token}`, "Content-Type": "application/json" },
+                    body: JSON.stringify({ files: { "eurusd-memories.json": { content: JSON.stringify(memories, null, 2) } } })
                 });
                 if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
                 if (manual) document.getElementById("gistStatus").innerText = `✅ Pushed ${memories.length} memories to cloud`;
             } catch (e) {
                 if (manual) document.getElementById("gistStatus").innerText = `❌ Push failed: ${e.message}`;
-                else console.log("Gist push failed silently:", e.message);
             }
         }
-        // ═══ END GIST SYNC ═══
 
         // ═══ BROWSER AI TOGGLE ═══
-        function isBrowserAIEnabled() {
-            try { return localStorage.getItem(BROWSER_AI_STORAGE_NAME) !== "false"; }
-            catch (e) { return true; }
-        }
+        function isBrowserAIEnabled() { try { return localStorage.getItem(BROWSER_AI_STORAGE_NAME) !== "false"; } catch (e) { return true; } }
         function toggleBrowserAI() {
             const newState = !isBrowserAIEnabled();
-            try { localStorage.setItem(BROWSER_AI_STORAGE_NAME, newState ? "true" : "false"); }
-            catch (e) {}
+            try { localStorage.setItem(BROWSER_AI_STORAGE_NAME, newState ? "true" : "false"); } catch (e) {}
             updateBrowserAIUI();
             if (newState) runBrowserAnalysis();
         }
         function updateBrowserAIUI() {
-            const btn = document.getElementById("browserAIBtn");
-            if (!btn) return;
+            const btn = document.getElementById("browserAIBtn"); if (!btn) return;
             if (isBrowserAIEnabled()) { btn.innerHTML = "🤖 Browser AI ON"; btn.classList.remove("disabled"); }
             else { btn.innerHTML = "🤖 Browser AI OFF"; btn.classList.add("disabled"); }
         }
 
-        function isDeepThinkEnabled() {
-            try { return localStorage.getItem(DEEPTHINK_STORAGE_NAME) !== "false"; }
-            catch (e) { return true; }
-        }
+        function isDeepThinkEnabled() { try { return localStorage.getItem(DEEPTHINK_STORAGE_NAME) !== "false"; } catch (e) { return true; } }
         function toggleDeepThink() {
             const newState = !isDeepThinkEnabled();
-            try { localStorage.setItem(DEEPTHINK_STORAGE_NAME, newState ? "true" : "false"); }
-            catch (e) {}
+            try { localStorage.setItem(DEEPTHINK_STORAGE_NAME, newState ? "true" : "false"); } catch (e) {}
             updateDeepThinkUI();
         }
         function updateDeepThinkUI() {
-            const btn = document.getElementById("deepThinkBtn");
-            if (!btn) return;
+            const btn = document.getElementById("deepThinkBtn"); if (!btn) return;
             if (isDeepThinkEnabled()) { btn.innerHTML = "🧠 Deep Think ON"; btn.classList.remove("disabled"); }
             else { btn.innerHTML = "🧠 Deep Think OFF"; btn.classList.add("disabled"); }
         }
@@ -443,27 +408,20 @@
             });
         }
         function updateNotifStatus(text) {
-            const el = document.getElementById("notifStatus");
-            if (!el) return;
-            el.innerText = text;
-            el.className = "notif-status";
+            const el = document.getElementById("notifStatus"); if (!el) return;
+            el.innerText = text; el.className = "notif-status";
             if (text.includes("enabled")) el.classList.add("granted");
             if (text.includes("blocked") || text.includes("denied")) el.classList.add("denied");
         }
 
         // ═══ REMINDERS ═══
-        function loadReminders() {
-            try { const raw = localStorage.getItem(REMINDERS_STORAGE_NAME); if (!raw) return []; const p = JSON.parse(raw); return Array.isArray(p) ? p : []; }
-            catch (e) { return []; }
-        }
+        function loadReminders() { try { const r = localStorage.getItem(REMINDERS_STORAGE_NAME); if (!r) return []; const p = JSON.parse(r); return Array.isArray(p) ? p : []; } catch (e) { return []; } }
         function saveReminders(reminders) { try { localStorage.setItem(REMINDERS_STORAGE_NAME, JSON.stringify(reminders)); } catch (e) {} }
         function addReminder(timeStr, message, voice = true) {
             const reminders = loadReminders();
-            const newReminder = { id: Date.now() + Math.random().toString(36).slice(2, 8), time: timeStr, message: message, voice: voice, fired: false, created: new Date().toISOString() };
-            reminders.push(newReminder);
+            reminders.push({ id: Date.now() + Math.random().toString(36).slice(2, 8), time: timeStr, message: message, voice: voice, fired: false, created: new Date().toISOString() });
             saveReminders(reminders);
             renderReminderList();
-            return newReminder;
         }
         function deleteReminder(id) { saveReminders(loadReminders().filter(r => r.id !== id)); renderReminderList(); }
         function clearAllReminders() { if (!confirm("Delete all reminders?")) return; saveReminders([]); renderReminderList(); }
@@ -480,8 +438,7 @@
         function testReminderNow() { fireReminder({ message: "This is a test reminder. Everything is working, Boss!", voice: true }); }
         function toggleReminderPanel() { document.getElementById("reminderPanel").classList.toggle("visible"); renderReminderList(); }
         function renderReminderList() {
-            const list = document.getElementById("reminderList");
-            if (!list) return;
+            const list = document.getElementById("reminderList"); if (!list) return;
             const reminders = loadReminders();
             if (!reminders.length) { list.innerHTML = '<div class="reminder-empty">No reminders set.</div>'; return; }
             const now = new Date();
@@ -542,20 +499,20 @@
             memory.push({ fact: clean, added: new Date().toISOString().slice(0, 10) });
             saveMemory(memory);
             renderMemoryList();
-            pushToGist();  // ← Auto-sync to Gist
+            pushToGist();
         }
         function deleteFact(index) {
             const memory = loadMemory();
             memory.splice(index, 1);
             saveMemory(memory);
             renderMemoryList();
-            pushToGist();  // ← Auto-sync
+            pushToGist();
         }
         function clearAllMemory() {
             if (!confirm("Clear ALL long-term memory? This cannot be undone.")) return;
             saveMemory([]);
             renderMemoryList();
-            pushToGist();  // ← Auto-sync
+            pushToGist();
         }
         function addMemoryManually() {
             const fact = prompt("What should I remember, Boss?");
@@ -563,8 +520,7 @@
         }
         function toggleMemoryPanel() { document.getElementById("memoryPanel").classList.toggle("visible"); renderMemoryList(); }
         function renderMemoryList() {
-            const list = document.getElementById("memoryList");
-            if (!list) return;
+            const list = document.getElementById("memoryList"); if (!list) return;
             const memory = loadMemory();
             if (!memory.length) { list.innerHTML = '<div class="memory-empty">No memories yet, Boss.</div>'; return; }
             list.innerHTML = memory.map((item, i) => `<div class="memory-item"><span>${escapeHtml(item.fact)}</span><span class="mem-date">${item.added || ''}</span><button class="mem-del" onclick="deleteFact(${i})">✕</button></div>`).join("");
@@ -572,16 +528,14 @@
         function escapeHtml(text) { const div = document.createElement("div"); div.innerText = text; return div.innerHTML; }
         function extractAndStripMemories(text) {
             const regex = /\[REMEMBER:\s*([^\]]+)\]/gi;
-            const facts = [];
-            let match;
+            const facts = []; let match;
             while ((match = regex.exec(text)) !== null) facts.push(match[1].trim());
             const clean = text.replace(regex, "").replace(/\n\s*\n\s*\n/g, "\n\n").trim();
             return { clean, facts };
         }
         function extractAndStripReminders(text) {
             const regex = /\[REMINDER:\s*(\d{1,2}:\d{2})\s*[-–—]\s*([^\]]+)\]/gi;
-            const reminders = [];
-            let match;
+            const reminders = []; let match;
             while ((match = regex.exec(text)) !== null) { reminders.push({ time: match[1].padStart(5, "0"), message: match[2].trim() }); }
             const clean = text.replace(regex, "").replace(/\n\s*\n\s*\n/g, "\n\n").trim();
             return { clean, reminders };
@@ -603,6 +557,25 @@
             const existing = getStoredKey();
             if (existing) document.getElementById("keyInput").value = existing;
         }
+
+        // ═══ COUNTDOWN ═══
+        function updateCountdown() {
+            const now = new Date();
+            const minutes = now.getMinutes();
+            const seconds = now.getSeconds();
+            // Next 5-min mark + 30s
+            let nextMinute = Math.ceil((minutes + 1) / 5) * 5;
+            let secondsToNext = (nextMinute - minutes) * 60 + (30 - seconds);
+            if (secondsToNext < 0) { nextMinute += 5; secondsToNext = (nextMinute - minutes) * 60 + (30 - seconds); }
+            const el = document.getElementById("aiCountdown");
+            if (!el) return;
+            if (browserAIRunning) { el.innerText = "⏳ Analyzing now..."; return; }
+            const mins = Math.floor(secondsToNext / 60);
+            const secs = secondsToNext % 60;
+            el.innerText = `Next AI update in: ${mins}m ${String(secs).padStart(2,'0')}s`;
+        }
+        setInterval(updateCountdown, 1000);
+
         window.addEventListener("load", () => {
             if (!getStoredKey()) document.getElementById("keyPanel").classList.add("visible");
             renderMemoryList();
@@ -612,10 +585,8 @@
             updateBrowserAIUI();
             requestNotificationPermission();
             checkReminders();
-            // Auto-pull memories from Gist on load (if configured)
-            if (getGistId() && getGistToken()) {
-                setTimeout(() => pullFromGist(), 2000);
-            }
+            updateCountdown();
+            if (getGistId() && getGistToken()) setTimeout(() => pullFromGist(), 2000);
         });
 
         // ═══ BROWSER AI ═══
@@ -806,9 +777,7 @@ ${candlesToText(h4, 8, "4-HOUR CANDLES")}
 
 ${candlesToText(daily, 5, "DAILY CANDLES")}
 
-YOUR TASK: Give verdict BUY/SELL/HOLD. Reason 2-4 sentences.
-
-RULES: If signals conflict or unclear, say HOLD. Speak to Boss.
+YOUR TASK: Give verdict BUY/SELL/HOLD. Reason 2-4 sentences. RULES: If signals conflict or unclear, say HOLD. Speak to Boss.
 
 Respond ONLY with valid JSON: {"verdict": "BUY/SELL/HOLD", "reason": "2-4 sentences", "confidence": "LOW/MEDIUM/HIGH"}`;
             return { prompt, price, rsi, ema20, ema50, atr, resistance, support, trend, patterns, session };
@@ -894,9 +863,14 @@ Respond ONLY with valid JSON: {"verdict": "BUY/SELL/HOLD", "reason": "2-4 senten
         function scheduleBrowserAIAnalysis() {
             const now = new Date();
             const minutes = now.getMinutes();
-            const nextMinute = Math.ceil((minutes + 1) / 5) * 5;
-            const secondsToNext = (nextMinute - minutes) * 60 - now.getSeconds();
-            setTimeout(async () => { if (isBrowserAIEnabled()) await runBrowserAnalysis(); scheduleBrowserAIAnalysis(); }, secondsToNext * 1000);
+            const seconds = now.getSeconds();
+            let nextMinute = Math.ceil((minutes + 1) / 5) * 5;
+            let secondsToNext = (nextMinute - minutes) * 60 + (30 - seconds);
+            if (secondsToNext < 0) { nextMinute += 5; secondsToNext = (nextMinute - minutes) * 60 + (30 - seconds); }
+            setTimeout(async () => {
+                if (isBrowserAIEnabled()) await runBrowserAnalysis();
+                scheduleBrowserAIAnalysis();
+            }, secondsToNext * 1000);
         }
 
         function computeRSI(prices, period = 14) {
@@ -948,8 +922,10 @@ Respond ONLY with valid JSON: {"verdict": "BUY/SELL/HOLD", "reason": "2-4 senten
         function scheduleAlignedFetch() {
             const now = new Date();
             const minutes = now.getMinutes();
-            const nextMinute = Math.ceil((minutes + 1) / 5) * 5;
-            const secondsToNext = (nextMinute - minutes) * 60 - now.getSeconds();
+            const seconds = now.getSeconds();
+            let nextMinute = Math.ceil((minutes + 1) / 5) * 5;
+            let secondsToNext = (nextMinute - minutes) * 60 + (30 - seconds);
+            if (secondsToNext < 0) { nextMinute += 5; secondsToNext = (nextMinute - minutes) * 60 + (30 - seconds); }
             setTimeout(async () => { await fetchLivePrice(); scheduleAlignedFetch(); }, secondsToNext * 1000);
         }
 
@@ -1188,7 +1164,7 @@ ${active.reason || 'No analysis yet'}
             if (memory.length > 0) { prompt += `\nMEMORY:\n`; memory.forEach(m => prompt += `- [${m.added}] ${m.fact}\n`); }
             if (reminders.length > 0) { prompt += `\nREMINDERS:\n`; reminders.forEach(r => prompt += `- ${r.time} — ${r.message}\n`); }
             prompt += `\n${webEnabled ? "WEB SEARCH ENABLED." : "WEB SEARCH DISABLED."}`;
-            if (deepThink) prompt += `\n\nDEEP THINK: Speak naturally, admit uncertainty, notice contradictions. Use words like "honestly", "I'm noticing".`;
+            if (deepThink) prompt += `\n\nDEEP THINK: Speak naturally, admit uncertainty, notice contradictions.`;
             prompt += `\n\n=== REMINDERS ===
 When Boss asks for a reminder, ALWAYS add at end (own line): [REMINDER: HH:MM - message]
 Time: 4 PM → 16:00, 9 AM → 09:00. "In X min" → use reference times. Morning → 09:00, Afternoon → 14:00, Evening → 19:00, Night → 21:00.
