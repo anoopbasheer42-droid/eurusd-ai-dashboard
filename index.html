@@ -158,7 +158,7 @@
                 <strong>Groq API Key (primary)</strong>
                 <input type="password" id="groq-key-input" placeholder="gsk_..." style="width:100%; padding:9px; margin-top:8px; border-radius:7px; border:1px solid rgba(255,255,255,0.08); background:rgba(0,0,0,0.3); color:white;">
                 <button class="btn" style="margin-top:8px;" onclick="saveGroqKey()">Save Groq Key</button>
-                <p style="font-size:0.68rem; color:var(--text-muted); margin-top:12px;">Get a free Groq key at <strong>console.groq.com/keys</strong> (14,400 requests/day)</p>
+                <p style="font-size:0.68rem; color:var(--text-muted); margin-top:12px;">Get a free Groq key at <strong>console.groq.com/keys</strong></p>
                 <hr style="border:none; border-top:1px solid rgba(255,255,255,0.05); margin:12px 0;">
                 <strong>Gemini API Key (fallback)</strong>
                 <input type="password" id="api-key-input" placeholder="AIzaSy..." style="width:100%; padding:9px; margin-top:8px; border-radius:7px; border:1px solid rgba(255,255,255,0.08); background:rgba(0,0,0,0.3); color:white;">
@@ -201,11 +201,8 @@
         const FALLBACK_URL = 'https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/data.json';
         const CONTEXT_URL = 'https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/personal_context.json';
 
-        // === GROQ PRIMARY (Llama 3.3 70B — stable, fast) ===
         const GROQ_MODEL = 'llama-3.3-70b-versatile';
         const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
-
-        // === GEMINI FALLBACK (stable aliases) ===
         const GEMINI_MODELS = ['gemini-3.8-flash','gemini-flash-latest','gemini-2.5-flash'];
 
         const MARKET_KEYWORDS = ['market','buy','sell','trade','signal','entry','sl','tp','stop loss','take profit','setup','chart','trend','support','resistance','eur/usd','eurusd','should i','analysis','long','short','position','pip','bullish','bearish','candle','indicator','rsi','ema','atr'];
@@ -261,7 +258,6 @@
             el.innerText = pool[Math.floor(Math.random() * pool.length)];
         }
 
-        // === NEURAL CORE ===
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
@@ -332,6 +328,7 @@
             for (let i = 1; i < highs.length; i++) trs.push(Math.max(highs[i]-lows[i], Math.abs(highs[i]-closes[i-1]), Math.abs(lows[i]-closes[i-1])));
             return trs.slice(-period).reduce((a,b) => a+b, 0) / period;
         }
+        function safeNum(val, fallback = 0) { return (isNaN(val) || val === undefined || val === null || !isFinite(val)) ? fallback : val; }
 
         async function fetchWithTimeout(url, timeout = 3000) {
             const ctrl = new AbortController();
@@ -427,28 +424,41 @@
                 try {
                     const fb = await fetch(FALLBACK_URL + '?v=' + Date.now());
                     const fbData = await fb.json();
-                    marketData = { currentPrice: parseFloat(fbData.price), trend: fbData.trend, support: parseFloat(fbData.support), resistance: parseFloat(fbData.resistance), session: fbData.session || 'Unknown', rsi1H: 50, rsi15m: 50, rsi5m: 50, ema20: parseFloat(fbData.price), ema50: parseFloat(fbData.price), atr: parseFloat(fbData.atr), candles5m: [], candles15m: [], candles1H: [], candlesDaily: [] };
-                    document.getElementById('live-price').innerText = fbData.price;
+                    const safePrice = safeNum(parseFloat(fbData.price), 1.1200);
+                    const safeSupport = safeNum(parseFloat(fbData.support), 1.1176);
+                    const safeResistance = safeNum(parseFloat(fbData.resistance), 1.1246);
+                    const safeAtr = safeNum(parseFloat(fbData.atr), 0.001);
+                    marketData = { currentPrice: safePrice, trend: fbData.trend || 'Sideways', support: safeSupport, resistance: safeResistance, session: fbData.session || 'Unknown', rsi1H: 50, rsi15m: 50, rsi5m: 50, ema20: safePrice, ema50: safePrice, atr: safeAtr, candles5m: [], candles15m: [], candles1H: [], candlesDaily: [] };
+                    document.getElementById('live-price').innerText = safePrice.toFixed(5);
                     document.getElementById('last-updated').innerText = `FALLBACK · ${new Date().toLocaleTimeString('en-IN',{hour12:false})}`;
-                    document.getElementById('val-trend').innerText = fbData.trend;
+                    document.getElementById('val-trend').innerText = marketData.trend;
                     document.getElementById('val-session').innerText = marketData.session;
-                    document.getElementById('val-support').innerText = fbData.support;
-                    document.getElementById('val-resistance').innerText = fbData.resistance;
+                    document.getElementById('val-support').innerText = safeSupport.toFixed(5);
+                    document.getElementById('val-resistance').innerText = safeResistance.toFixed(5);
                     document.getElementById('val-candle-current').innerText = fbData.candle_current || '—';
                     document.getElementById('val-candle-1h').innerText = fbData.candle_1h || '—';
                     document.getElementById('val-candle-4h').innerText = fbData.candle_4h || '—';
                     if (statusEl) statusEl.innerText = "Using backup data — live feed unavailable";
-                } catch(e) { if (statusEl) statusEl.innerText = "Data sources unavailable. Retrying..."; }
+                } catch(e) {
+                    const safePrice = 1.1200;
+                    marketData = { currentPrice: safePrice, trend: 'Sideways', support: 1.1176, resistance: 1.1246, session: 'Unknown', rsi1H: 50, rsi15m: 50, rsi5m: 50, ema20: safePrice, ema50: safePrice, atr: 0.001, candles5m: [], candles15m: [], candles1H: [], candlesDaily: [] };
+                    document.getElementById('live-price').innerText = safePrice.toFixed(5);
+                    document.getElementById('last-updated').innerText = `DEFAULT · ${new Date().toLocaleTimeString('en-IN',{hour12:false})}`;
+                    if (statusEl) statusEl.innerText = "Data unavailable — using defaults";
+                }
                 return;
             }
             const closes1H = candles1H.map(c => c.close), highs1H = candles1H.map(c => c.high), lows1H = candles1H.map(c => c.low);
             const closes5m = candles5m.map(c => c.close);
             const closes15m = candles15m.map(c => c.close), highs15m = candles15m.map(c => c.high), lows15m = candles15m.map(c => c.low);
             const ema20 = calculateEMA(closes1H, 20), ema50 = calculateEMA(closes1H, 50);
-            const rsi1H = calculateRSI(closes1H, 14), rsi15m = calculateRSI(closes15m, 14), rsi5m = calculateRSI(closes5m, 14);
-            const atr = calculateATR(highs1H, lows1H, closes1H, 14);
-            const support = Math.min(...lows1H.slice(-50)), resistance = Math.max(...highs1H.slice(-50));
-            const currentPrice = closes5m[closes5m.length - 1];
+            let rsi1H = safeNum(calculateRSI(closes1H, 14), 50);
+            let rsi15m = safeNum(calculateRSI(closes15m, 14), 50);
+            let rsi5m = safeNum(calculateRSI(closes5m, 14), 50);
+            let atr = safeNum(calculateATR(highs1H, lows1H, closes1H, 14), 0.001);
+            const support = safeNum(Math.min(...lows1H.slice(-50)), 1.1176);
+            const resistance = safeNum(Math.max(...highs1H.slice(-50)), 1.1246);
+            let currentPrice = safeNum(closes5m[closes5m.length - 1], 1.1200);
             const rh = highs1H.slice(-20), rl = lows1H.slice(-20);
             let trend = "Sideways";
             if (rh[rh.length-1] > rh[0] && rl[rl.length-1] > rl[0]) trend = "Uptrend";
@@ -458,7 +468,7 @@
             if (hour >= 7 && hour < 10) session = "London Open";
             else if (hour >= 12 && hour < 15) session = "NY Open";
             else if (hour >= 2 && hour < 5) session = "Asian Session";
-            marketData = { candles5m, candles15m, candles1H, candlesDaily, closes5m, closes15m, highs15m, lows15m, closes1H, highs1H, lows1H, ema20: ema20[ema20.length-1], ema50: ema50[ema50.length-1], rsi1H, rsi15m, rsi5m, atr, support, resistance, currentPrice, trend, session };
+            marketData = { candles5m, candles15m, candles1H, candlesDaily, closes5m, closes15m, highs15m, lows15m, closes1H, highs1H, lows1H, ema20: safeNum(ema20[ema20.length-1], currentPrice), ema50: safeNum(ema50[ema50.length-1], currentPrice), rsi1H, rsi15m, rsi5m, atr, support, resistance, currentPrice, trend, session };
             document.getElementById('live-price').innerText = currentPrice.toFixed(5);
             document.getElementById('last-updated').innerText = `LIVE · ${new Date().toLocaleTimeString('en-IN',{hour12:false})}`;
             document.getElementById('val-trend').innerText = trend;
@@ -477,39 +487,29 @@
             return MARKET_KEYWORDS.some(kw => lower.includes(kw));
         }
 
-        // === AI CALL: Groq primary, Gemini fallback ===
         async function callAI(systemPrompt, userText, conversationHistory) {
             const messages = [
                 { role: 'system', content: systemPrompt },
                 ...conversationHistory.map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text })),
                 { role: 'user', content: userText }
             ];
-
-            // === PRIMARY: GROQ (Llama 3.3 70B) ===
             if (groqKey) {
                 try {
                     const res = await fetch(GROQ_URL, {
                         method: 'POST',
                         headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            model: GROQ_MODEL,
-                            messages: messages,
-                            temperature: 0.95,
-                            max_tokens: 900
-                        })
+                        body: JSON.stringify({ model: GROQ_MODEL, messages: messages, temperature: 0.95, max_tokens: 900 })
                     });
                     if (res.ok) {
                         const d = await res.json();
-                        console.log('✓ Reply from Groq (Llama 3.3 70B)');
+                        console.log('Reply from Groq (Llama 3.3 70B)');
                         return d.choices[0].message.content;
                     } else {
                         const err = await res.json();
-                        console.log('✗ Groq failed:', err.error?.message);
+                        console.log('Groq failed:', err.error?.message);
                     }
-                } catch(e) { console.log('✗ Groq error:', e.message); }
+                } catch(e) { console.log('Groq error:', e.message); }
             }
-
-            // === FALLBACK: GEMINI ===
             if (apiKey) {
                 const contents = [
                     { role: 'user', parts: [{ text: systemPrompt }] },
@@ -524,26 +524,34 @@
                         });
                         if (r.ok) {
                             const d = await r.json();
-                            console.log(`✓ Reply from Gemini (${model})`);
+                            console.log(`Reply from Gemini (${model})`);
                             return d.candidates[0].content.parts[0].text;
                         }
                     } catch(e) { continue; }
                 }
             }
-
             throw new Error("Both Groq and Gemini failed. Check your API keys.");
         }
 
         async function askAIForSignal() {
             if (!groqKey && !apiKey) { alert("Please set your Groq or Gemini API Key first."); togglePanel('panel-key'); return; }
-            if (!marketData) { await refreshMarketData(); if (!marketData) { alert("Could not fetch market data."); return; } }
+            if (!marketData) { await refreshMarketData(); }
             const signalText = document.getElementById('signal-text');
             const statusEl = document.getElementById('signal-status');
             signalText.innerText = "ANALYZING";
             signalText.style.color = "var(--purple)";
             statusEl.innerText = "AI is analyzing all timeframes...";
             const md = marketData;
-            const fmt = (arr) => arr.slice(-20).map(c => `O:${c.open.toFixed(5)} H:${c.high.toFixed(5)} L:${c.low.toFixed(5)} C:${c.close.toFixed(5)}`).join('\n');
+            md.currentPrice = safeNum(md.currentPrice, 1.1200);
+            md.atr = safeNum(md.atr, 0.001);
+            md.support = safeNum(md.support, 1.1176);
+            md.resistance = safeNum(md.resistance, 1.1246);
+            md.rsi1H = safeNum(md.rsi1H, 50);
+            md.rsi15m = safeNum(md.rsi15m, 50);
+            md.rsi5m = safeNum(md.rsi5m, 50);
+            md.ema20 = safeNum(md.ema20, md.currentPrice);
+            md.ema50 = safeNum(md.ema50, md.currentPrice);
+            const fmt = (arr) => arr.slice(-20).map(c => `O:${(c.open || 0).toFixed(5)} H:${(c.high || 0).toFixed(5)} L:${(c.low || 0).toFixed(5)} C:${(c.close || 0).toFixed(5)}`).join('\n');
             const dataString = `CURRENT PRICE: ${md.currentPrice.toFixed(5)}\n\n5m:\n${fmt(md.candles5m)}\nRSI5m: ${md.rsi5m.toFixed(2)}\n\n15m:\n${fmt(md.candles15m)}\nRSI15m: ${md.rsi15m.toFixed(2)}\n\n1H:\n${fmt(md.candles1H)}\nEMA20:${md.ema20.toFixed(5)} EMA50:${md.ema50.toFixed(5)} RSI:${md.rsi1H.toFixed(2)} ATR:${md.atr.toFixed(5)}\n\nDaily:\n${fmt(md.candlesDaily)}\n\nSupport:${md.support.toFixed(5)} Resistance:${md.resistance.toFixed(5)} Trend:${md.trend}`;
             const signalPrompt = `You are a SENIOR EUR/USD hedge fund trader. TIME: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.\n\n${dataString}\n\nAnalyze: Daily bias -> 1H structure -> 15m/5m alignment -> key levels.\nRespond ONLY valid JSON: {"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
             try {
@@ -619,10 +627,7 @@
         function togglePanel(id) { const el = document.getElementById(id); el.classList.toggle('active');
             if (id === 'panel-reminders') renderReminders();
             if (id === 'panel-memory') renderMemory();
-            if (id === 'panel-groq' || id === 'panel-key') {
-                document.getElementById('groq-key-input').value = groqKey;
-                document.getElementById('api-key-input').value = apiKey;
-            }
+            if (id === 'panel-key') { document.getElementById('groq-key-input').value = groqKey; document.getElementById('api-key-input').value = apiKey; }
             if (id === 'panel-gist') { document.getElementById('gist-token-input').value = gistToken; document.getElementById('gist-id-input').value = gistId; }
         }
         function saveGistConfig() { gistToken = document.getElementById('gist-token-input').value.trim(); gistId = document.getElementById('gist-id-input').value.trim(); localStorage.setItem('eurusd_gist_token', gistToken); localStorage.setItem('eurusd_gist_id', gistId); document.getElementById('gist-status').innerText = "Saving..."; saveMemoryToGist(); }
@@ -638,19 +643,16 @@
             }).join('\n').trim();
         }
 
-        // === PERSONALITY: Funny, warm, human, personal questions woven naturally ===
         function buildPersonalityPrompt(includeSignal) {
             const now = new Date();
             const istTime = now.toLocaleString('en-IN', {timeZone:'Asia/Kolkata'});
             const istHour = parseInt(now.toLocaleString('en-US', {timeZone:'Asia/Kolkata', hour:'2-digit', hour12:false}));
             const dayOfWeek = new Date(now.toLocaleString('en-US', {timeZone:'Asia/Kolkata'})).getDay();
             const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-
             let greeting = "Hi";
             if (istHour < 12) greeting = "Good morning";
             else if (istHour < 17) greeting = "Good afternoon";
             else greeting = "Good evening";
-
             let personalBlock = "";
             if (personalContext) {
                 personalBlock = `\n=== WHO BOSS IS ===\n- His name is Boss.\n- Lives in Thrissur, Kerala.\n- Wife Sadia works in Dubai.\n- Daughters: Emy (7th grade, July 22 bday), Bismah (5th grade, Dec 26 bday).\n- Cat named Cookie.\n- Brothers Binu, Shanu.\n- Takes BP tablets after breakfast and dinner.\n- Monthly trading goal: 10,000 INR.\n- Conservative trader. London + NY sessions.\n- Kids have Malayalam tuition on weekends.\n`;
@@ -661,9 +663,8 @@
             }
             let marketBlock = "";
             if (marketData) {
-                marketBlock = `\n=== LIVE MARKET ===\nEUR/USD: ${marketData.currentPrice.toFixed(5)}\nTrend: ${marketData.trend}\nSupport: ${marketData.support.toFixed(5)} | Resistance: ${marketData.resistance.toFixed(5)}\nRSI 1H: ${marketData.rsi1H.toFixed(1)} | Session: ${marketData.session}\nATR: ${marketData.atr.toFixed(5)}\n`;
+                marketBlock = `\n=== LIVE MARKET ===\nEUR/USD: ${safeNum(marketData.currentPrice, 1.1200).toFixed(5)}\nTrend: ${marketData.trend}\nSupport: ${safeNum(marketData.support, 1.1176).toFixed(5)} | Resistance: ${safeNum(marketData.resistance, 1.1246).toFixed(5)}\nRSI 1H: ${safeNum(marketData.rsi1H, 50).toFixed(1)} | Session: ${marketData.session}\nATR: ${safeNum(marketData.atr, 0.001).toFixed(5)}\n`;
             }
-
             let prompt = `You are "Alex" — Boss's close friend and personal trader. Funny, warm, a little sarcastic sometimes, but always real. You text him like a friend, not an assistant.
 
 === YOUR VOICE ===
@@ -713,11 +714,9 @@ Your reply is read out loud. So:
 IST: ${istTime}. ${isWeekend ? 'It is the weekend.' : ''}
 
 ${personalBlock}${memoryBlock}${marketBlock}`;
-
             if (includeSignal) {
                 prompt += `\n\n=== SIGNAL REQUESTED ===\nAfter your short, human reply (1-2 sentences to Boss), on a new line add ONLY:\n{"signal":"BUY"|"SELL"|"HOLD","reason":"2-4 sentences","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
             }
-
             return prompt;
         }
 
