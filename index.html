@@ -551,7 +551,6 @@
         }
         .memory-action.clear:hover { background: rgba(255,51,102,0.3); }
         
-        /* Reminder panel */
         .reminder-panel { 
             background: linear-gradient(135deg, rgba(251,191,36,0.15), rgba(245,158,11,0.1)); 
             border: 1px solid rgba(251,191,36,0.4); 
@@ -735,7 +734,7 @@
                     <div class="chat-msg system">Ask me anything, Boss. Try: "Remind me at 4 PM to check Emy's homework"</div>
                 </div>
                 <div class="chat-input-row">
-                    <input id="chatInput" class="chat-input" type="text" placeholder="e.g. Remind me at 4 PM to check homework" onkeydown="if(event.key === 'Enter') sendChat()" />
+                    <input id="chatInput" class="chat-input" type="text" placeholder="e.g. Remind me in 5 minutes to stretch" onkeydown="if(event.key === 'Enter') sendChat()" />
                     <button id="chatSendBtn" class="chat-send" onclick="sendChat()">Send</button>
                 </div>
                 <button class="chat-clear" onclick="clearChat()">Clear chat (memory stays)</button>
@@ -782,9 +781,7 @@
         const REMINDERS_STORAGE_NAME = "eurusd_reminders";
         const MAX_HISTORY_ENTRIES = 40;
 
-        // ═══════════════════════════════════════════════════════
-        // NOTIFICATION PERMISSION
-        // ═══════════════════════════════════════════════════════
+        // ═══ NOTIFICATION PERMISSION ═══
         function requestNotificationPermission() {
             if (!("Notification" in window)) {
                 updateNotifStatus("Notifications not supported in this browser");
@@ -813,9 +810,7 @@
             if (text.includes("blocked") || text.includes("denied")) el.classList.add("denied");
         }
 
-        // ═══════════════════════════════════════════════════════
-        // REMINDERS SYSTEM
-        // ═══════════════════════════════════════════════════════
+        // ═══ REMINDERS ═══
         function loadReminders() {
             try {
                 const raw = localStorage.getItem(REMINDERS_STORAGE_NAME);
@@ -835,7 +830,7 @@
             const reminders = loadReminders();
             const newReminder = {
                 id: Date.now() + Math.random().toString(36).slice(2, 8),
-                time: timeStr,          // e.g. "16:00"
+                time: timeStr,
                 message: message,
                 voice: voice,
                 fired: false,
@@ -890,7 +885,7 @@
             if (!list) return;
             const reminders = loadReminders();
             if (!reminders.length) {
-                list.innerHTML = '<div class="reminder-empty">No reminders set. Just tell me: "Remind me at 4 PM to check homework"</div>';
+                list.innerHTML = '<div class="reminder-empty">No reminders set. Just tell me: "Remind me in 5 minutes to stretch"</div>';
                 return;
             }
             const now = new Date();
@@ -909,7 +904,6 @@
             }).join("");
         }
 
-        // Fire a reminder — notification + voice
         function fireReminder(reminder) {
             // Browser notification
             if ("Notification" in window && Notification.permission === "granted") {
@@ -938,13 +932,12 @@
             }
         }
 
-        // Background timer — checks every 20 seconds for due reminders
+        // Background timer
         let lastCheckedMinute = "";
         function checkReminders() {
             const now = new Date();
             const currentTime = now.getHours().toString().padStart(2, "0") + ":" + now.getMinutes().toString().padStart(2, "0");
             
-            // Only run once per minute
             if (currentTime === lastCheckedMinute) return;
             lastCheckedMinute = currentTime;
             
@@ -965,12 +958,9 @@
             }
         }
         
-        // Start background timer
         setInterval(checkReminders, 20000);
 
-        // ═══════════════════════════════════════════════════════
-        // SHORT-TERM CHAT HISTORY
-        // ═══════════════════════════════════════════════════════
+        // ═══ WEB SEARCH TOGGLE ═══
         function isWebSearchEnabled() {
             try { return localStorage.getItem(WEBSEARCH_STORAGE_NAME) !== "false"; }
             catch (e) { return true; }
@@ -1322,6 +1312,13 @@
             u.volume = 1.0;
             window.speechSynthesis.speak(u);
         }
+
+        // Helper: compute times X minutes from now in IST
+        function getISTTimePlusMinutes(mins) {
+            const t = new Date(Date.now() + mins * 60000);
+            return t.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: false });
+        }
+
         function buildSystemPrompt() {
             const d = latestData || {};
             const p = personalContext || {};
@@ -1340,10 +1337,28 @@
             const todayIST = now.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
             const timeIST = now.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: false });
             
+            // Pre-compute reference times for relative reminders
+            const timePlus1 = getISTTimePlusMinutes(1);
+            const timePlus2 = getISTTimePlusMinutes(2);
+            const timePlus5 = getISTTimePlusMinutes(5);
+            const timePlus10 = getISTTimePlusMinutes(10);
+            const timePlus15 = getISTTimePlusMinutes(15);
+            const timePlus30 = getISTTimePlusMinutes(30);
+            const timePlus60 = getISTTimePlusMinutes(60);
+            
             let prompt = `You are a professional EUR/USD trader AND personal assistant to a client named Boss. You have 10 years of hedge fund experience. Be friendly, funny, and motivational. Always call him "Boss".
 
 CURRENT DATE (IST): ${todayIST}
 CURRENT TIME (IST): ${timeIST} (24-hour format)
+
+REFERENCE TIMES (use these for "in X minutes" requests):
+- In 1 minute: ${timePlus1}
+- In 2 minutes: ${timePlus2}
+- In 5 minutes: ${timePlus5}
+- In 10 minutes: ${timePlus10}
+- In 15 minutes: ${timePlus15}
+- In 30 minutes: ${timePlus30}
+- In 60 minutes: ${timePlus60}
 
 CURRENT MARKET STATE:
 - Live Price: ${d.price || 'unknown'}
@@ -1394,20 +1409,34 @@ ${d.reason || 'No analysis yet'}
                 prompt += `\n\nACTIVE REMINDERS (pending, not yet fired):\n`;
                 reminders.forEach(r => prompt += `- ${r.time} — ${r.message}\n`);
             }
-            prompt += `\n\n${webEnabled ? "🌐 WEB SEARCH IS ENABLED." : "🌐 WEB SEARCH IS DISABLED."}
+            prompt += `\n\n${webEnabled ? "WEB SEARCH IS ENABLED." : "WEB SEARCH IS DISABLED."}
 
-=== SPECIAL COMMANDS YOU CAN USE ===
+=== SPECIAL COMMANDS — MANDATORY ===
 
-1. **REMINDERS** — When Boss says "Remind me at HH:MM to ..." or "Remind me at 4 PM to ...", you MUST:
-   - Convert any 12-hour time to 24-hour format (4 PM → 16:00)
-   - Add this at the end of your reply: [REMINDER: HH:MM - message]
-   - Examples:
-     * Boss: "Remind me at 4 PM to check Emy's homework" → [REMINDER: 16:00 - Check Emy's homework]
-     * Boss: "Remind me at 9:30 AM to take BP tablets" → [REMINDER: 09:30 - Take BP tablets]
-     * Boss: "Remind me in the evening at 7 to call Sadia" → [REMINDER: 19:00 - Call Sadia]
-   - Include the time of day in your spoken reply: "Got it, Boss. I'll remind you at 4 PM."
+1. REMINDERS — When Boss asks for a reminder, you MUST ALWAYS add a special tag at the very end of your reply. This is NON-NEGOTIABLE — if you skip the tag, the reminder will NOT work.
 
-2. **MEMORY** — When you learn a personal fact, add: [REMEMBER: fact]
+TIME FORMAT RULES:
+- If Boss gives a specific time (4 PM, 16:00, 9 AM, noon, midnight) → use that time in 24-hour format (HH:MM)
+- If Boss says "in X minutes" → use the reference time from the list above (In 1 min = ${timePlus1}, In 2 min = ${timePlus2}, In 5 min = ${timePlus5}, In 10 min = ${timePlus10}, In 15 min = ${timePlus15}, In 30 min = ${timePlus30}, In 60 min = ${timePlus60})
+- If Boss says "in the morning" → use 09:00
+- If Boss says "in the afternoon" → use 14:00
+- If Boss says "in the evening" → use 19:00
+- If Boss says "at night" → use 21:00
+
+EXACT TAG FORMAT (must be exact, nothing else works):
+[REMINDER: HH:MM - message here]
+
+EXAMPLES:
+- Boss: "Remind me at 4 PM to check homework" → reply includes [REMINDER: 16:00 - Check homework]
+- Boss: "Remind me in 1 minute to pick up kids" → reply includes [REMINDER: ${timePlus1} - Pick up kids]
+- Boss: "Remind me in 5 minutes to drink water" → reply includes [REMINDER: ${timePlus5} - Drink water]
+- Boss: "Remind me at 9:30 to call Sadia" → reply includes [REMINDER: 09:30 - Call Sadia]
+
+CRITICAL: You MUST always output the tag at the very end of your reply, on its own line. Do NOT describe the tag. Do NOT say you can't set reminders. Do NOT say you "missed the system trigger". Just ALWAYS include the tag.
+
+Your reply should be warm and short — like "Got it, Boss. I'll remind you at 4 PM." — and then IMMEDIATELY the tag on a new line.
+
+2. MEMORY — When you learn a personal fact, add: [REMEMBER: fact]
 
 === ROUTINE REMINDER RULES ===
 1. Before asking about any routine item (breakfast, lunch, tablets), SCAN memory for TODAY (${todayIST}).
@@ -1422,6 +1451,7 @@ ${d.reason || 'No analysis yet'}
 - If Boss asks to set a reminder, respond warmly AND add the [REMINDER] marker.`;
             return prompt;
         }
+
         async function sendChat() {
             const question = chatInput.value.trim();
             if (!question) return;
@@ -1513,12 +1543,10 @@ ${d.reason || 'No analysis yet'}
                 }
                 thinkingEl.remove();
                 if (answer) {
-                    // Extract memories
                     const { clean: clean1, facts } = extractAndStripMemories(answer);
                     facts.forEach(f => addFact(f));
                     if (facts.length > 0) addMessage("system", `🧠 Remembered ${facts.length} new fact${facts.length > 1 ? 's' : ''}.`);
                     
-                    // Extract reminders
                     const { clean: clean2, reminders } = extractAndStripReminders(clean1);
                     reminders.forEach(r => addReminder(r.time, r.message));
                     if (reminders.length > 0) {
