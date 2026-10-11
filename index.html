@@ -13,6 +13,10 @@
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 20px; background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #0a0e17 70%); }
         header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 15px; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 10px; }
         h1 { font-size: 1.5rem; font-weight: 800; }
+        .header-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .ist-clock { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; font-weight: 600; color: var(--accent); background: rgba(59,130,246,0.1); padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(59,130,246,0.25); font-family: monospace; letter-spacing: 0.5px; }
+        .ist-clock .time { color: #60a5fa; }
+        .ist-clock .date { color: var(--muted); font-size: 0.75rem; font-weight: 500; }
         .status-badge { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; font-weight: 600; color: var(--green); background: rgba(0,255,136,0.1); padding: 6px 12px; border-radius: 20px; border: 1px solid rgba(0,255,136,0.2); }
         .pulse-dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0,255,136,0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(0,255,136,0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0,255,136,0); } }
@@ -142,7 +146,14 @@
 <body>
     <header>
         <h1>⚡ EUR/USD AI PRO</h1>
-        <div class="status-badge"><div class="pulse-dot"></div>LIVE ANALYSIS</div>
+        <div class="header-right">
+            <div class="ist-clock">
+                <span>🇮🇳</span>
+                <span class="time" id="istTime">--:--:--</span>
+                <span class="date" id="istDate">---</span>
+            </div>
+            <div class="status-badge"><div class="pulse-dot"></div>LIVE</div>
+        </div>
     </header>
 
     <div class="dashboard-grid">
@@ -303,6 +314,34 @@
         let browserAILastRun = 0;
         let browserAIRunning = false;
 
+        // ═══ IST CLOCK ═══
+        function updateISTClock() {
+            const now = new Date();
+            const timeEl = document.getElementById("istTime");
+            const dateEl = document.getElementById("istDate");
+            if (!timeEl || !dateEl) return;
+            
+            const timeStr = now.toLocaleTimeString("en-IN", {
+                timeZone: "Asia/Kolkata",
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+                hour12: false
+            });
+            
+            const dateStr = now.toLocaleDateString("en-IN", {
+                timeZone: "Asia/Kolkata",
+                weekday: "short",
+                day: "2-digit",
+                month: "short"
+            });
+            
+            timeEl.innerText = timeStr + " IST";
+            dateEl.innerText = dateStr;
+        }
+        setInterval(updateISTClock, 1000);
+        // ═══ END IST CLOCK ═══
+
         // ═══ GIST SYNC ═══
         function getGistId() { try { return localStorage.getItem(GIST_ID_STORAGE) || ""; } catch(e) { return ""; } }
         function getGistToken() { try { return localStorage.getItem(GIST_TOKEN_STORAGE) || ""; } catch(e) { return ""; } }
@@ -318,18 +357,13 @@
         function saveGistConfig() {
             const id = document.getElementById("gistIdInput").value.trim();
             const token = document.getElementById("gistTokenInput").value.trim();
-            if (!id || !token) {
-                document.getElementById("gistStatus").innerText = "❌ Both Gist ID and Token required";
-                return;
-            }
+            if (!id || !token) { document.getElementById("gistStatus").innerText = "❌ Both Gist ID and Token required"; return; }
             try {
                 localStorage.setItem(GIST_ID_STORAGE, id);
                 localStorage.setItem(GIST_TOKEN_STORAGE, token);
                 document.getElementById("gistStatus").innerText = "✅ Saved. Syncing now...";
                 setTimeout(() => { pushToGist(true); }, 500);
-            } catch (e) {
-                document.getElementById("gistStatus").innerText = "❌ Could not save";
-            }
+            } catch (e) { document.getElementById("gistStatus").innerText = "❌ Could not save"; }
         }
         
         async function pullFromGist() {
@@ -378,6 +412,7 @@
             const newState = !isBrowserAIEnabled();
             try { localStorage.setItem(BROWSER_AI_STORAGE_NAME, newState ? "true" : "false"); } catch (e) {}
             updateBrowserAIUI();
+            updateCountdown();
             if (newState) runBrowserAnalysis();
         }
         function updateBrowserAIUI() {
@@ -558,18 +593,31 @@
             if (existing) document.getElementById("keyInput").value = existing;
         }
 
-        // ═══ COUNTDOWN ═══
+        // ═══ COUNTDOWN — shows OFF when browser AI is disabled ═══
         function updateCountdown() {
+            const el = document.getElementById("aiCountdown");
+            if (!el) return;
+            
+            // If Browser AI is OFF, show status instead of countdown
+            if (!isBrowserAIEnabled()) {
+                el.innerText = "⚫ Browser AI is OFF";
+                el.style.color = "#64748b";
+                return;
+            }
+            
+            el.style.color = "";
+            
+            if (browserAIRunning) {
+                el.innerText = "⏳ Analyzing now...";
+                return;
+            }
+            
             const now = new Date();
             const minutes = now.getMinutes();
             const seconds = now.getSeconds();
-            // Next 5-min mark + 30s
             let nextMinute = Math.ceil((minutes + 1) / 5) * 5;
             let secondsToNext = (nextMinute - minutes) * 60 + (30 - seconds);
             if (secondsToNext < 0) { nextMinute += 5; secondsToNext = (nextMinute - minutes) * 60 + (30 - seconds); }
-            const el = document.getElementById("aiCountdown");
-            if (!el) return;
-            if (browserAIRunning) { el.innerText = "⏳ Analyzing now..."; return; }
             const mins = Math.floor(secondsToNext / 60);
             const secs = secondsToNext % 60;
             el.innerText = `Next AI update in: ${mins}m ${String(secs).padStart(2,'0')}s`;
@@ -585,6 +633,7 @@
             updateBrowserAIUI();
             requestNotificationPermission();
             checkReminders();
+            updateISTClock();
             updateCountdown();
             if (getGistId() && getGistToken()) setTimeout(() => pullFromGist(), 2000);
         });
@@ -805,6 +854,7 @@ Respond ONLY with valid JSON: {"verdict": "BUY/SELL/HOLD", "reason": "2-4 senten
             if (!key) return;
             if (browserAIRunning) return;
             browserAIRunning = true;
+            updateCountdown();
             try {
                 const [m5j, m15j, h1j, h1for4hj, dj] = await Promise.all([
                     fetchYahooCandles("5m", "5d"), fetchYahooCandles("15m", "5d"), fetchYahooCandles("1h", "30d"),
@@ -828,7 +878,7 @@ Respond ONLY with valid JSON: {"verdict": "BUY/SELL/HOLD", "reason": "2-4 senten
                 browserAILastRun = Date.now();
                 updateDashboardWithBrowserAI();
             } catch (e) { console.error("Browser AI error:", e); }
-            finally { browserAIRunning = false; }
+            finally { browserAIRunning = false; updateCountdown(); }
         }
 
         function updateDashboardWithBrowserAI() {
@@ -837,7 +887,8 @@ Respond ONLY with valid JSON: {"verdict": "BUY/SELL/HOLD", "reason": "2-4 senten
             const signalEl = document.getElementById("signal");
             signalEl.innerText = d.signal;
             signalEl.className = `signal-text ${d.signal.toLowerCase()}`;
-            document.getElementById("signalSource").innerHTML = '<span class="live">⚡ Browser AI (' + new Date(d.timestamp).toTimeString().slice(0, 5) + ')</span>';
+            const timeStr = new Date(d.timestamp).toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: false });
+            document.getElementById("signalSource").innerHTML = '<span class="live">⚡ Browser AI (' + timeStr + ' IST)</span>';
             document.getElementById("price").innerText = d.price;
             document.getElementById("entry").innerText = d.price;
             const atr = parseFloat(d.atr);
@@ -848,7 +899,8 @@ Respond ONLY with valid JSON: {"verdict": "BUY/SELL/HOLD", "reason": "2-4 senten
             document.getElementById("sl").innerText = sl;
             document.getElementById("tp").innerText = tp;
             document.getElementById("confidence").innerText = d.confidence || "MEDIUM";
-            document.getElementById("valid").innerText = new Date(Date.now() + 5*60*1000).toTimeString().slice(0, 5) + " IST";
+            const validTime = new Date(Date.now() + 5*60*1000).toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: false });
+            document.getElementById("valid").innerText = validTime + " IST";
             document.getElementById("trend").innerText = d.trend;
             document.getElementById("support").innerText = d.support;
             document.getElementById("resistance").innerText = d.resistance;
