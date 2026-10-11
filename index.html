@@ -135,7 +135,7 @@
         <div class="card signal-card">
             <div class="card-title">Current Signal</div>
             <div id="signal-text">WAITING</div>
-            <div class="ai-refresh-timer" id="ai-refresh-timer">Next AI refresh in: 05:30</div>
+            <div class="ai-refresh-timer" id="ai-refresh-timer">Next refresh in: 05:30</div>
             <div class="signal-details" id="signal-details">
                 <div><span>Confidence:</span> <span id="val-confidence">-</span></div>
                 <div><span>Valid Until:</span> <span id="val-valid">-</span></div>
@@ -145,7 +145,7 @@
                 <div><span>ATR:</span> <span id="val-atr">-</span></div>
             </div>
             <div style="margin-top:15px; display:flex; gap:10px; justify-content:center;">
-                <button class="btn" onclick="generateSignalFromScratch()">⟳ Refresh Now</button>
+                <button class="btn" onclick="fetchData()">⟳ Refresh Now</button>
                 <button class="btn" onclick="playVoiceReport()">▶ Play Voice</button>
                 <button class="btn danger" onclick="stopVoice()">■ Stop</button>
             </div>
@@ -241,6 +241,7 @@
     </div>
 
     <script>
+        const DATA_URL = 'https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/data.json';
         const CONTEXT_URL = 'https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/personal_context.json';
         
         let globalData = null;
@@ -249,7 +250,7 @@
         let browserAIEnabled = true; 
         let deepThinkEnabled = false; 
         let isSpeaking = false;
-        let chatInProgress = false; // NEW: Chat Priority Lock
+        let chatInProgress = false;
         let chatHistory = JSON.parse(localStorage.getItem('eurusd_chat_history') || '[]');
         let longTermMemory = JSON.parse(localStorage.getItem('eurusd_long_term_memory') || '[]');
         let reminders = JSON.parse(localStorage.getItem('eurusd_reminders') || '[]');
@@ -320,182 +321,46 @@
             glowSphere.material.color.setHex(color); innerCore.material.color.setHex(color); outerShell.material.color.setHex(color);
         }
 
-        // --- INDICATOR CALCULATIONS ---
-        function calculateEMA(data, period) {
-            const k = 2 / (period + 1);
-            let ema = data[0];
-            const emaArray = [ema];
-            for (let i = 1; i < data.length; i++) {
-                ema = (data[i] * k) + (ema * (1 - k));
-                emaArray.push(ema);
-            }
-            return emaArray;
-        }
-
-        function calculateRSI(data, period = 14) {
-            let gains = 0, losses = 0;
-            for (let i = 1; i <= period; i++) {
-                const diff = data[i] - data[i - 1];
-                if (diff >= 0) gains += diff; else losses -= diff;
-            }
-            let avgGain = gains / period;
-            let avgLoss = losses / period;
-            for (let i = period + 1; i < data.length; i++) {
-                const diff = data[i] - data[i - 1];
-                if (diff >= 0) { avgGain = (avgGain * (period - 1) + diff) / period; avgLoss = (avgLoss * (period - 1)) / period; }
-                else { avgGain = (avgGain * (period - 1)) / period; avgLoss = (avgLoss * (period - 1) - diff) / period; }
-            }
-            if (avgLoss === 0) return 100;
-            const rs = avgGain / avgLoss;
-            return 100 - (100 / (1 + rs));
-        }
-
-        function calculateATR(highs, lows, closes, period = 14) {
-            let trs = [];
-            for (let i = 1; i < highs.length; i++) {
-                const tr = Math.max(highs[i] - lows[i], Math.abs(highs[i] - closes[i-1]), Math.abs(lows[i] - closes[i-1]));
-                trs.push(tr);
-            }
-            return trs.slice(-period).reduce((a, b) => a + b, 0) / period;
-        }
-
-        // --- FETCH DATA ---
-        async function fetchYahooCandles(interval, range) {
-            const url = `https://query1.finance.yahoo.com/v8/finance/chart/EURUSD=X?interval=${interval}&range=${range}`;
-            const proxies = [
-                `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-                `https://corsproxy.io/?${encodeURIComponent(url)}`
-            ];
-            for (const proxyUrl of proxies) {
-                try {
-                    const res = await fetchWithTimeout(proxyUrl, 8000);
-                    if (!res.ok) continue;
-                    const data = await res.json();
-                    if (!data || !data.chart || !data.chart.result) continue;
-                    const result = data.chart.result[0];
-                    const timestamps = result.timestamp;
-                    const quotes = result.indicators.quote[0];
-                    if (!timestamps || !quotes) continue;
-                    return timestamps.map((t, i) => ({
-                        time: t * 1000,
-                        open: quotes.open[i], high: quotes.high[i], low: quotes.low[i], close: quotes.close[i]
-                    })).filter(c => c.open && c.high && c.low && c.close);
-                } catch (e) { console.log(`Proxy failed: ${proxyUrl}.`); }
-            }
-            return [];
-        }
-
-        async function generateSignalFromScratch() {
-            if (!apiKey) {
-                document.getElementById('val-reason').innerText = "Please enter your Gemini API Key.";
-                return;
-            }
-
+        // --- FETCH DATA FROM GITHUB (The Reliable Way) ---
+        async function fetchData() {
             const signalText = document.getElementById('signal-text');
-            signalText.innerText = "FETCHING...";
+            signalText.innerText = "LOADING...";
             signalText.style.color = "var(--blue)";
-            document.getElementById('ai-refresh-timer').innerText = "Fetching Yahoo data...";
-            document.getElementById('val-reason').innerText = "Downloading market data...";
+            document.getElementById('val-reason').innerText = "Fetching latest signal from your Python backend...";
 
-            const candles1H = await fetchYahooCandles('1h', '1mo');
-            const candlesDaily = await fetchYahooCandles('1d', '3mo');
-            
-            if (candles1H.length === 0) {
-                document.getElementById('val-reason').innerText = "Failed to fetch market data. Both proxies failed.";
+            try {
+                const response = await fetch(DATA_URL + '?v=' + new Date().getTime());
+                if (!response.ok) throw new Error('Network response was not ok');
+                globalData = await response.json();
+                updateUI(globalData);
+                playVoiceReport();
+                resetTimer();
+            } catch (error) {
+                document.getElementById('val-reason').innerText = "Failed to load data.json. Check your GitHub Actions tab to ensure the Python script is running.";
                 signalText.innerText = "ERROR";
                 signalText.style.color = "var(--red)";
                 resetTimer();
-                return;
-            }
-
-            signalText.innerText = "ANALYZING...";
-            document.getElementById('ai-refresh-timer').innerText = "Asking Gemini...";
-            document.getElementById('val-reason').innerText = "Calculating indicators and asking AI...";
-
-            const closes = candles1H.map(c => c.close);
-            const highs = candles1H.map(c => c.high);
-            const lows = candles1H.map(c => c.low);
-            
-            const ema20 = calculateEMA(closes, 20);
-            const ema50 = calculateEMA(closes, 50);
-            const rsi = calculateRSI(closes, 14);
-            const atr = calculateATR(highs, lows, closes, 14);
-            
-            const support = Math.min(...lows.slice(-50));
-            const resistance = Math.max(...highs.slice(-50));
-            const currentPrice = closes[closes.length - 1];
-            
-            const recentHighs = highs.slice(-20);
-            const recentLows = lows.slice(-20);
-            let trend = "Sideways";
-            if (recentHighs[recentHighs.length-1] > recentHighs[0] && recentLows[recentLows.length-1] > recentLows[0]) trend = "Uptrend";
-            if (recentHighs[recentHighs.length-1] < recentHighs[0] && recentLows[recentLows.length-1] < recentLows[0]) trend = "Downtrend";
-
-            const formatCandles = (arr) => arr.slice(-30).map(c => 
-                `O:${c.open.toFixed(5)} H:${c.high.toFixed(5)} L:${c.low.toFixed(5)} C:${c.close.toFixed(5)}`
-            ).join('\n');
-
-            const dataString = `
-            Current Price: ${currentPrice.toFixed(5)}
-            EMA20: ${ema20[ema20.length-1].toFixed(5)} | EMA50: ${ema50[ema50.length-1].toFixed(5)}
-            RSI(14): ${rsi.toFixed(2)} | ATR(14): ${atr.toFixed(5)}
-            Support: ${support.toFixed(5)} | Resistance: ${resistance.toFixed(5)}
-            Trend: ${trend}
-            Last 30x 1H Candles:\n${formatCandles(candles1H)}
-            Last 5x Daily Candles:\n${formatCandles(candlesDaily)}
-            `;
-
-            try {
-                const systemPrompt = `You are a professional Forex hedge fund trader analyzing EUR/USD.
-                Current time: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST.
-                Here is the market data: ${dataString}
-                CRITICAL INSTRUCTION: Respond ONLY with a valid JSON object. No markdown, no extra text. Format:
-                { "signal": "BUY"|"SELL"|"HOLD", "reason": "3-4 sentence reasoning", "confidence": "LOW"|"MEDIUM"|"HIGH", "entry": "1.XXXXX", "sl": "1.XXXXX", "tp": "1.XXXXX", "wise_words": "A short quote" }`;
-
-                const payload = { contents: [{ role: 'user', parts: [{ text: systemPrompt }] }] };
-                let modelsToTry = await getAvailableGeminiModels();
-                let reply = null;
-                
-                for (const model of modelsToTry) {
-                    try {
-                        const response = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, 12000, payload);
-                        if (response.ok) {
-                            const data = await response.json();
-                            reply = data.candidates[0].content.parts[0].text;
-                            break;
-                        }
-                    } catch (e) { continue; }
-                }
-
-                if (!reply) throw new Error("All models failed.");
-                const jsonStr = reply.replace(/```json/g, '').replace(/```/g, '').trim();
-                const signalData = JSON.parse(jsonStr);
-
-                globalData = {
-                    price: currentPrice.toFixed(5), signal: signalData.signal, reason: signalData.reason,
-                    confidence: signalData.confidence, entry: signalData.entry, sl: signalData.sl, tp: signalData.tp,
-                    atr: atr.toFixed(5), support: support.toFixed(5), resistance: resistance.toFixed(5), trend: trend,
-                    valid: new Date(Date.now() + 3600000).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) + " IST",
-                    wise_words: signalData.wise_words,
-                    candle_current: `Current: ${currentPrice.toFixed(5)}`, candle_1h: `1H Trend: ${trend}`,
-                    candle_4h: `RSI: ${rsi.toFixed(2)} | ATR: ${atr.toFixed(5)}`
-                };
-                updateUI(globalData); playVoiceReport(); resetTimer();
-            } catch (error) {
-                console.error(error);
-                document.getElementById('val-reason').innerText = "AI failed to parse signal. Retrying in 5 min.";
-                signalText.innerText = "ERROR"; signalText.style.color = "var(--red)"; resetTimer();
             }
         }
 
+        async function fetchContext() {
+            try {
+                const response = await fetch(CONTEXT_URL + '?v=' + new Date().getTime());
+                if (response.ok) personalContext = await response.json();
+            } catch (e) { console.log('Context not loaded'); }
+        }
+
         function updateUI(data) {
-            document.getElementById('live-price').innerHTML = `${data.price}<div class="last-updated">Updated: ${new Date().toLocaleTimeString('en-IN', {hour12: false})}</div>`;
+            document.getElementById('live-price').innerHTML = `${data.price || '1.00000'}<div class="last-updated">Updated: ${new Date().toLocaleTimeString('en-IN', {hour12: false})}</div>`;
+            
             const signalText = document.getElementById('signal-text');
             signalText.innerText = data.signal || 'WAITING';
             if (data.signal === 'BUY') { signalText.style.color = 'var(--green)'; signalText.style.textShadow = '0 0 30px rgba(46, 204, 113, 0.6)'; }
             else if (data.signal === 'SELL') { signalText.style.color = 'var(--red)'; signalText.style.textShadow = '0 0 30px rgba(231, 76, 60, 0.6)'; }
             else { signalText.style.color = 'var(--yellow)'; signalText.style.textShadow = '0 0 30px rgba(241, 196, 15, 0.5)'; }
+            
             updateCoreColor(data.signal);
+
             document.getElementById('val-confidence').innerText = data.confidence || '-';
             document.getElementById('val-valid').innerText = data.valid || '-';
             document.getElementById('val-entry').innerText = data.entry || '-';
@@ -503,7 +368,7 @@
             document.getElementById('val-tp').innerText = data.tp || '-';
             document.getElementById('val-atr').innerText = data.atr || '-';
             document.getElementById('val-trend').innerText = data.trend || '-';
-            document.getElementById('val-session').innerText = "Auto-Detected";
+            document.getElementById('val-session').innerText = data.session || '-';
             document.getElementById('val-support').innerText = data.support || '-';
             document.getElementById('val-resistance').innerText = data.resistance || '-';
             document.getElementById('val-candle-current').innerText = data.candle_current || '-';
@@ -517,7 +382,7 @@
             const minutes = Math.floor(timeLeft / 60).toString().padStart(2, '0');
             const seconds = (timeLeft % 60).toString().padStart(2, '0');
             const display = document.getElementById('ai-refresh-timer');
-            if (display && !chatInProgress) display.innerText = `Next AI refresh in: ${minutes}:${seconds}`;
+            if (display && !chatInProgress) display.innerText = `Next refresh in: ${minutes}:${seconds}`;
         }
 
         function resetTimer() { timeLeft = 330; updateTimerDisplay(); }
@@ -598,7 +463,6 @@
             return cleanLines.join('\n').trim();
         }
 
-        // --- FETCH WITH TIMEOUT ---
         async function fetchWithTimeout(resource, timeout = 10000, body = null) {
             const controller = new AbortController();
             const id = setTimeout(() => controller.abort(), timeout);
@@ -619,7 +483,6 @@
             if (!text) return;
             if (!apiKey) { alert("Please set your Gemini API Key first."); togglePanel('panel-key'); return; }
 
-            // CHAT PRIORITY LOCK: Stop the background timer from interfering
             chatInProgress = true;
             document.getElementById('ai-refresh-timer').innerText = "Chatting with AI...";
 
@@ -656,7 +519,6 @@
                 chatHistory.push({ role: 'ai', text: `Error: ${error.message}` });
                 renderChat();
             } finally {
-                // CHAT PRIORITY LOCK: Release the lock and resume the timer
                 chatInProgress = false;
                 updateTimerDisplay();
             }
@@ -682,9 +544,8 @@
         }
 
         async function callGeminiAPI(userText) {
-            // SPEED FIX: Trim context aggressively
-            const recentHistory = chatHistory.slice(-2); // Only last 2 messages for context
-            const recentMemory = longTermMemory.slice(-5); // Only last 5 facts
+            const recentHistory = chatHistory.slice(-2);
+            const recentMemory = longTermMemory.slice(-5);
             
             let systemPrompt = `You are an AI trading assistant for Boss. You are friendly, funny, and motivational. Do not use emojis. Call him "Boss". 
             Current time: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST.
@@ -702,10 +563,9 @@
             const payload = { 
                 contents: contents, 
                 tools: webSearchEnabled ? [{ google_search: {} }] : [],
-                generationConfig: { maxOutputTokens: 300 } // Limit output length for speed
+                generationConfig: { maxOutputTokens: 300 }
             };
 
-            // SPEED FIX: Use only the fastest model, no fallback loop
             const model = 'gemini-1.5-flash';
             const response = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, 15000, payload);
             
@@ -740,22 +600,21 @@
         function saveApiKey() { const val = document.getElementById('api-key-input').value.trim(); if (val) { apiKey = val; localStorage.setItem('eurusd_chat_key', apiKey); alert("API Key saved locally!"); togglePanel('panel-key'); } }
 
         window.onload = () => {
-            fetch(CONTEXT_URL).then(res => res.json()).then(data => personalContext = data).catch(e => console.log('Context not loaded'));
+            fetchContext();
             renderChat(); renderReminders(); renderMemory();
             if (apiKey) document.getElementById('web-toggle').style.display = 'block';
             if ('speechSynthesis' in window) { window.speechSynthesis.getVoices(); }
             if (gistToken && gistId) { loadMemoryFromGist(); }
             
-            generateSignalFromScratch();
+            fetchData();
             resetTimer();
             
-            // BACKGROUND TIMER: Pauses if chat is in progress
             setInterval(() => {
-                if (chatInProgress) return; // Skip this tick if Boss is chatting
+                if (chatInProgress) return;
                 timeLeft--;
                 if (timeLeft <= 0) {
                     timeLeft = 330; 
-                    generateSignalFromScratch();
+                    fetchData();
                 }
                 updateTimerDisplay();
             }, 1000);
