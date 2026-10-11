@@ -80,7 +80,7 @@
             margin-bottom: 20px; 
         }
         
-        /* AI Assistant — futuristic 3D core lives here */
+        /* AI Neural Core — clean 3D, no rings, no particles */
         #canvas-container { 
             width: 100%; 
             height: 300px; 
@@ -791,7 +791,7 @@
             updateWebToggleUI();
         });
 
-        // ═══ NEURAL CORE (futuristic 3D) ═══
+        // ═══ NEURAL CORE — Clean: glow sphere + inner/outer wireframes only ═══
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
@@ -800,91 +800,63 @@
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
 
+        // Central glowing sphere
         const glowGeo = new THREE.SphereGeometry(0.35, 32, 32);
-        const glowMat = new THREE.MeshBasicMaterial({ color: 0xffcc00, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending });
+        const glowMat = new THREE.MeshBasicMaterial({ 
+            color: 0xffcc00, 
+            transparent: true, 
+            opacity: 0.9, 
+            blending: THREE.AdditiveBlending 
+        });
         const glowSphere = new THREE.Mesh(glowGeo, glowMat);
         scene.add(glowSphere);
 
+        // Inner wireframe icosahedron
         const innerGeo = new THREE.IcosahedronGeometry(0.7, 1);
-        const innerMat = new THREE.MeshBasicMaterial({ color: 0xffcc00, wireframe: true, transparent: true, opacity: 0.9 });
+        const innerMat = new THREE.MeshBasicMaterial({ 
+            color: 0xffcc00, 
+            wireframe: true, 
+            transparent: true, 
+            opacity: 0.9 
+        });
         const innerCore = new THREE.Mesh(innerGeo, innerMat);
         scene.add(innerCore);
 
+        // Outer wireframe shell
         const outerGeo = new THREE.IcosahedronGeometry(1.4, 1);
-        const outerMat = new THREE.MeshBasicMaterial({ color: 0x3b82f6, wireframe: true, transparent: true, opacity: 0.35 });
+        const outerMat = new THREE.MeshBasicMaterial({ 
+            color: 0x3b82f6, 
+            wireframe: true, 
+            transparent: true, 
+            opacity: 0.35 
+        });
         const outerCore = new THREE.Mesh(outerGeo, outerMat);
         scene.add(outerCore);
 
-        const rings = [];
-        const ringColors = [0x3b82f6, 0x8b5cf6, 0x00ff88];
-        for (let i = 0; i < 3; i++) {
-            const ringGeo = new THREE.TorusGeometry(1.9 + i * 0.25, 0.012, 16, 100);
-            const ringMat = new THREE.MeshBasicMaterial({ color: ringColors[i], transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending });
-            const ring = new THREE.Mesh(ringGeo, ringMat);
-            ring.rotation.x = Math.PI / 2 * i;
-            ring.rotation.y = Math.PI / 3 * i;
-            scene.add(ring);
-            rings.push(ring);
-        }
+        camera.position.z = 3.5;
 
-        const particleCount = 500;
-        const particleGeo = new THREE.BufferGeometry();
-        const positions = new Float32Array(particleCount * 3);
-        const pColors = new Float32Array(particleCount * 3);
-        const speeds = [];
-        for (let i = 0; i < particleCount; i++) {
-            const radius = 1.8 + Math.random() * 1.8;
-            const theta = Math.random() * Math.PI * 2;
-            const phi = Math.acos(2 * Math.random() - 1);
-            positions[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
-            positions[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
-            positions[i * 3 + 2] = radius * Math.cos(phi);
-            const cc = Math.random();
-            if (cc < 0.6) { pColors[i*3]=0.23; pColors[i*3+1]=0.51; pColors[i*3+2]=0.96; }
-            else if (cc < 0.85) { pColors[i*3]=0.55; pColors[i*3+1]=0.36; pColors[i*3+2]=0.96; }
-            else { pColors[i*3]=1.0; pColors[i*3+1]=1.0; pColors[i*3+2]=1.0; }
-            speeds.push({ theta, phi, radius, dTheta: 0.001 + Math.random() * 0.003, dPhi: (Math.random() - 0.5) * 0.002 });
-        }
-        particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        particleGeo.setAttribute('color', new THREE.BufferAttribute(pColors, 3));
-        const particleMat = new THREE.PointsMaterial({ size: 0.035, vertexColors: true, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, sizeAttenuation: true });
-        const particles = new THREE.Points(particleGeo, particleMat);
-        scene.add(particles);
-
-        camera.position.z = 5.5;
         const clock = new THREE.Clock();
 
         function animate() {
             requestAnimationFrame(animate);
             const t = clock.getElapsedTime();
+
+            // Central glow pulse
             const glowScale = 1 + Math.sin(t * 3) * 0.15;
             glowSphere.scale.set(glowScale, glowScale, glowScale);
             glowSphere.material.opacity = 0.7 + Math.sin(t * 3) * 0.2;
 
+            // Inner core rotation + breathing
             innerCore.rotation.x += 0.008;
             innerCore.rotation.y += 0.012;
             const innerScale = 1 + Math.sin(t * 2) * 0.08;
             innerCore.scale.set(innerScale, innerScale, innerScale);
 
+            // Outer shell slow opposite rotation
             outerCore.rotation.x -= 0.003;
             outerCore.rotation.y -= 0.005;
             const outerScale = 1 + Math.sin(t * 1.5 + 1) * 0.05;
             outerCore.scale.set(outerScale, outerScale, outerScale);
-
-            rings[0].rotation.z += 0.008; rings[0].rotation.y += 0.004;
-            rings[1].rotation.z -= 0.006; rings[1].rotation.x += 0.005;
-            rings[2].rotation.z += 0.01; rings[2].rotation.y -= 0.003;
-
-            const posArr = particleGeo.attributes.position.array;
-            for (let i = 0; i < particleCount; i++) {
-                const s = speeds[i];
-                s.theta += s.dTheta; s.phi += s.dPhi;
-                posArr[i * 3]     = s.radius * Math.sin(s.phi) * Math.cos(s.theta);
-                posArr[i * 3 + 1] = s.radius * Math.sin(s.phi) * Math.sin(s.theta);
-                posArr[i * 3 + 2] = s.radius * Math.cos(s.phi);
-            }
-            particleGeo.attributes.position.needsUpdate = true;
-            particles.rotation.y += 0.0015;
 
             renderer.render(scene, camera);
         }
@@ -904,7 +876,6 @@
             glowSphere.material.color.setHex(colorHex);
             innerCore.material.color.setHex(colorHex);
             outerCore.material.color.copy(color).lerp(new THREE.Color(0x3b82f6), 0.5);
-            rings[2].material.color.copy(color);
         }
 
         // DATA
