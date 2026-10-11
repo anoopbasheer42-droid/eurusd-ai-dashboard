@@ -1,12 +1,12 @@
 {
-    "signal": "HOLD",
-    "reason": "Higher timeframes (Daily, 4H, and 1H) show EUR/USD stuck in tight consolidation around 1.1206, with 1H RSI sitting oversold at 28.3 under descending EMAs. Meanwhile, the lower timeframes (5m and 15m) are completely flatlined with zero volatility and near-zero volume due to the Sunday market reopen. Entering now exposes us to wide weekend spreads and unpredictable whipsaws, which goes against our conservative risk profile. A clean break above 1.1215 with London volume or a sustained loss of 1.1176 support would invalidate this neutral stance and provide our next directional trigger.",
-    "personal_message": "Good evening Boss! It's almost midnight on a Sunday, so make sure you've taken your BP tablets after dinner and that the girls, Emy and Bismah, are tucked in for school tomorrow. The charts are sleeping deeper than Cookie right now, so get some proper rest and let's hunt for our 10k goal once London liquidity kicks in!",
-    "confidence": "LOW",
+    "signal": "SELL",
+    "reason": "Technical signal: Price below 20 EMA, RSI at 28.3.",
+    "personal_message": "Good morning, Boss. Stay disciplined today.",
+    "confidence": "MEDIUM",
     "price": "1.1206",
     "entry": "1.1206",
-    "sl": "1.1193",
-    "tp": "1.1233",
+    "sl": "1.122",
+    "tp": "1.1179",
     "atr": "0.0009",
     "support": "1.1176",
     "resistance": "1.1246",
@@ -24,7 +24,7 @@
         "1.1176",
         "1.1192"
     ],
-    "valid": "00:45 IST",
+    "valid": "01:42 IST",
     "candle_current": "Bearish candle. Open: 1.1206, Now: 1.1206. Sellers pushing down.",
     "candle_1h": "1H candle at 1.1206. Below 20 EMA - downtrend.",
     "candle_4h": "4H trend: bearish below moving averages.",
@@ -710,5 +710,5 @@
     ],
     "session": "Off-Session",
     "volatility": "low",
-    "wise_words": "Motivation: Cut losses short, let winners run. The math will handle the rest."
+    "wise_words": "Joke: My stop loss is like my ex - always triggering at the worst possible moment."
 }
