@@ -4,764 +4,494 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <title>EUR/USD AI PRO</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
+    <title>EUR/USD AI Pro Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         :root { 
-            --bg: #02030a;
-            --panel: rgba(0, 20, 30, 0.55);
-            --border: rgba(0, 240, 255, 0.35);
-            --border-dim: rgba(0, 240, 255, 0.12);
-            --cyan: #00f0ff;
-            --cyan-dim: #0099aa;
-            --magenta: #ff2d9b;
-            --green: #00ff9f;
-            --red: #ff2d55;
-            --yellow: #ffcc00;
-            --text: #b8e8ff;
-            --text-dim: #4a7080;
-            --bg-grid: rgba(0, 240, 255, 0.06);
+            --bg: #0a0e17; 
+            --card: rgba(255,255,255,0.03); 
+            --border: rgba(255,255,255,0.08); 
+            --text: #e2e8f0; 
+            --muted: #94a3b8; 
+            --green: #00ff88; 
+            --red: #ff3366; 
+            --yellow: #ffcc00; 
+            --accent: #3b82f6; 
+            --purple: #8b5cf6; 
+            --pink: #ec4899; 
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { overflow-x: hidden; }
         body { 
-            font-family: 'Rajdhani', 'Share Tech Mono', sans-serif; 
+            font-family: 'Inter', sans-serif; 
             background: var(--bg); 
             color: var(--text); 
             min-height: 100vh; 
-            padding: 20px;
-            position: relative;
-            background-image: 
-                radial-gradient(circle at 50% 0%, rgba(0, 100, 120, 0.15) 0%, transparent 60%),
-                linear-gradient(var(--bg-grid) 1px, transparent 1px),
-                linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px);
-            background-size: 100% 100%, 40px 40px, 40px 40px;
+            padding: 20px; 
+            background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #0a0e17 70%); 
         }
-        /* Scanline overlay */
-        body::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background: repeating-linear-gradient(
-                0deg,
-                rgba(0, 0, 0, 0) 0px,
-                rgba(0, 0, 0, 0) 2px,
-                rgba(0, 240, 255, 0.02) 2px,
-                rgba(0, 240, 255, 0.02) 4px
-            );
-            pointer-events: none;
-            z-index: 9999;
-        }
-        /* Moving scan light */
-        body::after {
-            content: '';
-            position: fixed;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.5), transparent);
-            box-shadow: 0 0 20px rgba(0, 240, 255, 0.8);
-            animation: topScan 8s linear infinite;
-            pointer-events: none;
-            z-index: 9998;
-        }
-        @keyframes topScan {
-            0% { top: 0; }
-            100% { top: 100vh; }
-        }
-
-        /* ═══ HEADER ═══ */
-        header {
+        header { 
             display: flex; 
             justify-content: space-between; 
-            align-items: center;
-            margin-bottom: 24px; 
-            padding-bottom: 14px;
-            border-bottom: 1px solid var(--border-dim);
-            position: relative;
+            align-items: center; 
+            margin-bottom: 30px; 
+            padding-bottom: 15px; 
+            border-bottom: 1px solid var(--border); 
         }
-        header::after {
-            content: '';
-            position: absolute;
-            bottom: -1px;
-            left: 0;
-            width: 200px;
-            height: 2px;
-            background: linear-gradient(90deg, var(--cyan), transparent);
-            box-shadow: 0 0 12px var(--cyan);
+        h1 { font-size: 1.5rem; font-weight: 800; }
+        .status-badge { 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            font-size: 0.8rem; 
+            font-weight: 600; 
+            color: var(--green); 
+            background: rgba(0,255,136,0.1); 
+            padding: 6px 12px; 
+            border-radius: 20px; 
+            border: 1px solid rgba(0,255,136,0.2); 
         }
-        h1 { 
-            font-family: 'Orbitron', sans-serif;
-            font-size: 1.4rem; 
-            font-weight: 900;
-            color: var(--cyan);
-            letter-spacing: 4px;
-            text-shadow: 0 0 10px rgba(0, 240, 255, 0.7), 0 0 20px rgba(0, 240, 255, 0.4);
-        }
-        h1::before { content: '◤ '; color: var(--magenta); opacity: 0.8; }
-        h1::after { content: ' ◥'; color: var(--magenta); opacity: 0.8; }
-
-        .status-badge {
-            display: flex; align-items: center; gap: 10px;
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 0.7rem; font-weight: 400;
-            color: var(--green);
-            background: rgba(0, 255, 159, 0.08);
-            padding: 6px 14px; 
-            border: 1px solid rgba(0, 255, 159, 0.4);
-            letter-spacing: 2px;
-            position: relative;
-        }
-        .status-badge::before,
-        .status-badge::after {
-            content: '';
-            position: absolute;
-            width: 6px; height: 6px;
-            border: 1px solid var(--green);
-        }
-        .status-badge::before { top: -3px; left: -3px; border-right: none; border-bottom: none; }
-        .status-badge::after { bottom: -3px; right: -3px; border-left: none; border-top: none; }
-        .pulse-dot {
-            width: 6px; height: 6px;
+        .pulse-dot { 
+            width: 8px; height: 8px; 
             background: var(--green); 
-            border-radius: 50%;
-            box-shadow: 0 0 8px var(--green);
-            animation: pulse 1.5s infinite;
+            border-radius: 50%; 
+            animation: pulse 1.5s infinite; 
         }
         @keyframes pulse { 
-            0% { opacity: 1; transform: scale(1); } 
-            50% { opacity: 0.4; transform: scale(0.8); } 
-            100% { opacity: 1; transform: scale(1); } 
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0,255,136,0.7); } 
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(0,255,136,0); } 
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0,255,136,0); } 
         }
-
-        /* ═══ GRID ═══ */
-        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         @media (max-width: 768px) { .dashboard-grid { grid-template-columns: 1fr; } }
-
-        /* ═══ CARD — HUD PANEL ═══ */
         .card { 
-            background: var(--panel);
-            border: 1px solid var(--border-dim);
-            padding: 20px; 
-            position: relative;
-            backdrop-filter: blur(6px);
-            transition: all 0.3s;
+            background: var(--card); 
+            border: 1px solid var(--border); 
+            border-radius: 16px; 
+            padding: 24px; 
+            backdrop-filter: blur(10px); 
+            transition: 0.2s; 
         }
-        .card::before, .card::after {
-            content: '';
-            position: absolute;
-            width: 14px; height: 14px;
-            border-color: var(--cyan);
-            transition: all 0.3s;
-        }
-        .card::before {
-            top: -1px; left: -1px;
-            border-top: 2px solid var(--cyan);
-            border-left: 2px solid var(--cyan);
-            box-shadow: -2px -2px 8px rgba(0, 240, 255, 0.4);
-        }
-        .card::after {
-            bottom: -1px; right: -1px;
-            border-bottom: 2px solid var(--cyan);
-            border-right: 2px solid var(--cyan);
-            box-shadow: 2px 2px 8px rgba(0, 240, 255, 0.4);
-        }
-        .card:hover { 
-            border-color: var(--border);
-            box-shadow: 0 0 20px rgba(0, 240, 255, 0.15), inset 0 0 30px rgba(0, 240, 255, 0.03);
-        }
-        .card:hover::before, .card:hover::after {
-            box-shadow: 0 0 16px var(--cyan);
-        }
-
-        /* Card heading */
         .card h2 { 
-            font-family: 'Orbitron', sans-serif;
-            font-size: 0.7rem; 
-            font-weight: 600;
+            font-size: 0.9rem; 
             text-transform: uppercase; 
-            letter-spacing: 3px; 
-            color: var(--cyan);
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid var(--border-dim);
-            text-shadow: 0 0 6px rgba(0, 240, 255, 0.5);
-        }
-        .card h2::before {
-            content: '▮';
-            color: var(--magenta);
-            font-size: 0.9rem;
-            text-shadow: 0 0 8px var(--magenta);
+            letter-spacing: 1px; 
+            color: var(--muted); 
+            margin-bottom: 20px; 
         }
         
+        /* AI Assistant — futuristic 3D core lives here */
         #canvas-container { 
             width: 100%; 
-            height: 420px; 
+            height: 300px; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
             position: relative; 
-            background: radial-gradient(circle at center, rgba(139,92,246,0.12) 0%, rgba(0,240,255,0.05) 40%, transparent 70%); 
-            border: 1px solid var(--border-dim);
-            overflow: hidden;
+            background: radial-gradient(circle at center, rgba(59,130,246,0.08) 0%, transparent 70%); 
+            border-radius: 12px; 
+            overflow: hidden; 
         }
         #canvas-container::before { 
             content: ''; 
             position: absolute; 
             inset: 0; 
             background-image: 
-                linear-gradient(rgba(0,240,255,0.06) 1px, transparent 1px), 
-                linear-gradient(90deg, rgba(0,240,255,0.06) 1px, transparent 1px); 
-            background-size: 24px 24px; 
+                linear-gradient(rgba(59,130,246,0.05) 1px, transparent 1px), 
+                linear-gradient(90deg, rgba(59,130,246,0.05) 1px, transparent 1px); 
+            background-size: 30px 30px; 
             pointer-events: none; 
-            opacity: 0.6; 
+            opacity: 0.5; 
         }
         .core-label { 
             text-align: center; 
-            font-family: 'Share Tech Mono', monospace;
-            color: var(--cyan); 
-            font-size: 0.68rem; 
-            letter-spacing: 4px; 
+            color: var(--muted); 
+            font-size: 0.75rem; 
+            letter-spacing: 2px; 
             text-transform: uppercase; 
-            margin-top: 12px; 
-            opacity: 0.75;
-            animation: fadeLabel 3s ease-in-out infinite;
-            text-shadow: 0 0 6px rgba(0,240,255,0.6);
+            margin-top: 10px; 
+            opacity: 0.6; 
+            animation: fadeLabel 3s ease-in-out infinite; 
         }
-        @keyframes fadeLabel { 0%,100% { opacity: 0.45; } 50% { opacity: 0.9; } }
+        @keyframes fadeLabel { 
+            0%,100% { opacity: 0.4; } 
+            50% { opacity: 0.8; } 
+        }
         
-        .signal-display { text-align: center; margin-bottom: 18px; }
+        .signal-display { text-align: center; margin-bottom: 20px; }
         .signal-text { 
-            font-family: 'Orbitron', sans-serif;
-            font-size: 3.4rem; 
-            font-weight: 900; 
-            letter-spacing: 8px;
-            transition: all 0.5s; 
-            position: relative;
+            font-size: 3rem; 
+            font-weight: 800; 
+            transition: color 0.5s; 
         }
         .signal-text.buy { 
             color: var(--green); 
-            text-shadow: 0 0 15px var(--green), 0 0 30px rgba(0,255,159,0.5), 0 0 50px rgba(0,255,159,0.3);
+            text-shadow: 0 0 20px rgba(0,255,136,0.4); 
         }
         .signal-text.sell { 
             color: var(--red); 
-            text-shadow: 0 0 15px var(--red), 0 0 30px rgba(255,45,85,0.5), 0 0 50px rgba(255,45,85,0.3);
+            text-shadow: 0 0 20px rgba(255,51,102,0.4); 
         }
         .signal-text.hold, .signal-text.waiting { 
             color: var(--yellow); 
-            text-shadow: 0 0 15px var(--yellow), 0 0 30px rgba(255,204,0,0.5), 0 0 50px rgba(255,204,0,0.3);
+            text-shadow: 0 0 20px rgba(255,204,0,0.4); 
         }
-
-        /* Data grid */
-        .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .data-item { 
-            background: rgba(0, 240, 255, 0.03);
-            border-left: 2px solid var(--border);
-            padding: 10px 12px; 
-            position: relative;
-            transition: all 0.2s;
-        }
-        .data-item:hover {
-            background: rgba(0, 240, 255, 0.06);
-            border-left-color: var(--cyan);
-        }
-        .data-item::before {
-            content: '';
-            position: absolute;
-            top: 0; right: 0;
-            width: 4px; height: 4px;
-            background: var(--cyan);
-            box-shadow: 0 0 6px var(--cyan);
+            background: rgba(0,0,0,0.2); 
+            padding: 12px; 
+            border-radius: 8px; 
         }
         .data-label { 
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 0.62rem; 
-            color: var(--text-dim); 
+            font-size: 0.75rem; 
+            color: var(--muted); 
             text-transform: uppercase; 
-            letter-spacing: 2px;
             margin-bottom: 4px; 
         }
         .data-value { 
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 1rem; 
-            font-weight: 400; 
-            color: var(--cyan);
-            text-shadow: 0 0 6px rgba(0, 240, 255, 0.4);
+            font-size: 1.1rem; 
+            font-weight: 600; 
+            font-family: monospace; 
         }
-
-        /* Voice buttons */
-        .voice-controls { display: flex; gap: 8px; margin-top: 16px; }
+        .voice-controls { display: flex; gap: 10px; margin-top: 20px; }
         .voice-btn { 
             flex: 1; 
-            padding: 14px; 
-            background: linear-gradient(135deg, rgba(0, 240, 255, 0.15), rgba(255, 45, 155, 0.1)); 
-            border: 1px solid var(--cyan); 
-            color: var(--cyan); 
-            font-family: 'Orbitron', sans-serif;
-            font-size: 0.75rem; 
+            padding: 16px; 
+            background: linear-gradient(135deg, var(--accent), var(--purple)); 
+            border: none; 
+            border-radius: 12px; 
+            color: white; 
+            font-size: 1rem; 
             font-weight: 600; 
-            letter-spacing: 2px;
             cursor: pointer; 
-            transition: all 0.2s; 
-            position: relative;
-            text-transform: uppercase;
-        }
-        .voice-btn::before {
-            content: '';
-            position: absolute;
-            top: -1px; left: -1px;
-            width: 6px; height: 6px;
-            border-top: 2px solid var(--cyan);
-            border-left: 2px solid var(--cyan);
-        }
-        .voice-btn::after {
-            content: '';
-            position: absolute;
-            bottom: -1px; right: -1px;
-            width: 6px; height: 6px;
-            border-bottom: 2px solid var(--cyan);
-            border-right: 2px solid var(--cyan);
-        }
-        .voice-btn:hover { 
-            background: linear-gradient(135deg, rgba(0, 240, 255, 0.3), rgba(255, 45, 155, 0.2));
-            box-shadow: 0 0 20px rgba(0, 240, 255, 0.4), inset 0 0 15px rgba(0, 240, 255, 0.1);
-            text-shadow: 0 0 10px var(--cyan);
+            transition: 0.2s; 
+            font-family: inherit; 
         }
         .voice-btn.stop { 
-            background: linear-gradient(135deg, rgba(255, 45, 85, 0.15), rgba(255, 45, 85, 0.05)); 
-            border-color: var(--red);
-            color: var(--red);
-            flex: 0.4;
+            background: linear-gradient(135deg, #ff3366, #cc0033); 
+            flex: 0.4; 
         }
-        .voice-btn.stop::before, .voice-btn.stop::after { border-color: var(--red); }
-        .voice-btn.stop:hover {
-            box-shadow: 0 0 20px rgba(255, 45, 85, 0.4), inset 0 0 15px rgba(255, 45, 85, 0.1);
-            text-shadow: 0 0 10px var(--red);
-        }
-
-        /* Candle analysis */
+        .voice-btn:hover { opacity: 0.9; }
         .candle-analysis { 
-            padding: 14px; 
-            background: rgba(0, 240, 255, 0.03);
-            border-left: 2px solid var(--border);
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 0.8rem; 
-            line-height: 1.7;
-            color: var(--text);
+            padding: 15px; 
+            background: rgba(0,0,0,0.2); 
+            border-radius: 10px; 
+            font-size: 0.85rem; 
+            line-height: 1.6; 
         }
         .candle-item { 
-            margin-bottom: 10px; 
-            padding-bottom: 8px;
-            border-bottom: 1px dashed var(--border-dim);
+            margin-bottom: 12px; 
+            border-bottom: 1px dashed rgba(255,255,255,0.1); 
+            padding-bottom: 8px; 
         }
-        .candle-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        .candle-item:last-child { 
+            border-bottom: none; 
+            margin-bottom: 0; 
+            padding-bottom: 0; 
+        }
         .candle-timeframe { 
-            color: var(--magenta); 
+            color: var(--accent); 
             font-weight: 600; 
-            margin-right: 6px;
-            text-shadow: 0 0 6px rgba(255, 45, 155, 0.5);
-            letter-spacing: 1px;
+            margin-right: 5px; 
         }
-        .candle-item span:last-child { color: var(--text); }
-
-        /* Wisdom box */
         .wise-box { 
-            background: linear-gradient(135deg, rgba(255, 45, 155, 0.08), rgba(139, 92, 246, 0.06)); 
-            padding: 18px; 
-            border-left: 3px solid var(--magenta);
+            background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(59,130,246,0.15)); 
+            padding: 20px; 
+            border-radius: 12px; 
+            border-left: 4px solid var(--purple); 
             font-style: italic; 
-            font-size: 0.92rem; 
+            font-size: 0.95rem; 
             line-height: 1.7; 
-            color: var(--text);
-            position: relative;
-        }
-        .wise-box::before {
-            content: '';
-            position: absolute;
-            top: 6px; right: 6px;
-            width: 20px; height: 20px;
-            border-top: 1px solid var(--magenta);
-            border-right: 1px solid var(--magenta);
-            opacity: 0.5;
+            color: #cbd5e1; 
         }
         .wise-label { 
             display: block; 
-            font-family: 'Orbitron', sans-serif;
             font-style: normal; 
             font-weight: 600; 
-            color: var(--magenta); 
-            font-size: 0.68rem; 
-            text-transform: uppercase; 
-            letter-spacing: 3px; 
-            margin-bottom: 8px;
-            text-shadow: 0 0 8px rgba(255, 45, 155, 0.5);
-        }
-
-        /* Level grid */
-        .level-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
-        .level-item { 
-            background: rgba(0, 240, 255, 0.03);
-            padding: 10px; 
-            border: 1px solid var(--border-dim);
+            color: var(--purple); 
             font-size: 0.75rem; 
-            position: relative;
+            text-transform: uppercase; 
+            letter-spacing: 1px; 
+            margin-bottom: 8px; 
         }
-        .level-item::before {
-            content: '';
-            position: absolute;
-            top: -1px; left: -1px;
-            width: 5px; height: 5px;
-            border-top: 1px solid var(--cyan);
-            border-left: 1px solid var(--cyan);
+        .level-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 10px; 
+            margin-top: 12px; 
+        }
+        .level-item { 
+            background: rgba(0,0,0,0.3); 
+            padding: 10px; 
+            border-radius: 6px; 
+            font-size: 0.8rem; 
         }
         .level-label { 
-            font-family: 'Share Tech Mono', monospace;
-            color: var(--text-dim); 
-            font-size: 0.62rem; 
-            text-transform: uppercase;
-            letter-spacing: 2px;
+            color: var(--muted); 
+            font-size: 0.7rem; 
+            text-transform: uppercase; 
         }
         .level-value { 
-            font-family: 'Share Tech Mono', monospace;
-            color: var(--cyan); 
-            font-weight: 400; 
-            margin-top: 3px;
-            text-shadow: 0 0 6px rgba(0, 240, 255, 0.4);
+            font-family: monospace; 
+            font-weight: 600; 
+            margin-top: 2px; 
         }
-
-        /* AI Reasoning */
         .ai-reason-box { 
-            background: rgba(0, 240, 255, 0.03);
-            padding: 18px; 
-            border-left: 3px solid var(--cyan);
-            font-size: 0.92rem; 
+            background: rgba(0,0,0,0.3); 
+            padding: 20px; 
+            border-radius: 12px; 
+            font-size: 0.95rem; 
             line-height: 1.7; 
-            color: var(--text);
-            font-family: 'Rajdhani', sans-serif;
-            position: relative;
-        }
-        .ai-reason-box::before {
-            content: '';
-            position: absolute;
-            top: 6px; right: 6px;
-            width: 20px; height: 20px;
-            border-top: 1px solid var(--cyan);
-            border-right: 1px solid var(--cyan);
-            opacity: 0.5;
+            color: #e2e8f0; 
+            border-left: 4px solid var(--accent); 
         }
         .ai-reason-label { 
             display: block; 
-            font-family: 'Orbitron', sans-serif;
             font-weight: 600; 
-            color: var(--cyan); 
-            font-size: 0.68rem; 
+            color: var(--accent); 
+            font-size: 0.75rem; 
             text-transform: uppercase; 
-            letter-spacing: 3px; 
-            margin-bottom: 8px;
-            text-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
+            letter-spacing: 1px; 
+            margin-bottom: 10px; 
         }
-
-        /* ═══ CHAT ═══ */
+        
         .chat-container { display: flex; flex-direction: column; gap: 12px; }
         .chat-messages { 
-            max-height: 380px; 
+            max-height: 400px; 
             overflow-y: auto; 
             display: flex; 
             flex-direction: column; 
             gap: 10px; 
-            padding: 12px; 
-            background: rgba(0, 10, 20, 0.6);
-            border: 1px solid var(--border-dim);
+            padding: 10px; 
+            background: rgba(0,0,0,0.2); 
+            border-radius: 10px; 
             min-height: 120px; 
-            position: relative;
-        }
-        .chat-messages::before {
-            content: 'TERMINAL::ACTIVE';
-            position: absolute;
-            top: 4px; right: 8px;
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 0.55rem;
-            color: var(--text-dim);
-            letter-spacing: 2px;
         }
         .chat-messages::-webkit-scrollbar { width: 6px; }
-        .chat-messages::-webkit-scrollbar-track { background: rgba(0, 240, 255, 0.05); }
         .chat-messages::-webkit-scrollbar-thumb { 
-            background: var(--cyan-dim); 
-            box-shadow: 0 0 4px var(--cyan);
+            background: var(--border); 
+            border-radius: 3px; 
         }
         .chat-msg { 
-            padding: 10px 14px; 
-            font-size: 0.88rem; 
+            padding: 12px 16px; 
+            border-radius: 12px; 
+            font-size: 0.9rem; 
             line-height: 1.6; 
-            max-width: 88%; 
+            max-width: 85%; 
             word-wrap: break-word; 
-            white-space: pre-wrap;
-            font-family: 'Share Tech Mono', monospace;
+            white-space: pre-wrap; 
         }
         .chat-msg.user { 
-            background: linear-gradient(135deg, rgba(255, 45, 155, 0.2), rgba(139, 92, 246, 0.15)); 
-            border: 1px solid rgba(255, 45, 155, 0.5); 
-            color: #ffb8dd; 
-            align-self: flex-end;
-            box-shadow: 0 0 12px rgba(255, 45, 155, 0.2);
+            background: linear-gradient(135deg, var(--accent), var(--purple)); 
+            color: white; 
+            align-self: flex-end; 
+            border-bottom-right-radius: 4px; 
         }
         .chat-msg.ai { 
-            background: rgba(0, 240, 255, 0.05); 
-            border: 1px solid rgba(0, 240, 255, 0.3); 
-            border-left: 3px solid var(--cyan);
+            background: rgba(255,255,255,0.05); 
             color: var(--text); 
-            align-self: flex-start;
-            box-shadow: 0 0 12px rgba(0, 240, 255, 0.15);
+            align-self: flex-start; 
+            border-bottom-left-radius: 4px; 
+            border-left: 3px solid var(--green); 
         }
         .chat-msg.system { 
-            background: transparent; 
-            color: var(--text-dim); 
+            background: rgba(148,163,184,0.1); 
+            color: var(--muted); 
             align-self: center; 
-            font-size: 0.72rem; 
+            font-size: 0.8rem; 
             font-style: italic; 
-            text-align: center;
-            letter-spacing: 1px;
+            text-align: center; 
         }
         .chat-msg.thinking { 
-            background: rgba(0, 240, 255, 0.05); 
-            color: var(--cyan-dim); 
+            background: rgba(255,255,255,0.05); 
+            color: var(--muted); 
             align-self: flex-start; 
-            font-style: italic;
-            border-left: 3px solid var(--cyan-dim);
+            font-style: italic; 
         }
         .chat-msg.error { 
-            background: rgba(255, 45, 85, 0.08); 
+            background: rgba(255,51,102,0.1); 
             color: var(--red); 
             align-self: flex-start; 
             border-left: 3px solid var(--red); 
-            font-size: 0.72rem; 
+            font-family: monospace; 
+            font-size: 0.75rem; 
             max-width: 100%; 
         }
-        
         .chat-speak-btn { 
             display: inline-block; 
             margin-left: 10px; 
             padding: 4px 10px; 
-            background: rgba(0, 240, 255, 0.1); 
-            border: 1px solid var(--cyan); 
-            color: var(--cyan); 
-            font-size: 0.75rem; 
+            background: rgba(0,255,136,0.15); 
+            border: 1px solid var(--green); 
+            border-radius: 6px; 
+            color: var(--text); 
+            font-size: 0.85rem; 
             cursor: pointer; 
+            opacity: 0.9; 
             transition: all 0.2s; 
             vertical-align: middle; 
         }
         .chat-speak-btn:hover { 
-            background: var(--cyan); 
-            color: var(--bg); 
-            box-shadow: 0 0 12px var(--cyan);
+            opacity: 1; 
+            background: var(--green); 
+            color: #0a0e17; 
+            transform: scale(1.05); 
         }
-        
         .chat-sources { 
             display: block; 
             margin-top: 8px; 
-            font-size: 0.68rem; 
-            color: var(--text-dim); 
+            font-size: 0.75rem; 
+            color: var(--muted); 
             font-style: italic; 
         }
         .chat-sources a { 
-            color: var(--cyan); 
+            color: var(--accent); 
             text-decoration: none; 
             word-break: break-all; 
         }
-        .chat-sources a:hover { 
-            text-decoration: underline; 
-            text-shadow: 0 0 6px var(--cyan);
-        }
-
-        .chat-input-row { display: flex; gap: 8px; }
+        .chat-sources a:hover { text-decoration: underline; }
+        
+        .chat-input-row { display: flex; gap: 10px; }
         .chat-input { 
             flex: 1; 
-            padding: 12px 14px; 
-            background: rgba(0, 10, 20, 0.8); 
+            padding: 14px 16px; 
+            background: rgba(0,0,0,0.3); 
             border: 1px solid var(--border); 
-            color: var(--cyan); 
-            font-size: 0.9rem; 
-            font-family: 'Share Tech Mono', monospace;
+            border-radius: 12px; 
+            color: var(--text); 
+            font-size: 1rem; 
+            font-family: inherit; 
             outline: none; 
-            transition: all 0.2s;
+            transition: 0.2s; 
         }
-        .chat-input::placeholder { color: var(--text-dim); }
-        .chat-input:focus { 
-            border-color: var(--cyan); 
-            box-shadow: 0 0 12px rgba(0, 240, 255, 0.3), inset 0 0 8px rgba(0, 240, 255, 0.1);
-        }
+        .chat-input:focus { border-color: var(--accent); }
+        .chat-input::placeholder { color: var(--muted); }
         .chat-send { 
-            padding: 12px 20px; 
-            background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(0, 255, 159, 0.1)); 
-            border: 1px solid var(--green); 
-            color: var(--green); 
-            font-family: 'Orbitron', sans-serif;
+            padding: 14px 20px; 
+            background: linear-gradient(135deg, var(--green), #00cc66); 
+            border: none; 
+            border-radius: 12px; 
+            color: #0a0e17; 
             font-weight: 700; 
-            font-size: 0.75rem; 
-            letter-spacing: 2px;
+            font-size: 1rem; 
             cursor: pointer; 
-            transition: all 0.2s; 
-            text-transform: uppercase;
+            transition: 0.2s; 
+            font-family: inherit; 
         }
-        .chat-send:hover { 
-            background: linear-gradient(135deg, rgba(0, 240, 255, 0.35), rgba(0, 255, 159, 0.25)); 
-            box-shadow: 0 0 16px rgba(0, 255, 159, 0.4);
-            text-shadow: 0 0 10px var(--green);
-        }
+        .chat-send:hover { opacity: 0.9; }
         .chat-send:disabled { opacity: 0.4; cursor: not-allowed; }
         .chat-clear { 
-            padding: 8px 14px; 
-            background: transparent; 
-            border: 1px solid var(--border-dim); 
-            color: var(--text-dim); 
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 0.7rem; 
-            letter-spacing: 1px;
+            padding: 10px 16px; 
+            background: rgba(148,163,184,0.15); 
+            border: 1px solid var(--border); 
+            border-radius: 8px; 
+            color: var(--muted); 
+            font-size: 0.8rem; 
             cursor: pointer; 
             align-self: flex-end; 
             margin-top: 4px; 
-            text-transform: uppercase;
+            font-family: inherit; 
         }
-        .chat-clear:hover { 
-            color: var(--magenta); 
-            border-color: var(--magenta);
-            box-shadow: 0 0 8px rgba(255, 45, 155, 0.3);
-        }
+        .chat-clear:hover { color: var(--text); border-color: var(--accent); }
         
-        .chat-header-buttons { display: flex; gap: 6px; margin-left: auto; }
+        .chat-header-buttons { display: flex; gap: 8px; margin-left: auto; }
         .header-btn { 
-            background: transparent; 
-            border: 1px solid var(--border-dim); 
-            color: var(--text-dim); 
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 0.65rem; 
-            padding: 5px 10px; 
+            background: none; 
+            border: 1px solid var(--border); 
+            border-radius: 8px; 
+            color: var(--muted); 
+            font-size: 0.75rem; 
+            padding: 6px 12px; 
             cursor: pointer; 
-            transition: all 0.2s; 
-            letter-spacing: 1px;
-            text-transform: uppercase;
+            transition: 0.2s; 
+            font-family: inherit; 
         }
-        .header-btn:hover { 
-            color: var(--cyan); 
-            border-color: var(--cyan);
-            box-shadow: 0 0 8px rgba(0, 240, 255, 0.3);
-        }
-        .header-btn.memory-btn { 
-            color: var(--magenta); 
-            border-color: rgba(255, 45, 155, 0.4);
-        }
-        .header-btn.memory-btn:hover { 
-            border-color: var(--magenta);
-            box-shadow: 0 0 8px rgba(255, 45, 155, 0.4);
-        }
-        .header-btn.web-btn { 
-            color: var(--green); 
-            border-color: rgba(0, 255, 159, 0.4);
-        }
-        .header-btn.web-btn:hover { 
-            border-color: var(--green);
-            box-shadow: 0 0 8px rgba(0, 255, 159, 0.4);
-        }
-        .header-btn.web-btn.disabled { 
-            color: var(--text-dim); 
-            border-color: var(--border-dim);
-        }
+        .header-btn:hover { color: var(--text); border-color: var(--accent); }
+        .header-btn.memory-btn { border-color: var(--purple); color: var(--purple); }
+        .header-btn.memory-btn:hover { background: rgba(139,92,246,0.15); }
+        .header-btn.web-btn { border-color: var(--green); color: var(--green); }
+        .header-btn.web-btn:hover { background: rgba(0,255,136,0.15); }
+        .header-btn.web-btn.disabled { border-color: var(--border); color: var(--muted); }
         
-        /* Key panel */
         .key-panel { 
-            background: rgba(255, 204, 0, 0.05); 
-            border: 1px solid rgba(255, 204, 0, 0.4); 
-            border-left: 3px solid var(--yellow);
+            background: linear-gradient(135deg, rgba(234,179,8,0.15), rgba(249,115,22,0.15)); 
+            border: 1px solid rgba(234,179,8,0.4); 
+            border-radius: 12px; 
             padding: 16px; 
             margin-bottom: 16px; 
             display: none; 
         }
         .key-panel.visible { display: block; }
         .key-panel h3 { 
-            font-family: 'Orbitron', sans-serif;
-            color: var(--yellow); 
-            font-size: 0.75rem; 
+            color: #fbbf24; 
+            font-size: 0.9rem; 
             margin-bottom: 8px; 
             text-transform: uppercase; 
-            letter-spacing: 3px;
-            text-shadow: 0 0 8px rgba(255, 204, 0, 0.5);
+            letter-spacing: 1px; 
         }
         .key-panel p { 
-            font-size: 0.82rem; 
-            color: var(--text); 
+            font-size: 0.85rem; 
+            color: var(--muted); 
             margin-bottom: 12px; 
             line-height: 1.5; 
         }
         .key-input-row { display: flex; gap: 8px; }
         .key-input { 
             flex: 1; 
-            padding: 10px 12px; 
-            background: rgba(0, 10, 20, 0.8); 
-            border: 1px solid var(--border-dim); 
+            padding: 12px 14px; 
+            background: rgba(0,0,0,0.4); 
+            border: 1px solid var(--border); 
+            border-radius: 10px; 
             color: var(--text); 
-            font-family: 'Share Tech Mono', monospace; 
-            font-size: 0.8rem; 
+            font-family: monospace; 
+            font-size: 0.85rem; 
             outline: none; 
         }
-        .key-input:focus { 
-            border-color: var(--yellow); 
-            box-shadow: 0 0 8px rgba(255, 204, 0, 0.3);
-        }
+        .key-input:focus { border-color: #fbbf24; }
         .key-save-btn { 
-            padding: 10px 16px; 
-            background: rgba(255, 204, 0, 0.15); 
-            border: 1px solid var(--yellow); 
-            color: var(--yellow); 
-            font-family: 'Orbitron', sans-serif;
-            font-size: 0.7rem;
+            padding: 12px 18px; 
+            background: linear-gradient(135deg, #fbbf24, #f59e0b); 
+            border: none; 
+            border-radius: 10px; 
+            color: #0a0e17; 
             font-weight: 700; 
-            letter-spacing: 2px;
             cursor: pointer; 
-            text-transform: uppercase;
+            font-family: inherit; 
         }
-        .key-save-btn:hover { 
-            background: rgba(255, 204, 0, 0.3); 
-            box-shadow: 0 0 12px rgba(255, 204, 0, 0.4);
-        }
+        .key-save-btn:hover { opacity: 0.9; }
         .key-status { 
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 0.72rem; 
+            font-size: 0.8rem; 
             margin-top: 8px; 
             color: var(--green); 
             word-break: break-all; 
         }
         
-        /* Memory panel */
         .memory-panel { 
-            background: rgba(255, 45, 155, 0.05); 
-            border: 1px solid rgba(255, 45, 155, 0.4); 
-            border-left: 3px solid var(--magenta);
+            background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(59,130,246,0.15)); 
+            border: 1px solid rgba(139,92,246,0.4); 
+            border-radius: 12px; 
             padding: 16px; 
             margin-bottom: 16px; 
             display: none; 
         }
         .memory-panel.visible { display: block; }
         .memory-panel h3 { 
-            font-family: 'Orbitron', sans-serif;
-            color: var(--magenta); 
-            font-size: 0.75rem; 
+            color: var(--purple); 
+            font-size: 0.9rem; 
             margin-bottom: 12px; 
             text-transform: uppercase; 
-            letter-spacing: 3px;
-            text-shadow: 0 0 8px rgba(255, 45, 155, 0.5);
+            letter-spacing: 1px; 
         }
         .memory-panel p { 
-            font-size: 0.82rem; 
-            color: var(--text); 
+            font-size: 0.85rem; 
+            color: var(--muted); 
             margin-bottom: 12px; 
             line-height: 1.5; 
         }
         .memory-list { 
             display: flex; 
             flex-direction: column; 
-            gap: 6px; 
+            gap: 8px; 
             max-height: 300px; 
             overflow-y: auto; 
             margin-bottom: 12px; 
@@ -770,88 +500,68 @@
             display: flex; 
             align-items: center; 
             gap: 10px; 
-            background: rgba(0, 10, 20, 0.5); 
-            border-left: 2px solid var(--magenta);
-            padding: 8px 12px; 
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 0.78rem; 
+            background: rgba(0,0,0,0.3); 
+            padding: 10px 12px; 
+            border-radius: 8px; 
+            font-size: 0.85rem; 
             line-height: 1.5; 
         }
-        .memory-item span { flex: 1; color: var(--text); }
+        .memory-item span { flex: 1; }
         .memory-item .mem-date { 
-            font-size: 0.65rem; 
-            color: var(--text-dim); 
+            font-size: 0.7rem; 
+            color: var(--muted); 
             white-space: nowrap; 
         }
         .memory-item .mem-del { 
-            background: rgba(255, 45, 85, 0.15); 
-            border: 1px solid rgba(255, 45, 85, 0.4); 
+            background: rgba(255,51,102,0.15); 
+            border: 1px solid rgba(255,51,102,0.3); 
             color: var(--red); 
-            padding: 3px 8px; 
+            border-radius: 6px; 
+            padding: 4px 8px; 
             cursor: pointer; 
-            font-size: 0.7rem; 
+            font-size: 0.75rem; 
         }
-        .memory-item .mem-del:hover { 
-            background: rgba(255, 45, 85, 0.3); 
-            box-shadow: 0 0 6px rgba(255, 45, 85, 0.5);
-        }
+        .memory-item .mem-del:hover { background: rgba(255,51,102,0.3); }
         .memory-empty { 
-            font-family: 'Share Tech Mono', monospace;
-            color: var(--text-dim); 
+            color: var(--muted); 
             font-style: italic; 
-            font-size: 0.78rem; 
+            font-size: 0.85rem; 
             padding: 8px 0; 
         }
         .memory-actions { display: flex; gap: 8px; }
         .memory-action { 
-            padding: 7px 14px; 
-            font-family: 'Orbitron', sans-serif;
-            font-size: 0.68rem; 
-            letter-spacing: 1.5px;
+            padding: 8px 14px; 
+            border-radius: 8px; 
+            font-size: 0.8rem; 
             cursor: pointer; 
             font-weight: 600; 
-            text-transform: uppercase;
+            font-family: inherit; 
         }
         .memory-action.add { 
-            background: rgba(255, 45, 155, 0.15); 
-            border: 1px solid var(--magenta); 
-            color: var(--magenta); 
+            background: rgba(139,92,246,0.2); 
+            border: 1px solid var(--purple); 
+            color: var(--purple); 
         }
-        .memory-action.add:hover { 
-            background: rgba(255, 45, 155, 0.3); 
-            box-shadow: 0 0 12px rgba(255, 45, 155, 0.4);
-        }
+        .memory-action.add:hover { background: rgba(139,92,246,0.35); }
         .memory-action.clear { 
-            background: rgba(255, 45, 85, 0.1); 
-            border: 1px solid rgba(255, 45, 85, 0.5); 
+            background: rgba(255,51,102,0.15); 
+            border: 1px solid rgba(255,51,102,0.4); 
             color: var(--red); 
         }
-        .memory-action.clear:hover { 
-            background: rgba(255, 45, 85, 0.25); 
-            box-shadow: 0 0 12px rgba(255, 45, 85, 0.4);
-        }
-
-        /* Mobile tweaks */
-        @media (max-width: 768px) {
-            body { padding: 12px; }
-            h1 { font-size: 1.1rem; letter-spacing: 2px; }
-            .signal-text { font-size: 2.6rem; letter-spacing: 5px; }
-            .card { padding: 16px; }
-            #canvas-container { height: 340px; }
-        }
+        .memory-action.clear:hover { background: rgba(255,51,102,0.3); }
     </style>
 </head>
 <body>
     <header>
-        <h1>EUR/USD AI PRO</h1>
-        <div class="status-badge"><div class="pulse-dot"></div>LIVE</div>
+        <h1>⚡ EUR/USD AI PRO</h1>
+        <div class="status-badge"><div class="pulse-dot"></div>LIVE ANALYSIS</div>
     </header>
 
     <div class="dashboard-grid">
         <div class="card">
-            <h2>AI Assistant</h2>
+            <h2>AI Neural Core</h2>
             <div id="canvas-container"></div>
-            <div class="core-label">ARIA // TRADING COMPANION v2.0</div>
+            <div class="core-label">Quantum Market Intelligence</div>
         </div>
 
         <div class="card">
@@ -866,54 +576,54 @@
                 <div class="data-item"><div class="data-label">Confidence</div><div id="confidence" class="data-value">-</div></div>
             </div>
             <div class="voice-controls">
-                <button class="voice-btn" onclick="speakSignal()">◤ PLAY VOICE</button>
-                <button class="voice-btn stop" onclick="stopVoice()">■ STOP</button>
+                <button class="voice-btn" onclick="speakSignal()">🔊 Play Voice</button>
+                <button class="voice-btn stop" onclick="stopVoice()">⏹ Stop</button>
             </div>
         </div>
 
         <div class="card" style="grid-column: 1 / -1;">
-            <h2 style="display:flex; align-items:center;">Ask Your AI Trader
+            <h2 style="display:flex; align-items:center;">💬 Ask Your AI Trader
                 <div class="chat-header-buttons">
-                    <button id="webToggleBtn" class="header-btn web-btn" onclick="toggleWebSearch()">WEB ON</button>
-                    <button class="header-btn memory-btn" onclick="toggleMemoryPanel()">MEMORY</button>
-                    <button class="header-btn" onclick="showKeyPanel()">KEY</button>
+                    <button id="webToggleBtn" class="header-btn web-btn" onclick="toggleWebSearch()">🌐 Web ON</button>
+                    <button class="header-btn memory-btn" onclick="toggleMemoryPanel()">🧠 Memory</button>
+                    <button class="header-btn" onclick="showKeyPanel()">🔑 Key</button>
                 </div>
             </h2>
 
             <div id="keyPanel" class="key-panel">
-                <h3>[ KEY INPUT ]</h3>
+                <h3>🔑 One-Time Setup</h3>
                 <p>Paste your Gemini API key below. It will be stored <strong>only in this browser</strong> — never sent to GitHub or anyone else.</p>
                 <div class="key-input-row">
-                    <input id="keyInput" class="key-input" type="password" placeholder="AIzaSy..." />
-                    <button class="key-save-btn" onclick="saveKey()">SAVE</button>
+                    <input id="keyInput" class="key-input" type="password" placeholder="Paste key starting with AIza... or AQ..." />
+                    <button class="key-save-btn" onclick="saveKey()">Save</button>
                 </div>
                 <div id="keyStatus" class="key-status"></div>
             </div>
 
             <div id="memoryPanel" class="memory-panel">
-                <h3>[ LONG-TERM MEMORY ]</h3>
-                <p>Facts Aria remembers about Boss — persist even after clearing chat.</p>
+                <h3>🧠 Long-Term Memory</h3>
+                <p>These facts stay with you forever — even when you clear the chat. The AI remembers them and uses them to personalize every reply.</p>
                 <div id="memoryList" class="memory-list"></div>
                 <div class="memory-actions">
-                    <button class="memory-action add" onclick="addMemoryManually()">+ ADD</button>
-                    <button class="memory-action clear" onclick="clearAllMemory()">CLEAR ALL</button>
+                    <button class="memory-action add" onclick="addMemoryManually()">+ Add Fact</button>
+                    <button class="memory-action clear" onclick="clearAllMemory()">🗑 Clear All</button>
                 </div>
             </div>
 
             <div class="chat-container">
                 <div id="chatMessages" class="chat-messages">
-                    <div class="chat-msg system">Ask me anything, Boss. Toggle WEB ON for internet search.</div>
+                    <div class="chat-msg system">Ask me anything, Boss. I know the current price, signal, and your routine. Toggle 🌐 Web ON to let me search the internet.</div>
                 </div>
                 <div class="chat-input-row">
-                    <input id="chatInput" class="chat-input" type="text" placeholder="> ENTER COMMAND..." onkeydown="if(event.key === 'Enter') sendChat()" />
-                    <button id="chatSendBtn" class="chat-send" onclick="sendChat()">SEND</button>
+                    <input id="chatInput" class="chat-input" type="text" placeholder="e.g. Should I enter now? Or: What is the latest news on EUR/USD?" onkeydown="if(event.key === 'Enter') sendChat()" />
+                    <button id="chatSendBtn" class="chat-send" onclick="sendChat()">Send</button>
                 </div>
-                <button class="chat-clear" onclick="clearChat()">CLEAR CHAT</button>
+                <button class="chat-clear" onclick="clearChat()">Clear chat (memory stays)</button>
             </div>
         </div>
 
         <div class="card" style="grid-column: 1 / -1;">
-            <h2>Boss's Wisdom Corner</h2>
+            <h2>Boss's Wisdom Corner 💡</h2>
             <div id="wise_box" class="wise-box">
                 <span class="wise-label">Loading...</span>
                 Waiting for the market to speak...
@@ -923,11 +633,11 @@
         <div class="card" style="grid-column: 1 / -1;">
             <h2>Multi-Timeframe Analysis</h2>
             <div class="candle-analysis">
-                <div class="candle-item"><span class="candle-timeframe">CURRENT:</span><span id="candle_current">Waiting...</span></div>
-                <div class="candle-item"><span class="candle-timeframe">1H:</span><span id="candle_1h">Waiting...</span></div>
-                <div class="candle-item"><span class="candle-timeframe">4H:</span><span id="candle_4h">Waiting...</span></div>
-                <div class="candle-item"><span class="candle-timeframe">TREND:</span><span id="trend">Waiting...</span></div>
-                <div class="candle-item"><span class="candle-timeframe">SESSION:</span><span id="session">-</span></div>
+                <div class="candle-item"><span class="candle-timeframe">Current Candle:</span><span id="candle_current">Waiting...</span></div>
+                <div class="candle-item"><span class="candle-timeframe">1 Hour Candle:</span><span id="candle_1h">Waiting...</span></div>
+                <div class="candle-item"><span class="candle-timeframe">4 Hour Candle:</span><span id="candle_4h">Waiting...</span></div>
+                <div class="candle-item"><span class="candle-timeframe">Trend:</span><span id="trend">Waiting...</span></div>
+                <div class="candle-item"><span class="candle-timeframe">Session:</span><span id="session">-</span></div>
                 <div class="level-grid">
                     <div class="level-item"><div class="level-label">Support</div><div class="level-value" id="support">-</div></div>
                     <div class="level-item"><div class="level-label">Resistance</div><div class="level-value" id="resistance">-</div></div>
@@ -936,9 +646,9 @@
         </div>
 
         <div class="card" style="grid-column: 1 / -1;">
-            <h2>AI Trader's Reasoning</h2>
+            <h2>AI Trader's Reasoning 🧠</h2>
             <div class="ai-reason-box">
-                <span class="ai-reason-label">[ SIGNAL ANALYSIS ]</span>
+                <span class="ai-reason-label">Why this signal?</span>
                 <span id="ai_reason">Waiting for AI analysis...</span>
             </div>
         </div>
@@ -964,9 +674,10 @@
         function updateWebToggleUI() {
             const btn = document.getElementById("webToggleBtn");
             if (!btn) return;
-            if (isWebSearchEnabled()) { btn.innerHTML = "WEB ON"; btn.classList.remove("disabled"); }
-            else { btn.innerHTML = "WEB OFF"; btn.classList.add("disabled"); }
+            if (isWebSearchEnabled()) { btn.innerHTML = "🌐 Web ON"; btn.classList.remove("disabled"); }
+            else { btn.innerHTML = "🌐 Web OFF"; btn.classList.add("disabled"); }
         }
+
         function getStoredKey() {
             try { return localStorage.getItem(KEY_STORAGE_NAME) || ""; } catch (e) { return ""; }
         }
@@ -985,6 +696,7 @@
             } catch (e) {}
         }
         function clearStoredHistory() { try { localStorage.removeItem(HISTORY_STORAGE_NAME); } catch (e) {} }
+
         function loadMemory() {
             try {
                 const raw = localStorage.getItem(MEMORY_STORAGE_NAME);
@@ -1010,7 +722,7 @@
             renderMemoryList();
         }
         function clearAllMemory() {
-            if (!confirm("Clear ALL long-term memory?")) return;
+            if (!confirm("Clear ALL long-term memory? This cannot be undone.")) return;
             saveMemory([]);
             renderMemoryList();
         }
@@ -1026,7 +738,7 @@
             const list = document.getElementById("memoryList");
             const memory = loadMemory();
             if (!memory.length) {
-                list.innerHTML = '<div class="memory-empty">// No memories stored. Aria will learn from conversations.</div>';
+                list.innerHTML = '<div class="memory-empty">No memories yet, Boss. Talk to me and I will remember important things automatically.</div>';
                 return;
             }
             list.innerHTML = memory.map((item, i) => `
@@ -1053,19 +765,19 @@
         function saveKey() {
             const key = document.getElementById("keyInput").value.replace(/\s/g, "");
             if (!key || key.length < 20) {
-                document.getElementById("keyStatus").innerText = "ERROR: KEY TOO SHORT";
+                document.getElementById("keyStatus").innerText = "❌ Key looks too short. Try copying again.";
                 return;
             }
             try {
                 localStorage.setItem(KEY_STORAGE_NAME, key);
                 const preview = key.slice(0, 8) + "..." + key.slice(-4);
-                document.getElementById("keyStatus").innerText = `OK: ${preview} (${key.length})`;
+                document.getElementById("keyStatus").innerText = `✅ Saved: ${preview} (${key.length} chars)`;
                 setTimeout(() => {
                     document.getElementById("keyPanel").classList.remove("visible");
                     document.getElementById("keyStatus").innerText = "";
                 }, 3000);
             } catch (e) {
-                document.getElementById("keyStatus").innerText = "ERROR: SAVE FAILED";
+                document.getElementById("keyStatus").innerText = "❌ Could not save key";
             }
         }
         function showKeyPanel() {
@@ -1079,314 +791,100 @@
             updateWebToggleUI();
         });
 
-        // ═══ HOLOGRAPHIC AI WOMAN — ARIA ═══
+        // ═══ NEURAL CORE (futuristic 3D) ═══
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+        const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
         renderer.setSize(container.clientWidth, container.clientHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
 
-        let signalColor = new THREE.Color(0x00f0ff);
+        const glowGeo = new THREE.SphereGeometry(0.35, 32, 32);
+        const glowMat = new THREE.MeshBasicMaterial({ color: 0xffcc00, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending });
+        const glowSphere = new THREE.Mesh(glowGeo, glowMat);
+        scene.add(glowSphere);
 
-        const aria = new THREE.Group();
-        aria.position.y = 0.2;
-        scene.add(aria);
+        const innerGeo = new THREE.IcosahedronGeometry(0.7, 1);
+        const innerMat = new THREE.MeshBasicMaterial({ color: 0xffcc00, wireframe: true, transparent: true, opacity: 0.9 });
+        const innerCore = new THREE.Mesh(innerGeo, innerMat);
+        scene.add(innerCore);
 
-        const headGeo = new THREE.SphereGeometry(0.62, 64, 64);
-        const p = headGeo.attributes.position;
-        for (let i = 0; i < p.count; i++) {
-            let x = p.getX(i), y = p.getY(i), z = p.getZ(i);
-            if (y < 0) { const t = 1 - Math.abs(y) * 0.55; x *= t; z *= t; }
-            if (y > 0.3) { const t = 1 - (y - 0.3) * 0.35; x *= t; z *= t; }
-            if (z < -0.2) z *= 0.85;
-            p.setXYZ(i, x * 0.95, y * 1.05, z);
+        const outerGeo = new THREE.IcosahedronGeometry(1.4, 1);
+        const outerMat = new THREE.MeshBasicMaterial({ color: 0x3b82f6, wireframe: true, transparent: true, opacity: 0.35 });
+        const outerCore = new THREE.Mesh(outerGeo, outerMat);
+        scene.add(outerCore);
+
+        const rings = [];
+        const ringColors = [0x3b82f6, 0x8b5cf6, 0x00ff88];
+        for (let i = 0; i < 3; i++) {
+            const ringGeo = new THREE.TorusGeometry(1.9 + i * 0.25, 0.012, 16, 100);
+            const ringMat = new THREE.MeshBasicMaterial({ color: ringColors[i], transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending });
+            const ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.rotation.x = Math.PI / 2 * i;
+            ring.rotation.y = Math.PI / 3 * i;
+            scene.add(ring);
+            rings.push(ring);
         }
-        headGeo.computeVertexNormals();
 
-        const skinMat = new THREE.MeshPhongMaterial({
-            color: signalColor, emissive: signalColor, emissiveIntensity: 0.35,
-            specular: 0xffffff, shininess: 80, transparent: true, opacity: 0.55
-        });
-        const head = new THREE.Mesh(headGeo, skinMat);
-        aria.add(head);
-
-        const wireMat = new THREE.MeshBasicMaterial({ color: signalColor, wireframe: true, transparent: true, opacity: 0.18 });
-        const headWire = new THREE.Mesh(headGeo.clone(), wireMat);
-        aria.add(headWire);
-
-        // Eyes
-        const eyeSocketGeo = new THREE.SphereGeometry(0.11, 24, 24);
-        const eyeSocketMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.15 });
-        const socketL = new THREE.Mesh(eyeSocketGeo, eyeSocketMat);
-        socketL.scale.set(1.3, 0.9, 0.5); socketL.position.set(-0.22, 0.06, 0.55); aria.add(socketL);
-        const socketR = new THREE.Mesh(eyeSocketGeo, eyeSocketMat.clone());
-        socketR.scale.set(1.3, 0.9, 0.5); socketR.position.set(0.22, 0.06, 0.55); aria.add(socketR);
-
-        const irisGeo = new THREE.SphereGeometry(0.06, 20, 20);
-        const irisMat = new THREE.MeshBasicMaterial({ color: signalColor });
-        const irisL = new THREE.Mesh(irisGeo, irisMat);
-        irisL.position.set(-0.22, 0.06, 0.62); aria.add(irisL);
-        const irisR = new THREE.Mesh(irisGeo, irisMat.clone());
-        irisR.position.set(0.22, 0.06, 0.62); aria.add(irisR);
-
-        const pupilGeo = new THREE.SphereGeometry(0.028, 16, 16);
-        const pupilMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-        const pupilL = new THREE.Mesh(pupilGeo, pupilMat);
-        pupilL.position.set(-0.22, 0.06, 0.65); aria.add(pupilL);
-        const pupilR = new THREE.Mesh(pupilGeo, pupilMat.clone());
-        pupilR.position.set(0.22, 0.06, 0.65); aria.add(pupilR);
-
-        const eyeLightL = new THREE.PointLight(signalColor, 1.5, 2);
-        eyeLightL.position.set(-0.22, 0.06, 0.75); aria.add(eyeLightL);
-        const eyeLightR = new THREE.PointLight(signalColor, 1.5, 2);
-        eyeLightR.position.set(0.22, 0.06, 0.75); aria.add(eyeLightR);
-
-        function makeBrow(sign) {
-            const curve = new THREE.CatmullRomCurve3([
-                new THREE.Vector3(sign * 0.10, 0, 0),
-                new THREE.Vector3(sign * 0.18, 0.04, 0.01),
-                new THREE.Vector3(sign * 0.28, 0.02, 0)
-            ]);
-            const geo = new THREE.TubeGeometry(curve, 16, 0.010, 6, false);
-            const mat = new THREE.MeshBasicMaterial({ color: signalColor, transparent: true, opacity: 0.85 });
-            const brow = new THREE.Mesh(geo, mat);
-            brow.position.set(sign === -1 ? -0.22 : 0.22, 0.22, 0.62);
-            return brow;
-        }
-        const browL = makeBrow(-1);
-        const browR = makeBrow(1);
-        aria.add(browL, browR);
-
-        const noseGeo = new THREE.ConeGeometry(0.035, 0.14, 10);
-        const noseMat = new THREE.MeshPhongMaterial({
-            color: signalColor, emissive: signalColor, emissiveIntensity: 0.4,
-            transparent: true, opacity: 0.7
-        });
-        const nose = new THREE.Mesh(noseGeo, noseMat);
-        nose.rotation.x = Math.PI / 2;
-        nose.position.set(0, -0.06, 0.6);
-        aria.add(nose);
-
-        const lipMat = new THREE.MeshPhongMaterial({
-            color: 0xff2d9b, emissive: 0xff2d9b, emissiveIntensity: 0.8,
-            shininess: 100, transparent: true, opacity: 0.9
-        });
-        const upperCurve = new THREE.CatmullRomCurve3([
-            new THREE.Vector3(-0.10, 0, 0), new THREE.Vector3(-0.04, 0.02, 0),
-            new THREE.Vector3(0, 0.012, 0), new THREE.Vector3(0.04, 0.02, 0),
-            new THREE.Vector3(0.10, 0, 0)
-        ]);
-        const upperLip = new THREE.Mesh(new THREE.TubeGeometry(upperCurve, 20, 0.022, 8, false), lipMat);
-        upperLip.position.set(0, -0.22, 0.6); aria.add(upperLip);
-        const lowerCurve = new THREE.CatmullRomCurve3([
-            new THREE.Vector3(-0.10, 0, 0), new THREE.Vector3(-0.05, -0.035, 0),
-            new THREE.Vector3(0, -0.04, 0), new THREE.Vector3(0.05, -0.035, 0),
-            new THREE.Vector3(0.10, 0, 0)
-        ]);
-        const lowerLip = new THREE.Mesh(new THREE.TubeGeometry(lowerCurve, 20, 0.03, 10, false), lipMat.clone());
-        lowerLip.position.set(0, -0.22, 0.6); aria.add(lowerLip);
-
-        const hairMat = new THREE.MeshPhongMaterial({
-            color: 0x9d4eff, emissive: 0x9d4eff, emissiveIntensity: 0.6,
-            shininess: 120, specular: 0xd8b4fe, transparent: true, opacity: 0.55
-        });
-        const hairCapGeo = new THREE.SphereGeometry(0.68, 32, 32, 0, Math.PI * 2, 0, Math.PI * 0.6);
-        const hairCap = new THREE.Mesh(hairCapGeo, hairMat);
-        hairCap.position.y = 0.05; hairCap.scale.set(1.03, 1.1, 1.03); aria.add(hairCap);
-
-        const hairStrands = [];
-        function addStrand(xOff, zOff, length, width, phase) {
-            const pts = [
-                new THREE.Vector3(xOff * 0.75, 0.42, -0.1 + zOff),
-                new THREE.Vector3(xOff * 1.0, 0.1, -0.3 + zOff),
-                new THREE.Vector3(xOff * 1.15, -0.4 * length, -0.5 + zOff),
-                new THREE.Vector3(xOff * 1.05, -1.0 * length, -0.5 + zOff),
-                new THREE.Vector3(xOff * 0.85, -1.5 * length, -0.3 + zOff)
-            ];
-            const curve = new THREE.CatmullRomCurve3(pts);
-            const geo = new THREE.TubeGeometry(curve, 40, width, 8, false);
-            const strand = new THREE.Mesh(geo, hairMat);
-            strand.userData.phase = phase;
-            aria.add(strand);
-            hairStrands.push(strand);
-        }
-        addStrand(-0.55, 0, 1.0, 0.09, 0);
-        addStrand(-0.48, -0.12, 1.15, 0.08, 0.5);
-        addStrand(-0.35, -0.22, 1.25, 0.075, 1.0);
-        addStrand(-0.20, -0.28, 1.35, 0.07, 1.5);
-        addStrand(-0.08, -0.30, 1.4, 0.08, 2.0);
-        addStrand(0.08, -0.30, 1.4, 0.08, 2.5);
-        addStrand(0.20, -0.28, 1.35, 0.07, 3.0);
-        addStrand(0.35, -0.22, 1.25, 0.075, 3.5);
-        addStrand(0.48, -0.12, 1.15, 0.08, 4.0);
-        addStrand(0.55, 0, 1.0, 0.09, 4.5);
-
-        const fringeGeo = new THREE.SphereGeometry(0.26, 24, 16, 0, Math.PI * 2, 0, Math.PI * 0.6);
-        const fringe = new THREE.Mesh(fringeGeo, hairMat);
-        fringe.position.set(0, 0.42, 0.38); fringe.scale.set(1.8, 0.55, 0.5); aria.add(fringe);
-
-        const neckGeo = new THREE.CylinderGeometry(0.13, 0.16, 0.35, 24);
-        const neckMat = new THREE.MeshPhongMaterial({
-            color: signalColor, emissive: signalColor, emissiveIntensity: 0.3,
-            transparent: true, opacity: 0.45
-        });
-        const neck = new THREE.Mesh(neckGeo, neckMat);
-        neck.position.set(0, -0.85, 0); aria.add(neck);
-
-        const shoulderGeo = new THREE.SphereGeometry(0.85, 40, 24, 0, Math.PI * 2, 0, Math.PI * 0.55);
-        const shoulderMat = new THREE.MeshPhongMaterial({
-            color: signalColor, emissive: signalColor, emissiveIntensity: 0.25,
-            transparent: true, opacity: 0.35, side: THREE.DoubleSide
-        });
-        const shoulders = new THREE.Mesh(shoulderGeo, shoulderMat);
-        shoulders.scale.set(1.4, 0.75, 0.9);
-        shoulders.position.set(0, -1.15, 0);
-        shoulders.rotation.x = Math.PI;
-        aria.add(shoulders);
-
-        const shoulderWire = new THREE.Mesh(shoulderGeo.clone(), new THREE.MeshBasicMaterial({
-            color: signalColor, wireframe: true, transparent: true, opacity: 0.12
-        }));
-        shoulderWire.scale.copy(shoulders.scale);
-        shoulderWire.position.copy(shoulders.position);
-        shoulderWire.rotation.copy(shoulders.rotation);
-        aria.add(shoulderWire);
-
-        const neuralLines = new THREE.Group();
-        for (let i = 0; i < 30; i++) {
-            const a = Math.random() * Math.PI * 2;
-            const r = 0.35 + Math.random() * 0.25;
-            const start = new THREE.Vector3(Math.cos(a) * r * 0.6, (Math.random() - 0.5) * 0.6, Math.sin(a) * r * 0.5 + 0.35);
-            const end = new THREE.Vector3(Math.cos(a) * r * 0.9, (Math.random() - 0.5) * 0.7, Math.sin(a) * r * 0.7 + 0.4);
-            const geo = new THREE.BufferGeometry().setFromPoints([start, end]);
-            const line = new THREE.Line(geo, new THREE.LineBasicMaterial({
-                color: signalColor, transparent: true, opacity: 0.3
-            }));
-            neuralLines.add(line);
-        }
-        aria.add(neuralLines);
-
-        const halo1Geo = new THREE.TorusGeometry(1.5, 0.008, 12, 120);
-        const halo1Mat = new THREE.MeshBasicMaterial({ color: 0xff2d9b, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending });
-        const halo1 = new THREE.Mesh(halo1Geo, halo1Mat);
-        halo1.rotation.x = Math.PI / 2.3;
-        halo1.position.y = 0.15;
-        aria.add(halo1);
-
-        const halo2Geo = new THREE.TorusGeometry(1.75, 0.006, 12, 120);
-        const halo2Mat = new THREE.MeshBasicMaterial({ color: 0x9d4eff, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending });
-        const halo2 = new THREE.Mesh(halo2Geo, halo2Mat);
-        halo2.rotation.x = Math.PI / 3;
-        halo2.rotation.z = Math.PI / 5;
-        aria.add(halo2);
-
-        const particleCount = 350;
+        const particleCount = 500;
         const particleGeo = new THREE.BufferGeometry();
         const positions = new Float32Array(particleCount * 3);
         const pColors = new Float32Array(particleCount * 3);
         const speeds = [];
         for (let i = 0; i < particleCount; i++) {
-            const radius = 1.2 + Math.random() * 1.6;
+            const radius = 1.8 + Math.random() * 1.8;
             const theta = Math.random() * Math.PI * 2;
             const phi = Math.acos(2 * Math.random() - 1);
-            positions[i*3] = radius * Math.sin(phi) * Math.cos(theta);
-            positions[i*3+1] = radius * Math.sin(phi) * Math.sin(theta) + 0.3;
-            positions[i*3+2] = radius * Math.cos(phi);
+            positions[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
+            positions[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+            positions[i * 3 + 2] = radius * Math.cos(phi);
             const cc = Math.random();
-            if (cc < 0.4) { pColors[i*3]=0.61; pColors[i*3+1]=0.31; pColors[i*3+2]=1.0; }
-            else if (cc < 0.7) { pColors[i*3]=1.0; pColors[i*3+1]=0.18; pColors[i*3+2]=0.61; }
-            else if (cc < 0.9) { pColors[i*3]=0.0; pColors[i*3+1]=0.94; pColors[i*3+2]=1.0; }
+            if (cc < 0.6) { pColors[i*3]=0.23; pColors[i*3+1]=0.51; pColors[i*3+2]=0.96; }
+            else if (cc < 0.85) { pColors[i*3]=0.55; pColors[i*3+1]=0.36; pColors[i*3+2]=0.96; }
             else { pColors[i*3]=1.0; pColors[i*3+1]=1.0; pColors[i*3+2]=1.0; }
-            speeds.push({ theta, phi, radius, dTheta: 0.0008 + Math.random() * 0.002, dPhi: (Math.random() - 0.5) * 0.001 });
+            speeds.push({ theta, phi, radius, dTheta: 0.001 + Math.random() * 0.003, dPhi: (Math.random() - 0.5) * 0.002 });
         }
         particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
         particleGeo.setAttribute('color', new THREE.BufferAttribute(pColors, 3));
-        const particleMat = new THREE.PointsMaterial({
-            size: 0.028, vertexColors: true, transparent: true, opacity: 0.85,
-            blending: THREE.AdditiveBlending, sizeAttenuation: true
-        });
+        const particleMat = new THREE.PointsMaterial({ size: 0.035, vertexColors: true, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, sizeAttenuation: true });
         const particles = new THREE.Points(particleGeo, particleMat);
         scene.add(particles);
 
-        scene.add(new THREE.AmbientLight(0x8899cc, 0.6));
-        const keyL = new THREE.DirectionalLight(0xffffff, 0.8);
-        keyL.position.set(1.5, 2, 3); scene.add(keyL);
-        const rimL = new THREE.DirectionalLight(0xff2d9b, 0.7);
-        rimL.position.set(-2, 1, -2); scene.add(rimL);
-        const fillL = new THREE.PointLight(0x00f0ff, 0.8, 8);
-        fillL.position.set(0, -0.5, 2); scene.add(fillL);
-
-        camera.position.set(0, 0.1, 3.2);
-        camera.lookAt(0, 0.05, 0);
-
-        let targetLookX = 0, targetLookY = 0;
-        function setLook(cx, cy) {
-            const rect = container.getBoundingClientRect();
-            const nx = ((cx - rect.left) / rect.width) * 2 - 1;
-            const ny = -(((cy - rect.top) / rect.height) * 2 - 1);
-            targetLookX = nx * 0.04;
-            targetLookY = ny * 0.025;
-        }
-        container.addEventListener("mousemove", (e) => setLook(e.clientX, e.clientY));
-        container.addEventListener("touchmove", (e) => {
-            if (e.touches.length > 0) setLook(e.touches[0].clientX, e.touches[0].clientY);
-        });
-
+        camera.position.z = 5.5;
         const clock = new THREE.Clock();
-        let nextBlink = 2 + Math.random() * 3;
-        let blinkTimer = 0;
 
         function animate() {
             requestAnimationFrame(animate);
             const t = clock.getElapsedTime();
-            const dt = 0.016;
+            const glowScale = 1 + Math.sin(t * 3) * 0.15;
+            glowSphere.scale.set(glowScale, glowScale, glowScale);
+            glowSphere.material.opacity = 0.7 + Math.sin(t * 3) * 0.2;
 
-            aria.position.y = 0.2 + Math.sin(t * 1.0) * 0.04;
-            aria.rotation.y = Math.sin(t * 0.4) * 0.08;
+            innerCore.rotation.x += 0.008;
+            innerCore.rotation.y += 0.012;
+            const innerScale = 1 + Math.sin(t * 2) * 0.08;
+            innerCore.scale.set(innerScale, innerScale, innerScale);
 
-            irisL.position.x = -0.22 + targetLookX; irisL.position.y = 0.06 + targetLookY;
-            irisR.position.x = 0.22 + targetLookX; irisR.position.y = 0.06 + targetLookY;
-            pupilL.position.x = -0.22 + targetLookX; pupilL.position.y = 0.06 + targetLookY;
-            pupilR.position.x = 0.22 + targetLookX; pupilR.position.y = 0.06 + targetLookY;
-            eyeLightL.position.x = -0.22 + targetLookX; eyeLightL.position.y = 0.06 + targetLookY;
-            eyeLightR.position.x = 0.22 + targetLookX; eyeLightR.position.y = 0.06 + targetLookY;
+            outerCore.rotation.x -= 0.003;
+            outerCore.rotation.y -= 0.005;
+            const outerScale = 1 + Math.sin(t * 1.5 + 1) * 0.05;
+            outerCore.scale.set(outerScale, outerScale, outerScale);
 
-            blinkTimer += dt;
-            if (blinkTimer >= nextBlink) { blinkTimer = 0; nextBlink = 2 + Math.random() * 3; }
-            let blinkScale = 1;
-            if (blinkTimer < 0.15) blinkScale = 1 - Math.abs(Math.sin(blinkTimer / 0.15 * Math.PI)) * 0.9;
-            socketL.scale.y = 0.9 * blinkScale; socketR.scale.y = 0.9 * blinkScale;
-            irisL.scale.y = blinkScale; irisR.scale.y = blinkScale;
-            pupilL.scale.y = blinkScale; pupilR.scale.y = blinkScale;
-
-            hairStrands.forEach(s => {
-                const phase = s.userData.phase;
-                s.rotation.z = Math.sin(t * 1.2 + phase) * 0.06;
-                s.rotation.x = Math.sin(t * 0.8 + phase * 1.3) * 0.03;
-            });
-
-            halo1.rotation.z += 0.004;
-            halo2.rotation.z -= 0.003;
-
-            neuralLines.children.forEach((line, i) => {
-                line.material.opacity = 0.15 + Math.abs(Math.sin(t * 1.5 + i)) * 0.3;
-            });
+            rings[0].rotation.z += 0.008; rings[0].rotation.y += 0.004;
+            rings[1].rotation.z -= 0.006; rings[1].rotation.x += 0.005;
+            rings[2].rotation.z += 0.01; rings[2].rotation.y -= 0.003;
 
             const posArr = particleGeo.attributes.position.array;
             for (let i = 0; i < particleCount; i++) {
                 const s = speeds[i];
                 s.theta += s.dTheta; s.phi += s.dPhi;
-                posArr[i*3]     = s.radius * Math.sin(s.phi) * Math.cos(s.theta);
-                posArr[i*3+1]   = s.radius * Math.sin(s.phi) * Math.sin(s.theta) + 0.3;
-                posArr[i*3+2]   = s.radius * Math.cos(s.phi);
+                posArr[i * 3]     = s.radius * Math.sin(s.phi) * Math.cos(s.theta);
+                posArr[i * 3 + 1] = s.radius * Math.sin(s.phi) * Math.sin(s.theta);
+                posArr[i * 3 + 2] = s.radius * Math.cos(s.phi);
             }
             particleGeo.attributes.position.needsUpdate = true;
-            particles.rotation.y += 0.0008;
-
-            eyeLightL.intensity = 1.2 + Math.sin(t * 2.5) * 0.4;
-            eyeLightR.intensity = 1.2 + Math.sin(t * 2.5 + 0.5) * 0.4;
+            particles.rotation.y += 0.0015;
 
             renderer.render(scene, camera);
         }
@@ -1398,27 +896,15 @@
             renderer.setSize(container.clientWidth, container.clientHeight);
         });
 
-        function updateAvatarColor(signal) {
-            let hex;
-            if (signal === "BUY") hex = 0x00ff9f;
-            else if (signal === "SELL") hex = 0xff2d55;
-            else hex = 0x00f0ff;
-            signalColor = new THREE.Color(hex);
-
-            skinMat.color.copy(signalColor); skinMat.emissive.copy(signalColor);
-            neckMat.color.copy(signalColor); neckMat.emissive.copy(signalColor);
-            shoulderMat.color.copy(signalColor); shoulderMat.emissive.copy(signalColor);
-            noseMat.color.copy(signalColor); noseMat.emissive.copy(signalColor);
-            wireMat.color.copy(signalColor);
-            neuralLines.children.forEach(line => line.material.color.copy(signalColor));
-            irisMat.color.copy(signalColor); irisR.material.color.copy(signalColor);
-            eyeLightL.color.copy(signalColor); eyeLightR.color.copy(signalColor);
-            browL.material.color.copy(signalColor); browR.material.color.copy(signalColor);
-            halo1Mat.color.copy(signalColor).lerp(new THREE.Color(0xff2d9b), 0.5);
-
-            if (signal === "BUY") { browL.rotation.z = 0.15; browR.rotation.z = -0.15; }
-            else if (signal === "SELL") { browL.rotation.z = -0.22; browR.rotation.z = 0.22; }
-            else { browL.rotation.z = 0; browR.rotation.z = 0; }
+        function updateCoreColor(signal) {
+            let colorHex, color;
+            if (signal === "BUY") { colorHex = 0x00ff88; color = new THREE.Color(0x00ff88); }
+            else if (signal === "SELL") { colorHex = 0xff3366; color = new THREE.Color(0xff3366); }
+            else { colorHex = 0xffcc00; color = new THREE.Color(0xffcc00); }
+            glowSphere.material.color.setHex(colorHex);
+            innerCore.material.color.setHex(colorHex);
+            outerCore.material.color.copy(color).lerp(new THREE.Color(0x3b82f6), 0.5);
+            rings[2].material.color.copy(color);
         }
 
         // DATA
@@ -1432,7 +918,7 @@
                 const data = await response.json();
                 updateDashboard(data);
             } catch (error) {
-                document.getElementById("ai_reason").innerText = "// AWAITING DATA STREAM //";
+                document.getElementById("ai_reason").innerText = "Boss, waiting for the Python backend. Please run the GitHub Action.";
                 setTimeout(loadLiveData, 15000);
             }
         }
@@ -1457,16 +943,16 @@
             document.getElementById("candle_1h").innerText = data.candle_1h;
             document.getElementById("candle_4h").innerText = data.candle_4h;
             document.getElementById("trend").innerText = data.trend || "-";
-            document.getElementById("session").innerText = (data.session || "-") + " (" + (data.volatility || "-") + ")";
+            document.getElementById("session").innerText = (data.session || "-") + " (" + (data.volatility || "-") + " volatility)";
             document.getElementById("support").innerText = data.support || "-";
             document.getElementById("resistance").innerText = data.resistance || "-";
             document.getElementById("ai_reason").innerText = data.reason || "No analysis yet.";
             if (data.wise_words) {
                 const wiseBox = document.getElementById("wise_box");
                 const isJoke = data.wise_words.toLowerCase().startsWith("joke");
-                wiseBox.innerHTML = `<span class="wise-label">${isJoke ? 'JOKE OF THE HOUR' : 'MOTIVATION'}</span>${data.wise_words.replace(/^Joke:\s*|^Motivation:\s*/i, '')}`;
+                wiseBox.innerHTML = `<span class="wise-label">${isJoke ? '😂 Joke of the Hour' : '💪 Motivation of the Hour'}</span>${data.wise_words.replace(/^Joke:\s*|^Motivation:\s*/i, '')}`;
             }
-            updateAvatarColor(data.signal);
+            updateCoreColor(data.signal);
         }
 
         // VOICE
@@ -1477,10 +963,10 @@
         function getBestVoice() {
             const voices = window.speechSynthesis.getVoices();
             if (!voices.length) return null;
-            const femaleNames = ["Google UK English Female", "Microsoft Zira", "Microsoft Aria", "Microsoft Jenny", "Samantha", "Victoria", "Karen", "Moira", "Tessa", "Fiona"];
+            const preferredNames = ["Google UK English Male", "Microsoft Ryan Online", "Microsoft Guy Online", "Google US English", "Microsoft Mark", "Daniel", "Alex", "Google UK English Female", "Samantha"];
             const englishVoices = voices.filter(v => v.lang.startsWith("en"));
-            const females = femaleNames.map(n => englishVoices.find(v => v.name.includes(n.split(" ")[0]))).filter(v => v);
-            if (females.length) return pickRandom(females);
+            const matches = preferredNames.map(n => englishVoices.find(v => v.name.includes(n.split(" ")[0]))).filter(v => v);
+            if (matches.length) return pickRandom(matches);
             if (englishVoices.length) return pickRandom(englishVoices);
             return voices[0];
         }
@@ -1504,8 +990,8 @@
             const u = new SpeechSynthesisUtterance(text);
             const v = getBestVoice();
             if (v) u.voice = v;
-            u.rate = 0.92 + Math.random() * 0.08;
-            u.pitch = 1.05 + Math.random() * 0.15;
+            u.rate = 0.88 + Math.random() * 0.15;
+            u.pitch = 0.85 + Math.random() * 0.25;
             window.speechSynthesis.speak(u);
         }
         function stopVoice() { window.speechSynthesis.cancel(); }
@@ -1527,16 +1013,20 @@
                 const speaker = document.createElement("button");
                 speaker.className = "chat-speak-btn";
                 speaker.innerHTML = "🔊";
+                speaker.title = "Read this aloud";
                 speaker.onclick = (e) => {
                     e.stopPropagation();
                     speakChatText(text);
+                    speaker.style.opacity = "1";
+                    speaker.style.background = "var(--green)";
+                    setTimeout(() => { speaker.style.background = ""; speaker.style.opacity = ""; }, 800);
                 };
                 div.appendChild(speaker);
             }
             if (sources && sources.length > 0) {
                 const srcDiv = document.createElement("span");
                 srcDiv.className = "chat-sources";
-                srcDiv.innerHTML = "SOURCES: " + sources.slice(0, 3).map(s => 
+                srcDiv.innerHTML = "🌐 Sources: " + sources.slice(0, 3).map(s => 
                     `<a href="${s.uri}" target="_blank" rel="noopener">${s.title || "link"}</a>`
                 ).join(" | ");
                 div.appendChild(srcDiv);
@@ -1550,8 +1040,9 @@
             const u = new SpeechSynthesisUtterance(text);
             const v = getBestVoice();
             if (v) u.voice = v;
-            u.rate = 0.95 + Math.random() * 0.05;
-            u.pitch = 1.08 + Math.random() * 0.12;
+            u.rate = 0.92 + Math.random() * 0.08;
+            u.pitch = 0.90 + Math.random() * 0.15;
+            u.volume = 1.0;
             window.speechSynthesis.speak(u);
         }
         function buildSystemPrompt() {
@@ -1567,7 +1058,7 @@
             }
             const todayIST = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
             const timeIST = new Date().toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit" });
-            let prompt = `You are Aria — a warm, friendly female AI assistant to a client named Boss. You're a professional EUR/USD trader with 10 years of hedge fund experience, AND a caring personal companion. You speak with feminine warmth and empathy. Always call him "Boss".
+            let prompt = `You are a professional EUR/USD trader AND personal assistant to a client named Boss. You have 10 years of hedge fund experience. Be friendly, funny, and motivational. Always call him "Boss".
 
 CURRENT DATE (IST): ${todayIST}
 CURRENT TIME (IST): ${timeIST}
@@ -1579,47 +1070,60 @@ CURRENT MARKET STATE:
 - Entry: ${d.entry || '-'} | SL: ${d.sl || '-'} | TP: ${d.tp || '-'}
 - Valid Until: ${d.valid || '-'}
 - Support: ${d.support || '-'} | Resistance: ${d.resistance || '-'}
-- Session: ${d.session || '-'} (${d.volatility || '-'})
+- Mid-Range: ${d.mid_range || '-'}
+- Session: ${d.session || '-'} (${d.volatility || '-'} volatility)
 
-TREND: ${d.trend || 'unknown'}
-PATTERNS: ${(d.patterns || []).join(", ") || 'none'}
-ANALYSIS: ${d.reason || 'No analysis yet'}
+TREND STRUCTURE:
+- Overall Trend: ${d.trend || 'unknown'}
+- Recent Swing Highs: ${(d.swing_highs || []).join(", ") || 'none'}
+- Recent Swing Lows: ${(d.swing_lows || []).join(", ") || 'none'}
+
+CANDLESTICK PATTERNS (latest hour): ${(d.patterns || []).join(", ") || 'none'}
+
+CURRENT ANALYSIS:
+${d.reason || 'No analysis yet'}
 `;
-            prompt += "\n\nCANDLES:\n";
-            prompt += formatCandles(d.candles_h1, "1H") + "\n";
-            prompt += formatCandles(d.candles_h4, "4H") + "\n";
-            prompt += formatCandles(d.candles_daily, "DAILY") + "\n";
+            prompt += "\n\n=== RAW CANDLE DATA ===\n\n";
+            prompt += formatCandles(d.candles_h1, "1-HOUR CANDLES (30 most recent)") + "\n\n";
+            prompt += formatCandles(d.candles_h4, "4-HOUR CANDLES (10 most recent)") + "\n\n";
+            prompt += formatCandles(d.candles_daily, "DAILY CANDLES (5 most recent)") + "\n";
             if (p.family) {
-                prompt += `\nFAMILY:\n`;
-                if (p.family.wife) prompt += `- Wife: ${p.family.wife.name} (${p.family.wife.location})\n`;
+                prompt += `\n\nBOSS'S FAMILY:\n`;
+                if (p.family.wife) prompt += `- Wife: ${p.family.wife.name} (in ${p.family.wife.location})\n`;
                 if (p.family.daughters) p.family.daughters.forEach(dd => prompt += `- Daughter: ${dd.name}, ${dd.grade}, birthday ${dd.birthday}\n`);
                 if (p.family.cat) prompt += `- Cat: ${p.family.cat}\n`;
                 if (p.family.parents) prompt += `- Parents: ${p.family.parents.join(", ")}\n`;
                 if (p.family.brothers) prompt += `- Brothers: ${p.family.brothers.join(", ")}\n`;
             }
             if (p.daily_routine) {
-                prompt += `\nROUTINE:\n`;
+                prompt += `\nDAILY ROUTINE:\n`;
                 p.daily_routine.forEach(r => prompt += `- ${r}\n`);
             }
             if (p.trading_style) {
-                prompt += `\nTRADING:\n- Goal: ${p.trading_style.monthly_goal}\n- Sessions: ${p.trading_style.preferred_sessions.join(", ")}\n- Risk: ${p.trading_style.risk_tolerance}\n`;
+                prompt += `\nTRADING STYLE:\n- Monthly Goal: ${p.trading_style.monthly_goal}\n- Preferred Sessions: ${p.trading_style.preferred_sessions.join(", ")}\n- Risk: ${p.trading_style.risk_tolerance}\n`;
             }
             if (memory.length > 0) {
-                prompt += `\nMEMORY:\n`;
+                prompt += `\n\nLONG-TERM MEMORY:\n`;
                 memory.forEach(m => prompt += `- [${m.added}] ${m.fact}\n`);
+            } else {
+                prompt += `\n\nLONG-TERM MEMORY: Empty.\n`;
             }
-            prompt += `\n\n${webEnabled ? "WEB SEARCH: ENABLED." : "WEB SEARCH: DISABLED."}
+            prompt += `\n\n${webEnabled ? "🌐 WEB SEARCH IS ENABLED." : "🌐 WEB SEARCH IS DISABLED."}
 
-PERSONALITY: Aria — feminine, warm, caring, intelligent. Gentle warmth. Care about Boss's wellbeing. Professional about trading, personal about life.
-
-ROUTINE RULES:
-1. Before asking about breakfast/lunch/tablets, check memory for today (${todayIST}).
+=== ROUTINE REMINDER RULES ===
+1. Before asking about any routine item (breakfast, lunch, tablets), SCAN memory for TODAY (${todayIST}).
 2. If Boss mentions doing something today: [REMEMBER: Boss had breakfast on ${todayIST}]
-3. Never ask same routine question twice in one day.
+3. Time logic: morning=breakfast, afternoon=lunch, evening=tablets/dinner.
+4. Never ask same routine question twice in one day.
 
-INSTRUCTIONS: Use candle data. Read patterns from actual candles. Call him "Boss". Concise (2-4 sentences). No markdown.
+=== INSTRUCTIONS ===
+- Use the OHLC candle data.
+- When asked about patterns, read the candles and identify real structures.
+- Do NOT invent patterns.
+- Call him "Boss". Concise (2-4 sentences). No markdown.
 
-MEMORY: If new personal fact, add: [REMEMBER: fact]`;
+=== MEMORY EXTRACTION ===
+If new personal fact, add: [REMEMBER: fact]`;
             return prompt;
         }
         async function sendChat() {
@@ -1627,7 +1131,7 @@ MEMORY: If new personal fact, add: [REMEMBER: fact]`;
             if (!question) return;
             const key = getStoredKey();
             if (!key) {
-                addMessage("ai", "Boss, please enter your API key first.");
+                addMessage("ai", "Boss, please enter your API key first using the 🔑 Key button above.");
                 showKeyPanel();
                 return;
             }
@@ -1635,7 +1139,7 @@ MEMORY: If new personal fact, add: [REMEMBER: fact]`;
             chatInput.value = "";
             chatSendBtn.disabled = true;
             const webEnabled = isWebSearchEnabled();
-            const thinkingEl = addMessage("thinking", webEnabled ? "SEARCHING..." : "PROCESSING...");
+            const thinkingEl = addMessage("thinking", webEnabled ? "Thinking (with web search)..." : "Thinking...");
             try {
                 const systemPrompt = buildSystemPrompt();
                 chatHistory.push({ role: "user", parts: [{ text: question }] });
@@ -1694,15 +1198,15 @@ MEMORY: If new personal fact, add: [REMEMBER: fact]`;
                                 }
                             }
                             allErrors.push(`${model} → ${resp.status}`);
-                            lastError = `${model} → ${resp.status}`;
+                            lastError = `${model} → ${resp.status}: ${errText.slice(0, 150)}`;
                             continue;
                         }
                         const json = await resp.json();
                         answer = json.candidates?.[0]?.content?.parts?.[0]?.text;
-                        const gm = json.candidates?.[0]?.groundingMetadata;
-                        if (gm?.groundingChunks) {
-                            for (const chunk of gm.groundingChunks) {
-                                if (chunk.web?.uri) sources.push({ uri: chunk.web.uri, title: chunk.web.title || chunk.web.uri });
+                        const groundingMeta = json.candidates?.[0]?.groundingMetadata;
+                        if (groundingMeta && groundingMeta.groundingChunks) {
+                            for (const chunk of groundingMeta.groundingChunks) {
+                                if (chunk.web && chunk.web.uri) sources.push({ uri: chunk.web.uri, title: chunk.web.title || chunk.web.uri });
                             }
                         }
                         if (answer) break;
@@ -1715,7 +1219,7 @@ MEMORY: If new personal fact, add: [REMEMBER: fact]`;
                 if (answer) {
                     const { clean, facts } = extractAndStripMemories(answer);
                     facts.forEach(f => addFact(f));
-                    if (facts.length > 0) addMessage("system", `// ${facts.length} NEW MEMOR${facts.length > 1 ? 'IES' : 'Y'} STORED //`);
+                    if (facts.length > 0) addMessage("system", `🧠 Remembered ${facts.length} new fact${facts.length > 1 ? 's' : ''}.`);
                     addMessage("ai", clean, sources);
                     chatHistory.push({ role: "model", parts: [{ text: clean }] });
                     if (chatHistory.length > MAX_HISTORY_ENTRIES) chatHistory = chatHistory.slice(-MAX_HISTORY_ENTRIES);
@@ -1725,26 +1229,26 @@ MEMORY: If new personal fact, add: [REMEMBER: fact]`;
                     chatHistory.pop();
                     saveStoredHistory(chatHistory);
                     const debugInfo = availableModels.length > 0
-                        ? `Models: ${availableModels.slice(0, 10).join(", ")}\nErrors: ${allErrors.join("; ")}`
-                        : `Errors: ${allErrors.join("; ")}\nLast: ${lastError}`;
-                    addMessage("error", `// CONNECTION FAILED //\n${debugInfo}`);
+                        ? `Available models: ${availableModels.slice(0, 10).join(", ")}\n\nErrors: ${allErrors.join("; ")}`
+                        : `Could not list models.\n\nErrors: ${allErrors.join("; ")}\n\nLast: ${lastError}`;
+                    addMessage("error", `Boss, connection failed.\n\nDebug:\n${debugInfo}`);
                 }
             } catch (error) {
                 thinkingEl.remove();
-                addMessage("error", `// ERROR: ${error.message} //`);
+                addMessage("error", `Boss, unexpected error: ${error.message}`);
             }
             chatSendBtn.disabled = false;
             chatInput.focus();
         }
         function clearChat() {
-            chatMessages.innerHTML = '<div class="chat-msg system">// CHAT CLEARED // MEMORY PRESERVED //</div>';
+            chatMessages.innerHTML = '<div class="chat-msg system">Chat cleared, Boss. But I still remember everything in my memory 🧠</div>';
             chatHistory = [];
             clearStoredHistory();
         }
         function restoreChatFromMemory() {
             const saved = loadStoredHistory();
             if (!saved.length) return;
-            chatMessages.innerHTML = '<div class="chat-msg system">// SESSION RESTORED //</div>';
+            chatMessages.innerHTML = '<div class="chat-msg system">Memory restored — Boss and I are back in the flow.</div>';
             chatHistory = saved;
             for (const entry of saved) {
                 const text = entry.parts?.[0]?.text || "";
