@@ -86,33 +86,8 @@
         .chat-send { padding: 14px 20px; background: linear-gradient(135deg, var(--green), #00cc66); border: none; border-radius: 12px; color: #0a0e17; font-weight: 700; font-size: 1rem; cursor: pointer; transition: 0.2s; }
         .chat-send:hover { opacity: 0.9; }
         .chat-send:disabled { opacity: 0.4; cursor: not-allowed; }
-        .chat-clear { padding: 10px 16px; background: rgba(148,163,184,0.15); border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-size: 0.8rem; cursor: pointer; align-self: flex-end; }
+        .chat-clear { padding: 10px 16px; background: rgba(148,163,184,0.15); border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-size: 0.8rem; cursor: pointer; align-self: flex-end; margin-top: 4px; }
         .chat-clear:hover { color: var(--text); border-color: var(--accent); }
-        
-        .chat-action-row {
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-            margin-top: 4px;
-        }
-        .chat-stop {
-            padding: 10px 16px;
-            background: linear-gradient(135deg, #ff3366, #cc0033);
-            border: none;
-            border-radius: 8px;
-            color: white;
-            font-size: 0.85rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .chat-stop:hover {
-            opacity: 0.9;
-            transform: scale(1.02);
-        }
-        .chat-stop:active {
-            transform: scale(0.98);
-        }
         
         .key-panel { background: linear-gradient(135deg, rgba(234,179,8,0.15), rgba(249,115,22,0.15)); border: 1px solid rgba(234,179,8,0.4); border-radius: 12px; padding: 16px; margin-bottom: 16px; display: none; }
         .key-panel.visible { display: block; }
@@ -158,7 +133,7 @@
             </div>
         </div>
 
-        <!-- ========== CHAT BOX (moved up) ========== -->
+        <!-- CHAT BOX -->
         <div class="card" style="grid-column: 1 / -1;">
             <h2 style="display:flex; align-items:center;">💬 Ask Your AI Trader
                 <button class="change-key-btn" onclick="showKeyPanel()">🔑 Change Key</button>
@@ -182,14 +157,11 @@
                     <input id="chatInput" class="chat-input" type="text" placeholder="e.g. Should I enter now? Or: Remind me of my routine" onkeydown="if(event.key === 'Enter') sendChat()" />
                     <button id="chatSendBtn" class="chat-send" onclick="sendChat()">Send</button>
                 </div>
-                <div class="chat-action-row">
-                    <button class="chat-stop" onclick="stopVoice()">⏹ Stop Voice</button>
-                    <button class="chat-clear" onclick="clearChat()">Clear chat</button>
-                </div>
+                <button class="chat-clear" onclick="clearChat()">Clear chat</button>
             </div>
         </div>
 
-        <!-- ========== WISDOM CORNER ========== -->
+        <!-- WISDOM CORNER -->
         <div class="card" style="grid-column: 1 / -1;">
             <h2>Boss's Wisdom Corner 💡</h2>
             <div id="wise_box" class="wise-box">
