@@ -59,26 +59,28 @@
         .chat-msg.system { background: rgba(148,163,184,0.1); color: var(--muted); align-self: center; font-size: 0.8rem; font-style: italic; text-align: center; }
         .chat-msg.thinking { background: rgba(255,255,255,0.05); color: var(--muted); align-self: flex-start; font-style: italic; }
         .chat-msg.error { background: rgba(255,51,102,0.1); color: var(--red); align-self: flex-start; border-left: 3px solid var(--red); font-family: monospace; font-size: 0.75rem; max-width: 100%; }
+        
         .chat-speak-btn {
             display: inline-block;
             margin-left: 10px;
-            padding: 4px 8px;
-            background: rgba(255,255,255,0.08);
-            border: 1px solid var(--border);
+            padding: 4px 10px;
+            background: rgba(0,255,136,0.15);
+            border: 1px solid var(--green);
             border-radius: 6px;
             color: var(--text);
             font-size: 0.85rem;
             cursor: pointer;
-            opacity: 0.7;
+            opacity: 0.9;
             transition: all 0.2s;
             vertical-align: middle;
         }
         .chat-speak-btn:hover {
             opacity: 1;
-            background: rgba(0,255,136,0.15);
-            border-color: var(--green);
+            background: var(--green);
+            color: #0a0e17;
             transform: scale(1.05);
         }
+        
         .chat-input-row { display: flex; gap: 10px; }
         .chat-input { flex: 1; padding: 14px 16px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-size: 1rem; font-family: inherit; outline: none; transition: 0.2s; }
         .chat-input:focus { border-color: var(--accent); }
@@ -88,6 +90,31 @@
         .chat-send:disabled { opacity: 0.4; cursor: not-allowed; }
         .chat-clear { padding: 10px 16px; background: rgba(148,163,184,0.15); border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-size: 0.8rem; cursor: pointer; align-self: flex-end; }
         .chat-clear:hover { color: var(--text); border-color: var(--accent); }
+        
+        .chat-action-row {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 4px;
+        }
+        .chat-stop {
+            padding: 10px 16px;
+            background: linear-gradient(135deg, #ff3366, #cc0033);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .chat-stop:hover {
+            opacity: 0.9;
+            transform: scale(1.02);
+        }
+        .chat-stop:active {
+            transform: scale(0.98);
+        }
         
         .key-panel { background: linear-gradient(135deg, rgba(234,179,8,0.15), rgba(249,115,22,0.15)); border: 1px solid rgba(234,179,8,0.4); border-radius: 12px; padding: 16px; margin-bottom: 16px; display: none; }
         .key-panel.visible { display: block; }
@@ -194,7 +221,10 @@
                     <input id="chatInput" class="chat-input" type="text" placeholder="e.g. Should I enter now? Or: Remind me of my routine" onkeydown="if(event.key === 'Enter') sendChat()" />
                     <button id="chatSendBtn" class="chat-send" onclick="sendChat()">Send</button>
                 </div>
-                <button class="chat-clear" onclick="clearChat()">Clear chat</button>
+                <div class="chat-action-row">
+                    <button class="chat-stop" onclick="stopVoice()">⏹ Stop Voice</button>
+                    <button class="chat-clear" onclick="clearChat()">Clear chat</button>
+                </div>
             </div>
         </div>
     </div>
@@ -377,7 +407,6 @@
             textSpan.innerText = text;
             div.appendChild(textSpan);
             
-            // Speaker button for AI messages only
             if (role === "ai" && text && text.length > 5) {
                 const speaker = document.createElement("button");
                 speaker.className = "chat-speak-btn";
@@ -401,7 +430,6 @@
             return div;
         }
 
-        // Speak any text using the same voice system
         function speakChatText(text) {
             window.speechSynthesis.cancel();
             const u = new SpeechSynthesisUtterance(text);
@@ -481,7 +509,6 @@ CURRENT MARKET STATE:
                     generationConfig: { temperature: 0.7, maxOutputTokens: 800 }
                 };
 
-                // Discover available models
                 let availableModels = [];
                 try {
                     const listResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
@@ -546,7 +573,6 @@ CURRENT MARKET STATE:
                     addMessage("ai", answer.trim());
                     chatHistory.push({ role: "model", parts: [{ text: answer.trim() }] });
                     if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
-                    // Auto-speak the AI reply
                     speakChatText(answer.trim());
                 } else {
                     const debugInfo = availableModels.length > 0
