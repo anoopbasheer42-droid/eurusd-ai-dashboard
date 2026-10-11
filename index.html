@@ -73,6 +73,16 @@
             border-radius: 8px;
             border: 1px solid rgba(46, 204, 113, 0.3);
             transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .last-updated {
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            font-family: 'Inter', sans-serif;
+            font-weight: 400;
         }
 
         /* Cards */
@@ -252,7 +262,10 @@
         <!-- Header -->
         <header>
             <div class="logo">⚡ EUR/USD <span>AI PRO</span></div>
-            <div class="price-ticker" id="live-price">Loading...</div>
+            <div class="price-ticker" id="live-price">
+                Loading...
+                <div class="last-updated" id="last-updated">Updated: --:--:--</div>
+            </div>
         </header>
 
         <!-- 1. AI Neural Core -->
@@ -377,7 +390,6 @@
 
     <script>
         // --- CONFIGURATION ---
-        const DATA_URL = 'https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/data.json';
         const CONTEXT_URL = 'https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/personal_context.json';
         
         let globalData = null;
@@ -457,27 +469,202 @@
             glowSphere.material.color.setHex(color); innerCore.material.color.setHex(color); outerShell.material.color.setHex(color);
         }
 
-        // --- DATA FETCHING ---
-        async function fetchData() {
+        // --- INDICATOR CALCULATIONS (Pure JS) ---
+        function calculateEMA(data, period) {
+            const k = 2 / (period + 1);
+            let ema = data[0];
+            const emaArray = [ema];
+            for (let i = 1; i < data.length; i++) {
+                ema = (data[i] * k) + (ema * (1 - k));
+                emaArray.push(ema);
+            }
+            return emaArray;
+        }
+
+        function calculateRSI(data, period = 14) {
+            let gains = 0, losses = 0;
+            for (let i = 1; i <= period; i++) {
+                const diff = data[i] - data[i - 1];
+                if (diff >= 0) gains += diff; else losses -= diff;
+            }
+            let avgGain = gains / period;
+            let avgLoss = losses / period;
+            for (let i = period + 1; i < data.length; i++) {
+                const diff = data[i] - data[i - 1];
+                if (diff >= 0) { avgGain = (avgGain * (period - 1) + diff) / period; avgLoss = (avgLoss * (period - 1)) / period; }
+                else { avgGain = (avgGain * (period - 1)) / period; avgLoss = (avgLoss * (period - 1) - diff) / period; }
+            }
+            if (avgLoss === 0) return 100;
+            const rs = avgGain / avgLoss;
+            return 100 - (100 / (1 + rs));
+        }
+
+        function calculateATR(highs, lows, closes, period = 14) {
+            let trs = [];
+            for (let i = 1; i < highs.length; i++) {
+                const tr = Math.max(highs[i] - lows[i], Math.abs(highs[i] - closes[i-1]), Math.abs(lows[i] - closes[i-1]));
+                trs.push(tr);
+            }
+            return trs.slice(-period).reduce((a, b) => a + b, 0) / period;
+        }
+
+        // --- FETCH DATA & GENERATE SIGNAL (All in HTML) ---
+        async function fetchYahooCandles(interval, range) {
+            const url = `https://query1.finance.yahoo.com/v8/finance/chart/EURUSD=X?interval=${interval}&range=${range}`;
+            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
             try {
-                const response = await fetch(DATA_URL + '?v=' + new Date().getTime());
-                if (!response.ok) throw new Error('Network response was not ok');
-                globalData = await response.json();
+                const res = await fetch(proxyUrl);
+                const data = await res.json();
+                const result = data.chart.result[0];
+                const timestamps = result.timestamp;
+                const quotes = result.indicators.quote[0];
+                return timestamps.map((t, i) => ({
+                    time: t * 1000,
+                    open: quotes.open[i],
+                    high: quotes.high[i],
+                    low: quotes.low[i],
+                    close: quotes.close[i]
+                })).filter(c => c.open && c.high && c.low && c.close); // Remove nulls
+            } catch (e) { console.error("Yahoo fetch error:", e); return []; }
+        }
+
+        async function generateSignalFromScratch() {
+            if (!apiKey) {
+                document.getElementById('val-reason').innerText = "Please enter your Gemini API Key to enable the AI Signal.";
+                return;
+            }
+
+            const signalText = document.getElementById('signal-text');
+            signalText.innerText = "ANALYZING...";
+            signalText.style.color = "var(--blue)";
+
+            // 1. Fetch Data
+            const candles1H = await fetchYahooCandles('1h', '1mo');
+            const candlesDaily = await fetchYahooCandles('1d', '3mo');
+            
+            if (candles1H.length === 0) {
+                document.getElementById('val-reason').innerText = "Failed to fetch market data. Yahoo may be blocking CORS. Retrying in 5 minutes.";
+                return;
+            }
+
+            // 2. Calculate Indicators
+            const closes = candles1H.map(c => c.close);
+            const highs = candles1H.map(c => c.high);
+            const lows = candles1H.map(c => c.low);
+            
+            const ema20 = calculateEMA(closes, 20);
+            const ema50 = calculateEMA(closes, 50);
+            const rsi = calculateRSI(closes, 14);
+            const atr = calculateATR(highs, lows, closes, 14);
+            
+            const support = Math.min(...lows.slice(-50));
+            const resistance = Math.max(...highs.slice(-50));
+            const currentPrice = closes[closes.length - 1];
+            
+            // Detect Trend
+            const recentHighs = highs.slice(-20);
+            const recentLows = lows.slice(-20);
+            let trend = "Sideways";
+            if (recentHighs[recentHighs.length-1] > recentHighs[0] && recentLows[recentLows.length-1] > recentLows[0]) trend = "Uptrend (higher highs + higher lows)";
+            if (recentHighs[recentHighs.length-1] < recentHighs[0] && recentLows[recentLows.length-1] < recentLows[0]) trend = "Downtrend (lower highs + lower lows)";
+
+            // Format candles for Gemini
+            const formatCandles = (arr) => arr.slice(-30).map(c => 
+                `O:${c.open.toFixed(5)} H:${c.high.toFixed(5)} L:${c.low.toFixed(5)} C:${c.close.toFixed(5)}`
+            ).join('\n');
+
+            const dataString = `
+            Current Price: ${currentPrice.toFixed(5)}
+            EMA20: ${ema20[ema20.length-1].toFixed(5)}
+            EMA50: ${ema50[ema50.length-1].toFixed(5)}
+            RSI(14): ${rsi.toFixed(2)}
+            ATR(14): ${atr.toFixed(5)}
+            Support: ${support.toFixed(5)}
+            Resistance: ${resistance.toFixed(5)}
+            Trend: ${trend}
+            
+            Last 30x 1H Candles:
+            ${formatCandles(candles1H)}
+            
+            Last 5x Daily Candles:
+            ${formatCandles(candlesDaily)}
+            `;
+
+            // 3. Ask Gemini for the Signal
+            try {
+                const systemPrompt = `You are a professional Forex hedge fund trader analyzing EUR/USD.
+                Current time: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST.
+                Here is the market data: ${dataString}
+                
+                CRITICAL INSTRUCTION: Respond ONLY with a valid JSON object. No markdown, no extra text. Format:
+                {
+                    "signal": "BUY" | "SELL" | "HOLD",
+                    "reason": "3-4 sentence trading reasoning",
+                    "confidence": "LOW" | "MEDIUM" | "HIGH",
+                    "entry": "1.XXXXX",
+                    "sl": "1.XXXXX",
+                    "tp": "1.XXXXX",
+                    "wise_words": "A short trading quote or joke"
+                }`;
+
+                const payload = { contents: [{ role: 'user', parts: [{ text: systemPrompt }] }] };
+                
+                let modelsToTry = await getAvailableGeminiModels();
+                let reply = null;
+                
+                for (const model of modelsToTry) {
+                    try {
+                        const response = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), timeout: 15000
+                        });
+                        if (response.ok) {
+                            const data = await response.json();
+                            reply = data.candidates[0].content.parts[0].text;
+                            break;
+                        }
+                    } catch (e) { continue; }
+                }
+
+                if (!reply) throw new Error("All models failed to generate signal.");
+
+                // Parse JSON
+                const jsonStr = reply.replace(/```json/g, '').replace(/```/g, '').trim();
+                const signalData = JSON.parse(jsonStr);
+
+                // 4. Update UI
+                globalData = {
+                    price: currentPrice.toFixed(5),
+                    signal: signalData.signal,
+                    reason: signalData.reason,
+                    confidence: signalData.confidence,
+                    entry: signalData.entry,
+                    sl: signalData.sl,
+                    tp: signalData.tp,
+                    atr: atr.toFixed(5),
+                    support: support.toFixed(5),
+                    resistance: resistance.toFixed(5),
+                    trend: trend,
+                    valid: new Date(Date.now() + 3600000).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) + " IST",
+                    wise_words: signalData.wise_words,
+                    candle_current: `Current: ${currentPrice.toFixed(5)}`,
+                    candle_1h: `1H Trend: ${trend}`,
+                    candle_4h: `RSI: ${rsi.toFixed(2)} | ATR: ${atr.toFixed(5)}`
+                };
+
                 updateUI(globalData);
+                playVoiceReport();
+
             } catch (error) {
-                document.getElementById('val-reason').innerText = "Failed to load data. Check workflow status.";
+                console.error(error);
+                document.getElementById('val-reason').innerText = "AI failed to parse the signal. Retrying in 5 minutes.";
+                signalText.innerText = "ERROR";
+                signalText.style.color = "var(--red)";
             }
         }
 
-        async function fetchContext() {
-            try {
-                const response = await fetch(CONTEXT_URL + '?v=' + new Date().getTime());
-                if (response.ok) personalContext = await response.json();
-            } catch (e) { console.log('Context not loaded'); }
-        }
-
         function updateUI(data) {
-            document.getElementById('live-price').innerText = data.price || '1.00000';
+            document.getElementById('live-price').innerHTML = `${data.price}<div class="last-updated" id="last-updated">Updated: ${new Date().toLocaleTimeString('en-IN', {hour12: false})}</div>`;
+            
             const signalText = document.getElementById('signal-text');
             signalText.innerText = data.signal || 'WAITING';
             if (data.signal === 'BUY') { signalText.style.color = 'var(--green)'; signalText.style.textShadow = '0 0 30px rgba(46, 204, 113, 0.6)'; }
@@ -493,7 +680,7 @@
             document.getElementById('val-tp').innerText = data.tp || '-';
             document.getElementById('val-atr').innerText = data.atr || '-';
             document.getElementById('val-trend').innerText = data.trend || '-';
-            document.getElementById('val-session').innerText = data.session || '-';
+            document.getElementById('val-session').innerText = "Auto-Detected";
             document.getElementById('val-support').innerText = data.support || '-';
             document.getElementById('val-resistance').innerText = data.resistance || '-';
             document.getElementById('val-candle-current').innerText = data.candle_current || '-';
@@ -518,8 +705,6 @@
             text += `${globalData.reason} `;
             text += `${transition} Support is at ${globalData.support} and resistance is at ${globalData.resistance}. `;
             text += `Entry is ${globalData.entry}, Stop Loss is ${globalData.sl}, Take Profit is ${globalData.tp}. `;
-            text += `This signal is valid until ${globalData.valid}. `;
-            if (globalData.personal_message) text += `${globalData.personal_message} `;
             if (globalData.wise_words) text += `${globalData.wise_words} `;
             text += `${closing}`;
             speakText(text);
@@ -645,7 +830,7 @@
 
         // --- FETCH WITH TIMEOUT ---
         async function fetchWithTimeout(resource, options = {}) {
-            const { timeout = 10000 } = options; // 10 seconds timeout
+            const { timeout = 10000 } = options; 
             const controller = new AbortController();
             const id = setTimeout(() => controller.abort(), timeout);
             const response = await fetch(resource, { ...options, signal: controller.signal });
@@ -671,7 +856,6 @@
 
             try {
                 let response = await callGeminiAPI(text);
-                
                 response = cleanResponse(response);
 
                 document.getElementById('chat-history').removeChild(loadingDiv);
@@ -688,7 +872,6 @@
                 speakText(response);
 
             } catch (error) {
-                // Ensure loading is removed even on failure
                 if (document.getElementById('chat-history').contains(loadingDiv)) {
                     document.getElementById('chat-history').removeChild(loadingDiv);
                 }
@@ -710,7 +893,6 @@
                             .map(m => m.name.replace('models/', ''));
                         
                         if (valid.length > 0) {
-                            // Prioritize flash for speed, then pro
                             valid.sort((a, b) => {
                                 if (a.includes('1.5-flash')) return -1;
                                 if (b.includes('1.5-flash')) return 1;
@@ -729,7 +911,6 @@
         }
 
         async function callGeminiAPI(userText) {
-            // Trim context to last 10 messages to speed up processing
             const recentHistory = chatHistory.slice(-10);
             
             let systemPrompt = `You are an AI trading assistant for Boss. You are friendly, funny, and motivational. Do not use emojis. Call him "Boss". 
@@ -747,10 +928,8 @@
             
             const payload = { contents: contents, tools: webSearchEnabled ? [{ google_search: {} }] : [] };
 
-            // Get the list of models
             let modelsToTry = await getAvailableGeminiModels();
             
-            // If Deep Think is OFF, prioritize the fastest model
             if (!deepThinkEnabled) {
                 modelsToTry = ['gemini-1.5-flash', ...modelsToTry.filter(m => m !== 'gemini-1.5-flash')];
             }
@@ -758,12 +937,11 @@
             let lastError = null;
             for (const model of modelsToTry) {
                 try {
-                    // Use the timeout fetch wrapper to prevent hanging
                     const response = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
                         method: 'POST', 
                         headers: { 'Content-Type': 'application/json' }, 
                         body: JSON.stringify(payload),
-                        timeout: 12000 // 12 seconds max per model
+                        timeout: 12000 
                     });
                     
                     if (response.ok) {
@@ -836,10 +1014,19 @@
 
         // --- INITIALIZATION ---
         window.onload = () => {
-            fetchData(); fetchContext(); renderChat(); renderReminders(); renderMemory();
+            // Fetch personal context just once for the chat
+            fetch(CONTEXT_URL).then(res => res.json()).then(data => personalContext = data).catch(e => console.log('Context not loaded'));
+            
+            renderChat(); renderReminders(); renderMemory();
             if (apiKey) document.getElementById('web-toggle').style.display = 'block';
             if ('speechSynthesis' in window) { window.speechSynthesis.getVoices(); }
             if (gistToken && gistId) { loadMemoryFromGist(); }
+            
+            // Generate the first signal immediately on load
+            generateSignalFromScratch();
+
+            // AUTO REFRESH SET TO 5 MINUTES 30 SECONDS (330000 ms)
+            setInterval(generateSignalFromScratch, 330000); 
         };
     </script>
 </body>
