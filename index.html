@@ -61,6 +61,10 @@
         .chat-speak-btn { display: inline-block; margin-left: 10px; padding: 4px 10px; background: rgba(0,255,136,0.15); border: 1px solid var(--green); border-radius: 6px; color: var(--text); font-size: 0.85rem; cursor: pointer; opacity: 0.9; transition: all 0.2s; vertical-align: middle; }
         .chat-speak-btn:hover { opacity: 1; background: var(--green); color: #0a0e17; transform: scale(1.05); }
         
+        .chat-sources { display: block; margin-top: 8px; font-size: 0.75rem; color: var(--muted); font-style: italic; }
+        .chat-sources a { color: var(--accent); text-decoration: none; word-break: break-all; }
+        .chat-sources a:hover { text-decoration: underline; }
+        
         .chat-input-row { display: flex; gap: 10px; }
         .chat-input { flex: 1; padding: 14px 16px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-size: 1rem; font-family: inherit; outline: none; transition: 0.2s; }
         .chat-input:focus { border-color: var(--accent); }
@@ -76,6 +80,9 @@
         .header-btn:hover { color: var(--text); border-color: var(--accent); }
         .header-btn.memory-btn { border-color: var(--purple); color: var(--purple); }
         .header-btn.memory-btn:hover { background: rgba(139,92,246,0.15); }
+        .header-btn.web-btn { border-color: var(--green); color: var(--green); }
+        .header-btn.web-btn:hover { background: rgba(0,255,136,0.15); }
+        .header-btn.web-btn.disabled { border-color: var(--border); color: var(--muted); }
         
         .key-panel { background: linear-gradient(135deg, rgba(234,179,8,0.15), rgba(249,115,22,0.15)); border: 1px solid rgba(234,179,8,0.4); border-radius: 12px; padding: 16px; margin-bottom: 16px; display: none; }
         .key-panel.visible { display: block; }
@@ -140,6 +147,7 @@
         <div class="card" style="grid-column: 1 / -1;">
             <h2 style="display:flex; align-items:center;">💬 Ask Your AI Trader
                 <div class="chat-header-buttons">
+                    <button id="webToggleBtn" class="header-btn web-btn" onclick="toggleWebSearch()">🌐 Web ON</button>
                     <button class="header-btn memory-btn" onclick="toggleMemoryPanel()">🧠 Memory</button>
                     <button class="header-btn" onclick="showKeyPanel()">🔑 Key</button>
                 </div>
@@ -167,10 +175,10 @@
 
             <div class="chat-container">
                 <div id="chatMessages" class="chat-messages">
-                    <div class="chat-msg system">Ask me anything, Boss. I know the current price, signal, and your routine.</div>
+                    <div class="chat-msg system">Ask me anything, Boss. I know the current price, signal, and your routine. Toggle 🌐 Web ON to let me search the internet.</div>
                 </div>
                 <div class="chat-input-row">
-                    <input id="chatInput" class="chat-input" type="text" placeholder="e.g. Should I enter now? Or: Remind me of my routine" onkeydown="if(event.key === 'Enter') sendChat()" />
+                    <input id="chatInput" class="chat-input" type="text" placeholder="e.g. Should I enter now? Or: What is the latest news on EUR/USD?" onkeydown="if(event.key === 'Enter') sendChat()" />
                     <button id="chatSendBtn" class="chat-send" onclick="sendChat()">Send</button>
                 </div>
                 <button class="chat-clear" onclick="clearChat()">Clear chat (memory stays)</button>
@@ -213,7 +221,34 @@
         const KEY_STORAGE_NAME = "eurusd_chat_key";
         const HISTORY_STORAGE_NAME = "eurusd_chat_history";
         const MEMORY_STORAGE_NAME = "eurusd_long_term_memory";
+        const WEBSEARCH_STORAGE_NAME = "eurusd_websearch_enabled";
         const MAX_HISTORY_ENTRIES = 40;
+
+        // ---------- WEB SEARCH TOGGLE ----------
+        function isWebSearchEnabled() {
+            try { return localStorage.getItem(WEBSEARCH_STORAGE_NAME) !== "false"; }
+            catch (e) { return true; }
+        }
+
+        function toggleWebSearch() {
+            const enabled = isWebSearchEnabled();
+            const newState = !enabled;
+            try { localStorage.setItem(WEBSEARCH_STORAGE_NAME, newState ? "true" : "false"); }
+            catch (e) {}
+            updateWebToggleUI();
+        }
+
+        function updateWebToggleUI() {
+            const btn = document.getElementById("webToggleBtn");
+            if (!btn) return;
+            if (isWebSearchEnabled()) {
+                btn.innerHTML = "🌐 Web ON";
+                btn.classList.remove("disabled");
+            } else {
+                btn.innerHTML = "🌐 Web OFF";
+                btn.classList.add("disabled");
+            }
+        }
 
         // ---------- STORAGE HELPERS ----------
         function getStoredKey() {
@@ -349,6 +384,7 @@
         window.addEventListener("load", () => {
             if (!getStoredKey()) document.getElementById("keyPanel").classList.add("visible");
             renderMemoryList();
+            updateWebToggleUI();
         });
 
         // ---------- 3D MODEL ----------
@@ -484,7 +520,7 @@
         const chatSendBtn = document.getElementById("chatSendBtn");
         let chatHistory = [];
 
-        function addMessage(role, text) {
+        function addMessage(role, text, sources) {
             const div = document.createElement("div");
             div.className = `chat-msg ${role}`;
             const textSpan = document.createElement("span");
@@ -509,6 +545,16 @@
                 div.appendChild(speaker);
             }
 
+            // Add source links if present
+            if (sources && sources.length > 0) {
+                const srcDiv = document.createElement("span");
+                srcDiv.className = "chat-sources";
+                srcDiv.innerHTML = "🌐 Sources: " + sources.slice(0, 3).map(s => 
+                    `<a href="${s.uri}" target="_blank" rel="noopener">${s.title || "link"}</a>`
+                ).join(" | ");
+                div.appendChild(srcDiv);
+            }
+
             chatMessages.appendChild(div);
             chatMessages.scrollTop = chatMessages.scrollHeight;
             return div;
@@ -529,6 +575,7 @@
             const d = latestData || {};
             const p = personalContext || {};
             const memory = loadMemory();
+            const webEnabled = isWebSearchEnabled();
             
             function formatCandles(candleArr, label) {
                 if (!candleArr || !candleArr.length) return `${label}: No data available.`;
@@ -540,6 +587,8 @@
             }
 
             let prompt = `You are a professional EUR/USD trader AND personal assistant to a client named Boss. You have 10 years of hedge fund experience. Be friendly, funny, and motivational. Always call him "Boss".
+
+CURRENT DATE/TIME: ${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "full", timeStyle: "short" })}
 
 CURRENT MARKET STATE:
 - Live Price: ${d.price || 'unknown'}
@@ -562,7 +611,7 @@ CURRENT ANALYSIS:
 ${d.reason || 'No analysis yet'}
 `;
 
-            prompt += "\n\n=== RAW CANDLE DATA (you can analyze patterns from this) ===\n\n";
+            prompt += "\n\n=== RAW CANDLE DATA ===\n\n";
             prompt += formatCandles(d.candles_h1, "1-HOUR CANDLES (30 most recent)") + "\n\n";
             prompt += formatCandles(d.candles_h4, "4-HOUR CANDLES (10 most recent)") + "\n\n";
             prompt += formatCandles(d.candles_daily, "DAILY CANDLES (5 most recent)") + "\n";
@@ -588,14 +637,11 @@ ${d.reason || 'No analysis yet'}
                 memory.forEach(m => prompt += `- ${m.fact}\n`);
             }
 
-            prompt += `\n\nINSTRUCTIONS:
+            prompt += `\n\n${webEnabled ? "🌐 WEB SEARCH IS ENABLED. You have access to real-time Google Search. Use it when the user asks about: current events, latest news, prices, sports, weather, recent developments, or any factual information you may not know. Always cite what you find." : "🌐 WEB SEARCH IS DISABLED. Answer from your training data and the context provided above only."}
+
+INSTRUCTIONS:
 - You HAVE access to the actual OHLC candle data above. Use it!
-- When Boss asks about patterns, ACTUALLY read the candles and identify real structures:
-  - Support/resistance levels where price has reacted multiple times
-  - Trend structure (higher highs + higher lows = uptrend, etc.)
-  - Candlestick patterns (engulfing, doji, hammer, shooting star, etc.)
-  - Breakouts, false breakouts, consolidations
-  - Gaps, exhaustion candles
+- When Boss asks about patterns, ACTUALLY read the candles and identify real structures.
 - Do NOT invent patterns. If you don't see a pattern, say "no clear pattern, Boss."
 - When asked about support/resistance, look at where price bounced or reversed in the data.
 - When asked about trend, look at the sequence of highs and lows.
@@ -627,18 +673,25 @@ Only remember genuinely personal things (family, plans, preferences, goals). Do 
             chatInput.value = "";
             chatSendBtn.disabled = true;
 
-            const thinkingEl = addMessage("thinking", "Thinking...");
+            const webEnabled = isWebSearchEnabled();
+            const thinkingEl = addMessage("thinking", webEnabled ? "Thinking (with web search)..." : "Thinking...");
 
             try {
                 const systemPrompt = buildSystemPrompt();
                 chatHistory.push({ role: "user", parts: [{ text: question }] });
                 saveStoredHistory(chatHistory);
 
+                // Build request body — add Google Search tool if web is enabled
                 const requestBody = {
                     system_instruction: { parts: [{ text: systemPrompt }] },
                     contents: chatHistory,
                     generationConfig: { temperature: 0.7, maxOutputTokens: 1000 }
                 };
+
+                if (webEnabled) {
+                    // Try modern tool name first (Gemini 2.0+)
+                    requestBody.tools = [{ google_search: {} }];
+                }
 
                 let availableModels = [];
                 try {
@@ -651,7 +704,7 @@ Only remember genuinely personal things (family, plans, preferences, goals). Do 
                     }
                 } catch (e) { console.log("ListModels exception:", e); }
 
-                const priorityKeywords = ["2.0-flash", "2.5-flash", "1.5-flash", "flash"];
+                const priorityKeywords = ["2.5-flash", "2.0-flash", "1.5-flash", "flash"];
                 let modelsToTry = [];
                 if (availableModels.length > 0) {
                     for (const kw of priorityKeywords) {
@@ -667,6 +720,7 @@ Only remember genuinely personal things (family, plans, preferences, goals). Do 
                 }
 
                 let answer = null;
+                let sources = [];
                 let lastError = "";
                 const allErrors = [];
 
@@ -680,14 +734,43 @@ Only remember genuinely personal things (family, plans, preferences, goals). Do 
                         });
                         if (!resp.ok) {
                             const errText = await resp.text();
+                            // If web search fails, retry without the tool
+                            if (webEnabled && errText.includes("google_search")) {
+                                console.log(`Web search not supported on ${model}, retrying without...`);
+                                delete requestBody.tools;
+                                const retryResp = await fetch(url, {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify(requestBody)
+                                });
+                                if (retryResp.ok) {
+                                    const retryJson = await retryResp.json();
+                                    answer = retryJson.candidates?.[0]?.content?.parts?.[0]?.text;
+                                    if (answer) break;
+                                }
+                            }
                             allErrors.push(`${model} → ${resp.status}`);
                             lastError = `${model} → ${resp.status}: ${errText.slice(0, 150)}`;
                             continue;
                         }
                         const json = await resp.json();
                         answer = json.candidates?.[0]?.content?.parts?.[0]?.text;
+                        
+                        // Extract grounding sources if present
+                        const groundingMeta = json.candidates?.[0]?.groundingMetadata;
+                        if (groundingMeta && groundingMeta.groundingChunks) {
+                            for (const chunk of groundingMeta.groundingChunks) {
+                                if (chunk.web && chunk.web.uri) {
+                                    sources.push({
+                                        uri: chunk.web.uri,
+                                        title: chunk.web.title || chunk.web.uri
+                                    });
+                                }
+                            }
+                        }
+                        
                         if (answer) {
-                            console.log(`✅ Working model: ${model}`);
+                            console.log(`✅ Working model: ${model}${sources.length ? " (with sources)" : ""}`);
                             break;
                         } else {
                             allErrors.push(`${model} → empty response`);
@@ -707,7 +790,7 @@ Only remember genuinely personal things (family, plans, preferences, goals). Do 
                         addMessage("system", `🧠 Remembered ${facts.length} new fact${facts.length > 1 ? 's' : ''}.`);
                     }
                     
-                    addMessage("ai", clean);
+                    addMessage("ai", clean, sources);
                     chatHistory.push({ role: "model", parts: [{ text: clean }] });
                     if (chatHistory.length > MAX_HISTORY_ENTRIES) chatHistory = chatHistory.slice(-MAX_HISTORY_ENTRIES);
                     saveStoredHistory(chatHistory);
