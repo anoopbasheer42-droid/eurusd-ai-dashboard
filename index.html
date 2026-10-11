@@ -47,13 +47,6 @@
         .ai-reason-box { background: rgba(0,0,0,0.3); padding: 20px; border-radius: 12px; font-size: 0.95rem; line-height: 1.7; color: #e2e8f0; border-left: 4px solid var(--accent); }
         .ai-reason-label { display: block; font-weight: 600; color: var(--accent); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
         
-        .chart-container { width: 100%; height: 500px; border-radius: 10px; overflow: hidden; background: #131722; }
-        .chart-container iframe { width: 100%; height: 100%; border: none; display: block; }
-        .chart-controls { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-        .chart-btn { padding: 8px 16px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: 0.2s; }
-        .chart-btn:hover { color: var(--text); border-color: var(--accent); }
-        .chart-btn.active { background: rgba(59,130,246,0.2); border-color: var(--accent); color: var(--accent); }
-        
         .chat-container { display: flex; flex-direction: column; gap: 12px; }
         .chat-messages { max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 10px; min-height: 120px; }
         .chat-messages::-webkit-scrollbar { width: 6px; }
@@ -145,19 +138,6 @@
         </div>
 
         <div class="card" style="grid-column: 1 / -1;">
-            <h2>📈 Live EUR/USD Chart</h2>
-            <div class="chart-controls">
-                <button class="chart-btn active" onclick="setChartInterval('60', this)">1 Hour</button>
-                <button class="chart-btn" onclick="setChartInterval('15', this)">15 Min</button>
-                <button class="chart-btn" onclick="setChartInterval('240', this)">4 Hour</button>
-                <button class="chart-btn" onclick="setChartInterval('D', this)">Daily</button>
-            </div>
-            <div class="chart-container">
-                <iframe id="tvChart" src="" allowtransparency="true" scrolling="no" allowfullscreen></iframe>
-            </div>
-        </div>
-
-        <div class="card" style="grid-column: 1 / -1;">
             <h2 style="display:flex; align-items:center;">💬 Ask Your AI Trader
                 <div class="chat-header-buttons">
                     <button class="header-btn memory-btn" onclick="toggleMemoryPanel()">🧠 Memory</button>
@@ -234,14 +214,6 @@
         const HISTORY_STORAGE_NAME = "eurusd_chat_history";
         const MEMORY_STORAGE_NAME = "eurusd_long_term_memory";
         const MAX_HISTORY_ENTRIES = 40;
-
-        // ---------- CHART ----------
-        function setChartInterval(interval, btn) {
-            document.querySelectorAll(".chart-btn").forEach(b => b.classList.remove("active"));
-            if (btn) btn.classList.add("active");
-            const url = `https://s.tradingview.com/widgetembed/?frameElementId=tvChart&symbol=FX%3AEURUSD&interval=${interval}&hidesidetoolbar=0&symboledit=0&saveimage=0&toolbarbg=131722&studies=RSI%1CMACD%1CEMA%40tv-basicstudies&theme=dark&style=1&timezone=Asia%2FKolkata&locale=en&withdateranges=1&hide_legend=0&hide_top_toolbar=0`;
-            document.getElementById("tvChart").src = url;
-        }
 
         // ---------- STORAGE HELPERS ----------
         function getStoredKey() {
@@ -377,8 +349,6 @@
         window.addEventListener("load", () => {
             if (!getStoredKey()) document.getElementById("keyPanel").classList.add("visible");
             renderMemoryList();
-            const url = `https://s.tradingview.com/widgetembed/?frameElementId=tvChart&symbol=FX%3AEURUSD&interval=60&hidesidetoolbar=0&symboledit=0&saveimage=0&toolbarbg=131722&studies=RSI%1CMACD%1CEMA%40tv-basicstudies&theme=dark&style=1&timezone=Asia%2FKolkata&locale=en&withdateranges=1&hide_legend=0&hide_top_toolbar=0`;
-            document.getElementById("tvChart").src = url;
         });
 
         // ---------- 3D MODEL ----------
