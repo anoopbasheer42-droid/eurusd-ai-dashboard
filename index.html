@@ -9,105 +9,62 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         :root {
-            --bg: #0a0e17;
-            --card-bg: rgba(255, 255, 255, 0.03);
-            --card-border: rgba(255, 255, 255, 0.08);
-            --text-main: #ffffff;
-            --text-muted: #8a94a6;
-            --green: #2ecc71;
-            --yellow: #f1c40f;
-            --red: #e74c3c;
-            --blue: #4a90e2;
+            --bg: #0a0e17; --card-bg: rgba(255,255,255,0.03); --card-border: rgba(255,255,255,0.08);
+            --text-main: #fff; --text-muted: #8a94a6; --green: #2ecc71; --yellow: #f1c40f;
+            --red: #e74c3c; --blue: #4a90e2;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg);
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg);
             background-image: radial-gradient(circle at 50% 0%, #1a2333 0%, var(--bg) 70%);
-            color: var(--text-main);
-            min-height: 100vh;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
+            color: var(--text-main); min-height: 100vh; padding: 20px;
+            display: flex; flex-direction: column; align-items: center; }
         .dashboard { width: 100%; max-width: 600px; display: flex; flex-direction: column; gap: 15px; }
         header { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; }
-        .logo { display: flex; align-items: center; gap: 5px; font-size: 1.2rem; font-weight: 800; letter-spacing: 0.5px; }
+        .logo { display: flex; align-items: center; gap: 5px; font-size: 1.2rem; font-weight: 800; }
         .logo span { color: var(--yellow); }
-        .price-ticker {
-            font-family: 'JetBrains Mono', monospace; font-size: 1.2rem; font-weight: 700;
-            color: var(--green); background: rgba(46, 204, 113, 0.1); padding: 4px 10px;
-            border-radius: 8px; border: 1px solid rgba(46, 204, 113, 0.3);
-            transition: all 0.3s ease; display: flex; flex-direction: column; align-items: flex-end;
-        }
-        .last-updated { font-size: 0.6rem; color: var(--text-muted); font-family: 'Inter', sans-serif; font-weight: 400; }
-        .card {
-            background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px;
-            padding: 15px 20px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2); position: relative; overflow: hidden;
-        }
-        .card-title {
-            font-size: 0.75rem; font-weight: 600; color: var(--text-muted); letter-spacing: 2px;
-            text-transform: uppercase; margin-bottom: 10px; z-index: 2; position: relative;
-            display: flex; justify-content: space-between; align-items: center;
-        }
+        .price-ticker { font-family: 'JetBrains Mono', monospace; font-size: 1.2rem; font-weight: 700;
+            color: var(--green); background: rgba(46,204,113,0.1); padding: 4px 10px; border-radius: 8px;
+            border: 1px solid rgba(46,204,113,0.3); display: flex; flex-direction: column; align-items: flex-end; }
+        .last-updated { font-size: 0.6rem; color: var(--text-muted); font-family: 'Inter'; font-weight: 400; }
+        .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px;
+            padding: 15px 20px; backdrop-filter: blur(10px); box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            position: relative; overflow: hidden; }
+        .card-title { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); letter-spacing: 2px;
+            text-transform: uppercase; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
         #canvas-container { width: 100%; height: 180px; position: relative; z-index: 1; display: flex; justify-content: center; }
-        .subtitle { text-align: center; font-size: 0.65rem; letter-spacing: 3px; color: rgba(255, 255, 255, 0.3); margin-top: 5px; z-index: 2; position: relative; }
+        .subtitle { text-align: center; font-size: 0.65rem; letter-spacing: 3px; color: rgba(255,255,255,0.3); margin-top: 5px; }
         .signal-card { text-align: center; padding: 20px; }
-        #signal-text {
-            font-size: 3rem; font-weight: 800; letter-spacing: 4px; color: var(--yellow);
-            text-shadow: 0 0 30px rgba(241, 196, 15, 0.5); transition: all 0.4s ease-in-out;
-            z-index: 2; position: relative; margin-bottom: 5px;
-        }
-        .ai-refresh-timer {
-            font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--blue);
-            margin-bottom: 15px; background: rgba(74, 144, 226, 0.1); display: inline-block;
-            padding: 3px 10px; border-radius: 6px; border: 1px solid rgba(74, 144, 226, 0.3);
-        }
-        .signal-details {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
-            font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; text-align: left;
-            background: rgba(0,0,0,0.2); padding: 15px; border-radius: 12px; margin-top: 15px;
-        }
+        #signal-text { font-size: 3rem; font-weight: 800; letter-spacing: 4px; color: var(--yellow);
+            text-shadow: 0 0 30px rgba(241,196,15,0.5); transition: all 0.4s; margin-bottom: 5px; }
+        .ai-refresh-timer { font-family: 'JetBrains Mono'; font-size: 0.85rem; color: var(--blue);
+            margin-bottom: 15px; background: rgba(74,144,226,0.1); display: inline-block; padding: 3px 10px;
+            border-radius: 6px; border: 1px solid rgba(74,144,226,0.3); }
+        .signal-details { display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+            font-family: 'JetBrains Mono'; font-size: 0.85rem; text-align: left; background: rgba(0,0,0,0.2);
+            padding: 15px; border-radius: 12px; margin-top: 15px; }
         .signal-details div { display: flex; justify-content: space-between; }
         .signal-details span { color: var(--text-muted); }
         .reasoning-text { font-size: 0.85rem; line-height: 1.6; color: #d1d5db; }
         .chat-controls { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; }
-        .btn {
-            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
-            color: white; padding: 5px 10px; border-radius: 6px; font-size: 0.75rem;
-            cursor: pointer; transition: all 0.2s;
-        }
+        .btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white;
+            padding: 5px 10px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; transition: all 0.2s; }
         .btn:hover { background: rgba(255,255,255,0.1); }
         .btn.active { background: var(--blue); border-color: var(--blue); }
-        .btn.active.pink { background: #e84393; border-color: #e84393; }
-        .btn.active.green { background: #2ecc71; border-color: #2ecc71; color: black; }
-        .btn.danger { background: rgba(231, 76, 60, 0.2); border-color: rgba(231, 76, 60, 0.5); color: #ff9999; }
-        .panel {
-            display: none; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px;
-            margin-bottom: 10px; font-size: 0.8rem; border: 1px solid rgba(255,255,255,0.05);
-        }
+        .btn.danger { background: rgba(231,76,60,0.2); border-color: rgba(231,76,60,0.5); color: #ff9999; }
+        .panel { display: none; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px;
+            margin-bottom: 10px; font-size: 0.8rem; border: 1px solid rgba(255,255,255,0.05); }
         .panel.active { display: block; }
-        .chat-history {
-            height: 300px; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 8px;
-            padding: 10px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 10px;
-        }
+        .chat-history { height: 300px; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 8px;
+            padding: 10px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 10px; }
         .msg { padding: 8px 12px; border-radius: 8px; max-width: 85%; line-height: 1.4; font-size: 0.85rem; }
-        .msg.user { background: var(--blue); align-self: flex-end; border-bottom-right-radius: 2px; }
-        .msg.ai { background: rgba(255,255,255,0.1); align-self: flex-start; border-bottom-left-radius: 2px; border-left: 3px solid var(--blue); }
-        .msg.system { background: rgba(241, 196, 15, 0.1); border: 1px solid rgba(241, 196, 15, 0.3); align-self: center; font-size: 0.75rem; text-align: center; }
+        .msg.user { background: var(--blue); align-self: flex-end; }
+        .msg.ai { background: rgba(255,255,255,0.1); align-self: flex-start; border-left: 3px solid var(--blue); }
+        .msg.system { background: rgba(241,196,15,0.1); border: 1px solid rgba(241,196,15,0.3); align-self: center; font-size: 0.75rem; text-align: center; }
         .chat-input-row { display: flex; gap: 8px; }
-        .chat-input-row input {
-            flex: 1; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);
-            color: white; padding: 10px; border-radius: 8px; outline: none;
-        }
-        .chat-input-row input:focus { border-color: var(--blue); }
-        .chat-input-row button {
-            background: var(--blue); border: none; color: white; padding: 0 15px;
-            border-radius: 8px; font-weight: 600; cursor: pointer;
-        }
-        .chat-input-row button.send-green { background: var(--green); color: black; }
+        .chat-input-row input { flex: 1; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);
+            color: white; padding: 10px; border-radius: 8px; outline: none; }
+        .chat-input-row button { background: var(--green); border: none; color: black; padding: 0 15px;
+            border-radius: 8px; font-weight: 600; cursor: pointer; }
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.85rem; }
         .stat-item { background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 8px; display: flex; justify-content: space-between; }
         .stat-label { color: var(--text-muted); }
@@ -116,27 +73,19 @@
     </style>
 </head>
 <body>
-
     <div class="dashboard">
         <header>
             <div class="logo">⚡ EUR/USD <span>AI PRO</span></div>
-            <div class="price-ticker" id="live-price">
-                Loading...
-                <div class="last-updated" id="last-updated">Updated: --:--:--</div>
-            </div>
+            <div class="price-ticker" id="live-price">Loading...<div class="last-updated" id="last-updated">Updated: --:--:--</div></div>
         </header>
 
-        <div class="card">
-            <div class="card-title">AI Neural Core</div>
-            <div id="canvas-container"></div>
-            <div class="subtitle">QUANTUM MARKET INTELLIGENCE</div>
-        </div>
+        <div class="card"><div class="card-title">AI Neural Core</div><div id="canvas-container"></div><div class="subtitle">QUANTUM MARKET INTELLIGENCE</div></div>
 
         <div class="card signal-card">
             <div class="card-title">Current Signal</div>
             <div id="signal-text">WAITING</div>
-            <div class="ai-refresh-timer" id="ai-refresh-timer">Next refresh in: 05:30</div>
-            <div class="signal-details" id="signal-details">
+            <div class="ai-refresh-timer" id="ai-refresh-timer">Next AI refresh in: 05:30</div>
+            <div class="signal-details">
                 <div><span>Confidence:</span> <span id="val-confidence">-</span></div>
                 <div><span>Valid Until:</span> <span id="val-valid">-</span></div>
                 <div><span>Entry:</span> <span id="val-entry">-</span></div>
@@ -145,79 +94,58 @@
                 <div><span>ATR:</span> <span id="val-atr">-</span></div>
             </div>
             <div style="margin-top:15px; display:flex; gap:10px; justify-content:center;">
-                <button class="btn" onclick="fetchData()">⟳ Refresh Now</button>
+                <button class="btn" onclick="generateSignalFromScratch()">⟳ Refresh Now</button>
                 <button class="btn" onclick="playVoiceReport()">▶ Play Voice</button>
                 <button class="btn danger" onclick="stopVoice()">■ Stop</button>
             </div>
         </div>
 
         <div class="card">
-            <div class="card-title">
-                Ask Your AI Trader
+            <div class="card-title">Ask Your AI Trader
                 <div class="chat-controls">
-                    <button class="btn active" id="browser-ai-toggle" onclick="toggleBrowserAI()">🤖 Browser AI ON</button>
-                    <button class="btn" id="deep-think-toggle" onclick="toggleDeepThink()">🧠 Deep Think OFF</button>
+                    <button class="btn active" id="browser-ai-toggle" onclick="toggleBrowserAI()">🤖 AI ON</button>
+                    <button class="btn" id="deep-think-toggle" onclick="toggleDeepThink()">🧠 Deep OFF</button>
                     <button class="btn" id="web-toggle" onclick="toggleWeb()">🌐 Web OFF</button>
-                    <button class="btn" onclick="togglePanel('panel-reminders')">🔔 Reminders</button>
-                    <button class="btn" onclick="togglePanel('panel-memory')">💾 Memory</button>
-                    <button class="btn" onclick="togglePanel('panel-gist')">☁️ Gist</button>
-                    <button class="btn" onclick="togglePanel('panel-key')">🔑 Key</button>
+                    <button class="btn" onclick="togglePanel('panel-reminders')">🔔</button>
+                    <button class="btn" onclick="togglePanel('panel-memory')">💾</button>
+                    <button class="btn" onclick="togglePanel('panel-gist')">☁️</button>
+                    <button class="btn" onclick="togglePanel('panel-key')">🔑</button>
                 </div>
             </div>
-            
             <div class="panel" id="panel-reminders">
-                <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                    <strong>Active Reminders</strong>
-                    <div>
-                        <button class="btn" onclick="testReminder()">Test Now</button>
-                        <button class="btn danger" onclick="clearReminders()">Clear All</button>
-                    </div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><strong>Reminders</strong>
+                    <div><button class="btn" onclick="testReminder()">Test</button><button class="btn danger" onclick="clearReminders()">Clear</button></div>
                 </div>
                 <div id="reminders-list" style="font-size:0.75rem; color:var(--text-muted);">No active reminders.</div>
             </div>
-
             <div class="panel" id="panel-memory">
-                <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                    <strong>Long-Term Memory</strong>
+                <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><strong>Memory</strong>
                     <button class="btn danger" onclick="clearLongTermMemory()">Clear</button>
                 </div>
-                <div id="memory-list" style="font-size:0.75rem; color:var(--text-muted); max-height:100px; overflow-y:auto;">No facts saved.</div>
+                <div id="memory-list" style="font-size:0.75rem; color:var(--text-muted); max-height:100px; overflow-y:auto;">No facts.</div>
             </div>
-
             <div class="panel" id="panel-gist">
-                <strong>Gist Memory Sync</strong>
-                <p style="font-size:0.7rem; color:var(--text-muted); margin:5px 0;">Sync your long-term memory to the cloud so it works on any device.</p>
-                <input type="password" id="gist-token-input" placeholder="GitHub Token (ghp_...)" style="width:100%; padding:8px; border-radius:6px; border:1px solid #444; background:#111; color:white; margin-bottom:5px;">
-                <input type="text" id="gist-id-input" placeholder="Gist ID" style="width:100%; padding:8px; border-radius:6px; border:1px solid #444; background:#111; color:white; margin-bottom:5px;">
-                <button class="btn" onclick="saveGistConfig()">Save & Sync Now</button>
-                <button class="btn" style="margin-left:5px;" onclick="loadMemoryFromGist()">Force Pull</button>
+                <strong>Gist Sync</strong>
+                <input type="password" id="gist-token-input" placeholder="GitHub Token" style="width:100%; padding:8px; margin-top:5px; border-radius:6px; border:1px solid #444; background:#111; color:white;">
+                <input type="text" id="gist-id-input" placeholder="Gist ID" style="width:100%; padding:8px; margin-top:5px; border-radius:6px; border:1px solid #444; background:#111; color:white;">
+                <button class="btn" style="margin-top:5px;" onclick="saveGistConfig()">Save & Sync</button>
+                <button class="btn" style="margin-top:5px;" onclick="loadMemoryFromGist()">Pull</button>
                 <div id="gist-status" style="font-size:0.7rem; margin-top:5px; color:var(--yellow);"></div>
             </div>
-
             <div class="panel" id="panel-key">
                 <strong>Gemini API Key</strong>
-                <p style="font-size:0.7rem; color:var(--text-muted); margin:5px 0;">Stored locally in your browser. Never sent to GitHub.</p>
-                <input type="password" id="api-key-input" placeholder="AIzaSy..." style="width:100%; padding:8px; border-radius:6px; border:1px solid #444; background:#111; color:white; margin-bottom:5px;">
-                <button class="btn" onclick="saveApiKey()">Save Key</button>
+                <input type="password" id="api-key-input" placeholder="AIzaSy..." style="width:100%; padding:8px; margin-top:5px; border-radius:6px; border:1px solid #444; background:#111; color:white;">
+                <button class="btn" style="margin-top:5px;" onclick="saveApiKey()">Save Key</button>
             </div>
-
-            <div class="chat-history" id="chat-history">
-                <div class="msg ai fade-in">Memory restored — Boss and I are back in the flow.</div>
-            </div>
-            
+            <div class="chat-history" id="chat-history"><div class="msg ai fade-in">Memory restored — Boss and I are back in the flow.</div></div>
             <div class="chat-input-row">
                 <input type="text" id="chat-input" placeholder="Ask me anything, Boss..." onkeypress="if(event.key==='Enter') sendChat()">
-                <button class="send-green" onclick="sendChat()">Send</button>
+                <button onclick="sendChat()">Send</button>
             </div>
-            <div style="text-align:right; margin-top:10px;">
-                <button class="btn" onclick="clearChat()">Clear chat (memory stays)</button>
-            </div>
+            <div style="text-align:right; margin-top:10px;"><button class="btn" onclick="clearChat()">Clear chat (memory stays)</button></div>
         </div>
 
-        <div class="card">
-            <div class="card-title">Boss's Wisdom Corner</div>
-            <div class="reasoning-text" id="wise-words">Loading wisdom...</div>
-        </div>
+        <div class="card"><div class="card-title">Boss's Wisdom Corner</div><div class="reasoning-text" id="wise-words">Loading...</div></div>
 
         <div class="card">
             <div class="card-title">Multi-Timeframe Analysis</div>
@@ -228,47 +156,29 @@
                 <div class="stat-item"><span class="stat-label">Resistance</span><span id="val-resistance">-</span></div>
             </div>
             <div style="margin-top:10px; font-size:0.8rem; color:var(--text-muted); line-height:1.5;">
-                <div id="val-candle-current">-</div>
-                <div id="val-candle-1h">-</div>
-                <div id="val-candle-4h">-</div>
+                <div id="val-candle-current">-</div><div id="val-candle-1h">-</div><div id="val-candle-4h">-</div>
             </div>
         </div>
 
-        <div class="card">
-            <div class="card-title">AI Trader's Reasoning</div>
-            <div class="reasoning-text" id="val-reason">Waiting for data...</div>
-        </div>
+        <div class="card"><div class="card-title">AI Trader's Reasoning</div><div class="reasoning-text" id="val-reason">Waiting...</div></div>
     </div>
 
     <script>
-        const DATA_URL = 'https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/data.json';
+        const FALLBACK_URL = 'https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/data.json';
         const CONTEXT_URL = 'https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/personal_context.json';
-        
-        let globalData = null;
-        let personalContext = null;
-        let webSearchEnabled = false;
-        let browserAIEnabled = true; 
-        let deepThinkEnabled = false; 
-        let isSpeaking = false;
-        let chatInProgress = false;
+
+        let globalData = null, personalContext = null;
+        let webSearchEnabled = false, deepThinkEnabled = false, isSpeaking = false, chatInProgress = false;
         let chatHistory = JSON.parse(localStorage.getItem('eurusd_chat_history') || '[]');
         let longTermMemory = JSON.parse(localStorage.getItem('eurusd_long_term_memory') || '[]');
         let reminders = JSON.parse(localStorage.getItem('eurusd_reminders') || '[]');
         let apiKey = localStorage.getItem('eurusd_chat_key') || '';
-
         let gistToken = localStorage.getItem('eurusd_gist_token') || '';
         let gistId = localStorage.getItem('eurusd_gist_id') || '';
-        
         let cachedModels = null;
-        let timeLeft = 330; 
+        let timeLeft = 330;
 
-        document.getElementById('browser-ai-toggle').classList.toggle('active', browserAIEnabled);
-        document.getElementById('deep-think-toggle').classList.toggle('active', deepThinkEnabled);
-        document.getElementById('web-toggle').classList.toggle('active', webSearchEnabled);
-
-        document.body.addEventListener('click', () => {
-            if ('speechSynthesis' in window) { window.speechSynthesis.getVoices(); }
-        }, { once: true });
+        document.body.addEventListener('click', () => { if ('speechSynthesis' in window) window.speechSynthesis.getVoices(); }, { once: true });
 
         // --- THREE.JS NEURAL CORE ---
         const container = document.getElementById('canvas-container');
@@ -280,19 +190,11 @@
         renderer.setPixelRatio(window.devicePixelRatio);
         container.appendChild(renderer.domElement);
 
-        const glowGeo = new THREE.SphereGeometry(1.2, 32, 32);
-        const glowMat = new THREE.MeshBasicMaterial({ color: 0x4a90e2, transparent: true, opacity: 0.15 });
-        const glowSphere = new THREE.Mesh(glowGeo, glowMat);
+        const glowSphere = new THREE.Mesh(new THREE.SphereGeometry(1.2, 32, 32), new THREE.MeshBasicMaterial({ color: 0x4a90e2, transparent: true, opacity: 0.15 }));
         scene.add(glowSphere);
-
-        const innerGeo = new THREE.IcosahedronGeometry(1.0, 1);
-        const innerMat = new THREE.MeshBasicMaterial({ color: 0x4a90e2, wireframe: true, transparent: true, opacity: 0.8 });
-        const innerCore = new THREE.Mesh(innerGeo, innerMat);
+        const innerCore = new THREE.Mesh(new THREE.IcosahedronGeometry(1.0, 1), new THREE.MeshBasicMaterial({ color: 0x4a90e2, wireframe: true, transparent: true, opacity: 0.8 }));
         scene.add(innerCore);
-
-        const outerGeo = new THREE.IcosahedronGeometry(1.8, 1);
-        const outerMat = new THREE.MeshBasicMaterial({ color: 0x4a90e2, wireframe: true, transparent: true, opacity: 0.4 });
-        const outerShell = new THREE.Mesh(outerGeo, outerMat);
+        const outerShell = new THREE.Mesh(new THREE.IcosahedronGeometry(1.8, 1), new THREE.MeshBasicMaterial({ color: 0x4a90e2, wireframe: true, transparent: true, opacity: 0.4 }));
         scene.add(outerShell);
 
         let pulseTime = 0;
@@ -307,60 +209,222 @@
             renderer.render(scene, camera);
         }
         animate();
-
         window.addEventListener('resize', () => {
             camera.aspect = container.clientWidth / container.clientHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(container.clientWidth, container.clientHeight);
         });
-
         function updateCoreColor(signal) {
-            let color = 0xf1c40f; 
+            let color = 0xf1c40f;
             if (signal === 'BUY') color = 0x2ecc71;
             if (signal === 'SELL') color = 0xe74c3c;
             glowSphere.material.color.setHex(color); innerCore.material.color.setHex(color); outerShell.material.color.setHex(color);
         }
 
-        // --- FETCH DATA FROM GITHUB (The Reliable Way) ---
-        async function fetchData() {
+        // --- INDICATOR MATH ---
+        function calculateEMA(data, period) {
+            const k = 2 / (period + 1); let ema = data[0]; const arr = [ema];
+            for (let i = 1; i < data.length; i++) { ema = (data[i] * k) + (ema * (1 - k)); arr.push(ema); }
+            return arr;
+        }
+        function calculateRSI(data, period = 14) {
+            let gains = 0, losses = 0;
+            for (let i = 1; i <= period; i++) { const diff = data[i] - data[i-1]; if (diff >= 0) gains += diff; else losses -= diff; }
+            let ag = gains / period, al = losses / period;
+            for (let i = period + 1; i < data.length; i++) {
+                const diff = data[i] - data[i-1];
+                if (diff >= 0) { ag = (ag * (period - 1) + diff) / period; al = (al * (period - 1)) / period; }
+                else { ag = (ag * (period - 1)) / period; al = (al * (period - 1) - diff) / period; }
+            }
+            if (al === 0) return 100;
+            return 100 - (100 / (1 + (ag / al)));
+        }
+        function calculateATR(highs, lows, closes, period = 14) {
+            let trs = [];
+            for (let i = 1; i < highs.length; i++) trs.push(Math.max(highs[i]-lows[i], Math.abs(highs[i]-closes[i-1]), Math.abs(lows[i]-closes[i-1])));
+            return trs.slice(-period).reduce((a,b) => a+b, 0) / period;
+        }
+
+        // --- MULTI-PROXY YAHOO FETCH ---
+        async function fetchWithTimeout(url, timeout = 8000) {
+            const ctrl = new AbortController();
+            const id = setTimeout(() => ctrl.abort(), timeout);
+            try { const r = await fetch(url, { signal: ctrl.signal }); clearTimeout(id); return r; }
+            catch(e) { clearTimeout(id); throw e; }
+        }
+
+        async function fetchYahooCandles(interval, range) {
+            const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/EURUSD=X?interval=${interval}&range=${range}`;
+            const proxies = [
+                `https://corsproxy.io/?${encodeURIComponent(yahooUrl)}`,
+                `https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`,
+                `https://thingproxy.freeboard.io/fetch/${yahooUrl}`
+            ];
+            for (const proxyUrl of proxies) {
+                try {
+                    const res = await fetchWithTimeout(proxyUrl, 8000);
+                    if (!res.ok) continue;
+                    const data = await res.json();
+                    if (!data?.chart?.result?.[0]) continue;
+                    const result = data.chart.result[0];
+                    const ts = result.timestamp, q = result.indicators.quote[0];
+                    if (!ts || !q) continue;
+                    const candles = ts.map((t, i) => ({ time: t*1000, open: q.open[i], high: q.high[i], low: q.low[i], close: q.close[i] })).filter(c => c.open && c.high && c.low && c.close);
+                    if (candles.length > 0) { console.log(`✓ ${interval} from ${proxyUrl.split('/')[2]}`); return candles; }
+                } catch(e) { console.log(`✗ ${proxyUrl.split('/')[2]}`); }
+            }
+            return [];
+        }
+
+        // --- GENERATE SIGNAL ---
+        async function generateSignalFromScratch() {
+            if (!apiKey) {
+                document.getElementById('val-reason').innerText = "Please enter your Gemini API Key.";
+                return;
+            }
             const signalText = document.getElementById('signal-text');
-            signalText.innerText = "LOADING...";
+            signalText.innerText = "FETCHING...";
             signalText.style.color = "var(--blue)";
-            document.getElementById('val-reason').innerText = "Fetching latest signal from your Python backend...";
+            document.getElementById('val-reason').innerText = "Downloading 5m, 15m, 1H, Daily candles from Yahoo...";
+
+            const [candles5m, candles15m, candles1H, candlesDaily] = await Promise.all([
+                fetchYahooCandles('5m', '5d'),
+                fetchYahooCandles('15m', '5d'),
+                fetchYahooCandles('1h', '1mo'),
+                fetchYahooCandles('1d', '3mo')
+            ]);
+
+            if (candles1H.length === 0) {
+                document.getElementById('val-reason').innerText = "All proxies failed. Falling back to GitHub data.json (your Python backup)...";
+                signalText.innerText = "FALLBACK";
+                signalText.style.color = "var(--yellow)";
+                try {
+                    const fallbackRes = await fetch(FALLBACK_URL + '?v=' + Date.now());
+                    const fallbackData = await fallbackRes.json();
+                    globalData = fallbackData;
+                    updateUI(fallbackData);
+                    playVoiceReport();
+                    resetTimer();
+                    return;
+                } catch(e) {
+                    document.getElementById('val-reason').innerText = "Both Yahoo and GitHub failed. Check internet.";
+                    signalText.innerText = "ERROR";
+                    signalText.style.color = "var(--red)";
+                    resetTimer();
+                    return;
+                }
+            }
+
+            signalText.innerText = "ANALYZING...";
+            document.getElementById('val-reason').innerText = "Asking Gemini to analyze 5m, 15m, 1H, Daily...";
+
+            const closes1H = candles1H.map(c => c.close), highs1H = candles1H.map(c => c.high), lows1H = candles1H.map(c => c.low);
+            const closes5m = candles5m.map(c => c.close), highs5m = candles5m.map(c => c.high), lows5m = candles5m.map(c => c.low);
+            const closes15m = candles15m.map(c => c.close), highs15m = candles15m.map(c => c.high), lows15m = candles15m.map(c => c.low);
+
+            const ema20 = calculateEMA(closes1H, 20), ema50 = calculateEMA(closes1H, 50);
+            const rsi1H = calculateRSI(closes1H, 14), rsi15m = calculateRSI(closes15m, 14), rsi5m = calculateRSI(closes5m, 14);
+            const atr = calculateATR(highs1H, lows1H, closes1H, 14);
+
+            const support = Math.min(...lows1H.slice(-50)), resistance = Math.max(...highs1H.slice(-50));
+            const currentPrice = closes5m[closes5m.length - 1];
+
+            // Detect trend on 1H
+            const rh = highs1H.slice(-20), rl = lows1H.slice(-20);
+            let trend = "Sideways";
+            if (rh[rh.length-1] > rh[0] && rl[rl.length-1] > rl[0]) trend = "Uptrend";
+            if (rh[rh.length-1] < rh[0] && rl[rl.length-1] < rl[0]) trend = "Downtrend";
+
+            const fmt = (arr) => arr.slice(-20).map(c => `O:${c.open.toFixed(5)} H:${c.high.toFixed(5)} L:${c.low.toFixed(5)} C:${c.close.toFixed(5)}`).join('\n');
+
+            const dataString = `
+CURRENT PRICE: ${currentPrice.toFixed(5)}
+
+5-MINUTE CANDLES (last 20) - for ENTRY TIMING:
+${fmt(candles5m)}
+RSI 5m: ${rsi5m.toFixed(2)}
+
+15-MINUTE CANDLES (last 20) - for SHORT-TERM STRUCTURE:
+${fmt(candles15m)}
+RSI 15m: ${rsi15m.toFixed(2)}
+
+1-HOUR CANDLES (last 20) - for MAIN TREND:
+${fmt(candles1H)}
+EMA20 1H: ${ema20[ema20.length-1].toFixed(5)} | EMA50 1H: ${ema50[ema50.length-1].toFixed(5)}
+RSI 1H: ${rsi1H.toFixed(2)} | ATR 1H: ${atr.toFixed(5)}
+
+DAILY CANDLES (last 5) - for BIG PICTURE:
+${fmt(candlesDaily)}
+
+Support: ${support.toFixed(5)} | Resistance: ${resistance.toFixed(5)} | Trend: ${trend}`;
 
             try {
-                const response = await fetch(DATA_URL + '?v=' + new Date().getTime());
-                if (!response.ok) throw new Error('Network response was not ok');
-                globalData = await response.json();
+                const prompt = `You are a professional EUR/USD hedge fund trader analyzing 4 timeframes.
+TIME: ${new Date().toLocaleString('en-IN', {timeZone: 'Asia/Kolkata'})} IST.
+
+${dataString}
+
+How to analyze:
+- 5m candles: ENTRY TIMING. Is the current moment right to enter? Any engulfing or rejection?
+- 15m candles: SHORT-TERM STRUCTURE. Higher lows? Micro resistance?
+- 1H candles: MAIN TREND. Anchor of everything.
+- Daily candles: BIG PICTURE.
+
+If all timeframes align, HIGH confidence. If they conflict, LOW confidence and recommend waiting.
+
+Respond ONLY with valid JSON (no markdown):
+{"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
+
+                const payload = { contents: [{ role: 'user', parts: [{ text: prompt }] }] };
+                const modelsToTry = await getAvailableGeminiModels();
+                let reply = null;
+                for (const model of modelsToTry) {
+                    try {
+                        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+                            method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)
+                        });
+                        if (res.ok) { const d = await res.json(); reply = d.candidates[0].content.parts[0].text; break; }
+                    } catch(e) { continue; }
+                }
+                if (!reply) throw new Error("All models failed");
+
+                const cleanJson = reply.replace(/```json/g, '').replace(/```/g, '').trim();
+                const sig = JSON.parse(cleanJson);
+
+                globalData = {
+                    price: currentPrice.toFixed(5), signal: sig.signal, reason: sig.reason,
+                    confidence: sig.confidence, entry: sig.entry, sl: sig.sl, tp: sig.tp,
+                    atr: atr.toFixed(5), support: support.toFixed(5), resistance: resistance.toFixed(5), trend: trend,
+                    valid: new Date(Date.now() + 1800000).toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit'}) + " IST",
+                    wise_words: sig.wise_words,
+                    candle_current: `5m: ${currentPrice.toFixed(5)} | 15m RSI: ${rsi15m.toFixed(1)}`,
+                    candle_1h: `1H Trend: ${trend} | RSI: ${rsi1H.toFixed(1)}`,
+                    candle_4h: `ATR: ${atr.toFixed(5)} | S/R: ${support.toFixed(4)}/${resistance.toFixed(4)}`
+                };
                 updateUI(globalData);
                 playVoiceReport();
                 resetTimer();
-            } catch (error) {
-                document.getElementById('val-reason').innerText = "Failed to load data.json. Check your GitHub Actions tab to ensure the Python script is running.";
-                signalText.innerText = "ERROR";
-                signalText.style.color = "var(--red)";
+            } catch(e) {
+                console.error(e);
+                document.getElementById('val-reason').innerText = "AI analysis failed: " + e.message + ". Falling back to GitHub data.json...";
+                try {
+                    const fb = await fetch(FALLBACK_URL + '?v=' + Date.now());
+                    globalData = await fb.json();
+                    updateUI(globalData);
+                    playVoiceReport();
+                } catch(e2) { signalText.innerText = "ERROR"; signalText.style.color = "var(--red)"; }
                 resetTimer();
             }
         }
 
-        async function fetchContext() {
-            try {
-                const response = await fetch(CONTEXT_URL + '?v=' + new Date().getTime());
-                if (response.ok) personalContext = await response.json();
-            } catch (e) { console.log('Context not loaded'); }
-        }
-
         function updateUI(data) {
-            document.getElementById('live-price').innerHTML = `${data.price || '1.00000'}<div class="last-updated">Updated: ${new Date().toLocaleTimeString('en-IN', {hour12: false})}</div>`;
-            
-            const signalText = document.getElementById('signal-text');
-            signalText.innerText = data.signal || 'WAITING';
-            if (data.signal === 'BUY') { signalText.style.color = 'var(--green)'; signalText.style.textShadow = '0 0 30px rgba(46, 204, 113, 0.6)'; }
-            else if (data.signal === 'SELL') { signalText.style.color = 'var(--red)'; signalText.style.textShadow = '0 0 30px rgba(231, 76, 60, 0.6)'; }
-            else { signalText.style.color = 'var(--yellow)'; signalText.style.textShadow = '0 0 30px rgba(241, 196, 15, 0.5)'; }
-            
+            document.getElementById('live-price').innerHTML = `${data.price}<div class="last-updated">Updated: ${new Date().toLocaleTimeString('en-IN',{hour12:false})}</div>`;
+            const st = document.getElementById('signal-text');
+            st.innerText = data.signal || 'WAITING';
+            if (data.signal === 'BUY') { st.style.color = 'var(--green)'; st.style.textShadow = '0 0 30px rgba(46,204,113,0.6)'; }
+            else if (data.signal === 'SELL') { st.style.color = 'var(--red)'; st.style.textShadow = '0 0 30px rgba(231,76,60,0.6)'; }
+            else { st.style.color = 'var(--yellow)'; st.style.textShadow = '0 0 30px rgba(241,196,15,0.5)'; }
             updateCoreColor(data.signal);
-
             document.getElementById('val-confidence').innerText = data.confidence || '-';
             document.getElementById('val-valid').innerText = data.valid || '-';
             document.getElementById('val-entry').innerText = data.entry || '-';
@@ -368,156 +432,121 @@
             document.getElementById('val-tp').innerText = data.tp || '-';
             document.getElementById('val-atr').innerText = data.atr || '-';
             document.getElementById('val-trend').innerText = data.trend || '-';
-            document.getElementById('val-session').innerText = data.session || '-';
+            document.getElementById('val-session').innerText = "Auto";
             document.getElementById('val-support').innerText = data.support || '-';
             document.getElementById('val-resistance').innerText = data.resistance || '-';
             document.getElementById('val-candle-current').innerText = data.candle_current || '-';
             document.getElementById('val-candle-1h').innerText = data.candle_1h || '-';
             document.getElementById('val-candle-4h').innerText = data.candle_4h || '-';
-            document.getElementById('val-reason').innerText = data.reason || 'No reasoning provided.';
+            document.getElementById('val-reason').innerText = data.reason || 'No reasoning.';
             document.getElementById('wise-words').innerText = data.wise_words || 'Stay disciplined, Boss.';
         }
 
         function updateTimerDisplay() {
-            const minutes = Math.floor(timeLeft / 60).toString().padStart(2, '0');
-            const seconds = (timeLeft % 60).toString().padStart(2, '0');
-            const display = document.getElementById('ai-refresh-timer');
-            if (display && !chatInProgress) display.innerText = `Next refresh in: ${minutes}:${seconds}`;
+            const m = Math.floor(timeLeft/60).toString().padStart(2,'0');
+            const s = (timeLeft%60).toString().padStart(2,'0');
+            const d = document.getElementById('ai-refresh-timer');
+            if (d && !chatInProgress) d.innerText = `Next AI refresh in: ${m}:${s}`;
         }
-
         function resetTimer() { timeLeft = 330; updateTimerDisplay(); }
 
-        // --- VOICE SYSTEM ---
-        const OPENINGS = ["Here is your market update, Boss.", "Let's look at the charts.", "Time for your hourly briefing.", "Boss, I have a new signal for you.", "Market update incoming."];
-        const TRANSITIONS = ["Moving on,", "Now, looking at the details,", "Here's the breakdown:", "Next,", "Additionally,"];
-        const CLOSINGS = ["Stay sharp, Boss.", "Trade safe.", "I'll keep watching the market.", "Good luck out there.", "That's all for now.", "Keep up the good work."];
-        function getRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+        // --- VOICE ---
+        const OPENINGS = ["Here is your market update, Boss.", "Let's look at the charts.", "Time for your briefing.", "Boss, new signal incoming.", "Market update."];
+        const TRANS = ["Moving on,", "Now, looking at details,", "Here's the breakdown:", "Next,", "Additionally,"];
+        const CLOSINGS = ["Stay sharp, Boss.", "Trade safe.", "I'll keep watching.", "Good luck.", "That's all for now."];
+        const rnd = (a) => a[Math.floor(Math.random()*a.length)];
+
         function playVoiceReport() {
             if (!globalData) return;
             if (isSpeaking) stopVoice();
-            const opening = getRandom(OPENINGS); const transition = getRandom(TRANSITIONS); const closing = getRandom(CLOSINGS);
-            let text = `${opening} The current price is ${globalData.price}. `;
-            text += `We have a ${globalData.signal} signal with ${globalData.confidence} confidence. `;
+            let text = `${rnd(OPENINGS)} Price is ${globalData.price}. `;
+            text += `Signal: ${globalData.signal}, confidence ${globalData.confidence}. `;
             text += `${globalData.reason} `;
-            text += `${transition} Support is at ${globalData.support} and resistance is at ${globalData.resistance}. `;
-            text += `Entry is ${globalData.entry}, Stop Loss is ${globalData.sl}, Take Profit is ${globalData.tp}. `;
+            text += `${rnd(TRANS)} Support ${globalData.support}, resistance ${globalData.resistance}. `;
+            text += `Entry ${globalData.entry}, SL ${globalData.sl}, TP ${globalData.tp}. `;
             if (globalData.wise_words) text += `${globalData.wise_words} `;
-            text += `${closing}`;
+            text += rnd(CLOSINGS);
             speakText(text);
         }
-
         function speakText(text) {
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.rate = 0.88 + Math.random() * 0.15; utterance.pitch = 0.85 + Math.random() * 0.25;
-                const voices = window.speechSynthesis.getVoices();
-                const preferred = voices.find(v => v.name.includes('Google UK English Male') || v.name.includes('Daniel') || v.name.includes('Alex'));
-                if (preferred) utterance.voice = preferred;
-                utterance.onstart = () => { isSpeaking = true; }; utterance.onend = () => { isSpeaking = false; };
-                window.speechSynthesis.speak(utterance);
+                const u = new SpeechSynthesisUtterance(text);
+                u.rate = 0.88 + Math.random() * 0.15; u.pitch = 0.85 + Math.random() * 0.25;
+                const v = window.speechSynthesis.getVoices();
+                const pref = v.find(x => x.name.includes('Google UK English Male') || x.name.includes('Daniel') || x.name.includes('Alex'));
+                if (pref) u.voice = pref;
+                u.onstart = () => isSpeaking = true; u.onend = () => isSpeaking = false;
+                window.speechSynthesis.speak(u);
             }
         }
         function stopVoice() { if ('speechSynthesis' in window) { window.speechSynthesis.cancel(); isSpeaking = false; } }
 
-        // --- CHAT & MEMORY ---
+        // --- CHAT ---
         function renderChat() {
-            const historyEl = document.getElementById('chat-history');
-            historyEl.innerHTML = '';
-            chatHistory.forEach(msg => {
-                const div = document.createElement('div');
-                div.className = `msg ${msg.role} fade-in`; div.innerText = msg.text; historyEl.appendChild(div);
-            });
-            historyEl.scrollTop = historyEl.scrollHeight;
+            const el = document.getElementById('chat-history');
+            el.innerHTML = '';
+            chatHistory.forEach(m => { const d = document.createElement('div'); d.className = `msg ${m.role} fade-in`; d.innerText = m.text; el.appendChild(d); });
+            el.scrollTop = el.scrollHeight;
         }
         function saveChatHistory() { if (chatHistory.length > 40) chatHistory = chatHistory.slice(-40); localStorage.setItem('eurusd_chat_history', JSON.stringify(chatHistory)); }
         function clearChat() { chatHistory = []; saveChatHistory(); renderChat(); }
-        function toggleBrowserAI() { browserAIEnabled = !browserAIEnabled; document.getElementById('browser-ai-toggle').classList.toggle('active', browserAIEnabled); document.getElementById('browser-ai-toggle').innerText = browserAIEnabled ? '🤖 Browser AI ON' : '🤖 Browser AI OFF'; }
-        function toggleDeepThink() { deepThinkEnabled = !deepThinkEnabled; document.getElementById('deep-think-toggle').classList.toggle('active', deepThinkEnabled); document.getElementById('deep-think-toggle').innerText = deepThinkEnabled ? '🧠 Deep Think ON' : '🧠 Deep Think OFF'; }
-        function toggleWeb() { webSearchEnabled = !webSearchEnabled; document.getElementById('web-toggle').innerText = webSearchEnabled ? '🌐 Web ON' : '🌐 Web OFF'; document.getElementById('web-toggle').classList.toggle('active', webSearchEnabled); }
-
-        function togglePanel(id) {
-            const el = document.getElementById(id);
-            el.classList.toggle('active');
+        function toggleBrowserAI() { /* kept for compatibility */ }
+        function toggleDeepThink() { deepThinkEnabled = !deepThinkEnabled; const b = document.getElementById('deep-think-toggle'); b.classList.toggle('active', deepThinkEnabled); b.innerText = deepThinkEnabled ? '🧠 Deep ON' : '🧠 Deep OFF'; }
+        function toggleWeb() { webSearchEnabled = !webSearchEnabled; const b = document.getElementById('web-toggle'); b.innerText = webSearchEnabled ? '🌐 Web ON' : '🌐 Web OFF'; b.classList.toggle('active', webSearchEnabled); }
+        function togglePanel(id) { const el = document.getElementById(id); el.classList.toggle('active');
             if (id === 'panel-reminders') renderReminders();
             if (id === 'panel-memory') renderMemory();
             if (id === 'panel-key') document.getElementById('api-key-input').value = apiKey;
             if (id === 'panel-gist') { document.getElementById('gist-token-input').value = gistToken; document.getElementById('gist-id-input').value = gistId; }
         }
 
-        function saveGistConfig() { gistToken = document.getElementById('gist-token-input').value.trim(); gistId = document.getElementById('gist-id-input').value.trim(); localStorage.setItem('eurusd_gist_token', gistToken); localStorage.setItem('eurusd_gist_id', gistId); document.getElementById('gist-status').innerText = "Saving to Gist..."; saveMemoryToGist(); }
-        async function loadMemoryFromGist() { if (!gistToken || !gistId) { document.getElementById('gist-status').innerText = "Please enter Token and Gist ID."; return; } document.getElementById('gist-status').innerText = "Loading from Gist..."; try { const res = await fetch(`https://api.github.com/gists/${gistId}`, { headers: { 'Authorization': `token ${gistToken}` } }); if (!res.ok) throw new Error('Failed to fetch gist'); const data = await res.json(); const content = data.files['memory.json']?.content; if (content) { longTermMemory = JSON.parse(content); localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); renderMemory(); document.getElementById('gist-status').innerText = "Memory loaded from Gist!"; } } catch (e) { document.getElementById('gist-status').innerText = "Error: " + e.message; } }
-        async function saveMemoryToGist() { if (!gistToken || !gistId) return; try { const res = await fetch(`https://api.github.com/gists/${gistId}`, { method: 'PATCH', headers: { 'Authorization': `token ${gistToken}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ files: { 'memory.json': { content: JSON.stringify(longTermMemory, null, 2) } } }) }); if (!res.ok) throw new Error('Failed to update gist'); document.getElementById('gist-status').innerText = "Synced to Gist successfully!"; } catch (e) { document.getElementById('gist-status').innerText = "Error: " + e.message; } }
+        function saveGistConfig() { gistToken = document.getElementById('gist-token-input').value.trim(); gistId = document.getElementById('gist-id-input').value.trim(); localStorage.setItem('eurusd_gist_token', gistToken); localStorage.setItem('eurusd_gist_id', gistId); document.getElementById('gist-status').innerText = "Saving..."; saveMemoryToGist(); }
+        async function loadMemoryFromGist() { if (!gistToken || !gistId) { document.getElementById('gist-status').innerText = "Need Token & ID"; return; } try { const r = await fetch(`https://api.github.com/gists/${gistId}`, {headers:{Authorization:`token ${gistToken}`}}); const d = await r.json(); const c = d.files['memory.json']?.content; if (c) { longTermMemory = JSON.parse(c); localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); renderMemory(); document.getElementById('gist-status').innerText = "Loaded!"; } } catch(e) { document.getElementById('gist-status').innerText = "Error: "+e.message; } }
+        async function saveMemoryToGist() { if (!gistToken || !gistId) return; try { await fetch(`https://api.github.com/gists/${gistId}`, {method:'PATCH', headers:{Authorization:`token ${gistToken}`,'Content-Type':'application/json'}, body: JSON.stringify({files:{'memory.json':{content: JSON.stringify(longTermMemory, null, 2)}}})}); document.getElementById('gist-status').innerText = "Synced!"; } catch(e) { document.getElementById('gist-status').innerText = "Error"; } }
 
         function cleanResponse(text) {
-            let lines = text.split('\n');
-            let cleanLines = lines.filter(line => {
-                let l = line.trim().toLowerCase();
+            return text.split('\n').filter(line => {
+                const l = line.trim().toLowerCase();
                 if (l.startsWith('*') || l.startsWith('-')) return false;
                 if (l.includes('friendly?') || l.includes('funny?') || l.includes('motivational?')) return false;
-                if (l.includes('call him "boss"?') || l.includes('checked') || l.includes('no emojis?')) return false;
-                if (l.includes('handle the gibberish') || l.includes('any reminders/facts to add')) return false;
-                if (l.startsWith('* "') || l.startsWith('"') && l.includes('"')) return false;
+                if (l.includes('checked') || l.includes('no emojis?')) return false;
                 return true;
-            });
-            return cleanLines.join('\n').trim();
-        }
-
-        async function fetchWithTimeout(resource, timeout = 10000, body = null) {
-            const controller = new AbortController();
-            const id = setTimeout(() => controller.abort(), timeout);
-            const options = { signal: controller.signal };
-            if (body) {
-                options.method = 'POST';
-                options.headers = { 'Content-Type': 'application/json' };
-                options.body = JSON.stringify(body);
-            }
-            const response = await fetch(resource, options);
-            clearTimeout(id);
-            return response;
+            }).join('\n').trim();
         }
 
         async function sendChat() {
             const input = document.getElementById('chat-input');
             const text = input.value.trim();
             if (!text) return;
-            if (!apiKey) { alert("Please set your Gemini API Key first."); togglePanel('panel-key'); return; }
+            if (!apiKey) { alert("Set your Gemini API Key first."); togglePanel('panel-key'); return; }
 
             chatInProgress = true;
             document.getElementById('ai-refresh-timer').innerText = "Chatting with AI...";
 
             input.value = '';
-            chatHistory.push({ role: 'user', text: text });
-            renderChat();
-            saveChatHistory();
+            chatHistory.push({role:'user', text}); renderChat(); saveChatHistory();
 
-            const loadingDiv = document.createElement('div');
-            loadingDiv.className = 'msg ai fade-in'; loadingDiv.innerText = '...';
-            document.getElementById('chat-history').appendChild(loadingDiv);
+            const loading = document.createElement('div');
+            loading.className = 'msg ai fade-in'; loading.innerText = '...';
+            document.getElementById('chat-history').appendChild(loading);
             document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight;
 
             try {
                 let response = await callGeminiAPI(text);
                 response = cleanResponse(response);
-                document.getElementById('chat-history').removeChild(loadingDiv);
-                
-                const reminderMatch = response.match(/\[REMINDER:\s*(\d{2}:\d{2})\s*-\s*(.*?)\]/);
-                if (reminderMatch) { addReminder(reminderMatch[1], reminderMatch[2]); response = response.replace(/\[REMINDER:.*?\]/g, '').trim(); }
+                document.getElementById('chat-history').removeChild(loading);
 
-                const memoryMatch = response.match(/\[REMEMBER:\s*(.*?)\]/);
-                if (memoryMatch) { addLongTermMemory(memoryMatch[1]); response = response.replace(/\[REMEMBER:.*?\]/g, '').trim(); }
+                const rm = response.match(/\[REMINDER:\s*(\d{2}:\d{2})\s*-\s*(.*?)\]/);
+                if (rm) { addReminder(rm[1], rm[2]); response = response.replace(/\[REMINDER:.*?\]/g, '').trim(); }
+                const mm = response.match(/\[REMEMBER:\s*(.*?)\]/);
+                if (mm) { addLongTermMemory(mm[1]); response = response.replace(/\[REMEMBER:.*?\]/g, '').trim(); }
 
-                chatHistory.push({ role: 'ai', text: response });
-                renderChat();
-                saveChatHistory();
-                speakText(response);
-
-            } catch (error) {
-                if (document.getElementById('chat-history').contains(loadingDiv)) {
-                    document.getElementById('chat-history').removeChild(loadingDiv);
-                }
-                chatHistory.push({ role: 'ai', text: `Error: ${error.message}` });
-                renderChat();
+                chatHistory.push({role:'ai', text: response});
+                renderChat(); saveChatHistory(); speakText(response);
+            } catch(e) {
+                if (document.getElementById('chat-history').contains(loading)) document.getElementById('chat-history').removeChild(loading);
+                chatHistory.push({role:'ai', text: `Error: ${e.message}`}); renderChat();
             } finally {
                 chatInProgress = false;
                 updateTimerDisplay();
@@ -527,95 +556,82 @@
         async function getAvailableGeminiModels() {
             if (cachedModels) return cachedModels;
             try {
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.models && data.models.length > 0) {
-                        const valid = data.models.filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent')).map(m => m.name.replace('models/', ''));
-                        if (valid.length > 0) {
-                            valid.sort((a, b) => { if (a.includes('1.5-flash')) return -1; if (b.includes('1.5-flash')) return 1; if (a.includes('1.5-pro')) return -1; if (b.includes('1.5-pro')) return 1; return 0; });
-                            cachedModels = valid;
-                            return valid;
-                        }
-                    }
+                const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+                if (r.ok) {
+                    const d = await r.json();
+                    const valid = d.models.filter(m => m.supportedGenerationMethods?.includes('generateContent')).map(m => m.name.replace('models/',''));
+                    if (valid.length > 0) { cachedModels = valid.sort((a,b) => (a.includes('1.5-flash')?-1:1)); return cachedModels; }
                 }
-            } catch(e) { console.log("Model discovery failed, using fallback."); }
+            } catch(e) {}
             return ['gemini-1.5-flash', 'gemini-1.5-pro'];
         }
 
         async function callGeminiAPI(userText) {
-            const recentHistory = chatHistory.slice(-2);
-            const recentMemory = longTermMemory.slice(-5);
-            
-            let systemPrompt = `You are an AI trading assistant for Boss. You are friendly, funny, and motivational. Do not use emojis. Call him "Boss". 
-            Current time: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST.
-            Personal context: ${JSON.stringify(personalContext)}.
-            Memory: ${JSON.stringify(recentMemory)}.
-            CRITICAL RULE: Do NOT output your thought process, self-evaluation, bullet points, or any internal dialogue. ONLY output the final spoken message to Boss.
-            If he asks you to remind him of something, append [REMINDER: HH:MM - message] to your reply. If you learn a new fact about him, append [REMEMBER: fact] to your reply.`;
-            
-            const contents = [ 
-                { role: 'user', parts: [{ text: systemPrompt }] }, 
-                ...recentHistory.map(msg => ({ role: msg.role === 'ai' ? 'model' : 'user', parts: [{ text: msg.text }] })), 
-                { role: 'user', parts: [{ text: userText }] } 
-            ];
-            
-            const payload = { 
-                contents: contents, 
-                tools: webSearchEnabled ? [{ google_search: {} }] : [],
-                generationConfig: { maxOutputTokens: 300 }
-            };
+            const recent = chatHistory.slice(-3);
+            const recentMem = longTermMemory.slice(-8);
+            const systemPrompt = `You are Boss's AI trading assistant. Friendly, funny, motivational. No emojis. Call him "Boss".
+Time: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.
+Personal context: ${JSON.stringify(personalContext)}.
+Memory: ${JSON.stringify(recentMem)}.
+CRITICAL: Do NOT output thought process, self-evaluation, or bullet points. ONLY the final spoken message.
+If he asks for a reminder, append [REMINDER: HH:MM - message]. If you learn a fact, append [REMEMBER: fact].`;
 
-            const model = 'gemini-1.5-flash';
-            const response = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, 15000, payload);
-            
-            if (response.ok) {
-                const data = await response.json();
-                let reply = data.candidates[0].content.parts[0].text;
-                if (webSearchEnabled && data.candidates[0].groundingMetadata) {
-                    const sources = data.candidates[0].groundingMetadata.groundingChunks;
-                    if (sources && sources.length > 0) {
-                        reply += "\n\nSources:\n" + sources.map(s => `- ${s.web?.title || 'Source'}`).join('\n');
+            const contents = [
+                {role:'user', parts:[{text: systemPrompt}]},
+                ...recent.map(m => ({role: m.role === 'ai' ? 'model' : 'user', parts:[{text: m.text}]})),
+                {role:'user', parts:[{text: userText}]}
+            ];
+            const payload = { contents, tools: webSearchEnabled ? [{google_search:{}}] : [], generationConfig: { maxOutputTokens: 400 }};
+
+            const models = await getAvailableGeminiModels();
+            for (const model of models.slice(0, 2)) {
+                try {
+                    const r = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, 15000);
+                    // need POST with body
+                    const r2 = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+                        method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)
+                    });
+                    if (r2.ok) {
+                        const d = await r2.json();
+                        let reply = d.candidates[0].content.parts[0].text;
+                        if (webSearchEnabled && d.candidates[0].groundingMetadata?.groundingChunks) {
+                            reply += "\n\nSources:\n" + d.candidates[0].groundingMetadata.groundingChunks.map(s => `- ${s.web?.title || 'Source'}`).join('\n');
+                        }
+                        return reply;
                     }
-                }
-                return reply;
-            } else {
-                const err = await response.json();
-                throw new Error(err.error?.message || 'API request failed');
+                } catch(e) { continue; }
             }
+            throw new Error("All Gemini models busy. Try again.");
         }
 
-        function addReminder(time, message) { const reminder = { id: Math.random().toString(36).substr(2, 9), time: time, message: message, voice: true, fired: false, created: new Date().toISOString() }; reminders.push(reminder); localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); }
-        function renderReminders() { const list = document.getElementById('reminders-list'); const active = reminders.filter(r => !r.fired); if (active.length === 0) { list.innerHTML = 'No active reminders.'; return; } list.innerHTML = active.map(r => `<div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>${r.time} - ${r.message}</span><button class="btn danger" onclick="deleteReminder('${r.id}')">X</button></div>`).join(''); }
+        // --- REMINDERS ---
+        function addReminder(time, message) { reminders.push({id: Math.random().toString(36).substr(2,9), time, message, voice:true, fired:false, created: new Date().toISOString()}); localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); }
+        function renderReminders() { const l = document.getElementById('reminders-list'); const a = reminders.filter(r => !r.fired); if (a.length === 0) { l.innerHTML = 'No active reminders.'; return; } l.innerHTML = a.map(r => `<div style="display:flex; justify-content:space-between;"><span>${r.time} - ${r.message}</span><button class="btn danger" onclick="deleteReminder('${r.id}')">X</button></div>`).join(''); }
         function deleteReminder(id) { reminders = reminders.filter(r => r.id !== id); localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); }
         function clearReminders() { reminders = []; localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); }
-        function testReminder() { triggerNotification("Test Reminder", "This is a test notification, Boss!"); }
-        function triggerNotification(title, body) { if (!("Notification" in window)) { alert("This browser does not support desktop notification"); } else if (Notification.permission === "granted") { const notif = new Notification(title, { body: body }); notif.onclick = () => { window.focus(); }; } else if (Notification.permission !== "denied") { Notification.requestPermission().then(function (permission) { if (permission === "granted") { const notif = new Notification(title, { body: body }); notif.onclick = () => { window.focus(); }; } }); } speakText(`Reminder: ${body}`); }
-        
-        setInterval(() => { const now = new Date(); const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0'); let updated = false; reminders.forEach(r => { if (!r.fired && r.time === currentTime) { r.fired = true; updated = true; triggerNotification("Boss Reminder", r.message); } }); if (updated) { localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); } }, 20000);
+        function testReminder() { triggerNotif("Test", "Test reminder, Boss!"); }
+        function triggerNotif(title, body) { if (Notification.permission === "granted") { const n = new Notification(title, {body}); n.onclick = () => window.focus(); } else if (Notification.permission !== "denied") { Notification.requestPermission().then(p => { if (p === "granted") new Notification(title, {body}); }); } speakText(`Reminder: ${body}`); }
+        setInterval(() => { const now = new Date(); const cur = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0'); let u = false; reminders.forEach(r => { if (!r.fired && r.time === cur) { r.fired = true; u = true; triggerNotif("Boss Reminder", r.message); } }); if (u) { localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); } }, 20000);
 
-        function addLongTermMemory(fact) { longTermMemory.push({ fact: fact, added: new Date().toISOString().split('T')[0] }); localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); }
-        function renderMemory() { const list = document.getElementById('memory-list'); if (longTermMemory.length === 0) { list.innerHTML = 'No facts saved.'; return; } list.innerHTML = longTermMemory.map(m => `<div style="margin-bottom:4px;">• ${m.fact} <span style="color:#555;">(${m.added})</span></div>`).join(''); }
-        function clearLongTermMemory() { if(confirm("Clear all long-term memory?")) { longTermMemory = []; localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); renderMemory(); } }
-        function saveApiKey() { const val = document.getElementById('api-key-input').value.trim(); if (val) { apiKey = val; localStorage.setItem('eurusd_chat_key', apiKey); alert("API Key saved locally!"); togglePanel('panel-key'); } }
+        // --- MEMORY ---
+        function addLongTermMemory(fact) { longTermMemory.push({fact, added: new Date().toISOString().split('T')[0]}); localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); }
+        function renderMemory() { const l = document.getElementById('memory-list'); if (longTermMemory.length === 0) { l.innerHTML = 'No facts.'; return; } l.innerHTML = longTermMemory.map(m => `<div>• ${m.fact} <span style="color:#555;">(${m.added})</span></div>`).join(''); }
+        function clearLongTermMemory() { if (confirm("Clear memory?")) { longTermMemory = []; localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); renderMemory(); } }
+        function saveApiKey() { const v = document.getElementById('api-key-input').value.trim(); if (v) { apiKey = v; localStorage.setItem('eurusd_chat_key', apiKey); alert("Key saved!"); togglePanel('panel-key'); } }
 
+        // --- INIT ---
         window.onload = () => {
-            fetchContext();
+            fetch(CONTEXT_URL).then(r => r.json()).then(d => personalContext = d).catch(() => {});
             renderChat(); renderReminders(); renderMemory();
-            if (apiKey) document.getElementById('web-toggle').style.display = 'block';
-            if ('speechSynthesis' in window) { window.speechSynthesis.getVoices(); }
-            if (gistToken && gistId) { loadMemoryFromGist(); }
-            
-            fetchData();
+            if ('speechSynthesis' in window) window.speechSynthesis.getVoices();
+            if (gistToken && gistId) loadMemoryFromGist();
+
+            generateSignalFromScratch();
             resetTimer();
-            
             setInterval(() => {
                 if (chatInProgress) return;
                 timeLeft--;
-                if (timeLeft <= 0) {
-                    timeLeft = 330; 
-                    fetchData();
-                }
+                if (timeLeft <= 0) { timeLeft = 330; generateSignalFromScratch(); }
                 updateTimerDisplay();
             }, 1000);
         };
