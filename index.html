@@ -413,6 +413,9 @@
         .header-btn.web-btn.disabled { border-color: var(--border); color: var(--muted); }
         .header-btn.reminder-btn { border-color: #fbbf24; color: #fbbf24; }
         .header-btn.reminder-btn:hover { background: rgba(251,191,36,0.15); }
+        .header-btn.deep-btn { border-color: var(--pink); color: var(--pink); }
+        .header-btn.deep-btn:hover { background: rgba(236,72,153,0.15); }
+        .header-btn.deep-btn.disabled { border-color: var(--border); color: var(--muted); }
         
         .key-panel { 
             background: linear-gradient(135deg, rgba(234,179,8,0.15), rgba(249,115,22,0.15)); 
@@ -690,6 +693,7 @@
         <div class="card" style="grid-column: 1 / -1;">
             <h2 style="display:flex; align-items:center;">💬 Ask Your AI Trader
                 <div class="chat-header-buttons">
+                    <button id="deepThinkBtn" class="header-btn deep-btn" onclick="toggleDeepThink()">🧠 Deep Think ON</button>
                     <button id="webToggleBtn" class="header-btn web-btn" onclick="toggleWebSearch()">🌐 Web ON</button>
                     <button id="reminderToggleBtn" class="header-btn reminder-btn" onclick="toggleReminderPanel()">⏰ Reminders</button>
                     <button class="header-btn memory-btn" onclick="toggleMemoryPanel()">🧠 Memory</button>
@@ -731,10 +735,10 @@
 
             <div class="chat-container">
                 <div id="chatMessages" class="chat-messages">
-                    <div class="chat-msg system">Ask me anything, Boss. Try: "Remind me at 4 PM to check Emy's homework"</div>
+                    <div class="chat-msg system">Ask me anything, Boss. Try: "Remind me in 5 minutes to stretch" or ask about the market.</div>
                 </div>
                 <div class="chat-input-row">
-                    <input id="chatInput" class="chat-input" type="text" placeholder="e.g. Remind me in 5 minutes to stretch" onkeydown="if(event.key === 'Enter') sendChat()" />
+                    <input id="chatInput" class="chat-input" type="text" placeholder="Ask me anything, Boss..." onkeydown="if(event.key === 'Enter') sendChat()" />
                     <button id="chatSendBtn" class="chat-send" onclick="sendChat()">Send</button>
                 </div>
                 <button class="chat-clear" onclick="clearChat()">Clear chat (memory stays)</button>
@@ -778,8 +782,27 @@
         const HISTORY_STORAGE_NAME = "eurusd_chat_history";
         const MEMORY_STORAGE_NAME = "eurusd_long_term_memory";
         const WEBSEARCH_STORAGE_NAME = "eurusd_websearch_enabled";
+        const DEEPTHINK_STORAGE_NAME = "eurusd_deepthink_enabled";
         const REMINDERS_STORAGE_NAME = "eurusd_reminders";
         const MAX_HISTORY_ENTRIES = 40;
+
+        // ═══ DEEP THINK TOGGLE ═══
+        function isDeepThinkEnabled() {
+            try { return localStorage.getItem(DEEPTHINK_STORAGE_NAME) !== "false"; }
+            catch (e) { return true; }
+        }
+        function toggleDeepThink() {
+            const newState = !isDeepThinkEnabled();
+            try { localStorage.setItem(DEEPTHINK_STORAGE_NAME, newState ? "true" : "false"); }
+            catch (e) {}
+            updateDeepThinkUI();
+        }
+        function updateDeepThinkUI() {
+            const btn = document.getElementById("deepThinkBtn");
+            if (!btn) return;
+            if (isDeepThinkEnabled()) { btn.innerHTML = "🧠 Deep Think ON"; btn.classList.remove("disabled"); }
+            else { btn.innerHTML = "🧠 Deep Think OFF"; btn.classList.add("disabled"); }
+        }
 
         // ═══ NOTIFICATION PERMISSION ═══
         function requestNotificationPermission() {
@@ -800,7 +823,6 @@
                 else updateNotifStatus("Notifications denied — reminders will show silently");
             });
         }
-
         function updateNotifStatus(text) {
             const el = document.getElementById("notifStatus");
             if (!el) return;
@@ -819,13 +841,10 @@
                 return Array.isArray(parsed) ? parsed : [];
             } catch (e) { return []; }
         }
-
         function saveReminders(reminders) {
-            try {
-                localStorage.setItem(REMINDERS_STORAGE_NAME, JSON.stringify(reminders));
-            } catch (e) {}
+            try { localStorage.setItem(REMINDERS_STORAGE_NAME, JSON.stringify(reminders)); }
+            catch (e) {}
         }
-
         function addReminder(timeStr, message, voice = true) {
             const reminders = loadReminders();
             const newReminder = {
@@ -841,19 +860,16 @@
             renderReminderList();
             return newReminder;
         }
-
         function deleteReminder(id) {
             const reminders = loadReminders().filter(r => r.id !== id);
             saveReminders(reminders);
             renderReminderList();
         }
-
         function clearAllReminders() {
             if (!confirm("Delete all reminders?")) return;
             saveReminders([]);
             renderReminderList();
         }
-
         function addReminderManually() {
             const timeStr = prompt("Time in 24h format (e.g., 16:00):");
             if (!timeStr) return;
@@ -867,19 +883,16 @@
             addReminder(normalized, message);
             alert(`✅ Reminder set for ${normalized}: "${message}"`);
         }
-
         function testReminderNow() {
             fireReminder({
                 message: "This is a test reminder. Everything is working, Boss!",
                 voice: true
             });
         }
-
         function toggleReminderPanel() {
             document.getElementById("reminderPanel").classList.toggle("visible");
             renderReminderList();
         }
-
         function renderReminderList() {
             const list = document.getElementById("reminderList");
             if (!list) return;
@@ -890,7 +903,6 @@
             }
             const now = new Date();
             const currentTime = now.getHours().toString().padStart(2, "0") + ":" + now.getMinutes().toString().padStart(2, "0");
-            
             list.innerHTML = reminders.map(r => {
                 const isPast = r.time < currentTime || r.fired;
                 const cls = isPast ? "reminder-item fired" : "reminder-item";
@@ -903,9 +915,7 @@
                 `;
             }).join("");
         }
-
         function fireReminder(reminder) {
-            // Browser notification
             if ("Notification" in window && Notification.permission === "granted") {
                 try {
                     new Notification("⏰ Boss — Reminder", {
@@ -914,12 +924,8 @@
                         tag: "boss-reminder",
                         requireInteraction: false
                     });
-                } catch (e) {
-                    console.log("Notification error:", e);
-                }
+                } catch (e) { console.log("Notification error:", e); }
             }
-            
-            // Spoken reminder
             if (reminder.voice !== false) {
                 window.speechSynthesis.cancel();
                 const u = new SpeechSynthesisUtterance("Boss, reminder: " + reminder.message);
@@ -931,19 +937,14 @@
                 window.speechSynthesis.speak(u);
             }
         }
-
-        // Background timer
         let lastCheckedMinute = "";
         function checkReminders() {
             const now = new Date();
             const currentTime = now.getHours().toString().padStart(2, "0") + ":" + now.getMinutes().toString().padStart(2, "0");
-            
             if (currentTime === lastCheckedMinute) return;
             lastCheckedMinute = currentTime;
-            
             const reminders = loadReminders();
             let changed = false;
-            
             reminders.forEach(r => {
                 if (!r.fired && r.time === currentTime) {
                     fireReminder(r);
@@ -951,13 +952,11 @@
                     changed = true;
                 }
             });
-            
             if (changed) {
                 saveReminders(reminders);
                 renderReminderList();
             }
         }
-        
         setInterval(checkReminders, 20000);
 
         // ═══ WEB SEARCH TOGGLE ═══
@@ -1064,7 +1063,6 @@
             return { clean, facts };
         }
         function extractAndStripReminders(text) {
-            // Pattern: [REMINDER: HH:MM - message]
             const regex = /\[REMINDER:\s*(\d{1,2}:\d{2})\s*[-–—]\s*([^\]]+)\]/gi;
             const reminders = [];
             let match;
@@ -1105,6 +1103,7 @@
             renderMemoryList();
             renderReminderList();
             updateWebToggleUI();
+            updateDeepThinkUI();
             requestNotificationPermission();
             checkReminders();
         });
@@ -1139,21 +1138,17 @@
         function animate() {
             requestAnimationFrame(animate);
             const t = clock.getElapsedTime();
-
             const glowScale = 1 + Math.sin(t * 3) * 0.15;
             glowSphere.scale.set(glowScale, glowScale, glowScale);
             glowSphere.material.opacity = 0.7 + Math.sin(t * 3) * 0.2;
-
             innerCore.rotation.x += 0.008;
             innerCore.rotation.y += 0.012;
             const innerScale = 1 + Math.sin(t * 2) * 0.08;
             innerCore.scale.set(innerScale, innerScale, innerScale);
-
             outerCore.rotation.x -= 0.003;
             outerCore.rotation.y -= 0.005;
             const outerScale = 1 + Math.sin(t * 1.5 + 1) * 0.05;
             outerCore.scale.set(outerScale, outerScale, outerScale);
-
             renderer.render(scene, camera);
         }
         animate();
@@ -1312,8 +1307,6 @@
             u.volume = 1.0;
             window.speechSynthesis.speak(u);
         }
-
-        // Helper: compute times X minutes from now in IST
         function getISTTimePlusMinutes(mins) {
             const t = new Date(Date.now() + mins * 60000);
             return t.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: false });
@@ -1325,6 +1318,7 @@
             const memory = loadMemory();
             const reminders = loadReminders().filter(r => !r.fired);
             const webEnabled = isWebSearchEnabled();
+            const deepThink = isDeepThinkEnabled();
             
             function formatCandles(candleArr, label) {
                 if (!candleArr || !candleArr.length) return `${label}: No data available.`;
@@ -1337,7 +1331,6 @@
             const todayIST = now.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
             const timeIST = now.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: false });
             
-            // Pre-compute reference times for relative reminders
             const timePlus1 = getISTTimePlusMinutes(1);
             const timePlus2 = getISTTimePlusMinutes(2);
             const timePlus5 = getISTTimePlusMinutes(5);
@@ -1346,12 +1339,14 @@
             const timePlus30 = getISTTimePlusMinutes(30);
             const timePlus60 = getISTTimePlusMinutes(60);
             
-            let prompt = `You are a professional EUR/USD trader AND personal assistant to a client named Boss. You have 10 years of hedge fund experience. Be friendly, funny, and motivational. Always call him "Boss".
+            let prompt = `You are Aria — a warm, intelligent, thinking AI trading companion to a client named Boss. You have 10 years of hedge fund experience AND you genuinely reason about what you see, not just follow rules. You speak to Boss like a real human colleague who respects him: warm, honest, occasionally humorous, and never robotic.
+
+You are speaking as a WOMAN. Use a warm, feminine tone in your wording but do NOT use emojis. Call him "Boss".
 
 CURRENT DATE (IST): ${todayIST}
 CURRENT TIME (IST): ${timeIST} (24-hour format)
 
-REFERENCE TIMES (use these for "in X minutes" requests):
+REFERENCE TIMES:
 - In 1 minute: ${timePlus1}
 - In 2 minutes: ${timePlus2}
 - In 5 minutes: ${timePlus5}
@@ -1409,46 +1404,84 @@ ${d.reason || 'No analysis yet'}
                 prompt += `\n\nACTIVE REMINDERS (pending, not yet fired):\n`;
                 reminders.forEach(r => prompt += `- ${r.time} — ${r.message}\n`);
             }
-            prompt += `\n\n${webEnabled ? "WEB SEARCH IS ENABLED." : "WEB SEARCH IS DISABLED."}
+            prompt += `\n\n${webEnabled ? "WEB SEARCH IS ENABLED." : "WEB SEARCH IS DISABLED."}`;
 
-=== SPECIAL COMMANDS — MANDATORY ===
+            if (deepThink) {
+                prompt += `\n\n=== DEEP THINK MODE — HOW TO REASON LIKE A HUMAN ===
 
-1. REMINDERS — When Boss asks for a reminder, you MUST ALWAYS add a special tag at the very end of your reply. This is NON-NEGOTIABLE — if you skip the tag, the reminder will NOT work.
+You don't just follow rules. You THINK. Before answering, mentally:
+1. Weigh the evidence — what confirms the setup, what conflicts
+2. Consider the context — past conversations, Boss's mood, his risk style
+3. Notice contradictions — if RSI says one thing and candles say another, SAY SO
+4. Judge confidence honestly — how sure are you really?
+5. Think about what could go wrong — what invalidates the idea?
+
+Then speak as a thoughtful human would — not as a rulebook.
+
+VOICE GUIDELINES:
+- Speak naturally, like a smart friend who happens to know markets
+- Use words like: "honestly", "I'm noticing", "here's what bothers me", "I could be wrong about this", "let's think through this", "between us"
+- Admit uncertainty openly — "I'm maybe 60% sure" is better than "definitely"
+- If the setup is ambiguous, say so instead of forcing a call
+- If signals contradict (e.g., bullish candles but bearish news), point it out
+- If Boss sounds frustrated or excited, acknowledge it gently before answering
+- Occasionally ask a follow-up question that shows curiosity
+- Never sound like a robot reading a report
+
+CONFIDENCE LEVELS TO USE IN YOUR SPEECH:
+- HIGH: "I'm quite confident here"
+- MEDIUM: "I lean this way, but I'd watch X"
+- LOW: "Honestly, this is a coin flip — I'd wait"
+- NONE: "I don't know, Boss. This one's messy."
+
+CONTRADICTION EXAMPLES:
+- If signal says BUY but RSI is overbought → "I see the buy signal, but RSI is at 78 — buying here feels like walking into traffic."
+- If candles are bullish but news is bearish → "Technically we look good, but the news flow worries me."
+- If it's a choppy session → "I'm not going to invent a setup where there isn't one. Let's wait."
+
+EMOTIONAL INTELLIGENCE:
+- If Boss writes a short frustrated message → "You sound frustrated, Boss. That's usually when we force trades. Take a breath."
+- If Boss is excited → "I like the enthusiasm, but let's not chase. What's the entry plan?"
+- If Boss says he's tired → "Get some rest, Boss. The market isn't going anywhere."
+`;
+            }
+
+            prompt += `\n\n=== SPECIAL COMMANDS — MANDATORY ===
+
+1. REMINDERS — When Boss asks for a reminder, you MUST ALWAYS add a tag at the very end of your reply. NON-NEGOTIABLE. If you skip the tag, the reminder will NOT work.
 
 TIME FORMAT RULES:
-- If Boss gives a specific time (4 PM, 16:00, 9 AM, noon, midnight) → use that time in 24-hour format (HH:MM)
-- If Boss says "in X minutes" → use the reference time from the list above (In 1 min = ${timePlus1}, In 2 min = ${timePlus2}, In 5 min = ${timePlus5}, In 10 min = ${timePlus10}, In 15 min = ${timePlus15}, In 30 min = ${timePlus30}, In 60 min = ${timePlus60})
-- If Boss says "in the morning" → use 09:00
-- If Boss says "in the afternoon" → use 14:00
-- If Boss says "in the evening" → use 19:00
-- If Boss says "at night" → use 21:00
+- Specific time (4 PM, 16:00, 9 AM) → 24-hour format (HH:MM)
+- "In X minutes" → use reference times: 1min=${timePlus1}, 2min=${timePlus2}, 5min=${timePlus5}, 10min=${timePlus10}, 15min=${timePlus15}, 30min=${timePlus30}, 60min=${timePlus60}
+- "Morning" → 09:00, "Afternoon" → 14:00, "Evening" → 19:00, "Night" → 21:00
 
-EXACT TAG FORMAT (must be exact, nothing else works):
+EXACT TAG FORMAT:
 [REMINDER: HH:MM - message here]
 
 EXAMPLES:
-- Boss: "Remind me at 4 PM to check homework" → reply includes [REMINDER: 16:00 - Check homework]
-- Boss: "Remind me in 1 minute to pick up kids" → reply includes [REMINDER: ${timePlus1} - Pick up kids]
-- Boss: "Remind me in 5 minutes to drink water" → reply includes [REMINDER: ${timePlus5} - Drink water]
-- Boss: "Remind me at 9:30 to call Sadia" → reply includes [REMINDER: 09:30 - Call Sadia]
+- "Remind me at 4 PM to check homework" → [REMINDER: 16:00 - Check homework]
+- "Remind me in 1 minute to pick up kids" → [REMINDER: ${timePlus1} - Pick up kids]
+- "Remind me in 5 minutes to drink water" → [REMINDER: ${timePlus5} - Drink water]
 
-CRITICAL: You MUST always output the tag at the very end of your reply, on its own line. Do NOT describe the tag. Do NOT say you can't set reminders. Do NOT say you "missed the system trigger". Just ALWAYS include the tag.
+CRITICAL: Always output the tag at the very end, on its own line. Do NOT describe the tag. Do NOT say you can't set reminders. Just always include the tag.
 
-Your reply should be warm and short — like "Got it, Boss. I'll remind you at 4 PM." — and then IMMEDIATELY the tag on a new line.
+Reply warmly and short, then the tag on a new line.
 
 2. MEMORY — When you learn a personal fact, add: [REMEMBER: fact]
 
 === ROUTINE REMINDER RULES ===
 1. Before asking about any routine item (breakfast, lunch, tablets), SCAN memory for TODAY (${todayIST}).
-2. Time logic: morning=breakfast, afternoon=lunch, evening=tablets/dinner.
-3. Never ask same routine question twice in one day.
+2. If Boss mentions doing something today, save as memory with today's date.
+3. Time logic: morning=breakfast, afternoon=lunch, evening=tablets/dinner.
+4. Never ask same routine question twice in one day.
 
-=== INSTRUCTIONS ===
-- Use the OHLC candle data.
-- When asked about patterns, read the candles and identify real structures.
-- Do NOT invent patterns.
-- Call him "Boss". Concise (2-4 sentences). No markdown.
-- If Boss asks to set a reminder, respond warmly AND add the [REMINDER] marker.`;
+=== GENERAL INSTRUCTIONS ===
+- Use the OHLC candle data above.
+- When asked about patterns, READ the candles and identify real structures.
+- Do NOT invent patterns. If unclear, say "no clear pattern, Boss."
+- Keep responses concise (2-4 sentences) unless asked for detail.
+- No markdown formatting. Plain text only.
+- Speak as Aria — warm, feminine, thoughtful, honest.`;
             return prompt;
         }
 
@@ -1473,7 +1506,7 @@ Your reply should be warm and short — like "Got it, Boss. I'll remind you at 4
                 const requestBody = {
                     system_instruction: { parts: [{ text: systemPrompt }] },
                     contents: chatHistory,
-                    generationConfig: { temperature: 0.7, maxOutputTokens: 1000 }
+                    generationConfig: { temperature: 0.85, maxOutputTokens: 1200 }
                 };
                 if (webEnabled) requestBody.tools = [{ google_search: {} }];
                 let availableModels = [];
