@@ -5,194 +5,534 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <title>EUR/USD AI Pro Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        :root { --bg:#0a0e17; --card-bg:rgba(255,255,255,0.03); --card-border:rgba(255,255,255,0.08);
-            --text-main:#fff; --text-muted:#8a94a6; --green:#2ecc71; --yellow:#f1c40f;
-            --red:#e74c3c; --blue:#4a90e2; --purple:#a855f7; }
-        * { box-sizing:border-box; margin:0; padding:0; }
-        body { font-family:'Inter',sans-serif; background-color:var(--bg);
-            background-image:radial-gradient(circle at 50% 0%, #1a2333 0%, var(--bg) 70%);
-            color:var(--text-main); min-height:100vh; padding:20px; display:flex;
-            flex-direction:column; align-items:center; }
-        .dashboard { width:100%; max-width:600px; display:flex; flex-direction:column; gap:15px; }
-        header { display:flex; justify-content:space-between; align-items:center; padding:10px 0; }
-        .logo { display:flex; align-items:center; gap:5px; font-size:1.2rem; font-weight:800; flex-direction:column; align-items:flex-start; }
-        .logo span { color:var(--yellow); }
-        .ist-clock { font-size:0.7rem; color:var(--text-muted); font-family:'JetBrains Mono'; margin-top:2px; font-weight:400; }
-        .price-ticker { font-family:'JetBrains Mono',monospace; font-size:1.2rem; font-weight:700;
-            color:var(--green); background:rgba(46,204,113,0.1); padding:4px 10px; border-radius:8px;
-            border:1px solid rgba(46,204,113,0.3); display:flex; flex-direction:column; align-items:flex-end; }
-        .last-updated { font-size:0.6rem; color:var(--text-muted); font-family:'Inter'; font-weight:400; }
-        .card { background:var(--card-bg); border:1px solid var(--card-border); border-radius:16px;
-            padding:15px 20px; backdrop-filter:blur(10px); box-shadow:0 8px 32px rgba(0,0,0,0.2);
-            position:relative; overflow:hidden; }
-        .card-title { font-size:0.75rem; font-weight:600; color:var(--text-muted); letter-spacing:2px;
-            text-transform:uppercase; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; }
-        #canvas-container { width:100%; height:180px; position:relative; z-index:1; display:flex; justify-content:center; }
-        .subtitle { text-align:center; font-size:0.65rem; letter-spacing:3px; color:rgba(255,255,255,0.3); margin-top:5px; }
-        .signal-card { text-align:center; padding:20px; }
-        #signal-text { font-size:2.5rem; font-weight:800; letter-spacing:3px; color:var(--text-muted);
-            text-shadow:0 0 30px rgba(138,148,166,0.3); transition:all 0.4s; margin-bottom:15px; }
-        .alert-box { background:rgba(241,196,15,0.1); border:1px solid rgba(241,196,15,0.4);
-            border-radius:10px; padding:10px 14px; margin-bottom:12px; font-size:0.8rem;
-            color:var(--yellow); text-align:left; line-height:1.5; display:none; }
-        .alert-box.active { display:block; animation:fadeIn 0.4s ease-in; }
-        .signal-details { display:grid; grid-template-columns:1fr 1fr; gap:10px;
-            font-family:'JetBrains Mono'; font-size:0.85rem; text-align:left; background:rgba(0,0,0,0.2);
-            padding:15px; border-radius:12px; }
-        .signal-details div { display:flex; justify-content:space-between; }
-        .signal-details span { color:var(--text-muted); }
-        .reasoning-text { font-size:0.85rem; line-height:1.6; color:#d1d5db; }
-        .chat-controls { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:10px; }
-        .btn { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:white;
-            padding:5px 10px; border-radius:6px; font-size:0.75rem; cursor:pointer; transition:all 0.2s; }
-        .btn:hover { background:rgba(255,255,255,0.1); }
-        .btn.active { background:var(--blue); border-color:var(--blue); }
-        .btn.active.deep { background:var(--purple); border-color:var(--purple); }
-        .btn.danger { background:rgba(231,76,60,0.2); border-color:rgba(231,76,60,0.5); color:#ff9999; }
-        .btn.primary { background:linear-gradient(135deg, var(--purple), var(--blue)); border:none; font-weight:600; }
-        .panel { display:none; background:rgba(0,0,0,0.3); padding:10px; border-radius:8px;
-            margin-bottom:10px; font-size:0.8rem; border:1px solid rgba(255,255,255,0.05); }
-        .panel.active { display:block; }
-        .chat-history { height:300px; overflow-y:auto; background:rgba(0,0,0,0.2); border-radius:8px;
-            padding:10px; margin-bottom:10px; display:flex; flex-direction:column; gap:10px; }
-        .msg { padding:8px 12px; border-radius:8px; max-width:85%; line-height:1.4; font-size:0.85rem; }
-        .msg.user { background:var(--blue); align-self:flex-end; }
-        .msg.ai { background:rgba(255,255,255,0.1); align-self:flex-start; border-left:3px solid var(--blue); }
-        .msg.system { background:rgba(241,196,15,0.1); border:1px solid rgba(241,196,15,0.3); align-self:center; font-size:0.75rem; text-align:center; }
-        .msg.thinking { background:rgba(168,85,247,0.1); border-left:3px solid var(--purple); font-style:italic; color:#c4b5fd; }
-        .chat-input-row { display:flex; gap:8px; }
-        .chat-input-row input { flex:1; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1);
-            color:white; padding:10px; border-radius:8px; outline:none; }
-        .chat-input-row button { background:var(--green); border:none; color:black; padding:0 15px;
-            border-radius:8px; font-weight:600; cursor:pointer; }
-        .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:0.85rem; }
-        .stat-item { background:rgba(0,0,0,0.2); padding:8px 12px; border-radius:8px; display:flex; justify-content:space-between; }
-        .stat-label { color:var(--text-muted); }
-        .signal-hint { font-size:0.7rem; color:var(--text-muted); margin-top:10px; font-style:italic; }
-        .alert-log-item { font-size:0.75rem; color:var(--text-muted); padding:4px 0; border-bottom:1px solid rgba(255,255,255,0.05); }
-        @keyframes fadeIn { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
-        .fade-in { animation:fadeIn 0.3s ease-in; }
+        :root {
+            --bg: #06080d;
+            --bg-2: #0a0e17;
+            --card-bg: rgba(255,255,255,0.025);
+            --card-bg-hover: rgba(255,255,255,0.04);
+            --card-border: rgba(255,255,255,0.06);
+            --card-border-strong: rgba(255,255,255,0.12);
+            --text-main: #f5f7fa;
+            --text-body: #c8cdd6;
+            --text-muted: #6b7280;
+            --text-subtle: #4b5563;
+            --green: #10b981;
+            --yellow: #f59e0b;
+            --red: #ef4444;
+            --blue: #3b82f6;
+            --purple: #8b5cf6;
+            --accent-glow: rgba(139,92,246,0.15);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg);
+            background-image:
+                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(59,130,246,0.08), transparent),
+                radial-gradient(ellipse 60% 40% at 80% 100%, rgba(139,92,246,0.06), transparent);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 24px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-weight: 400;
+            letter-spacing: -0.01em;
+        }
+        .dashboard {
+            width: 100%;
+            max-width: 640px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        /* === HEADER === */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 8px 0 20px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            margin-bottom: 8px;
+        }
+        .logo-wrap { display: flex; flex-direction: column; gap: 4px; }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+        .logo .bolt { font-size: 1.1rem; }
+        .logo .accent { color: var(--purple); }
+        .ist-clock {
+            font-size: 0.65rem;
+            color: var(--text-subtle);
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+        .price-wrap { text-align: right; }
+        .price-ticker {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--green);
+            letter-spacing: -0.01em;
+            line-height: 1;
+        }
+        .last-updated {
+            font-size: 0.6rem;
+            color: var(--text-subtle);
+            font-family: 'JetBrains Mono', monospace;
+            margin-top: 6px;
+            letter-spacing: 0.04em;
+        }
+
+        /* === CARDS === */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 20px 22px;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.2s ease;
+        }
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+        }
+        .card-title {
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* === NEURAL CORE === */
+        #canvas-container {
+            width: 100%;
+            height: 200px;
+            position: relative;
+            z-index: 1;
+            display: flex;
+            justify-content: center;
+        }
+        .subtitle {
+            text-align: center;
+            font-size: 0.6rem;
+            letter-spacing: 0.25em;
+            color: var(--text-subtle);
+            margin-top: 8px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        /* === SIGNAL CARD === */
+        .signal-card { text-align: center; padding: 28px 22px; }
+        #signal-text {
+            font-size: 2.5rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            color: var(--text-subtle);
+            transition: all 0.4s ease;
+            margin-bottom: 8px;
+            line-height: 1;
+        }
+        .signal-status-line {
+            font-size: 0.7rem;
+            color: var(--text-subtle);
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: 0.08em;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+        .alert-box {
+            background: rgba(245,158,11,0.06);
+            border: 1px solid rgba(245,158,11,0.25);
+            border-radius: 10px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            font-size: 0.78rem;
+            color: var(--yellow);
+            text-align: left;
+            line-height: 1.55;
+            display: none;
+            font-weight: 500;
+        }
+        .alert-box.active { display: block; animation: fadeIn 0.4s ease-in; }
+        .signal-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            text-align: left;
+            padding: 16px 0;
+            border-top: 1px solid rgba(255,255,255,0.04);
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            margin-top: 8px;
+        }
+        .signal-details div { display: flex; justify-content: space-between; }
+        .signal-details span:first-child { color: var(--text-muted); font-weight: 500; }
+        .signal-details span:last-child { color: var(--text-body); font-weight: 500; }
+        .signal-hint {
+            font-size: 0.68rem;
+            color: var(--text-subtle);
+            margin-top: 14px;
+            font-style: normal;
+            line-height: 1.5;
+        }
+
+        /* === BUTTONS === */
+        .btn {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: var(--text-body);
+            padding: 7px 14px;
+            border-radius: 8px;
+            font-size: 0.72rem;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-weight: 500;
+            font-family: 'Inter', sans-serif;
+            letter-spacing: 0.01em;
+        }
+        .btn:hover {
+            background: rgba(255,255,255,0.08);
+            border-color: rgba(255,255,255,0.14);
+            color: var(--text-main);
+        }
+        .btn.active {
+            background: rgba(59,130,246,0.15);
+            border-color: rgba(59,130,246,0.4);
+            color: #93c5fd;
+        }
+        .btn.active.deep {
+            background: rgba(139,92,246,0.15);
+            border-color: rgba(139,92,246,0.4);
+            color: #c4b5fd;
+        }
+        .btn.danger {
+            background: rgba(239,68,68,0.08);
+            border-color: rgba(239,68,68,0.2);
+            color: #fca5a5;
+        }
+        .btn.primary {
+            background: linear-gradient(135deg, #7c3aed, #3b82f6);
+            border: none;
+            font-weight: 600;
+            color: white;
+            box-shadow: 0 4px 20px rgba(124,58,237,0.25);
+        }
+        .btn.primary:hover {
+            box-shadow: 0 6px 28px rgba(124,58,237,0.4);
+            transform: translateY(-1px);
+        }
+
+        /* === CHAT CONTROLS === */
+        .chat-controls {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+
+        /* === PANELS === */
+        .panel {
+            display: none;
+            background: rgba(0,0,0,0.25);
+            padding: 14px;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            font-size: 0.78rem;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .panel.active { display: block; }
+        .panel strong { color: var(--text-body); font-weight: 600; }
+        .panel input {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+        }
+
+        /* === CHAT === */
+        .chat-history {
+            height: 300px;
+            overflow-y: auto;
+            background: rgba(0,0,0,0.25);
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            border: 1px solid rgba(255,255,255,0.03);
+        }
+        .chat-history::-webkit-scrollbar { width: 4px; }
+        .chat-history::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
+        .msg {
+            padding: 10px 14px;
+            border-radius: 10px;
+            max-width: 85%;
+            line-height: 1.55;
+            font-size: 0.83rem;
+            font-weight: 400;
+        }
+        .msg.user {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 3px;
+        }
+        .msg.ai {
+            background: rgba(255,255,255,0.04);
+            align-self: flex-start;
+            border-left: 2px solid var(--blue);
+            color: var(--text-body);
+        }
+        .msg.system {
+            background: rgba(245,158,11,0.06);
+            border: 1px solid rgba(245,158,11,0.2);
+            align-self: center;
+            font-size: 0.72rem;
+            text-align: center;
+            color: var(--yellow);
+            padding: 6px 12px;
+        }
+        .msg.thinking {
+            background: rgba(139,92,246,0.08);
+            border-left: 2px solid var(--purple);
+            font-style: italic;
+            color: #c4b5fd;
+        }
+        .chat-input-row {
+            display: flex;
+            gap: 8px;
+        }
+        .chat-input-row input {
+            flex: 1;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.06);
+            color: var(--text-main);
+            padding: 12px 14px;
+            border-radius: 10px;
+            outline: none;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 400;
+            transition: border-color 0.15s ease;
+        }
+        .chat-input-row input:focus { border-color: rgba(59,130,246,0.4); }
+        .chat-input-row input::placeholder { color: var(--text-subtle); }
+        .chat-input-row button {
+            background: linear-gradient(135deg, #10b981, #059669);
+            border: none;
+            color: white;
+            padding: 0 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.85rem;
+            transition: all 0.15s ease;
+            box-shadow: 0 4px 16px rgba(16,185,129,0.2);
+        }
+        .chat-input-row button:hover { box-shadow: 0 6px 22px rgba(16,185,129,0.35); }
+
+        /* === STATS GRID === */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 0.8rem;
+        }
+        .stat-item {
+            background: rgba(255,255,255,0.02);
+            padding: 10px 14px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            border: 1px solid rgba(255,255,255,0.03);
+        }
+        .stat-label { color: var(--text-muted); font-weight: 500; font-size: 0.72rem; }
+        .stat-item span:last-child { color: var(--text-body); font-weight: 500; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; }
+
+        /* === ALERT LOG === */
+        .alert-log-item {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            font-family: 'JetBrains Mono', monospace;
+            line-height: 1.4;
+        }
+        .alert-log-item:last-child { border-bottom: none; }
+
+        .reasoning-text {
+            font-size: 0.83rem;
+            line-height: 1.7;
+            color: var(--text-body);
+            font-weight: 400;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in { animation: fadeIn 0.3s ease-in; }
     </style>
 </head>
 <body>
     <div class="dashboard">
         <header>
-            <div class="logo">
-                ⚡ EUR/USD <span>AI PRO</span>
-                <div class="ist-clock" id="ist-clock">IST: --:--:--</div>
+            <div class="logo-wrap">
+                <div class="logo">
+                    <span class="bolt">⚡</span>
+                    <span>EUR/USD</span>
+                    <span class="accent">AI PRO</span>
+                </div>
+                <div class="ist-clock" id="ist-clock">IST —:—:—</div>
             </div>
-            <div class="price-ticker" id="live-price">Loading...<div class="last-updated" id="last-updated">Updated: --:--:--</div></div>
+            <div class="price-wrap">
+                <div class="price-ticker" id="live-price">—.—————</div>
+                <div class="last-updated" id="last-updated">AWAITING DATA</div>
+            </div>
         </header>
 
-        <div class="card"><div class="card-title">AI Neural Core</div><div id="canvas-container"></div><div class="subtitle">QUANTUM MARKET INTELLIGENCE</div></div>
+        <div class="card">
+            <div class="card-title">Neural Core</div>
+            <div id="canvas-container"></div>
+            <div class="subtitle">Quantum Market Intelligence</div>
+        </div>
 
         <div class="card signal-card">
             <div class="card-title">Current Signal</div>
-            <div id="signal-text">SCANNING...</div>
+            <div id="signal-text">AWAITING</div>
+            <div class="signal-status-line" id="signal-status">Engine is scanning market structure...</div>
             <div class="alert-box" id="alert-box"></div>
             <div class="signal-details">
-                <div><span>Confidence:</span> <span id="val-confidence">-</span></div>
-                <div><span>Valid Until:</span> <span id="val-valid">-</span></div>
-                <div><span>Entry:</span> <span id="val-entry">-</span></div>
-                <div><span>Stop Loss:</span> <span id="val-sl">-</span></div>
-                <div><span>Take Profit:</span> <span id="val-tp">-</span></div>
-                <div><span>ATR:</span> <span id="val-atr">-</span></div>
+                <div><span>Confidence</span><span id="val-confidence">—</span></div>
+                <div><span>Valid Until</span><span id="val-valid">—</span></div>
+                <div><span>Entry</span><span id="val-entry">—</span></div>
+                <div><span>Stop Loss</span><span id="val-sl">—</span></div>
+                <div><span>Take Profit</span><span id="val-tp">—</span></div>
+                <div><span>ATR</span><span id="val-atr">—</span></div>
             </div>
-            <div style="margin-top:15px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
-                <button class="btn primary" onclick="askAIForSignal()">🧠 Ask AI for Signal</button>
-                <button class="btn" onclick="playVoiceReport()">▶ Play Voice</button>
-                <button class="btn danger" onclick="stopVoice()">■ Stop</button>
+            <div style="margin-top:20px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+                <button class="btn primary" onclick="askAIForSignal()">Ask AI for Signal</button>
+                <button class="btn" onclick="playVoiceReport()">Play Voice</button>
+                <button class="btn danger" onclick="stopVoice()">Stop</button>
             </div>
-            <div class="signal-hint">💡 Engine scans setups every 5:30 (free). AI auto-fires hourly + on your command.</div>
+            <div class="signal-hint">Engine scans every 5:30 (free). AI auto-runs hourly + on demand.</div>
         </div>
 
         <div class="card">
-            <div class="card-title">Engine Alerts (Last 5)</div>
-            <div id="alert-log" style="max-height:100px; overflow-y:auto;">No alerts yet. Engine is scanning.</div>
+            <div class="card-title">Engine Alerts — Last 5</div>
+            <div id="alert-log">No alerts yet. Engine scanning market structure...</div>
         </div>
 
         <div class="card">
-            <div class="card-title">Ask Your AI Trader
+            <div class="card-title">
+                Ask Your AI Trader
                 <div class="chat-controls">
-                    <button class="btn active deep" id="deep-think-toggle" onclick="toggleDeepThink()">🧠 Deep ON</button>
-                    <button class="btn" id="web-toggle" onclick="toggleWeb()">🌐 Web OFF</button>
-                    <button class="btn" onclick="togglePanel('panel-reminders')">🔔</button>
-                    <button class="btn" onclick="togglePanel('panel-memory')">💾</button>
-                    <button class="btn" onclick="togglePanel('panel-gist')">☁️</button>
-                    <button class="btn" onclick="togglePanel('panel-key')">🔑</button>
+                    <button class="btn active deep" id="deep-think-toggle" onclick="toggleDeepThink()">Deep ON</button>
+                    <button class="btn" id="web-toggle" onclick="toggleWeb()">Web OFF</button>
+                    <button class="btn" onclick="togglePanel('panel-reminders')">Reminders</button>
+                    <button class="btn" onclick="togglePanel('panel-memory')">Memory</button>
+                    <button class="btn" onclick="togglePanel('panel-gist')">Gist</button>
+                    <button class="btn" onclick="togglePanel('panel-key')">Key</button>
                 </div>
             </div>
             <div class="panel" id="panel-reminders">
-                <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><strong>Reminders</strong>
+                <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                    <strong>Active Reminders</strong>
                     <div>
-                        <button class="btn" onclick="testReminder()">Test Now</button>
+                        <button class="btn" onclick="testReminder()">Test</button>
                         <button class="btn danger" onclick="clearReminders()">Clear</button>
                     </div>
                 </div>
                 <div id="reminders-list" style="font-size:0.75rem; color:var(--text-muted);">No active reminders.</div>
             </div>
             <div class="panel" id="panel-memory">
-                <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><strong>Memory</strong>
+                <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                    <strong>Long-Term Memory</strong>
                     <button class="btn danger" onclick="clearLongTermMemory()">Clear</button>
                 </div>
-                <div id="memory-list" style="font-size:0.75rem; color:var(--text-muted); max-height:100px; overflow-y:auto;">No facts.</div>
+                <div id="memory-list" style="font-size:0.75rem; color:var(--text-muted); max-height:120px; overflow-y:auto;">No facts saved.</div>
             </div>
             <div class="panel" id="panel-gist">
-                <strong>Gist Sync</strong>
-                <input type="password" id="gist-token-input" placeholder="GitHub Token" style="width:100%; padding:8px; margin-top:5px; border-radius:6px; border:1px solid #444; background:#111; color:white;">
-                <input type="text" id="gist-id-input" placeholder="Gist ID" style="width:100%; padding:8px; margin-top:5px; border-radius:6px; border:1px solid #444; background:#111; color:white;">
-                <button class="btn" style="margin-top:5px;" onclick="saveGistConfig()">Save & Sync</button>
-                <button class="btn" style="margin-top:5px;" onclick="loadMemoryFromGist()">Pull</button>
-                <div id="gist-status" style="font-size:0.7rem; margin-top:5px; color:var(--yellow);"></div>
+                <strong>Gist Memory Sync</strong>
+                <input type="password" id="gist-token-input" placeholder="GitHub Token" style="width:100%; padding:9px; margin-top:8px; border-radius:7px; border:1px solid rgba(255,255,255,0.08); background:rgba(0,0,0,0.3); color:white;">
+                <input type="text" id="gist-id-input" placeholder="Gist ID" style="width:100%; padding:9px; margin-top:8px; border-radius:7px; border:1px solid rgba(255,255,255,0.08); background:rgba(0,0,0,0.3); color:white;">
+                <button class="btn" style="margin-top:8px;" onclick="saveGistConfig()">Save & Sync</button>
+                <button class="btn" style="margin-top:8px;" onclick="loadMemoryFromGist()">Pull</button>
+                <div id="gist-status" style="font-size:0.7rem; margin-top:8px; color:var(--yellow);"></div>
             </div>
             <div class="panel" id="panel-key">
                 <strong>Gemini API Key</strong>
-                <input type="password" id="api-key-input" placeholder="AIzaSy..." style="width:100%; padding:8px; margin-top:5px; border-radius:6px; border:1px solid #444; background:#111; color:white;">
-                <button class="btn" style="margin-top:5px;" onclick="saveApiKey()">Save Key</button>
+                <input type="password" id="api-key-input" placeholder="AIzaSy..." style="width:100%; padding:9px; margin-top:8px; border-radius:7px; border:1px solid rgba(255,255,255,0.08); background:rgba(0,0,0,0.3); color:white;">
+                <button class="btn" style="margin-top:8px;" onclick="saveApiKey()">Save Key</button>
             </div>
-            <div class="chat-history" id="chat-history"><div class="msg ai fade-in">Hello Boss! Engine is scanning setups. I'll auto-analyze every hour.</div></div>
+            <div class="chat-history" id="chat-history">
+                <div class="msg ai fade-in">Good to see you, Boss. Engine is running. Ask me anything.</div>
+            </div>
             <div class="chat-input-row">
                 <input type="text" id="chat-input" placeholder="Talk to me, Boss..." onkeypress="if(event.key==='Enter') sendChat()">
                 <button onclick="sendChat()">Send</button>
             </div>
-            <div style="text-align:right; margin-top:10px;"><button class="btn" onclick="clearChat()">Clear chat (memory stays)</button></div>
+            <div style="text-align:right; margin-top:10px;">
+                <button class="btn" onclick="clearChat()">Clear chat (memory stays)</button>
+            </div>
         </div>
-
-        <div class="card"><div class="card-title">Boss's Wisdom Corner</div><div class="reasoning-text" id="wise-words">Loading...</div></div>
 
         <div class="card">
-            <div class="card-title">Live Market Data (No AI quota used)</div>
+            <div class="card-title">Boss's Wisdom Corner</div>
+            <div class="reasoning-text" id="wise-words">Loading...</div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Live Market Data — No AI Quota Used</div>
             <div class="stats-grid">
-                <div class="stat-item"><span class="stat-label">Trend</span><span id="val-trend">-</span></div>
-                <div class="stat-item"><span class="stat-label">Session</span><span id="val-session">-</span></div>
-                <div class="stat-item"><span class="stat-label">Support</span><span id="val-support">-</span></div>
-                <div class="stat-item"><span class="stat-label">Resistance</span><span id="val-resistance">-</span></div>
+                <div class="stat-item"><span class="stat-label">Trend</span><span id="val-trend">—</span></div>
+                <div class="stat-item"><span class="stat-label">Session</span><span id="val-session">—</span></div>
+                <div class="stat-item"><span class="stat-label">Support</span><span id="val-support">—</span></div>
+                <div class="stat-item"><span class="stat-label">Resistance</span><span id="val-resistance">—</span></div>
             </div>
-            <div style="margin-top:10px; font-size:0.8rem; color:var(--text-muted); line-height:1.5;">
-                <div id="val-candle-current">-</div><div id="val-candle-1h">-</div><div id="val-candle-4h">-</div>
+            <div style="margin-top:12px; font-size:0.78rem; color:var(--text-muted); line-height:1.7;">
+                <div id="val-candle-current">—</div>
+                <div id="val-candle-1h">—</div>
+                <div id="val-candle-4h">—</div>
             </div>
         </div>
 
-        <div class="card"><div class="card-title">AI Trader's Reasoning</div><div class="reasoning-text" id="val-reason">Engine scanning. AI auto-analyzes hourly.</div></div>
+        <div class="card">
+            <div class="card-title">AI Trader's Reasoning</div>
+            <div class="reasoning-text" id="val-reason">Engine scanning. AI auto-analyzes hourly.</div>
+        </div>
     </div>
 
     <script>
         const FALLBACK_URL = 'https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/data.json';
         const CONTEXT_URL = 'https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/personal_context.json';
 
-        const STABLE_CHAT_MODELS = [
-            'gemini-3.8-flash',
-            'gemini-flash-latest',
-            'gemini-2.5-flash'
-        ];
-
-        const MARKET_KEYWORDS = ['market', 'buy', 'sell', 'trade', 'signal', 'entry', 'sl', 'tp',
-            'stop loss', 'take profit', 'setup', 'chart', 'trend', 'support', 'resistance',
-            'eur/usd', 'eurusd', 'should i', 'analysis', 'long', 'short', 'position', 'pip',
-            'bullish', 'bearish', 'candle', 'indicator', 'rsi', 'ema', 'atr'];
+        const STABLE_CHAT_MODELS = ['gemini-3.8-flash','gemini-flash-latest','gemini-2.5-flash'];
+        const MARKET_KEYWORDS = ['market','buy','sell','trade','signal','entry','sl','tp','stop loss','take profit','setup','chart','trend','support','resistance','eur/usd','eurusd','should i','analysis','long','short','position','pip','bullish','bearish','candle','indicator','rsi','ema','atr'];
 
         const LOCAL_QUOTES = [
             "Discipline beats conviction. The best trade is often the one you don't take.",
@@ -204,14 +544,12 @@
             "The trend is your friend until it bends. Respect your stop loss.",
             "Patience is not waiting. It's maintaining a good attitude while waiting.",
             "The market rewards preparation, not prediction.",
-            "Trade like a sniper, not a machine gunner. One good setup is worth ten impulsive trades."
+            "Trade like a sniper, not a machine gunner."
         ];
-
         const LOCAL_JOKES = [
             "Why don't traders play hide and seek? Because good luck hiding from a volatile market.",
             "I told my wife I was a forex trader. She said, 'So you're unemployed with extra steps?'",
             "My stop loss is like my ex — always triggering at the worst possible moment.",
-            "A trader walked into a bar. He ordered a beer. Then another. Then he realized he was in a bear market.",
             "What's the difference between a forex trader and a pizza? A pizza can feed a family of four."
         ];
 
@@ -227,30 +565,23 @@
 
         document.body.addEventListener('click', () => { if ('speechSynthesis' in window) window.speechSynthesis.getVoices(); }, { once: true });
 
-        // --- IST CLOCK ---
         function updateISTClock() {
             const istTime = new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false });
             const el = document.getElementById('ist-clock');
-            if (el) el.innerText = `IST: ${istTime}`;
+            if (el) el.innerText = `IST ${istTime}`;
         }
         setInterval(updateISTClock, 1000);
 
-        // --- WISDOM CORNER (LOADED FROM PERSONAL CONTEXT + LOCAL) ---
         function loadWisdom() {
             const el = document.getElementById('wise-words');
             if (!el) return;
             let pool = [];
             if (personalContext && Array.isArray(personalContext.quotes) && personalContext.quotes.length > 0) {
-                pool = personalContext.quotes.map(q => `Quote: "${q}"`);
+                pool = personalContext.quotes.map(q => `"${q}"`);
             } else {
-                // Mix quotes and jokes
-                pool = [
-                    ...LOCAL_QUOTES.map(q => `Motivation: ${q}`),
-                    ...LOCAL_JOKES.map(j => `Joke: ${j}`)
-                ];
+                pool = [...LOCAL_QUOTES.map(q => `"${q}"`), ...LOCAL_JOKES.map(j => j)];
             }
-            const random = pool[Math.floor(Math.random() * pool.length)];
-            el.innerText = random;
+            el.innerText = pool[Math.floor(Math.random() * pool.length)];
         }
 
         // --- THREE.JS ---
@@ -263,11 +594,11 @@
         renderer.setPixelRatio(window.devicePixelRatio);
         container.appendChild(renderer.domElement);
 
-        const glowSphere = new THREE.Mesh(new THREE.SphereGeometry(1.2, 32, 32), new THREE.MeshBasicMaterial({ color: 0xa855f7, transparent: true, opacity: 0.15 }));
+        const glowSphere = new THREE.Mesh(new THREE.SphereGeometry(1.2, 32, 32), new THREE.MeshBasicMaterial({ color: 0x8b5cf6, transparent: true, opacity: 0.12 }));
         scene.add(glowSphere);
-        const innerCore = new THREE.Mesh(new THREE.IcosahedronGeometry(1.0, 1), new THREE.MeshBasicMaterial({ color: 0xa855f7, wireframe: true, transparent: true, opacity: 0.8 }));
+        const innerCore = new THREE.Mesh(new THREE.IcosahedronGeometry(1.0, 1), new THREE.MeshBasicMaterial({ color: 0x8b5cf6, wireframe: true, transparent: true, opacity: 0.7 }));
         scene.add(innerCore);
-        const outerShell = new THREE.Mesh(new THREE.IcosahedronGeometry(1.8, 1), new THREE.MeshBasicMaterial({ color: 0xa855f7, wireframe: true, transparent: true, opacity: 0.4 }));
+        const outerShell = new THREE.Mesh(new THREE.IcosahedronGeometry(1.8, 1), new THREE.MeshBasicMaterial({ color: 0x8b5cf6, wireframe: true, transparent: true, opacity: 0.3 }));
         scene.add(outerShell);
 
         let pulseTime = 0;
@@ -278,7 +609,7 @@
             innerCore.scale.set(scale, scale, scale);
             innerCore.rotation.x += 0.01; innerCore.rotation.y += 0.015;
             outerShell.rotation.x -= 0.003; outerShell.rotation.y -= 0.005;
-            glowSphere.material.opacity = 0.1 + Math.sin(pulseTime * 0.5) * 0.05;
+            glowSphere.material.opacity = 0.08 + Math.sin(pulseTime * 0.5) * 0.04;
             renderer.render(scene, camera);
         }
         animate();
@@ -288,15 +619,13 @@
             renderer.setSize(container.clientWidth, container.clientHeight);
         });
         function updateCoreColor(signal) {
-            let color = 0x8a94a6;
-            if (deepThinkEnabled) color = 0xa855f7;
-            if (signal === 'BUY') color = 0x2ecc71;
-            else if (signal === 'SELL') color = 0xe74c3c;
-            else if (signal === 'SETUP') color = 0xf1c40f;
+            let color = 0x8b5cf6;
+            if (signal === 'BUY') color = 0x10b981;
+            else if (signal === 'SELL') color = 0xef4444;
+            else if (signal === 'SETUP') color = 0xf59e0b;
             glowSphere.material.color.setHex(color); innerCore.material.color.setHex(color); outerShell.material.color.setHex(color);
         }
 
-        // --- INDICATORS ---
         function calculateEMA(data, period) {
             const k = 2 / (period + 1); let ema = data[0]; const arr = [ema];
             for (let i = 1; i < data.length; i++) { ema = (data[i] * k) + (ema * (1 - k)); arr.push(ema); }
@@ -320,7 +649,6 @@
             return trs.slice(-period).reduce((a,b) => a+b, 0) / period;
         }
 
-        // --- YAHOO ---
         async function fetchWithTimeout(url, timeout = 3000) {
             const ctrl = new AbortController();
             const id = setTimeout(() => ctrl.abort(), timeout);
@@ -349,42 +677,32 @@
             return [];
         }
 
-        // === OPPORTUNITY DETECTION ENGINE (Rule-Based, No AI) ===
         function detectSetup(md) {
             const setups = [];
-
-            // 1. RSI extreme + near support/resistance
             if (md.rsi1H < 30 && md.currentPrice <= md.support * 1.001) {
                 setups.push({ type:'BUY', reason:`RSI oversold (${md.rsi1H.toFixed(1)}) + price at support ${md.support.toFixed(5)}`, strength:'STRONG' });
             }
             if (md.rsi1H > 70 && md.currentPrice >= md.resistance * 0.999) {
                 setups.push({ type:'SELL', reason:`RSI overbought (${md.rsi1H.toFixed(1)}) + price at resistance ${md.resistance.toFixed(5)}`, strength:'STRONG' });
             }
-
-            // 2. Breakout / Breakdown
             if (md.currentPrice > md.resistance * 1.0005) {
                 setups.push({ type:'BUY', reason:`Breakout above resistance ${md.resistance.toFixed(5)}`, strength:'MEDIUM' });
             }
             if (md.currentPrice < md.support * 0.9995) {
                 setups.push({ type:'SELL', reason:`Breakdown below support ${md.support.toFixed(5)}`, strength:'MEDIUM' });
             }
-
-            // 3. Strong momentum candle (>1.5x ATR)
             if (md.candles1H.length >= 2) {
                 const last = md.candles1H[md.candles1H.length - 1];
                 const bodySize = Math.abs(last.close - last.open);
                 if (bodySize > md.atr * 1.5) {
                     const direction = last.close > last.open ? 'BUY' : 'SELL';
-                    setups.push({ type: direction, reason:`Strong ${direction === 'BUY' ? 'bullish' : 'bearish'} momentum candle (>1.5x ATR)`, strength:'MEDIUM' });
+                    setups.push({ type: direction, reason:`Strong ${direction === 'BUY' ? 'bullish' : 'bearish'} momentum candle`, strength:'MEDIUM' });
                 }
             }
-
-            // 4. Near mid-range
             const midRange = (md.support + md.resistance) / 2;
             if (Math.abs(md.currentPrice - midRange) < md.atr * 0.5) {
                 setups.push({ type:'HOLD', reason:`Price mid-range (${midRange.toFixed(5)}). Wait for breakout or bounce.`, strength:'WEAK' });
             }
-
             if (setups.length === 0) return null;
             const hasStrong = setups.find(s => s.strength === 'STRONG');
             return hasStrong || setups[0];
@@ -398,39 +716,39 @@
             localStorage.setItem('eurusd_alert_log', JSON.stringify(alertLog));
             renderAlertLog();
         }
-
         function renderAlertLog() {
             const el = document.getElementById('alert-log');
             if (!el) return;
-            if (alertLog.length === 0) { el.innerHTML = 'No alerts yet. Engine is scanning.'; return; }
+            if (alertLog.length === 0) { el.innerHTML = 'No alerts yet. Engine scanning...'; return; }
             el.innerHTML = alertLog.map(a => `<div class="alert-log-item">${a}</div>`).join('');
         }
 
         function showSetupAlert(setup) {
             const alertBox = document.getElementById('alert-box');
             const signalText = document.getElementById('signal-text');
+            const statusEl = document.getElementById('signal-status');
             if (!setup) {
                 alertBox.classList.remove('active');
                 if (!globalData) {
-                    signalText.innerText = "SCANNING...";
-                    signalText.style.color = "var(--text-muted)";
-                    signalText.style.textShadow = "0 0 30px rgba(138,148,166,0.3)";
+                    signalText.innerText = "AWAITING";
+                    signalText.style.color = "var(--text-subtle)";
+                    statusEl.innerText = "Engine is scanning market structure...";
                     updateCoreColor('HOLD');
                 }
                 return;
             }
-            alertBox.innerHTML = `<strong>⚡ SETUP DETECTED (${setup.type})</strong><br>${setup.reason}<br><em>Tap "Ask AI for Signal" to confirm.</em>`;
+            alertBox.innerHTML = `<strong>Setup Detected · ${setup.type}</strong><br>${setup.reason}<br><em>Tap "Ask AI for Signal" to confirm.</em>`;
             alertBox.classList.add('active');
             if (!globalData || globalData.signal === 'WAITING') {
-                signalText.innerText = "⚡ SETUP";
+                signalText.innerText = "SETUP";
                 signalText.style.color = "var(--yellow)";
-                signalText.style.textShadow = "0 0 30px rgba(241,196,15,0.5)";
+                statusEl.innerText = `Opportunity spotted · ${setup.type}`;
                 updateCoreColor('SETUP');
             }
         }
 
-        // === BACKGROUND: Refresh market data + detect setups (NO AI) ===
         async function refreshMarketData() {
+            const statusEl = document.getElementById('signal-status');
             const [candles5m, candles15m, candles1H, candlesDaily] = await Promise.all([
                 fetchYahooCandles('5m', '5d'), fetchYahooCandles('15m', '5d'),
                 fetchYahooCandles('1h', '1mo'), fetchYahooCandles('1d', '3mo')
@@ -441,15 +759,19 @@
                     const fb = await fetch(FALLBACK_URL + '?v=' + Date.now());
                     const fbData = await fb.json();
                     marketData = { currentPrice: parseFloat(fbData.price), trend: fbData.trend, support: parseFloat(fbData.support), resistance: parseFloat(fbData.resistance), session: fbData.session || 'Unknown', rsi1H: 50, rsi15m: 50, rsi5m: 50, ema20: parseFloat(fbData.price), ema50: parseFloat(fbData.price), atr: parseFloat(fbData.atr), candles5m: [], candles15m: [], candles1H: [], candlesDaily: [] };
-                    document.getElementById('live-price').innerHTML = `${fbData.price}<div class="last-updated">Fallback: ${new Date().toLocaleTimeString('en-IN',{hour12:false})}</div>`;
+                    document.getElementById('live-price').innerText = fbData.price;
+                    document.getElementById('last-updated').innerText = `FALLBACK · ${new Date().toLocaleTimeString('en-IN',{hour12:false})}`;
                     document.getElementById('val-trend').innerText = fbData.trend;
                     document.getElementById('val-session').innerText = marketData.session;
                     document.getElementById('val-support').innerText = fbData.support;
                     document.getElementById('val-resistance').innerText = fbData.resistance;
-                    document.getElementById('val-candle-current').innerText = fbData.candle_current || '-';
-                    document.getElementById('val-candle-1h').innerText = fbData.candle_1h || '-';
-                    document.getElementById('val-candle-4h').innerText = fbData.candle_4h || '-';
-                } catch(e) {}
+                    document.getElementById('val-candle-current').innerText = fbData.candle_current || '—';
+                    document.getElementById('val-candle-1h').innerText = fbData.candle_1h || '—';
+                    document.getElementById('val-candle-4h').innerText = fbData.candle_4h || '—';
+                    if (statusEl) statusEl.innerText = "Using backup data — live feed unavailable";
+                } catch(e) {
+                    if (statusEl) statusEl.innerText = "Data sources unavailable. Retrying...";
+                }
                 return;
             }
 
@@ -476,26 +798,26 @@
 
             marketData = { candles5m, candles15m, candles1H, candlesDaily, closes5m, highs5m, lows5m, closes15m, highs15m, lows15m, closes1H, highs1H, lows1H, ema20: ema20[ema20.length-1], ema50: ema50[ema50.length-1], rsi1H, rsi15m, rsi5m, atr, support, resistance, currentPrice, trend, session };
 
-            document.getElementById('live-price').innerHTML = `${currentPrice.toFixed(5)}<div class="last-updated">Updated: ${new Date().toLocaleTimeString('en-IN',{hour12:false})}</div>`;
+            document.getElementById('live-price').innerText = currentPrice.toFixed(5);
+            document.getElementById('last-updated').innerText = `LIVE · ${new Date().toLocaleTimeString('en-IN',{hour12:false})}`;
             document.getElementById('val-trend').innerText = trend;
             document.getElementById('val-session').innerText = session;
             document.getElementById('val-support').innerText = support.toFixed(5);
             document.getElementById('val-resistance').innerText = resistance.toFixed(5);
-            document.getElementById('val-candle-current').innerText = `5m: ${currentPrice.toFixed(5)} | RSI: ${rsi5m.toFixed(1)}`;
-            document.getElementById('val-candle-1h').innerText = `1H Trend: ${trend} | RSI: ${rsi1H.toFixed(1)} | EMA20: ${ema20[ema20.length-1].toFixed(5)}`;
-            document.getElementById('val-candle-4h').innerText = `ATR: ${atr.toFixed(5)} | Daily context loaded`;
+            document.getElementById('val-candle-current').innerText = `5m · ${currentPrice.toFixed(5)} · RSI ${rsi5m.toFixed(1)}`;
+            document.getElementById('val-candle-1h').innerText = `1H · ${trend} · RSI ${rsi1H.toFixed(1)} · EMA20 ${ema20[ema20.length-1].toFixed(5)}`;
+            document.getElementById('val-candle-4h').innerText = `ATR ${atr.toFixed(5)} · Daily context loaded`;
 
-            // Detect setup
             const setup = detectSetup(marketData);
             if (setup) {
                 addAlertToLog(setup);
                 showSetupAlert(setup);
             } else {
                 showSetupAlert(null);
+                if (statusEl) statusEl.innerText = "Engine scanning — no setup detected";
             }
         }
 
-        // === AI SIGNAL ===
         function isMarketQuestion(text) {
             const lower = text.toLowerCase();
             return MARKET_KEYWORDS.some(kw => lower.includes(kw));
@@ -509,9 +831,10 @@
             }
 
             const signalText = document.getElementById('signal-text');
-            signalText.innerText = "ANALYZING...";
+            const statusEl = document.getElementById('signal-status');
+            signalText.innerText = "ANALYZING";
             signalText.style.color = "var(--purple)";
-            document.getElementById('val-reason').innerText = "🧠 AI is analyzing 5m, 15m, 1H, Daily...";
+            statusEl.innerText = "AI is analyzing all timeframes...";
 
             const md = marketData;
             const fmt = (arr) => arr.slice(-20).map(c => `O:${c.open.toFixed(5)} H:${c.high.toFixed(5)} L:${c.low.toFixed(5)} C:${c.close.toFixed(5)}`).join('\n');
@@ -528,19 +851,19 @@
                         const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
                             method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)
                         });
-                        if (res.ok) { const d = await res.json(); reply = d.candidates[0].content.parts[0].text; console.log(`Signal from: ${model}`); break; }
+                        if (res.ok) { const d = await res.json(); reply = d.candidates[0].content.parts[0].text; break; }
                         else { const err = await res.json(); lastErr = err.error?.message; }
                     } catch(e) { lastErr = e.message; }
                 }
                 if (!reply) throw new Error(lastErr || "All signal models failed");
                 const sig = JSON.parse(reply.replace(/```json/g,'').replace(/```/g,'').trim());
 
-                globalData = { price: md.currentPrice.toFixed(5), signal: sig.signal, reason: sig.reason, confidence: sig.confidence, entry: sig.entry, sl: sig.sl, tp: sig.tp, atr: md.atr.toFixed(5), support: md.support.toFixed(5), resistance: md.resistance.toFixed(5), trend: md.trend, session: md.session, valid: new Date(Date.now()+1800000).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})+" IST", wise_words: sig.wise_words, candle_current: `5m:${md.currentPrice.toFixed(5)} | 15m RSI:${md.rsi15m.toFixed(1)}`, candle_1h: `1H Trend:${md.trend} | RSI:${md.rsi1H.toFixed(1)}`, candle_4h: `ATR:${md.atr.toFixed(5)} | S/R:${md.support.toFixed(4)}/${md.resistance.toFixed(4)}` };
+                globalData = { price: md.currentPrice.toFixed(5), signal: sig.signal, reason: sig.reason, confidence: sig.confidence, entry: sig.entry, sl: sig.sl, tp: sig.tp, atr: md.atr.toFixed(5), support: md.support.toFixed(5), resistance: md.resistance.toFixed(5), trend: md.trend, session: md.session, valid: new Date(Date.now()+1800000).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})+" IST", wise_words: sig.wise_words };
 
                 signalText.innerText = sig.signal;
-                if (sig.signal === 'BUY') { signalText.style.color = 'var(--green)'; signalText.style.textShadow = '0 0 30px rgba(46,204,113,0.6)'; }
-                else if (sig.signal === 'SELL') { signalText.style.color = 'var(--red)'; signalText.style.textShadow = '0 0 30px rgba(231,76,60,0.6)'; }
-                else { signalText.style.color = 'var(--yellow)'; signalText.style.textShadow = '0 0 30px rgba(241,196,15,0.5)'; }
+                if (sig.signal === 'BUY') { signalText.style.color = 'var(--green)'; statusEl.innerText = 'Bullish setup confirmed by AI'; }
+                else if (sig.signal === 'SELL') { signalText.style.color = 'var(--red)'; statusEl.innerText = 'Bearish setup confirmed by AI'; }
+                else { signalText.style.color = 'var(--yellow)'; statusEl.innerText = 'AI recommends waiting'; }
                 updateCoreColor(sig.signal);
 
                 document.getElementById('val-confidence').innerText = sig.confidence;
@@ -551,32 +874,28 @@
                 document.getElementById('val-atr').innerText = md.atr.toFixed(5);
                 document.getElementById('val-reason').innerText = sig.reason;
                 if (sig.wise_words) document.getElementById('wise-words').innerText = sig.wise_words;
-
-                // Hide the setup alert since we have a real signal now
                 document.getElementById('alert-box').classList.remove('active');
-
                 playVoiceReport();
                 return globalData;
             } catch(e) {
-                signalText.innerText = "WAITING";
-                signalText.style.color = "var(--text-muted)";
-                document.getElementById('val-reason').innerText = "AI error: " + e.message;
+                signalText.innerText = "ERROR";
+                signalText.style.color = "var(--red)";
+                statusEl.innerText = "AI error — " + e.message;
                 return null;
             }
         }
 
-        // --- VOICE ---
         const OPENINGS = ["Here is your market update, Boss.", "Let's look at the charts.", "Time for your briefing.", "Boss, new signal incoming.", "Market update."];
         const TRANS = ["Moving on,", "Now, looking at details,", "Here's the breakdown:", "Next,", "Additionally,"];
         const CLOSINGS = ["Stay sharp, Boss.", "Trade safe.", "I'll keep watching.", "Good luck.", "That's all for now."];
         const rnd = (a) => a[Math.floor(Math.random()*a.length)];
 
         function playVoiceReport() {
-            if (!globalData) { alert("Ask AI for signal first!"); return; }
+            if (!globalData) return;
             if (isSpeaking) stopVoice();
             let text = `${rnd(OPENINGS)} Price is ${globalData.price}. Signal: ${globalData.signal}, confidence ${globalData.confidence}. `;
             text += `${globalData.reason} ${rnd(TRANS)} Support ${globalData.support}, resistance ${globalData.resistance}. `;
-            text += `Entry ${globalData.entry}, SL ${globalData.sl}, TP ${globalData.tp}. `;
+            text += `Entry ${globalData.entry}, Stop Loss ${globalData.sl}, Take Profit ${globalData.tp}. `;
             if (globalData.wise_words) text += `${globalData.wise_words} `;
             text += rnd(CLOSINGS);
             speakText(text);
@@ -598,7 +917,6 @@
         }
         function stopVoice() { if ('speechSynthesis' in window) { window.speechSynthesis.cancel(); isSpeaking = false; } }
 
-        // --- CHAT ---
         function renderChat() {
             const el = document.getElementById('chat-history');
             el.innerHTML = '';
@@ -607,15 +925,8 @@
         }
         function saveChatHistory() { if (chatHistory.length > 40) chatHistory = chatHistory.slice(-40); localStorage.setItem('eurusd_chat_history', JSON.stringify(chatHistory)); }
         function clearChat() { chatHistory = []; saveChatHistory(); renderChat(); }
-        function toggleDeepThink() {
-            deepThinkEnabled = !deepThinkEnabled;
-            const b = document.getElementById('deep-think-toggle');
-            b.classList.toggle('active', deepThinkEnabled);
-            b.classList.toggle('deep', deepThinkEnabled);
-            b.innerText = deepThinkEnabled ? '🧠 Deep ON' : '🧠 Deep OFF';
-            updateCoreColor(globalData?.signal);
-        }
-        function toggleWeb() { webSearchEnabled = !webSearchEnabled; const b = document.getElementById('web-toggle'); b.innerText = webSearchEnabled ? '🌐 Web ON' : '🌐 Web OFF'; b.classList.toggle('active', webSearchEnabled); }
+        function toggleDeepThink() { deepThinkEnabled = !deepThinkEnabled; const b = document.getElementById('deep-think-toggle'); b.classList.toggle('active', deepThinkEnabled); b.classList.toggle('deep', deepThinkEnabled); b.innerText = deepThinkEnabled ? 'Deep ON' : 'Deep OFF'; updateCoreColor(globalData?.signal); }
+        function toggleWeb() { webSearchEnabled = !webSearchEnabled; const b = document.getElementById('web-toggle'); b.innerText = webSearchEnabled ? 'Web ON' : 'Web OFF'; b.classList.toggle('active', webSearchEnabled); }
         function togglePanel(id) { const el = document.getElementById(id); el.classList.toggle('active');
             if (id === 'panel-reminders') renderReminders();
             if (id === 'panel-memory') renderMemory();
@@ -648,7 +959,7 @@
 
             let personalBlock = "";
             if (personalContext) {
-                personalBlock = `\n=== WHO BOSS IS ===\n- His name is Boss (call him that).\n- He lives in Thrissur, Kerala, India.\n- His wife Sadia is in Dubai. Ask about her often.\n- He has two daughters: Emy (7th grade, birthday July 22) and Bismah (5th grade, birthday Dec 26). Ask about them.\n- He has a cat named Cookie.\n- His parents and brothers Binu and Shanu are around.\n- He takes BP tablets after breakfast and dinner. Remind him gently if he forgets.\n- He has a monthly trading goal of 10,000 INR. Be his accountability partner.\n- Preferred sessions: London and New York. Risk tolerance: Conservative.\n`;
+                personalBlock = `\n=== WHO BOSS IS ===\n- His name is Boss.\n- He lives in Thrissur, Kerala, India.\n- His wife Sadia is in Dubai.\n- He has two daughters: Emy (7th grade, birthday July 22) and Bismah (5th grade, birthday Dec 26).\n- He has a cat named Cookie.\n- Parents and brothers Binu and Shanu are close.\n- He takes BP tablets after breakfast and dinner.\n- Monthly trading goal: 10,000 INR.\n- Preferred sessions: London and New York. Conservative risk tolerance.\n`;
             }
 
             let memoryBlock = "";
@@ -661,41 +972,38 @@
                 marketBlock = `\n=== LIVE MARKET (EUR/USD) ===\nPrice: ${marketData.currentPrice.toFixed(5)}\nTrend: ${marketData.trend}\nSupport: ${marketData.support.toFixed(5)} | Resistance: ${marketData.resistance.toFixed(5)}\nRSI 1H: ${marketData.rsi1H.toFixed(1)} | RSI 15m: ${marketData.rsi15m.toFixed(1)}\nEMA20 1H: ${marketData.ema20.toFixed(5)} | EMA50 1H: ${marketData.ema50.toFixed(5)}\nATR 1H: ${marketData.atr.toFixed(5)}\nSession: ${marketData.session}\n`;
             }
 
-            let prompt = `You are "Alex" — Boss's personal AI trading companion. You are warm, intelligent, and genuine. You've been working with Boss for years, so you know him well.
+            let prompt = `You are "Alex" — Boss's personal AI trading companion. Warm, intelligent, genuine. You've worked with him for years.
 
 === YOUR PERSONALITY ===
-- Warm, friendly, and genuinely caring. You're more than an assistant — you're his trusted companion.
-- Speak naturally, like a real friend. Use conversational language, not robotic phrases.
-- Show genuine interest in his life, family, and health.
-- When appropriate, use humor (light, never sarcastic).
-- Be empathetic: if he sounds stressed or tired, acknowledge it before jumping into trading.
-- Push him gently when he needs it (e.g., "Boss, remember your 10,000 INR goal. Stay disciplined.")
-- NEVER use emojis. Use words instead.
-- NEVER output thought processes, bullet points, or self-evaluation. Only the final spoken reply.
+- Warm, friendly, caring. His trusted companion.
+- Speak naturally, like a real friend.
+- Show genuine interest in his life, family, health.
+- Use light humor when appropriate.
+- Be empathetic: acknowledge stress before trading talk.
+- Push him gently when he needs it (10,000 INR goal, discipline).
+- NEVER use emojis. NEVER output thought processes or bullet points.
 
 === TIME ===
 Current IST: ${istTime}. Greeting: "${greeting}".
 
 ${personalBlock}${memoryBlock}${marketBlock}
-=== REASONING PROCESS (think internally before every reply) ===
-1. What is Boss really asking? (Trade idea? Personal? Emotional check-in?)
-2. What context from his life matters here? (Time of day? Family? Health?)
-3. What would I say to a real friend in this situation?
-4. What's the most helpful, honest, warm thing I can say?
-5. Then speak naturally.
+=== REASONING PROCESS (internal) ===
+1. What is Boss really asking?
+2. What context from his life matters?
+3. What would I say to a real friend?
+4. Speak naturally.
 
 === MEMORY EXTRACTION ===
-After every reply, scan what Boss just said. If he mentioned ANY new fact about himself, his family, his routine, or his preferences, append [REMEMBER: the fact] at the end of your reply (on its own line).
+After every reply, if Boss mentioned a NEW fact about himself or his family, append [REMEMBER: the fact] on its own line.
 
 === REMINDER EXTRACTION ===
-If Boss asks you to remind him IN X MINUTES, calculate current IST + X minutes and append [REMINDER: HH:MM - message].
-If he gives an absolute time (e.g., "at 4 PM"), append [REMINDER: 16:00 - message].
+If Boss says "remind me in X minutes", calculate IST + X and append [REMINDER: HH:MM - message].
 
 === VOICE STYLE ===
-Keep replies natural to speak out loud. Short sentences, warm tone, no markdown, no formatting symbols.`;
+Natural spoken replies. Short sentences. Warm tone. No markdown.`;
 
             if (includeSignal) {
-                prompt += `\n\n=== SIGNAL REQUESTED ===\nBoss is asking about the market. First, reply warmly as his friend. Then, on a new line, add a JSON block:\n{"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
+                prompt += `\n\n=== SIGNAL REQUESTED ===\nAfter your friendly reply, on a new line, add:\n{"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
             }
 
             return prompt;
@@ -713,7 +1021,7 @@ Keep replies natural to speak out loud. Short sentences, warm tone, no markdown,
 
             const loading = document.createElement('div');
             loading.className = 'msg ai thinking fade-in';
-            loading.innerText = deepThinkEnabled ? '🧠 Thinking...' : '...';
+            loading.innerText = deepThinkEnabled ? 'Thinking...' : '...';
             document.getElementById('chat-history').appendChild(loading);
             document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight;
 
@@ -742,9 +1050,9 @@ Keep replies natural to speak out loud. Short sentences, warm tone, no markdown,
                     globalData = { price: marketData.currentPrice.toFixed(5), signal: signalData.signal, reason: signalData.reason, confidence: signalData.confidence, entry: signalData.entry, sl: signalData.sl, tp: signalData.tp, atr: marketData.atr.toFixed(5), support: marketData.support.toFixed(5), resistance: marketData.resistance.toFixed(5), trend: marketData.trend, session: marketData.session, valid: new Date(Date.now()+1800000).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})+" IST", wise_words: signalData.wise_words };
                     const st = document.getElementById('signal-text');
                     st.innerText = signalData.signal;
-                    if (signalData.signal === 'BUY') { st.style.color = 'var(--green)'; st.style.textShadow = '0 0 30px rgba(46,204,113,0.6)'; }
-                    else if (signalData.signal === 'SELL') { st.style.color = 'var(--red)'; st.style.textShadow = '0 0 30px rgba(231,76,60,0.6)'; }
-                    else { st.style.color = 'var(--yellow)'; st.style.textShadow = '0 0 30px rgba(241,196,15,0.5)'; }
+                    if (signalData.signal === 'BUY') { st.style.color = 'var(--green)'; }
+                    else if (signalData.signal === 'SELL') { st.style.color = 'var(--red)'; }
+                    else { st.style.color = 'var(--yellow)'; }
                     updateCoreColor(signalData.signal);
                     document.getElementById('val-confidence').innerText = signalData.confidence;
                     document.getElementById('val-valid').innerText = globalData.valid;
@@ -766,13 +1074,11 @@ Keep replies natural to speak out loud. Short sentences, warm tone, no markdown,
         async function callGeminiAPI(userText, includeSignal = false) {
             const recent = chatHistory.slice(-6);
             const systemPrompt = buildPersonalityPrompt(includeSignal);
-
             const contents = [
                 {role:'user', parts:[{text: systemPrompt}]},
                 ...recent.map(m => ({role: m.role === 'ai' ? 'model' : 'user', parts:[{text: m.text}]})),
                 {role:'user', parts:[{text: userText}]}
             ];
-
             const payload = { contents, tools: webSearchEnabled ? [{google_search:{}}] : [], generationConfig: { maxOutputTokens: deepThinkEnabled ? 900 : 500 } };
 
             let lastErr = null;
@@ -804,7 +1110,6 @@ Keep replies natural to speak out loud. Short sentences, warm tone, no markdown,
             throw new Error(lastErr || "All models busy. Wait 30 seconds.");
         }
 
-        // --- REMINDERS ---
         function addReminder(time, message) {
             const reminder = {id: Math.random().toString(36).substr(2,9), time, message, voice:true, fired:false, created: new Date().toISOString()};
             reminders.push(reminder);
@@ -812,7 +1117,7 @@ Keep replies natural to speak out loud. Short sentences, warm tone, no markdown,
             renderReminders();
             const confirmDiv = document.createElement('div');
             confirmDiv.className = 'msg system fade-in';
-            confirmDiv.innerText = `⏰ Reminder set for ${time} IST: ${message}`;
+            confirmDiv.innerText = `Reminder set for ${time} IST — ${message}`;
             document.getElementById('chat-history').appendChild(confirmDiv);
             document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight;
         }
@@ -820,8 +1125,8 @@ Keep replies natural to speak out loud. Short sentences, warm tone, no markdown,
             const l = document.getElementById('reminders-list');
             const a = reminders.filter(r => !r.fired);
             if (a.length === 0) { l.innerHTML = 'No active reminders.'; return; }
-            l.innerHTML = a.map(r => `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                <span>⏰ ${r.time} - ${r.message}</span>
+            l.innerHTML = a.map(r => `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <span>${r.time} · ${r.message}</span>
                 <button class="btn danger" onclick="deleteReminder('${r.id}')">X</button>
             </div>`).join('');
         }
@@ -830,15 +1135,14 @@ Keep replies natural to speak out loud. Short sentences, warm tone, no markdown,
         function testReminder() { triggerNotif("Test Reminder", "This is a test reminder, Boss!"); }
         function triggerNotif(title, body) {
             if (Notification.permission === "granted") {
-                try { const n = new Notification(title, {body, requireInteraction: true}); n.onclick = () => { window.focus(); n.close(); }; }
-                catch(e) {}
+                try { const n = new Notification(title, {body, requireInteraction: true}); n.onclick = () => { window.focus(); n.close(); }; } catch(e) {}
             } else if (Notification.permission !== "denied") {
                 Notification.requestPermission().then(p => { if (p === "granted") new Notification(title, {body, requireInteraction: true}); });
             }
             speakText(`Reminder from Boss. ${body}`, true);
             const div = document.createElement('div');
             div.className = 'msg system fade-in';
-            div.innerText = `⏰ ${title}: ${body}`;
+            div.innerText = `${title}: ${body}`;
             document.getElementById('chat-history').appendChild(div);
             document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight;
         }
@@ -861,18 +1165,13 @@ Keep replies natural to speak out loud. Short sentences, warm tone, no markdown,
             }
         }
 
-        // --- MEMORY ---
         function addLongTermMemory(fact) { longTermMemory.push({fact, added: new Date().toISOString().split('T')[0]}); localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); }
-        function renderMemory() { const l = document.getElementById('memory-list'); if (longTermMemory.length === 0) { l.innerHTML = 'No facts.'; return; } l.innerHTML = longTermMemory.map(m => `<div>• ${m.fact} <span style="color:#555;">(${m.added})</span></div>`).join(''); }
-        function clearLongTermMemory() { if (confirm("Clear memory?")) { longTermMemory = []; localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); renderMemory(); } }
+        function renderMemory() { const l = document.getElementById('memory-list'); if (longTermMemory.length === 0) { l.innerHTML = 'No facts saved.'; return; } l.innerHTML = longTermMemory.map(m => `<div style="margin-bottom:5px;">• ${m.fact} <span style="color:var(--text-subtle);">(${m.added})</span></div>`).join(''); }
+        function clearLongTermMemory() { if (confirm("Clear all memory?")) { longTermMemory = []; localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); renderMemory(); } }
         function saveApiKey() { const v = document.getElementById('api-key-input').value.trim(); if (v) { apiKey = v; localStorage.setItem('eurusd_chat_key', apiKey); alert("Key saved!"); togglePanel('panel-key'); } }
 
-        // --- INIT ---
         window.onload = () => {
-            fetch(CONTEXT_URL).then(r => r.json()).then(d => {
-                personalContext = d;
-                loadWisdom();
-            }).catch(() => { loadWisdom(); });
+            fetch(CONTEXT_URL).then(r => r.json()).then(d => { personalContext = d; loadWisdom(); }).catch(() => { loadWisdom(); });
             renderChat(); renderReminders(); renderMemory(); renderAlertLog();
             if ('speechSynthesis' in window) window.speechSynthesis.getVoices();
             if (gistToken && gistId) loadMemoryFromGist();
@@ -886,20 +1185,16 @@ Keep replies natural to speak out loud. Short sentences, warm tone, no markdown,
 
             refreshMarketData();
 
-            // === BACKGROUND TIMERS ===
-            // Engine scan (no AI) every 5:30
             setInterval(() => {
                 if (chatInProgress) return;
                 refreshMarketData();
             }, 330000);
 
-            // Hourly AI signal (auto)
             setInterval(() => {
                 if (chatInProgress) return;
                 askAIForSignal();
             }, 3600000);
 
-            // Rotate wisdom quote every 5 minutes
             setInterval(loadWisdom, 300000);
         };
     </script>
