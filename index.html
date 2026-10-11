@@ -599,6 +599,8 @@
                 chatHistory.push({ role: 'ai', text: response });
                 renderChat();
                 saveChatHistory();
+                
+                // THIS IS THE VOICE! It only runs if the API call above succeeded.
                 speakText(response);
 
             } catch (error) {
@@ -618,14 +620,13 @@
             const contents = [ { role: 'user', parts: [{ text: systemPrompt }] }, ...chatHistory.map(msg => ({ role: msg.role === 'ai' ? 'model' : 'user', parts: [{ text: msg.text }] })), { role: 'user', parts: [{ text: userText }] } ];
             const payload = { contents: contents, tools: webSearchEnabled ? [{ google_search: {} }] : [] };
 
-            // --- FIXED: SMART MODEL FALLBACK LOOP ---
-            // Google keeps retiring models. This list tries the newest ones until one works.
+            // --- STABLE MODEL LIST ---
+            // We removed the "-latest" tags that Google rejected. 
+            // These are the standard stable model names for v1beta.
             const models = [
-                'gemini-3.8-flash',      // Suggested by the error message
-                'gemini-2.5-flash',      // Deep Think model
-                'gemini-2.0-flash',      // Older fast model
-                'gemini-1.5-pro-latest', // Stable Pro model
-                'gemini-1.5-flash-latest'// Stable Flash model
+                'gemini-1.5-flash',
+                'gemini-1.5-pro',
+                'gemini-pro'
             ];
             
             let lastError = null;
