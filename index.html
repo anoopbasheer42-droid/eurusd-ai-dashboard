@@ -33,8 +33,12 @@
         #canvas-container { width:100%; height:180px; position:relative; z-index:1; display:flex; justify-content:center; }
         .subtitle { text-align:center; font-size:0.65rem; letter-spacing:3px; color:rgba(255,255,255,0.3); margin-top:5px; }
         .signal-card { text-align:center; padding:20px; }
-        #signal-text { font-size:3rem; font-weight:800; letter-spacing:4px; color:var(--text-muted);
+        #signal-text { font-size:2.5rem; font-weight:800; letter-spacing:3px; color:var(--text-muted);
             text-shadow:0 0 30px rgba(138,148,166,0.3); transition:all 0.4s; margin-bottom:15px; }
+        .alert-box { background:rgba(241,196,15,0.1); border:1px solid rgba(241,196,15,0.4);
+            border-radius:10px; padding:10px 14px; margin-bottom:12px; font-size:0.8rem;
+            color:var(--yellow); text-align:left; line-height:1.5; display:none; }
+        .alert-box.active { display:block; animation:fadeIn 0.4s ease-in; }
         .signal-details { display:grid; grid-template-columns:1fr 1fr; gap:10px;
             font-family:'JetBrains Mono'; font-size:0.85rem; text-align:left; background:rgba(0,0,0,0.2);
             padding:15px; border-radius:12px; }
@@ -68,6 +72,7 @@
         .stat-item { background:rgba(0,0,0,0.2); padding:8px 12px; border-radius:8px; display:flex; justify-content:space-between; }
         .stat-label { color:var(--text-muted); }
         .signal-hint { font-size:0.7rem; color:var(--text-muted); margin-top:10px; font-style:italic; }
+        .alert-log-item { font-size:0.75rem; color:var(--text-muted); padding:4px 0; border-bottom:1px solid rgba(255,255,255,0.05); }
         @keyframes fadeIn { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
         .fade-in { animation:fadeIn 0.3s ease-in; }
     </style>
@@ -86,7 +91,8 @@
 
         <div class="card signal-card">
             <div class="card-title">Current Signal</div>
-            <div id="signal-text">WAITING</div>
+            <div id="signal-text">SCANNING...</div>
+            <div class="alert-box" id="alert-box"></div>
             <div class="signal-details">
                 <div><span>Confidence:</span> <span id="val-confidence">-</span></div>
                 <div><span>Valid Until:</span> <span id="val-valid">-</span></div>
@@ -100,7 +106,12 @@
                 <button class="btn" onclick="playVoiceReport()">▶ Play Voice</button>
                 <button class="btn danger" onclick="stopVoice()">■ Stop</button>
             </div>
-            <div class="signal-hint">💡 Market data auto-refreshes every 5:30. AI auto-refreshes every hour or on demand.</div>
+            <div class="signal-hint">💡 Engine scans setups every 5:30 (free). AI auto-fires hourly + on your command.</div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Engine Alerts (Last 5)</div>
+            <div id="alert-log" style="max-height:100px; overflow-y:auto;">No alerts yet. Engine is scanning.</div>
         </div>
 
         <div class="card">
@@ -142,7 +153,7 @@
                 <input type="password" id="api-key-input" placeholder="AIzaSy..." style="width:100%; padding:8px; margin-top:5px; border-radius:6px; border:1px solid #444; background:#111; color:white;">
                 <button class="btn" style="margin-top:5px;" onclick="saveApiKey()">Save Key</button>
             </div>
-            <div class="chat-history" id="chat-history"><div class="msg ai fade-in">Hello Boss! Give me a second to load your data.</div></div>
+            <div class="chat-history" id="chat-history"><div class="msg ai fade-in">Hello Boss! Engine is scanning setups. I'll auto-analyze every hour.</div></div>
             <div class="chat-input-row">
                 <input type="text" id="chat-input" placeholder="Talk to me, Boss..." onkeypress="if(event.key==='Enter') sendChat()">
                 <button onclick="sendChat()">Send</button>
@@ -165,7 +176,7 @@
             </div>
         </div>
 
-        <div class="card"><div class="card-title">AI Trader's Reasoning</div><div class="reasoning-text" id="val-reason">Waiting for market data...</div></div>
+        <div class="card"><div class="card-title">AI Trader's Reasoning</div><div class="reasoning-text" id="val-reason">Engine scanning. AI auto-analyzes hourly.</div></div>
     </div>
 
     <script>
@@ -183,6 +194,27 @@
             'eur/usd', 'eurusd', 'should i', 'analysis', 'long', 'short', 'position', 'pip',
             'bullish', 'bearish', 'candle', 'indicator', 'rsi', 'ema', 'atr'];
 
+        const LOCAL_QUOTES = [
+            "Discipline beats conviction. The best trade is often the one you don't take.",
+            "Every loss is tuition. The market is the teacher, you are the student.",
+            "Protect your capital first. Opportunities are infinite, but your account is not.",
+            "Cut losses short, let winners run. The math will handle the rest.",
+            "A calm mind catches more pips than a desperate one.",
+            "You don't need to be right every time, Boss. You just need to be profitable overall.",
+            "The trend is your friend until it bends. Respect your stop loss.",
+            "Patience is not waiting. It's maintaining a good attitude while waiting.",
+            "The market rewards preparation, not prediction.",
+            "Trade like a sniper, not a machine gunner. One good setup is worth ten impulsive trades."
+        ];
+
+        const LOCAL_JOKES = [
+            "Why don't traders play hide and seek? Because good luck hiding from a volatile market.",
+            "I told my wife I was a forex trader. She said, 'So you're unemployed with extra steps?'",
+            "My stop loss is like my ex — always triggering at the worst possible moment.",
+            "A trader walked into a bar. He ordered a beer. Then another. Then he realized he was in a bear market.",
+            "What's the difference between a forex trader and a pizza? A pizza can feed a family of four."
+        ];
+
         let globalData = null, personalContext = null, marketData = null;
         let webSearchEnabled = false, deepThinkEnabled = true, isSpeaking = false, chatInProgress = false;
         let chatHistory = JSON.parse(localStorage.getItem('eurusd_chat_history') || '[]');
@@ -191,6 +223,7 @@
         let apiKey = localStorage.getItem('eurusd_chat_key') || '';
         let gistToken = localStorage.getItem('eurusd_gist_token') || '';
         let gistId = localStorage.getItem('eurusd_gist_id') || '';
+        let alertLog = JSON.parse(localStorage.getItem('eurusd_alert_log') || '[]');
 
         document.body.addEventListener('click', () => { if ('speechSynthesis' in window) window.speechSynthesis.getVoices(); }, { once: true });
 
@@ -201,6 +234,24 @@
             if (el) el.innerText = `IST: ${istTime}`;
         }
         setInterval(updateISTClock, 1000);
+
+        // --- WISDOM CORNER (LOADED FROM PERSONAL CONTEXT + LOCAL) ---
+        function loadWisdom() {
+            const el = document.getElementById('wise-words');
+            if (!el) return;
+            let pool = [];
+            if (personalContext && Array.isArray(personalContext.quotes) && personalContext.quotes.length > 0) {
+                pool = personalContext.quotes.map(q => `Quote: "${q}"`);
+            } else {
+                // Mix quotes and jokes
+                pool = [
+                    ...LOCAL_QUOTES.map(q => `Motivation: ${q}`),
+                    ...LOCAL_JOKES.map(j => `Joke: ${j}`)
+                ];
+            }
+            const random = pool[Math.floor(Math.random() * pool.length)];
+            el.innerText = random;
+        }
 
         // --- THREE.JS ---
         const container = document.getElementById('canvas-container');
@@ -241,6 +292,7 @@
             if (deepThinkEnabled) color = 0xa855f7;
             if (signal === 'BUY') color = 0x2ecc71;
             else if (signal === 'SELL') color = 0xe74c3c;
+            else if (signal === 'SETUP') color = 0xf1c40f;
             glowSphere.material.color.setHex(color); innerCore.material.color.setHex(color); outerShell.material.color.setHex(color);
         }
 
@@ -297,7 +349,87 @@
             return [];
         }
 
-        // === BACKGROUND: Refresh market data (NO AI) ===
+        // === OPPORTUNITY DETECTION ENGINE (Rule-Based, No AI) ===
+        function detectSetup(md) {
+            const setups = [];
+
+            // 1. RSI extreme + near support/resistance
+            if (md.rsi1H < 30 && md.currentPrice <= md.support * 1.001) {
+                setups.push({ type:'BUY', reason:`RSI oversold (${md.rsi1H.toFixed(1)}) + price at support ${md.support.toFixed(5)}`, strength:'STRONG' });
+            }
+            if (md.rsi1H > 70 && md.currentPrice >= md.resistance * 0.999) {
+                setups.push({ type:'SELL', reason:`RSI overbought (${md.rsi1H.toFixed(1)}) + price at resistance ${md.resistance.toFixed(5)}`, strength:'STRONG' });
+            }
+
+            // 2. Breakout / Breakdown
+            if (md.currentPrice > md.resistance * 1.0005) {
+                setups.push({ type:'BUY', reason:`Breakout above resistance ${md.resistance.toFixed(5)}`, strength:'MEDIUM' });
+            }
+            if (md.currentPrice < md.support * 0.9995) {
+                setups.push({ type:'SELL', reason:`Breakdown below support ${md.support.toFixed(5)}`, strength:'MEDIUM' });
+            }
+
+            // 3. Strong momentum candle (>1.5x ATR)
+            if (md.candles1H.length >= 2) {
+                const last = md.candles1H[md.candles1H.length - 1];
+                const bodySize = Math.abs(last.close - last.open);
+                if (bodySize > md.atr * 1.5) {
+                    const direction = last.close > last.open ? 'BUY' : 'SELL';
+                    setups.push({ type: direction, reason:`Strong ${direction === 'BUY' ? 'bullish' : 'bearish'} momentum candle (>1.5x ATR)`, strength:'MEDIUM' });
+                }
+            }
+
+            // 4. Near mid-range
+            const midRange = (md.support + md.resistance) / 2;
+            if (Math.abs(md.currentPrice - midRange) < md.atr * 0.5) {
+                setups.push({ type:'HOLD', reason:`Price mid-range (${midRange.toFixed(5)}). Wait for breakout or bounce.`, strength:'WEAK' });
+            }
+
+            if (setups.length === 0) return null;
+            const hasStrong = setups.find(s => s.strength === 'STRONG');
+            return hasStrong || setups[0];
+        }
+
+        function addAlertToLog(alert) {
+            const time = new Date().toLocaleTimeString('en-IN', {timeZone:'Asia/Kolkata', hour:'2-digit', minute:'2-digit'});
+            const entry = `[${time}] ${alert.type} — ${alert.reason}`;
+            alertLog.unshift(entry);
+            if (alertLog.length > 5) alertLog = alertLog.slice(0, 5);
+            localStorage.setItem('eurusd_alert_log', JSON.stringify(alertLog));
+            renderAlertLog();
+        }
+
+        function renderAlertLog() {
+            const el = document.getElementById('alert-log');
+            if (!el) return;
+            if (alertLog.length === 0) { el.innerHTML = 'No alerts yet. Engine is scanning.'; return; }
+            el.innerHTML = alertLog.map(a => `<div class="alert-log-item">${a}</div>`).join('');
+        }
+
+        function showSetupAlert(setup) {
+            const alertBox = document.getElementById('alert-box');
+            const signalText = document.getElementById('signal-text');
+            if (!setup) {
+                alertBox.classList.remove('active');
+                if (!globalData) {
+                    signalText.innerText = "SCANNING...";
+                    signalText.style.color = "var(--text-muted)";
+                    signalText.style.textShadow = "0 0 30px rgba(138,148,166,0.3)";
+                    updateCoreColor('HOLD');
+                }
+                return;
+            }
+            alertBox.innerHTML = `<strong>⚡ SETUP DETECTED (${setup.type})</strong><br>${setup.reason}<br><em>Tap "Ask AI for Signal" to confirm.</em>`;
+            alertBox.classList.add('active');
+            if (!globalData || globalData.signal === 'WAITING') {
+                signalText.innerText = "⚡ SETUP";
+                signalText.style.color = "var(--yellow)";
+                signalText.style.textShadow = "0 0 30px rgba(241,196,15,0.5)";
+                updateCoreColor('SETUP');
+            }
+        }
+
+        // === BACKGROUND: Refresh market data + detect setups (NO AI) ===
         async function refreshMarketData() {
             const [candles5m, candles15m, candles1H, candlesDaily] = await Promise.all([
                 fetchYahooCandles('5m', '5d'), fetchYahooCandles('15m', '5d'),
@@ -353,7 +485,14 @@
             document.getElementById('val-candle-1h').innerText = `1H Trend: ${trend} | RSI: ${rsi1H.toFixed(1)} | EMA20: ${ema20[ema20.length-1].toFixed(5)}`;
             document.getElementById('val-candle-4h').innerText = `ATR: ${atr.toFixed(5)} | Daily context loaded`;
 
-            if (!globalData) updateCoreColor(trend === "Uptrend" ? 'BUY' : trend === "Downtrend" ? 'SELL' : 'HOLD');
+            // Detect setup
+            const setup = detectSetup(marketData);
+            if (setup) {
+                addAlertToLog(setup);
+                showSetupAlert(setup);
+            } else {
+                showSetupAlert(null);
+            }
         }
 
         // === AI SIGNAL ===
@@ -412,6 +551,9 @@
                 document.getElementById('val-atr').innerText = md.atr.toFixed(5);
                 document.getElementById('val-reason').innerText = sig.reason;
                 if (sig.wise_words) document.getElementById('wise-words').innerText = sig.wise_words;
+
+                // Hide the setup alert since we have a real signal now
+                document.getElementById('alert-box').classList.remove('active');
 
                 playVoiceReport();
                 return globalData;
@@ -495,7 +637,6 @@
             }).join('\n').trim();
         }
 
-        // === BUILD PERSONALITY SYSTEM PROMPT ===
         function buildPersonalityPrompt(includeSignal) {
             const now = new Date();
             const istTime = now.toLocaleString('en-IN', {timeZone:'Asia/Kolkata'});
@@ -728,8 +869,11 @@ Keep replies natural to speak out loud. Short sentences, warm tone, no markdown,
 
         // --- INIT ---
         window.onload = () => {
-            fetch(CONTEXT_URL).then(r => r.json()).then(d => personalContext = d).catch(() => {});
-            renderChat(); renderReminders(); renderMemory();
+            fetch(CONTEXT_URL).then(r => r.json()).then(d => {
+                personalContext = d;
+                loadWisdom();
+            }).catch(() => { loadWisdom(); });
+            renderChat(); renderReminders(); renderMemory(); renderAlertLog();
             if ('speechSynthesis' in window) window.speechSynthesis.getVoices();
             if (gistToken && gistId) loadMemoryFromGist();
             updateCoreColor('HOLD');
@@ -742,15 +886,21 @@ Keep replies natural to speak out loud. Short sentences, warm tone, no markdown,
 
             refreshMarketData();
 
+            // === BACKGROUND TIMERS ===
+            // Engine scan (no AI) every 5:30
             setInterval(() => {
                 if (chatInProgress) return;
                 refreshMarketData();
             }, 330000);
 
+            // Hourly AI signal (auto)
             setInterval(() => {
                 if (chatInProgress) return;
                 askAIForSignal();
             }, 3600000);
+
+            // Rotate wisdom quote every 5 minutes
+            setInterval(loadWisdom, 300000);
         };
     </script>
 </body>
