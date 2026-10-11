@@ -1,12 +1,12 @@
 {
-    "signal": "HOLD",
-    "reason": "Higher timeframes (Daily and 4H) show the market locked in a broad consolidation with price stalling right in the mid-range around 1.1206. While the 1H RSI sits oversold at 28.3, the lower timeframes (5m and 15m) are completely flatlined due to the weekend market close, offering zero liquidity or clean entry triggers. As a conservative trader, our rule is simple: we never force trades into dead volume when London and New York are offline. We wait for market reopen and fresh session volume to test key support at 1.1176 or reclaim the 1.1211 EMA cluster before picking a side, with any thesis invalidating on a clean breakout beyond the 1.1176\u20131.1246 boundaries.",
-    "personal_message": "Good afternoon, Boss! Hope you and the kids\u2014Emy, Bismah, and little Cookie\u2014are having a cozy Sunday, but please tell me you remembered to have lunch and cook something delicious for them. Don't forget to take your BP tablets after dinner tonight; let's enjoy the weekend calm so we're fully charged when the charts wake up!",
-    "confidence": "LOW",
+    "signal": "SELL",
+    "reason": "Technical signal: Price below 20 EMA, RSI at 28.3.",
+    "personal_message": "Good evening, Boss. Stay disciplined today.",
+    "confidence": "MEDIUM",
     "price": "1.1206",
     "entry": "1.1206",
-    "sl": "1.1193",
-    "tp": "1.1233",
+    "sl": "1.122",
+    "tp": "1.1179",
     "atr": "0.0009",
     "support": "1.1176",
     "resistance": "1.1246",
@@ -24,7 +24,7 @@
         "1.1176",
         "1.1192"
     ],
-    "valid": "17:42 IST",
+    "valid": "18:46 IST",
     "candle_current": "Bearish candle. Open: 1.1206, Now: 1.1206. Sellers pushing down.",
     "candle_1h": "1H candle at 1.1206. Below 20 EMA - downtrend.",
     "candle_4h": "4H trend: bearish below moving averages.",
@@ -708,7 +708,7 @@
     "patterns": [
         "No clear pattern"
     ],
-    "session": "Off-Session",
-    "volatility": "low",
-    "wise_words": "Joke: I only trade what I see. Sadly, I see four screens and a headache."
+    "session": "New York Kill Zone",
+    "volatility": "high",
+    "wise_words": "Motivation: Boss, protect your capital first. Opportunities are infinite, but your account is not."
 }
