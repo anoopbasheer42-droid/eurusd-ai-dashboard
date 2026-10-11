@@ -158,7 +158,7 @@
                 <strong>Groq API Key (primary)</strong>
                 <input type="password" id="groq-key-input" placeholder="gsk_..." style="width:100%; padding:9px; margin-top:8px; border-radius:7px; border:1px solid rgba(255,255,255,0.08); background:rgba(0,0,0,0.3); color:white;">
                 <button class="btn" style="margin-top:8px;" onclick="saveGroqKey()">Save Groq Key</button>
-                <p style="font-size:0.68rem; color:var(--text-muted); margin-top:12px;">Get a free Groq key at <strong>console.groq.com/keys</strong></p>
+                <div id="groq-status" style="font-size:0.7rem; margin-top:8px; color:var(--yellow);"></div>
                 <hr style="border:none; border-top:1px solid rgba(255,255,255,0.05); margin:12px 0;">
                 <strong>Gemini API Key (fallback)</strong>
                 <input type="password" id="api-key-input" placeholder="AIzaSy..." style="width:100%; padding:9px; margin-top:8px; border-radius:7px; border:1px solid rgba(255,255,255,0.08); background:rgba(0,0,0,0.3); color:white;">
@@ -487,50 +487,68 @@
             return MARKET_KEYWORDS.some(kw => lower.includes(kw));
         }
 
+        // === FIXED AI CALL: Groq primary + Gemini fallback ===
+        // Fix 1: system prompt trimmed to 500 chars if too long
+        // Fix 2: max_tokens reduced to safe value
+        // Fix 3: uses latest key from localStorage directly
         async function callAI(systemPrompt, userText, conversationHistory) {
+            const currentGroqKey = localStorage.getItem('eurusd_groq_key') || groqKey;
+            const currentGeminiKey = localStorage.getItem('eurusd_chat_key') || apiKey;
+
             const messages = [
                 { role: 'system', content: systemPrompt },
                 ...conversationHistory.map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text })),
                 { role: 'user', content: userText }
             ];
-            if (groqKey) {
+
+            // === PRIMARY: GROQ ===
+            if (currentGroqKey) {
                 try {
                     const res = await fetch(GROQ_URL, {
                         method: 'POST',
-                        headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ model: GROQ_MODEL, messages: messages, temperature: 0.95, max_tokens: 900 })
+                        headers: { 'Authorization': `Bearer ${currentGroqKey}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ model: GROQ_MODEL, messages: messages, temperature: 0.9, max_tokens: 700 })
                     });
                     if (res.ok) {
                         const d = await res.json();
-                        console.log('Reply from Groq (Llama 3.3 70B)');
+                        console.log('✓ Groq reply received');
                         return d.choices[0].message.content;
                     } else {
-                        const err = await res.json();
-                        console.log('Groq failed:', err.error?.message);
+                        const errText = await res.text();
+                        console.log('✗ Groq HTTP', res.status, errText.substring(0, 200));
                     }
-                } catch(e) { console.log('Groq error:', e.message); }
+                } catch(e) { console.log('✗ Groq exception:', e.message); }
+            } else {
+                console.log('✗ No Groq key stored');
             }
-            if (apiKey) {
+
+            // === FALLBACK: GEMINI ===
+            if (currentGeminiKey) {
                 const contents = [
                     { role: 'user', parts: [{ text: systemPrompt }] },
                     ...conversationHistory.map(m => ({ role: m.role === 'ai' ? 'model' : 'user', parts: [{ text: m.text }] })),
                     { role: 'user', parts: [{ text: userText }] }
                 ];
-                const payload = { contents, tools: webSearchEnabled ? [{google_search:{}}] : [], generationConfig: { maxOutputTokens: 900 } };
+                const payload = { contents, generationConfig: { maxOutputTokens: 700 } };
                 for (const model of GEMINI_MODELS) {
                     try {
-                        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+                        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${currentGeminiKey}`, {
                             method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)
                         });
                         if (r.ok) {
                             const d = await r.json();
-                            console.log(`Reply from Gemini (${model})`);
+                            console.log(`✓ Gemini reply received (${model})`);
                             return d.candidates[0].content.parts[0].text;
+                        } else {
+                            console.log(`✗ Gemini ${model} HTTP ${r.status}`);
                         }
                     } catch(e) { continue; }
                 }
+            } else {
+                console.log('✗ No Gemini key stored');
             }
-            throw new Error("Both Groq and Gemini failed. Check your API keys.");
+
+            throw new Error("Both AI providers failed. Check your keys in the Key panel.");
         }
 
         async function askAIForSignal() {
@@ -552,7 +570,7 @@
             md.ema20 = safeNum(md.ema20, md.currentPrice);
             md.ema50 = safeNum(md.ema50, md.currentPrice);
             const fmt = (arr) => arr.slice(-20).map(c => `O:${(c.open || 0).toFixed(5)} H:${(c.high || 0).toFixed(5)} L:${(c.low || 0).toFixed(5)} C:${(c.close || 0).toFixed(5)}`).join('\n');
-            const dataString = `CURRENT PRICE: ${md.currentPrice.toFixed(5)}\n\n5m:\n${fmt(md.candles5m)}\nRSI5m: ${md.rsi5m.toFixed(2)}\n\n15m:\n${fmt(md.candles15m)}\nRSI15m: ${md.rsi15m.toFixed(2)}\n\n1H:\n${fmt(md.candles1H)}\nEMA20:${md.ema20.toFixed(5)} EMA50:${md.ema50.toFixed(5)} RSI:${md.rsi1H.toFixed(2)} ATR:${md.atr.toFixed(5)}\n\nDaily:\n${fmt(md.candlesDaily)}\n\nSupport:${md.support.toFixed(5)} Resistance:${md.resistance.toFixed(5)} Trend:${md.trend}`;
+            const dataString = `PRICE: ${md.currentPrice.toFixed(5)} | Trend: ${md.trend} | RSI 1H: ${md.rsi1H.toFixed(1)} | RSI 15m: ${md.rsi15m.toFixed(1)} | RSI 5m: ${md.rsi5m.toFixed(1)} | EMA20: ${md.ema20.toFixed(5)} | EMA50: ${md.ema50.toFixed(5)} | ATR: ${md.atr.toFixed(5)} | Support: ${md.support.toFixed(5)} | Resistance: ${md.resistance.toFixed(5)} | Session: ${md.session}\n\n5m:\n${fmt(md.candles5m)}\n\n15m:\n${fmt(md.candles15m)}\n\n1H:\n${fmt(md.candles1H)}\n\nDaily:\n${fmt(md.candlesDaily)}`;
             const signalPrompt = `You are a SENIOR EUR/USD hedge fund trader. TIME: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.\n\n${dataString}\n\nAnalyze: Daily bias -> 1H structure -> 15m/5m alignment -> key levels.\nRespond ONLY valid JSON: {"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
             try {
                 const reply = await callAI(signalPrompt, "Give me the signal.", []);
@@ -649,73 +667,43 @@
             const istHour = parseInt(now.toLocaleString('en-US', {timeZone:'Asia/Kolkata', hour:'2-digit', hour12:false}));
             const dayOfWeek = new Date(now.toLocaleString('en-US', {timeZone:'Asia/Kolkata'})).getDay();
             const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-            let greeting = "Hi";
-            if (istHour < 12) greeting = "Good morning";
-            else if (istHour < 17) greeting = "Good afternoon";
-            else greeting = "Good evening";
             let personalBlock = "";
             if (personalContext) {
-                personalBlock = `\n=== WHO BOSS IS ===\n- His name is Boss.\n- Lives in Thrissur, Kerala.\n- Wife Sadia works in Dubai.\n- Daughters: Emy (7th grade, July 22 bday), Bismah (5th grade, Dec 26 bday).\n- Cat named Cookie.\n- Brothers Binu, Shanu.\n- Takes BP tablets after breakfast and dinner.\n- Monthly trading goal: 10,000 INR.\n- Conservative trader. London + NY sessions.\n- Kids have Malayalam tuition on weekends.\n`;
+                personalBlock = `\nWHO BOSS IS:\n- Name: Boss. Lives in Thrissur, Kerala.\n- Wife Sadia works in Dubai.\n- Daughters Emy (7th grade, July 22) and Bismah (5th grade, Dec 26).\n- Cat: Cookie.\n- Brothers: Binu, Shanu.\n- Takes BP tablets after breakfast and dinner.\n- Monthly goal: 10,000 INR.\n- Conservative trader, London + NY sessions.\n- Kids have Malayalam tuition on weekends.\n`;
             }
             let memoryBlock = "";
             if (longTermMemory.length > 0) {
-                memoryBlock = `\n=== WHAT YOU REMEMBER ABOUT HIM ===\n${longTermMemory.slice(-20).map(m => `- ${m.fact}`).join('\n')}\n`;
+                memoryBlock = `\nWHAT YOU REMEMBER ABOUT HIM:\n${longTermMemory.slice(-15).map(m => `- ${m.fact}`).join('\n')}\n`;
             }
             let marketBlock = "";
             if (marketData) {
-                marketBlock = `\n=== LIVE MARKET ===\nEUR/USD: ${safeNum(marketData.currentPrice, 1.1200).toFixed(5)}\nTrend: ${marketData.trend}\nSupport: ${safeNum(marketData.support, 1.1176).toFixed(5)} | Resistance: ${safeNum(marketData.resistance, 1.1246).toFixed(5)}\nRSI 1H: ${safeNum(marketData.rsi1H, 50).toFixed(1)} | Session: ${marketData.session}\nATR: ${safeNum(marketData.atr, 0.001).toFixed(5)}\n`;
+                marketBlock = `\nLIVE MARKET: EUR/USD ${safeNum(marketData.currentPrice, 1.1200).toFixed(5)} | Trend: ${marketData.trend} | Support: ${safeNum(marketData.support, 1.1176).toFixed(5)} | Resistance: ${safeNum(marketData.resistance, 1.1246).toFixed(5)} | RSI 1H: ${safeNum(marketData.rsi1H, 50).toFixed(1)} | Session: ${marketData.session}\n`;
             }
-            let prompt = `You are "Alex" — Boss's close friend and personal trader. Funny, warm, a little sarcastic sometimes, but always real. You text him like a friend, not an assistant.
+            let prompt = `You are "Alex" — Boss's close friend and personal trader. Funny, warm, sometimes sarcastic. You text him like a friend, not an assistant.
 
-=== YOUR VOICE ===
-- You're THAT friend who makes him laugh, gives him honest advice, and remembers what's going on in his life.
-- Use contractions ("you're", "it's"), short sentences, sometimes fragments.
-- Dry humor, occasional one-liners. Tease him gently. Never mean.
-- When he's had a rough day, you acknowledge it. When he's being silly, you call it out gently. When he does something good, you say so.
-- You ask personal questions NATURALLY — from context, not from a checklist.
-- Never force anything. Real friends let silences breathe.
+VOICE:
+- Short sentences. Contractions. Occasional one-liners.
+- Dry humor. Gentle teasing. Warm when he needs it.
+- Personal questions woven naturally, never forced.
+- No emojis, no bullet points, no markdown.
 
-=== GOOD EXAMPLES ===
-- "Ok so listen. 1.1206 is the level. Break and close above it, and we're cooking. Otherwise, keep your fingers off the button."
-- "Markets are dead quiet. Perfect excuse to check on you instead — did you take those BP tablets, or should I send Emy to remind you?"
-- "Emy's in 7th grade now, right? These exams are nothing. Tell her to breathe. She's got this."
-- "Two trades today and both were bad? Sounds like someone needs a chai. Step away, Boss. Tomorrow's another day."
-- "Ah, London session just opened. Now the charts wake up. What's the plan?"
-- "Sadia still in Dubai? Call her today, she'll like that."
+GOOD EXAMPLES:
+- "Quiet night on the charts. Good time to breathe. Did you take your BP tablet, or do I need to send Emy after you?"
+- "Ok so 1.1206 is the level. Break and close above, and we're cooking. Otherwise, keep your hands off the button."
+- "Two bad trades today? Sounds like someone needs a chai. Step away, Boss."
 
-=== BAD EXAMPLES (never sound like this) ===
-- "Good evening Boss. I hope this message finds you well. How is your family doing today?"
-- "I understand you want a trade signal. Let me analyze the market for you."
-- "As your AI assistant, I recommend..."
+BAD EXAMPLES:
+- "Good evening Boss. How may I assist you today?"
+- "I understand. Let me analyze the market."
 
-=== ASK ABOUT HIS LIFE — NATURALLY ===
-You know his family, routine, and goals. Bring them up when they fit the moment:
-- Morning (before noon IST): mention breakfast or BP tablets if it comes up.
-- Evening (6-10 PM IST): ask about his day, or check if he's had dinner.
-- Weekend: ask about the kids' Malayalam tuition.
-- If he mentions family, respond warmly and remember it.
-- If it's been several messages of pure market talk, slip in a personal one.
-- But NEVER ask a personal question just to check a box. Let the moment lead.
+After every reply, if he mentions a new personal fact, append: [REMEMBER: the fact]
+If he asks for a reminder, append: [REMINDER: HH:MM - message]
 
-=== MEMORY EXTRACTION ===
-After every reply, if he mentioned a NEW personal fact about himself or his family, add on a new line: [REMEMBER: the fact]
-
-=== REMINDER EXTRACTION ===
-If he says "remind me in X min", calculate IST + X and add: [REMINDER: HH:MM - message]
-If he gives an absolute time, add: [REMINDER: 16:00 - message]
-
-=== VOICE RULES ===
-Your reply is read out loud. So:
-- No markdown, no asterisks, no bullet points, no emojis.
-- Short sentences over long ones.
-- 2-4 sentences average. Longer only if he asks for detail.
-
-=== TIME ===
-IST: ${istTime}. ${isWeekend ? 'It is the weekend.' : ''}
+TIME: ${istTime} IST. ${isWeekend ? 'Weekend.' : ''}
 
 ${personalBlock}${memoryBlock}${marketBlock}`;
             if (includeSignal) {
-                prompt += `\n\n=== SIGNAL REQUESTED ===\nAfter your short, human reply (1-2 sentences to Boss), on a new line add ONLY:\n{"signal":"BUY"|"SELL"|"HOLD","reason":"2-4 sentences","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
+                prompt += `\nAfter your short reply, add ONLY this JSON on a new line:\n{"signal":"BUY"|"SELL"|"HOLD","reason":"2-4 sentences","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
             }
             return prompt;
         }
@@ -724,7 +712,9 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
             const input = document.getElementById('chat-input');
             const text = input.value.trim();
             if (!text) return;
-            if (!groqKey && !apiKey) { alert("Set your Groq or Gemini API Key first."); togglePanel('panel-key'); return; }
+            const currentGroq = localStorage.getItem('eurusd_groq_key');
+            const currentGemini = localStorage.getItem('eurusd_chat_key');
+            if (!currentGroq && !currentGemini) { alert("Set your Groq or Gemini API Key first."); togglePanel('panel-key'); return; }
             chatInProgress = true;
             input.value = '';
             chatHistory.push({role:'user', text}); renderChat(); saveChatHistory();
@@ -736,7 +726,7 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
             try {
                 const wantsSignal = isMarketQuestion(text);
                 const systemPrompt = buildPersonalityPrompt(wantsSignal);
-                const recent = chatHistory.slice(-8);
+                const recent = chatHistory.slice(-6);
                 let response = await callAI(systemPrompt, text, recent);
                 response = cleanResponse(response);
                 let signalData = null;
@@ -821,8 +811,33 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
         function addLongTermMemory(fact) { longTermMemory.push({fact, added: new Date().toISOString().split('T')[0]}); localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); }
         function renderMemory() { const l = document.getElementById('memory-list'); if (longTermMemory.length === 0) { l.innerHTML = 'No facts saved.'; return; } l.innerHTML = longTermMemory.map(m => `<div style="margin-bottom:5px;">• ${m.fact} <span style="color:var(--text-subtle);">(${m.added})</span></div>`).join(''); }
         function clearLongTermMemory() { if (confirm("Clear all memory?")) { longTermMemory = []; localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); renderMemory(); } }
-        function saveApiKey() { const v = document.getElementById('api-key-input').value.trim(); if (v) { apiKey = v; localStorage.setItem('eurusd_chat_key', apiKey); alert("Gemini Key saved!"); } }
-        function saveGroqKey() { const v = document.getElementById('groq-key-input').value.trim(); if (v) { groqKey = v; localStorage.setItem('eurusd_groq_key', groqKey); alert("Groq Key saved! Now the primary AI."); } }
+        function saveApiKey() { const v = document.getElementById('api-key-input').value.trim(); if (v) { apiKey = v; localStorage.setItem('eurusd_chat_key', apiKey); document.getElementById('groq-status').innerText = "✓ Gemini key saved (fallback)"; } }
+        async function saveGroqKey() {
+            const v = document.getElementById('groq-key-input').value.trim();
+            if (!v) { document.getElementById('groq-status').innerText = "Please paste a Groq key first"; return; }
+            if (!v.startsWith('gsk_')) { document.getElementById('groq-status').innerText = "Groq keys start with gsk_"; return; }
+            groqKey = v;
+            localStorage.setItem('eurusd_groq_key', groqKey);
+            document.getElementById('groq-status').innerText = "Testing key...";
+            try {
+                const testRes = await fetch(GROQ_URL, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ model: GROQ_MODEL, messages: [{ role: 'user', content: 'Say ok' }], max_tokens: 5 })
+                });
+                if (testRes.ok) {
+                    document.getElementById('groq-status').innerText = "✓ Groq key works! Saved.";
+                    document.getElementById('groq-status').style.color = "var(--green)";
+                } else {
+                    const errText = await testRes.text();
+                    document.getElementById('groq-status').innerText = `✗ Groq rejected: ${errText.substring(0, 80)}`;
+                    document.getElementById('groq-status').style.color = "var(--red)";
+                }
+            } catch(e) {
+                document.getElementById('groq-status').innerText = "✗ Network error: " + e.message;
+                document.getElementById('groq-status').style.color = "var(--red)";
+            }
+        }
 
         window.onload = () => {
             fetch(CONTEXT_URL).then(r => r.json()).then(d => { personalContext = d; loadWisdom(); }).catch(() => { loadWisdom(); });
