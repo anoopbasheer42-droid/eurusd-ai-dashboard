@@ -105,7 +105,7 @@
         /* Neural Core 3D Canvas */
         #canvas-container {
             width: 100%;
-            height: 220px;
+            height: 180px;
             position: relative;
             z-index: 1;
             display: flex;
@@ -178,6 +178,8 @@
         }
         .btn:hover { background: rgba(255,255,255,0.1); }
         .btn.active { background: var(--blue); border-color: var(--blue); }
+        .btn.active.pink { background: #e84393; border-color: #e84393; }
+        .btn.active.green { background: #2ecc71; border-color: #2ecc71; color: black; }
         .btn.danger { background: rgba(231, 76, 60, 0.2); border-color: rgba(231, 76, 60, 0.5); color: #ff9999; }
 
         .panel {
@@ -192,7 +194,7 @@
         .panel.active { display: block; }
 
         .chat-history {
-            height: 250px;
+            height: 300px;
             overflow-y: auto;
             background: rgba(0,0,0,0.2);
             border-radius: 8px;
@@ -205,7 +207,7 @@
 
         .msg { padding: 8px 12px; border-radius: 8px; max-width: 85%; line-height: 1.4; font-size: 0.85rem; }
         .msg.user { background: var(--blue); align-self: flex-end; border-bottom-right-radius: 2px; }
-        .msg.ai { background: rgba(255,255,255,0.1); align-self: flex-start; border-bottom-left-radius: 2px; }
+        .msg.ai { background: rgba(255,255,255,0.1); align-self: flex-start; border-bottom-left-radius: 2px; border-left: 3px solid var(--blue); }
         .msg.system { background: rgba(241, 196, 15, 0.1); border: 1px solid rgba(241, 196, 15, 0.3); align-self: center; font-size: 0.75rem; text-align: center; }
 
         .chat-input-row { display: flex; gap: 8px; }
@@ -228,6 +230,7 @@
             font-weight: 600;
             cursor: pointer;
         }
+        .chat-input-row button.send-green { background: var(--green); color: black; }
 
         .stats-grid {
             display: grid;
@@ -282,11 +285,12 @@
             <div class="card-title">
                 Ask Your AI Trader
                 <div class="chat-controls">
-                    <button class="btn" id="web-toggle" onclick="toggleWeb()">Web OFF</button>
-                    <button class="btn" onclick="togglePanel('panel-reminders')">Reminders</button>
-                    <button class="btn" onclick="togglePanel('panel-memory')">Memory</button>
-                    <button class="btn" onclick="togglePanel('panel-gist')">Gist</button>
-                    <button class="btn" onclick="togglePanel('panel-key')">Key</button>
+                    <button class="btn active" id="browser-ai-toggle" onclick="toggleBrowserAI()">🤖 Browser AI ON</button>
+                    <button class="btn" id="deep-think-toggle" onclick="toggleDeepThink()">🧠 Deep Think OFF</button>
+                    <button class="btn" id="web-toggle" onclick="toggleWeb()">🌐 Web OFF</button>
+                    <button class="btn" onclick="togglePanel('panel-reminders')">🔔 Reminders</button>
+                    <button class="btn" onclick="togglePanel('panel-memory')">💾 Memory</button>
+                    <button class="btn" onclick="togglePanel('panel-key')">🔑 Key</button>
                 </div>
             </div>
             
@@ -310,17 +314,6 @@
                 <div id="memory-list" style="font-size:0.75rem; color:var(--text-muted); max-height:100px; overflow-y:auto;">No facts saved.</div>
             </div>
 
-            <div class="panel" id="panel-gist">
-                <strong>Gist Memory Sync</strong>
-                <p style="font-size:0.7rem; color:var(--text-muted); margin:5px 0;">Sync your long-term memory to the cloud so it works on any device.</p>
-                <input type="password" id="gist-token-input" placeholder="GitHub Token (ghp_...)" style="width:100%; padding:8px; border-radius:6px; border:1px solid #444; background:#111; color:white; margin-bottom:5px;">
-                <input type="text" id="gist-id-input" placeholder="Gist ID" style="width:100%; padding:8px; border-radius:6px; border:1px solid #444; background:#111; color:white; margin-bottom:5px;">
-                <button class="btn" onclick="saveGistConfig()">Save & Sync Now</button>
-                <button class="btn" style="margin-left:5px;" onclick="loadMemoryFromGist()">Force Pull</button>
-                <div id="gist-status" style="font-size:0.7rem; margin-top:5px; color:var(--yellow);"></div>
-            </div>
-
-            <!-- THE GEMINI KEY PANEL -->
             <div class="panel" id="panel-key">
                 <strong>Gemini API Key</strong>
                 <p style="font-size:0.7rem; color:var(--text-muted); margin:5px 0;">Stored locally in your browser. Never sent to GitHub.</p>
@@ -330,12 +323,15 @@
 
             <!-- Chat History -->
             <div class="chat-history" id="chat-history">
-                <div class="msg system">Chat initialized. Ask me anything about the market or your routine.</div>
+                <div class="msg ai fade-in">Memory restored — Boss and I are back in the flow.</div>
             </div>
             
             <div class="chat-input-row">
-                <input type="text" id="chat-input" placeholder="Type a message..." onkeypress="if(event.key==='Enter') sendChat()">
-                <button onclick="sendChat()">Send</button>
+                <input type="text" id="chat-input" placeholder="Ask me anything, Boss..." onkeypress="if(event.key==='Enter') sendChat()">
+                <button class="send-green" onclick="sendChat()">Send</button>
+            </div>
+            <div style="text-align:right; margin-top:10px;">
+                <button class="btn" onclick="clearChat()">Clear chat (memory stays)</button>
             </div>
         </div>
 
@@ -376,14 +372,18 @@
         let globalData = null;
         let personalContext = null;
         let webSearchEnabled = false;
+        let browserAIEnabled = true; // Default ON
+        let deepThinkEnabled = false; // Default OFF
         let isSpeaking = false;
         let chatHistory = JSON.parse(localStorage.getItem('eurusd_chat_history') || '[]');
         let longTermMemory = JSON.parse(localStorage.getItem('eurusd_long_term_memory') || '[]');
         let reminders = JSON.parse(localStorage.getItem('eurusd_reminders') || '[]');
         let apiKey = localStorage.getItem('eurusd_chat_key') || '';
 
-        let gistToken = localStorage.getItem('eurusd_gist_token') || '';
-        let gistId = localStorage.getItem('eurusd_gist_id') || '';
+        // --- UI INITIALIZATION ---
+        document.getElementById('browser-ai-toggle').classList.toggle('active', browserAIEnabled);
+        document.getElementById('deep-think-toggle').classList.toggle('active', deepThinkEnabled);
+        document.getElementById('web-toggle').classList.toggle('active', webSearchEnabled);
 
         document.body.addEventListener('click', () => {
             if ('speechSynthesis' in window) { window.speechSynthesis.getVoices(); }
@@ -529,57 +529,45 @@
             historyEl.innerHTML = '';
             chatHistory.forEach(msg => {
                 const div = document.createElement('div');
-                div.className = `msg ${msg.role}`; div.innerText = msg.text; historyEl.appendChild(div);
+                div.className = `msg ${msg.role} fade-in`; div.innerText = msg.text; historyEl.appendChild(div);
             });
             historyEl.scrollTop = historyEl.scrollHeight;
         }
         function saveChatHistory() { if (chatHistory.length > 40) chatHistory = chatHistory.slice(-40); localStorage.setItem('eurusd_chat_history', JSON.stringify(chatHistory)); }
-        function toggleWeb() { webSearchEnabled = !webSearchEnabled; const btn = document.getElementById('web-toggle'); btn.innerText = webSearchEnabled ? 'Web ON' : 'Web OFF'; btn.classList.toggle('active', webSearchEnabled); }
         
+        function clearChat() {
+            chatHistory = [];
+            saveChatHistory();
+            renderChat();
+        }
+
+        function toggleBrowserAI() {
+            browserAIEnabled = !browserAIEnabled;
+            const btn = document.getElementById('browser-ai-toggle');
+            btn.classList.toggle('active', browserAIEnabled);
+            btn.innerText = browserAIEnabled ? '🤖 Browser AI ON' : '🤖 Browser AI OFF';
+        }
+
+        function toggleDeepThink() {
+            deepThinkEnabled = !deepThinkEnabled;
+            const btn = document.getElementById('deep-think-toggle');
+            btn.classList.toggle('active', deepThinkEnabled);
+            btn.innerText = deepThinkEnabled ? '🧠 Deep Think ON' : '🧠 Deep Think OFF';
+        }
+
+        function toggleWeb() {
+            webSearchEnabled = !webSearchEnabled;
+            const btn = document.getElementById('web-toggle');
+            btn.innerText = webSearchEnabled ? '🌐 Web ON' : '🌐 Web OFF';
+            btn.classList.toggle('active', webSearchEnabled);
+        }
+
         function togglePanel(id) {
             const el = document.getElementById(id);
             el.classList.toggle('active');
             if (id === 'panel-reminders') renderReminders();
             if (id === 'panel-memory') renderMemory();
             if (id === 'panel-key') document.getElementById('api-key-input').value = apiKey;
-            if (id === 'panel-gist') { document.getElementById('gist-token-input').value = gistToken; document.getElementById('gist-id-input').value = gistId; }
-        }
-
-        // --- GIST LOGIC ---
-        function saveGistConfig() {
-            gistToken = document.getElementById('gist-token-input').value.trim();
-            gistId = document.getElementById('gist-id-input').value.trim();
-            localStorage.setItem('eurusd_gist_token', gistToken); localStorage.setItem('eurusd_gist_id', gistId);
-            document.getElementById('gist-status').innerText = "Saving to Gist...";
-            saveMemoryToGist();
-        }
-
-        async function loadMemoryFromGist() {
-            if (!gistToken || !gistId) { document.getElementById('gist-status').innerText = "Please enter Token and Gist ID."; return; }
-            document.getElementById('gist-status').innerText = "Loading from Gist...";
-            try {
-                const res = await fetch(`https://api.github.com/gists/${gistId}`, { headers: { 'Authorization': `token ${gistToken}` } });
-                if (!res.ok) throw new Error('Failed to fetch gist');
-                const data = await res.json();
-                const content = data.files['memory.json']?.content;
-                if (content) {
-                    longTermMemory = JSON.parse(content);
-                    localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory));
-                    renderMemory(); document.getElementById('gist-status').innerText = "Memory loaded from Gist!";
-                }
-            } catch (e) { document.getElementById('gist-status').innerText = "Error: " + e.message; }
-        }
-
-        async function saveMemoryToGist() {
-            if (!gistToken || !gistId) return;
-            try {
-                const res = await fetch(`https://api.github.com/gists/${gistId}`, {
-                    method: 'PATCH', headers: { 'Authorization': `token ${gistToken}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ files: { 'memory.json': { content: JSON.stringify(longTermMemory, null, 2) } } })
-                });
-                if (!res.ok) throw new Error('Failed to update gist');
-                document.getElementById('gist-status').innerText = "Synced to Gist successfully!";
-            } catch (e) { document.getElementById('gist-status').innerText = "Error: " + e.message; }
         }
 
         async function sendChat() {
@@ -587,21 +575,36 @@
             const text = input.value.trim();
             if (!text) return;
             if (!apiKey) { alert("Please set your Gemini API Key first."); togglePanel('panel-key'); return; }
+
             input.value = '';
-            chatHistory.push({ role: 'user', text: text }); renderChat(); saveChatHistory();
-            const loadingDiv = document.createElement('div'); loadingDiv.className = 'msg ai'; loadingDiv.innerText = '...';
-            document.getElementById('chat-history').appendChild(loadingDiv); document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight;
+            chatHistory.push({ role: 'user', text: text });
+            renderChat();
+            saveChatHistory();
+
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'msg ai fade-in'; loadingDiv.innerText = '...';
+            document.getElementById('chat-history').appendChild(loadingDiv);
+            document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight;
+
             try {
                 const response = await callGeminiAPI(text);
                 document.getElementById('chat-history').removeChild(loadingDiv);
+                
                 const reminderMatch = response.match(/\[REMINDER:\s*(\d{2}:\d{2})\s*-\s*(.*?)\]/);
                 if (reminderMatch) { addReminder(reminderMatch[1], reminderMatch[2]); response = response.replace(/\[REMINDER:.*?\]/g, '').trim(); }
+
                 const memoryMatch = response.match(/\[REMEMBER:\s*(.*?)\]/);
                 if (memoryMatch) { addLongTermMemory(memoryMatch[1]); response = response.replace(/\[REMEMBER:.*?\]/g, '').trim(); }
-                chatHistory.push({ role: 'ai', text: response }); renderChat(); saveChatHistory(); speakText(response);
+
+                chatHistory.push({ role: 'ai', text: response });
+                renderChat();
+                saveChatHistory();
+                speakText(response);
+
             } catch (error) {
                 document.getElementById('chat-history').removeChild(loadingDiv);
-                chatHistory.push({ role: 'ai', text: `Error: ${error.message}` }); renderChat();
+                chatHistory.push({ role: 'ai', text: `Error: ${error.message}` });
+                renderChat();
             }
         }
 
@@ -611,17 +614,31 @@
             Here is his personal context: ${JSON.stringify(personalContext)}.
             Here is what you remember about him: ${JSON.stringify(longTermMemory)}.
             Rules: If he asks you to remind him of something, append [REMINDER: HH:MM - message] to your reply. If you learn a new fact about him, append [REMEMBER: fact] to your reply.`;
+            
             const contents = [ { role: 'user', parts: [{ text: systemPrompt }] }, ...chatHistory.map(msg => ({ role: msg.role === 'ai' ? 'model' : 'user', parts: [{ text: msg.text }] })), { role: 'user', parts: [{ text: userText }] } ];
             const payload = { contents: contents, tools: webSearchEnabled ? [{ google_search: {} }] : [] };
-            let model = 'gemini-2.5-flash';
-            let response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+
+            // FIXED: Using newer models to avoid the v1beta 404 error
+            // Deep Think = gemini-2.5-flash (slower, smarter)
+            // Fast = gemini-2.0-flash (faster, less smart)
+            let model = deepThinkEnabled ? 'gemini-2.5-flash' : 'gemini-2.0-flash';
+            
+            let response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+            });
+
+            // Fallback if the primary model fails for any reason
             if (!response.ok) {
-                model = 'gemini-1.5-flash';
-                response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                model = 'gemini-2.0-flash'; // Safe fallback
+                response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+                });
             }
+
             if (!response.ok) { const err = await response.json(); throw new Error(err.error?.message || 'API request failed'); }
             const data = await response.json();
             let reply = data.candidates[0].content.parts[0].text;
+            
             if (webSearchEnabled && data.candidates[0].groundingMetadata) {
                 const sources = data.candidates[0].groundingMetadata.groundingChunks;
                 if (sources && sources.length > 0) { reply += "\n\nSources:\n" + sources.map(s => `- ${s.web?.title || 'Source'}`).join('\n'); }
@@ -660,7 +677,6 @@
         function addLongTermMemory(fact) {
             longTermMemory.push({ fact: fact, added: new Date().toISOString().split('T')[0] });
             localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory));
-            saveMemoryToGist();
         }
         function renderMemory() {
             const list = document.getElementById('memory-list');
@@ -668,7 +684,7 @@
             list.innerHTML = longTermMemory.map(m => `<div style="margin-bottom:4px;">• ${m.fact} <span style="color:#555;">(${m.added})</span></div>`).join('');
         }
         function clearLongTermMemory() {
-            if(confirm("Clear all long-term memory?")) { longTermMemory = []; localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); renderMemory(); }
+            if(confirm("Clear all long-term memory?")) { longTermMemory = []; localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); renderMemory(); }
         }
         function saveApiKey() {
             const val = document.getElementById('api-key-input').value.trim();
@@ -680,7 +696,6 @@
             fetchData(); fetchContext(); renderChat(); renderReminders(); renderMemory();
             if (apiKey) document.getElementById('web-toggle').style.display = 'block';
             if ('speechSynthesis' in window) { window.speechSynthesis.getVoices(); }
-            if (gistToken && gistId) { loadMemoryFromGist(); }
         };
     </script>
 </body>
