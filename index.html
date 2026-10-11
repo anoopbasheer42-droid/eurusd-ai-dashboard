@@ -133,7 +133,6 @@
             </div>
         </div>
 
-        <!-- CHAT BOX -->
         <div class="card" style="grid-column: 1 / -1;">
             <h2 style="display:flex; align-items:center;">💬 Ask Your AI Trader
                 <button class="change-key-btn" onclick="showKeyPanel()">🔑 Change Key</button>
@@ -157,11 +156,10 @@
                     <input id="chatInput" class="chat-input" type="text" placeholder="e.g. Should I enter now? Or: Remind me of my routine" onkeydown="if(event.key === 'Enter') sendChat()" />
                     <button id="chatSendBtn" class="chat-send" onclick="sendChat()">Send</button>
                 </div>
-                <button class="chat-clear" onclick="clearChat()">Clear chat</button>
+                <button class="chat-clear" onclick="clearChat()">Clear chat & memory</button>
             </div>
         </div>
 
-        <!-- WISDOM CORNER -->
         <div class="card" style="grid-column: 1 / -1;">
             <h2>Boss's Wisdom Corner 💡</h2>
             <div id="wise_box" class="wise-box">
@@ -195,16 +193,12 @@
 
     <script>
         const KEY_STORAGE_NAME = "eurusd_chat_key";
+        const HISTORY_STORAGE_NAME = "eurusd_chat_history";
+        const MAX_HISTORY_ENTRIES = 40;
 
         function getStoredKey() {
             try { return localStorage.getItem(KEY_STORAGE_NAME) || ""; }
             catch (e) { return ""; }
-        }
-
-        function showKeyPanel() {
-            document.getElementById("keyPanel").classList.add("visible");
-            const existing = getStoredKey();
-            if (existing) document.getElementById("keyInput").value = existing;
         }
 
         function saveKey() {
@@ -224,6 +218,42 @@
             } catch (e) {
                 document.getElementById("keyStatus").innerText = "❌ Could not save key";
             }
+        }
+
+        function showKeyPanel() {
+            document.getElementById("keyPanel").classList.add("visible");
+            const existing = getStoredKey();
+            if (existing) document.getElementById("keyInput").value = existing;
+        }
+
+        // --- MEMORY ---
+        function loadStoredHistory() {
+            try {
+                const raw = localStorage.getItem(HISTORY_STORAGE_NAME);
+                if (!raw) return [];
+                const parsed = JSON.parse(raw);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (e) {
+                console.log("Could not load history:", e);
+                return [];
+            }
+        }
+
+        function saveStoredHistory(history) {
+            try {
+                // Trim oldest if too many
+                const trimmed = history.length > MAX_HISTORY_ENTRIES 
+                    ? history.slice(-MAX_HISTORY_ENTRIES) 
+                    : history;
+                localStorage.setItem(HISTORY_STORAGE_NAME, JSON.stringify(trimmed));
+            } catch (e) {
+                console.log("Could not save history:", e);
+            }
+        }
+
+        function clearStoredHistory() {
+            try { localStorage.removeItem(HISTORY_STORAGE_NAME); }
+            catch (e) { console.log("Could not clear history:", e); }
         }
 
         window.addEventListener("load", () => {
@@ -255,7 +285,7 @@
         }
         animate();
 
-        // --- FETCH LIVE DATA ---
+        // --- DATA ---
         let latestData = null;
         let personalContext = null;
 
@@ -356,13 +386,13 @@
         function stopVoice() { window.speechSynthesis.cancel(); }
         window.speechSynthesis.onvoiceschanged = () => { getBestVoice(); };
 
-        // --- CHAT LOGIC ---
+        // --- CHAT ---
         const chatMessages = document.getElementById("chatMessages");
         const chatInput = document.getElementById("chatInput");
         const chatSendBtn = document.getElementById("chatSendBtn");
         let chatHistory = [];
 
-        function addMessage(role, text) {
+        function addMessage(role, text, skipSave) {
             const div = document.createElement("div");
             div.className = `chat-msg ${role}`;
             
@@ -437,6 +467,7 @@ CURRENT MARKET STATE:
             prompt += `\nINSTRUCTIONS:
 - Answer Boss's question clearly and directly.
 - Be warm, personal, and helpful.
+- You remember previous messages in this conversation. Reference them naturally when relevant.
 - If he asks about market/trades, use the current market data above.
 - If he asks about routine/family, reference the personal context above.
 - If you don't know something, say so honestly.
@@ -465,6 +496,7 @@ CURRENT MARKET STATE:
             try {
                 const systemPrompt = buildSystemPrompt();
                 chatHistory.push({ role: "user", parts: [{ text: question }] });
+                saveStoredHistory(chatHistory);
 
                 const requestBody = {
                     system_instruction: { parts: [{ text: systemPrompt }] },
@@ -535,9 +567,13 @@ CURRENT MARKET STATE:
                 if (answer) {
                     addMessage("ai", answer.trim());
                     chatHistory.push({ role: "model", parts: [{ text: answer.trim() }] });
-                    if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
+                    if (chatHistory.length > MAX_HISTORY_ENTRIES) chatHistory = chatHistory.slice(-MAX_HISTORY_ENTRIES);
+                    saveStoredHistory(chatHistory);
                     speakChatText(answer.trim());
                 } else {
+                    // Roll back the last user message from memory since it failed
+                    chatHistory.pop();
+                    saveStoredHistory(chatHistory);
                     const debugInfo = availableModels.length > 0
                         ? `Available models: ${availableModels.slice(0, 10).join(", ")}\n\nErrors: ${allErrors.join("; ")}`
                         : `Could not list models.\n\nErrors: ${allErrors.join("; ")}\n\nLast: ${lastError}`;
@@ -555,10 +591,36 @@ CURRENT MARKET STATE:
         function clearChat() {
             chatMessages.innerHTML = '<div class="chat-msg system">Ask me anything, Boss. I know the current price, signal, and your routine.</div>';
             chatHistory = [];
+            clearStoredHistory();
         }
 
+        // --- RESTORE PREVIOUS CHAT ON LOAD ---
+        function restoreChatFromMemory() {
+            const saved = loadStoredHistory();
+            if (!saved.length) return;
+            
+            // Remove the default system message
+            chatMessages.innerHTML = '<div class="chat-msg system">Memory restored — Boss and I are back in the flow.</div>';
+            
+            chatHistory = saved;
+            
+            for (const entry of saved) {
+                const text = entry.parts?.[0]?.text || "";
+                if (!text) continue;
+                if (entry.role === "user") {
+                    addMessage("user", text);
+                } else if (entry.role === "model") {
+                    addMessage("ai", text);
+                }
+            }
+            
+            console.log(`Restored ${saved.length} messages from memory`);
+        }
+
+        // --- INIT ---
         loadPersonalContext();
         loadLiveData();
+        restoreChatFromMemory();
     </script>
 </body>
 </html>
