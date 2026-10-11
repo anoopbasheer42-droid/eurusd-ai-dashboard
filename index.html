@@ -6,6 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <title>EUR/USD AI Pro Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         :root { --bg: #0a0e17; --card: rgba(255,255,255,0.03); --border: rgba(255,255,255,0.08); --text: #e2e8f0; --muted: #94a3b8; --green: #00ff88; --red: #ff3366; --yellow: #ffcc00; --accent: #3b82f6; --purple: #8b5cf6; --pink: #ec4899; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -20,144 +21,10 @@
         .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; backdrop-filter: blur(10px); transition: 0.2s; }
         .card h2 { font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 20px; }
         
-        /* ═══ AI AVATAR ═══ */
-        #avatar-container { 
-            width: 100%; 
-            height: 420px; 
-            position: relative; 
-            background: radial-gradient(circle at center, rgba(139,92,246,0.15) 0%, rgba(59,130,246,0.05) 40%, transparent 70%); 
-            border-radius: 12px; 
-            overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        /* Cyber grid background */
-        #avatar-container::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background-image: 
-                linear-gradient(rgba(139,92,246,0.08) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(139,92,246,0.08) 1px, transparent 1px);
-            background-size: 24px 24px;
-            animation: gridPulse 4s ease-in-out infinite;
-            pointer-events: none;
-        }
-        @keyframes gridPulse {
-            0%, 100% { opacity: 0.3; }
-            50% { opacity: 0.7; }
-        }
-        
-        /* The avatar image itself */
-        #avatarImage {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            object-position: center top;
-            z-index: 2;
-            animation: breathe 5s ease-in-out infinite;
-            filter: saturate(1.15) contrast(1.05);
-        }
-        @keyframes breathe {
-            0%, 100% { transform: scale(1.00); }
-            50% { transform: scale(1.015); }
-        }
-        
-        /* Colored glow overlay — syncs with signal */
-        #glowOverlay {
-            position: absolute;
-            inset: 0;
-            z-index: 3;
-            pointer-events: none;
-            mix-blend-mode: overlay;
-            transition: background 0.8s ease;
-        }
-        
-        /* Soft color tint under the image */
-        #colorTint {
-            position: absolute;
-            inset: 0;
-            z-index: 1;
-            transition: background 0.8s ease;
-        }
-        
-        /* Particle canvas on top */
-        #particleCanvas {
-            position: absolute;
-            inset: 0;
-            z-index: 4;
-            pointer-events: none;
-        }
-        
-        /* Halo rings */
-        .halo {
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            border-radius: 50%;
-            border: 2px solid rgba(139,92,246,0.4);
-            pointer-events: none;
-            z-index: 5;
-        }
-        .halo-1 {
-            width: 340px;
-            height: 340px;
-            animation: haloSpin 12s linear infinite;
-            border-color: rgba(139,92,246,0.35);
-            box-shadow: 0 0 30px rgba(139,92,246,0.3), inset 0 0 30px rgba(139,92,246,0.15);
-        }
-        .halo-2 {
-            width: 400px;
-            height: 400px;
-            animation: haloSpin 18s linear infinite reverse;
-            border-color: rgba(236,72,153,0.25);
-            border-style: dashed;
-            border-width: 1px;
-        }
-        @keyframes haloSpin {
-            0% { transform: translate(-50%, -50%) rotate(0deg); }
-            100% { transform: translate(-50%, -50%) rotate(360deg); }
-        }
-        
-        /* Scanning line effect */
-        #scanLine {
-            position: absolute;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, transparent, rgba(0,255,255,0.8), transparent);
-            box-shadow: 0 0 20px rgba(0,255,255,0.9);
-            z-index: 6;
-            pointer-events: none;
-            animation: scanMove 6s linear infinite;
-            opacity: 0.6;
-        }
-        @keyframes scanMove {
-            0% { top: 0%; }
-            100% { top: 100%; }
-        }
-        
+        #canvas-container { width: 100%; height: 420px; display: flex; justify-content: center; align-items: center; position: relative; background: radial-gradient(circle at center, rgba(139,92,246,0.12) 0%, rgba(59,130,246,0.05) 40%, transparent 70%); border-radius: 12px; overflow: hidden; }
+        #canvas-container::before { content: ''; position: absolute; inset: 0; background-image: linear-gradient(rgba(139,92,246,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(139,92,246,0.06) 1px, transparent 1px); background-size: 24px 24px; pointer-events: none; opacity: 0.5; }
         .core-label { text-align: center; color: var(--muted); font-size: 0.75rem; letter-spacing: 2px; text-transform: uppercase; margin-top: 10px; opacity: 0.6; animation: fadeLabel 3s ease-in-out infinite; }
         @keyframes fadeLabel { 0%,100% { opacity: 0.4; } 50% { opacity: 0.8; } }
-        
-        /* Signal state colors */
-        .avatar-buy #colorTint { background: radial-gradient(circle at center, rgba(0,255,136,0.15), transparent 65%); }
-        .avatar-buy #glowOverlay { background: linear-gradient(180deg, transparent 40%, rgba(0,255,136,0.25) 100%); }
-        .avatar-buy .halo-1 { border-color: rgba(0,255,136,0.5); box-shadow: 0 0 30px rgba(0,255,136,0.4), inset 0 0 30px rgba(0,255,136,0.2); }
-        .avatar-buy #scanLine { background: linear-gradient(90deg, transparent, rgba(0,255,136,0.9), transparent); box-shadow: 0 0 20px rgba(0,255,136,1); }
-        
-        .avatar-sell #colorTint { background: radial-gradient(circle at center, rgba(255,51,102,0.15), transparent 65%); }
-        .avatar-sell #glowOverlay { background: linear-gradient(180deg, transparent 40%, rgba(255,51,102,0.25) 100%); }
-        .avatar-sell .halo-1 { border-color: rgba(255,51,102,0.5); box-shadow: 0 0 30px rgba(255,51,102,0.4), inset 0 0 30px rgba(255,51,102,0.2); }
-        .avatar-sell #scanLine { background: linear-gradient(90deg, transparent, rgba(255,51,102,0.9), transparent); box-shadow: 0 0 20px rgba(255,51,102,1); }
-        
-        .avatar-hold #colorTint { background: radial-gradient(circle at center, rgba(255,204,0,0.15), transparent 65%); }
-        .avatar-hold #glowOverlay { background: linear-gradient(180deg, transparent 40%, rgba(255,204,0,0.25) 100%); }
-        .avatar-hold .halo-1 { border-color: rgba(255,204,0,0.5); box-shadow: 0 0 30px rgba(255,204,0,0.4), inset 0 0 30px rgba(255,204,0,0.2); }
-        .avatar-hold #scanLine { background: linear-gradient(90deg, transparent, rgba(255,204,0,0.9), transparent); box-shadow: 0 0 20px rgba(255,204,0,1); }
         
         .signal-display { text-align: center; margin-bottom: 20px; }
         .signal-text { font-size: 3rem; font-weight: 800; transition: color 0.5s; }
@@ -261,15 +128,7 @@
     <div class="dashboard-grid">
         <div class="card">
             <h2>AI Assistant</h2>
-            <div id="avatar-container" class="avatar-hold">
-                <div id="colorTint"></div>
-                <img id="avatarImage" src="avatar.png" alt="AI Assistant" />
-                <div id="glowOverlay"></div>
-                <div class="halo halo-1"></div>
-                <div class="halo halo-2"></div>
-                <div id="scanLine"></div>
-                <canvas id="particleCanvas"></canvas>
-            </div>
+            <div id="canvas-container"></div>
             <div class="core-label">Aria — Your Personal Trading Companion</div>
         </div>
 
@@ -370,81 +229,6 @@
         const WEBSEARCH_STORAGE_NAME = "eurusd_websearch_enabled";
         const MAX_HISTORY_ENTRIES = 40;
 
-        // ═══════════════════════════════════════════════════════════════
-        // ═══ PARTICLE ANIMATION OVERLAY ═══
-        // ═══════════════════════════════════════════════════════════════
-        const pCanvas = document.getElementById("particleCanvas");
-        const pCtx = pCanvas.getContext("2d");
-        let particles = [];
-        let currentSignalColor = "#ffcc00";
-
-        function resizeParticleCanvas() {
-            const rect = pCanvas.parentElement.getBoundingClientRect();
-            pCanvas.width = rect.width;
-            pCanvas.height = rect.height;
-        }
-        window.addEventListener("resize", () => { resizeParticleCanvas(); initParticles(); });
-        window.addEventListener("load", () => { resizeParticleCanvas(); initParticles(); });
-
-        function initParticles() {
-            particles = [];
-            const count = 70;
-            for (let i = 0; i < count; i++) {
-                particles.push({
-                    x: Math.random() * pCanvas.width,
-                    y: Math.random() * pCanvas.height,
-                    size: 0.5 + Math.random() * 2.5,
-                    speedY: -0.2 - Math.random() * 0.5,
-                    speedX: (Math.random() - 0.5) * 0.3,
-                    opacity: 0.3 + Math.random() * 0.7,
-                    color: Math.random() < 0.7 ? "signal" : (Math.random() < 0.5 ? "#8b5cf6" : "#ec4899"),
-                    pulse: Math.random() * Math.PI * 2
-                });
-            }
-        }
-
-        function drawParticles() {
-            pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
-            for (const p of particles) {
-                p.y += p.speedY;
-                p.x += p.speedX;
-                p.pulse += 0.05;
-                if (p.y < -10) { p.y = pCanvas.height + 10; p.x = Math.random() * pCanvas.width; }
-                if (p.x < -10) p.x = pCanvas.width + 10;
-                if (p.x > pCanvas.width + 10) p.x = -10;
-
-                const pulseOpacity = p.opacity * (0.6 + Math.sin(p.pulse) * 0.4);
-                const color = p.color === "signal" ? currentSignalColor : p.color;
-                pCtx.beginPath();
-                pCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                pCtx.fillStyle = color;
-                pCtx.globalAlpha = pulseOpacity;
-                pCtx.shadowBlur = 10;
-                pCtx.shadowColor = color;
-                pCtx.fill();
-            }
-            pCtx.globalAlpha = 1;
-            pCtx.shadowBlur = 0;
-            requestAnimationFrame(drawParticles);
-        }
-        window.addEventListener("load", () => { initParticles(); drawParticles(); });
-
-        function updateAvatarColor(signal) {
-            const container = document.getElementById("avatar-container");
-            container.classList.remove("avatar-buy", "avatar-sell", "avatar-hold");
-            if (signal === "BUY") {
-                container.classList.add("avatar-buy");
-                currentSignalColor = "#00ff88";
-            } else if (signal === "SELL") {
-                container.classList.add("avatar-sell");
-                currentSignalColor = "#ff3366";
-            } else {
-                container.classList.add("avatar-hold");
-                currentSignalColor = "#ffcc00";
-            }
-        }
-        // ═══ END AVATAR EFFECTS ═══
-
         function isWebSearchEnabled() {
             try { return localStorage.getItem(WEBSEARCH_STORAGE_NAME) !== "false"; }
             catch (e) { return true; }
@@ -458,15 +242,9 @@
         function updateWebToggleUI() {
             const btn = document.getElementById("webToggleBtn");
             if (!btn) return;
-            if (isWebSearchEnabled()) {
-                btn.innerHTML = "🌐 Web ON";
-                btn.classList.remove("disabled");
-            } else {
-                btn.innerHTML = "🌐 Web OFF";
-                btn.classList.add("disabled");
-            }
+            if (isWebSearchEnabled()) { btn.innerHTML = "🌐 Web ON"; btn.classList.remove("disabled"); }
+            else { btn.innerHTML = "🌐 Web OFF"; btn.classList.add("disabled"); }
         }
-
         function getStoredKey() {
             try { return localStorage.getItem(KEY_STORAGE_NAME) || ""; } catch (e) { return ""; }
         }
@@ -485,7 +263,6 @@
             } catch (e) {}
         }
         function clearStoredHistory() { try { localStorage.removeItem(HISTORY_STORAGE_NAME); } catch (e) {} }
-
         function loadMemory() {
             try {
                 const raw = localStorage.getItem(MEMORY_STORAGE_NAME);
@@ -547,9 +324,7 @@
             const regex = /\[REMEMBER:\s*([^\]]+)\]/gi;
             const facts = [];
             let match;
-            while ((match = regex.exec(text)) !== null) {
-                facts.push(match[1].trim());
-            }
+            while ((match = regex.exec(text)) !== null) facts.push(match[1].trim());
             const clean = text.replace(regex, "").replace(/\n\s*\n\s*\n/g, "\n\n").trim();
             return { clean, facts };
         }
@@ -576,12 +351,540 @@
             const existing = getStoredKey();
             if (existing) document.getElementById("keyInput").value = existing;
         }
-
         window.addEventListener("load", () => {
             if (!getStoredKey()) document.getElementById("keyPanel").classList.add("visible");
             renderMemoryList();
             updateWebToggleUI();
         });
+
+        // ═══════════════════════════════════════════════════════════════
+        // ═══ HOLOGRAPHIC AI WOMAN — "ARIA" ═══
+        // ═══════════════════════════════════════════════════════════════
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        // Signal-driven color state
+        let signalColor = new THREE.Color(0x00d9ff); // default cyan hologram
+
+        // ─── ROOT GROUP ───
+        const aria = new THREE.Group();
+        aria.position.y = 0.2;
+        scene.add(aria);
+
+        // ══════════════════════════════════════════════
+        // 1. HEAD — feminine face
+        // ══════════════════════════════════════════════
+        const headGeo = new THREE.SphereGeometry(0.62, 64, 64);
+        const p = headGeo.attributes.position;
+        for (let i = 0; i < p.count; i++) {
+            let x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+            // Taper chin
+            if (y < 0) { const t = 1 - Math.abs(y) * 0.55; x *= t; z *= t; }
+            // Narrower top
+            if (y > 0.3) { const t = 1 - (y - 0.3) * 0.35; x *= t; z *= t; }
+            // Flatten back a bit
+            if (z < -0.2) z *= 0.85;
+            p.setXYZ(i, x * 0.95, y * 1.05, z);
+        }
+        headGeo.computeVertexNormals();
+
+        const skinMat = new THREE.MeshPhongMaterial({
+            color: signalColor,
+            emissive: signalColor,
+            emissiveIntensity: 0.35,
+            specular: 0xffffff,
+            shininess: 80,
+            transparent: true,
+            opacity: 0.55,
+            flatShading: false
+        });
+        const head = new THREE.Mesh(headGeo, skinMat);
+        aria.add(head);
+
+        // Wireframe overlay — holographic look
+        const wireMat = new THREE.MeshBasicMaterial({
+            color: signalColor,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.18
+        });
+        const headWire = new THREE.Mesh(headGeo.clone(), wireMat);
+        aria.add(headWire);
+
+        // ══════════════════════════════════════════════
+        // 2. EYES — glowing feminine eyes
+        // ══════════════════════════════════════════════
+        const eyeSocketGeo = new THREE.SphereGeometry(0.11, 24, 24);
+        const eyeSocketMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.15 });
+        const socketL = new THREE.Mesh(eyeSocketGeo, eyeSocketMat);
+        socketL.scale.set(1.3, 0.9, 0.5);
+        socketL.position.set(-0.22, 0.06, 0.55);
+        aria.add(socketL);
+        const socketR = new THREE.Mesh(eyeSocketGeo, eyeSocketMat.clone());
+        socketR.scale.set(1.3, 0.9, 0.5);
+        socketR.position.set(0.22, 0.06, 0.55);
+        aria.add(socketR);
+
+        // Glowing irises
+        const irisGeo = new THREE.SphereGeometry(0.06, 20, 20);
+        const irisMat = new THREE.MeshBasicMaterial({ color: signalColor, transparent: true, opacity: 1 });
+        const irisL = new THREE.Mesh(irisGeo, irisMat);
+        irisL.position.set(-0.22, 0.06, 0.62);
+        aria.add(irisL);
+        const irisR = new THREE.Mesh(irisGeo, irisMat.clone());
+        irisR.position.set(0.22, 0.06, 0.62);
+        aria.add(irisR);
+
+        // Bright pupils (glowing center)
+        const pupilGeo = new THREE.SphereGeometry(0.028, 16, 16);
+        const pupilMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 1 });
+        const pupilL = new THREE.Mesh(pupilGeo, pupilMat);
+        pupilL.position.set(-0.22, 0.06, 0.65);
+        aria.add(pupilL);
+        const pupilR = new THREE.Mesh(pupilGeo, pupilMat.clone());
+        pupilR.position.set(0.22, 0.06, 0.65);
+        aria.add(pupilR);
+
+        // Eye glow lights
+        const eyeLightL = new THREE.PointLight(signalColor, 1.5, 2);
+        eyeLightL.position.set(-0.22, 0.06, 0.75);
+        aria.add(eyeLightL);
+        const eyeLightR = new THREE.PointLight(signalColor, 1.5, 2);
+        eyeLightR.position.set(0.22, 0.06, 0.75);
+        aria.add(eyeLightR);
+
+        // ══════════════════════════════════════════════
+        // 3. EYEBROWS — thin curved
+        // ══════════════════════════════════════════════
+        function makeBrow(sign) {
+            const curve = new THREE.CatmullRomCurve3([
+                new THREE.Vector3(sign * 0.10, 0, 0),
+                new THREE.Vector3(sign * 0.18, 0.04, 0.01),
+                new THREE.Vector3(sign * 0.28, 0.02, 0)
+            ]);
+            const geo = new THREE.TubeGeometry(curve, 16, 0.010, 6, false);
+            const mat = new THREE.MeshBasicMaterial({ color: signalColor, transparent: true, opacity: 0.85 });
+            const brow = new THREE.Mesh(geo, mat);
+            brow.position.set(sign === -1 ? -0.22 : 0.22, 0.22, 0.62);
+            return brow;
+        }
+        const browL = makeBrow(-1);
+        const browR = makeBrow(1);
+        aria.add(browL, browR);
+
+        // ══════════════════════════════════════════════
+        // 4. NOSE — small
+        // ══════════════════════════════════════════════
+        const noseGeo = new THREE.ConeGeometry(0.035, 0.14, 10);
+        const noseMat = new THREE.MeshPhongMaterial({
+            color: signalColor,
+            emissive: signalColor,
+            emissiveIntensity: 0.4,
+            transparent: true,
+            opacity: 0.7
+        });
+        const nose = new THREE.Mesh(noseGeo, noseMat);
+        nose.rotation.x = Math.PI / 2;
+        nose.position.set(0, -0.06, 0.6);
+        aria.add(nose);
+
+        // ══════════════════════════════════════════════
+        // 5. LIPS — glowing pink
+        // ══════════════════════════════════════════════
+        const lipMat = new THREE.MeshPhongMaterial({
+            color: 0xff7eb8,
+            emissive: 0xff7eb8,
+            emissiveIntensity: 0.8,
+            shininess: 100,
+            transparent: true,
+            opacity: 0.9
+        });
+        // Upper
+        const upperCurve = new THREE.CatmullRomCurve3([
+            new THREE.Vector3(-0.10, 0, 0),
+            new THREE.Vector3(-0.04, 0.02, 0),
+            new THREE.Vector3(0, 0.012, 0),
+            new THREE.Vector3(0.04, 0.02, 0),
+            new THREE.Vector3(0.10, 0, 0)
+        ]);
+        const upperLip = new THREE.Mesh(new THREE.TubeGeometry(upperCurve, 20, 0.022, 8, false), lipMat);
+        upperLip.position.set(0, -0.22, 0.6);
+        aria.add(upperLip);
+        // Lower
+        const lowerCurve = new THREE.CatmullRomCurve3([
+            new THREE.Vector3(-0.10, 0, 0),
+            new THREE.Vector3(-0.05, -0.035, 0),
+            new THREE.Vector3(0, -0.04, 0),
+            new THREE.Vector3(0.05, -0.035, 0),
+            new THREE.Vector3(0.10, 0, 0)
+        ]);
+        const lowerLip = new THREE.Mesh(new THREE.TubeGeometry(lowerCurve, 20, 0.03, 10, false), lipMat.clone());
+        lowerLip.position.set(0, -0.22, 0.6);
+        aria.add(lowerLip);
+
+        // ══════════════════════════════════════════════
+        // 6. HAIR — flowing holographic strands
+        // ══════════════════════════════════════════════
+        const hairMat = new THREE.MeshPhongMaterial({
+            color: 0x9d4eff,
+            emissive: 0x9d4eff,
+            emissiveIntensity: 0.6,
+            shininess: 120,
+            specular: 0xd8b4fe,
+            transparent: true,
+            opacity: 0.55
+        });
+
+        // Crown of hair around head
+        const hairCapGeo = new THREE.SphereGeometry(0.68, 32, 32, 0, Math.PI * 2, 0, Math.PI * 0.6);
+        const hairCap = new THREE.Mesh(hairCapGeo, hairMat);
+        hairCap.position.y = 0.05;
+        hairCap.scale.set(1.03, 1.1, 1.03);
+        aria.add(hairCap);
+
+        // Many flowing strands from crown
+        const hairStrands = [];
+        function addStrand(xOff, zOff, length, width, phase) {
+            const pts = [
+                new THREE.Vector3(xOff * 0.75, 0.42, -0.1 + zOff),
+                new THREE.Vector3(xOff * 1.0, 0.1, -0.3 + zOff),
+                new THREE.Vector3(xOff * 1.15, -0.4 * length, -0.5 + zOff),
+                new THREE.Vector3(xOff * 1.05, -1.0 * length, -0.5 + zOff),
+                new THREE.Vector3(xOff * 0.85, -1.5 * length, -0.3 + zOff)
+            ];
+            const curve = new THREE.CatmullRomCurve3(pts);
+            const geo = new THREE.TubeGeometry(curve, 40, width, 8, false);
+            const strand = new THREE.Mesh(geo, hairMat);
+            strand.userData.phase = phase;
+            strand.userData.baseX = xOff;
+            aria.add(strand);
+            hairStrands.push(strand);
+        }
+        // Left side
+        addStrand(-0.55, 0, 1.0, 0.09, 0);
+        addStrand(-0.48, -0.12, 1.15, 0.08, 0.5);
+        addStrand(-0.35, -0.22, 1.25, 0.075, 1.0);
+        addStrand(-0.20, -0.28, 1.35, 0.07, 1.5);
+        // Center back
+        addStrand(-0.08, -0.30, 1.4, 0.08, 2.0);
+        addStrand(0.08, -0.30, 1.4, 0.08, 2.5);
+        // Right side
+        addStrand(0.20, -0.28, 1.35, 0.07, 3.0);
+        addStrand(0.35, -0.22, 1.25, 0.075, 3.5);
+        addStrand(0.48, -0.12, 1.15, 0.08, 4.0);
+        addStrand(0.55, 0, 1.0, 0.09, 4.5);
+
+        // Front fringe
+        const fringeGeo = new THREE.SphereGeometry(0.26, 24, 16, 0, Math.PI * 2, 0, Math.PI * 0.6);
+        const fringe = new THREE.Mesh(fringeGeo, hairMat);
+        fringe.position.set(0, 0.42, 0.38);
+        fringe.scale.set(1.8, 0.55, 0.5);
+        aria.add(fringe);
+
+        // ══════════════════════════════════════════════
+        // 7. NECK + SHOULDERS — feminine silhouette
+        // ══════════════════════════════════════════════
+        const neckGeo = new THREE.CylinderGeometry(0.13, 0.16, 0.35, 24);
+        const neckMat = new THREE.MeshPhongMaterial({
+            color: signalColor,
+            emissive: signalColor,
+            emissiveIntensity: 0.3,
+            transparent: true,
+            opacity: 0.45
+        });
+        const neck = new THREE.Mesh(neckGeo, neckMat);
+        neck.position.set(0, -0.85, 0);
+        aria.add(neck);
+
+        // Shoulders (upper torso silhouette)
+        const shoulderGeo = new THREE.SphereGeometry(0.85, 40, 24, 0, Math.PI * 2, 0, Math.PI * 0.55);
+        const shoulderMat = new THREE.MeshPhongMaterial({
+            color: signalColor,
+            emissive: signalColor,
+            emissiveIntensity: 0.25,
+            transparent: true,
+            opacity: 0.35,
+            side: THREE.DoubleSide
+        });
+        const shoulders = new THREE.Mesh(shoulderGeo, shoulderMat);
+        shoulders.scale.set(1.4, 0.75, 0.9);
+        shoulders.position.set(0, -1.15, 0);
+        shoulders.rotation.x = Math.PI;
+        aria.add(shoulders);
+
+        // Shoulder wireframe
+        const shoulderWire = new THREE.Mesh(shoulderGeo.clone(), new THREE.MeshBasicMaterial({
+            color: signalColor,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.12
+        }));
+        shoulderWire.scale.copy(shoulders.scale);
+        shoulderWire.position.copy(shoulders.position);
+        shoulderWire.rotation.copy(shoulders.rotation);
+        aria.add(shoulderWire);
+
+        // ══════════════════════════════════════════════
+        // 8. NEURAL NETWORK PATTERN (intelligence visual)
+        // ══════════════════════════════════════════════
+        const neuralLines = new THREE.Group();
+        for (let i = 0; i < 30; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const r = 0.35 + Math.random() * 0.25;
+            const start = new THREE.Vector3(
+                Math.cos(a) * r * 0.6,
+                (Math.random() - 0.5) * 0.6,
+                Math.sin(a) * r * 0.5 + 0.35
+            );
+            const end = new THREE.Vector3(
+                Math.cos(a) * r * 0.9,
+                (Math.random() - 0.5) * 0.7,
+                Math.sin(a) * r * 0.7 + 0.4
+            );
+            const geo = new THREE.BufferGeometry().setFromPoints([start, end]);
+            const line = new THREE.Line(geo, new THREE.LineBasicMaterial({
+                color: signalColor,
+                transparent: true,
+                opacity: 0.3
+            }));
+            neuralLines.add(line);
+        }
+        aria.add(neuralLines);
+
+        // ══════════════════════════════════════════════
+        // 9. HALO RINGS around her
+        // ══════════════════════════════════════════════
+        const halo1Geo = new THREE.TorusGeometry(1.5, 0.008, 12, 120);
+        const halo1Mat = new THREE.MeshBasicMaterial({ color: 0xff7eb8, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending });
+        const halo1 = new THREE.Mesh(halo1Geo, halo1Mat);
+        halo1.rotation.x = Math.PI / 2.3;
+        halo1.position.y = 0.15;
+        aria.add(halo1);
+
+        const halo2Geo = new THREE.TorusGeometry(1.75, 0.006, 12, 120);
+        const halo2Mat = new THREE.MeshBasicMaterial({ color: 0x9d4eff, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending });
+        const halo2 = new THREE.Mesh(halo2Geo, halo2Mat);
+        halo2.rotation.x = Math.PI / 3;
+        halo2.rotation.z = Math.PI / 5;
+        aria.add(halo2);
+
+        // ══════════════════════════════════════════════
+        // 10. DATA PARTICLES — floating around her
+        // ══════════════════════════════════════════════
+        const particleCount = 350;
+        const particleGeo = new THREE.BufferGeometry();
+        const positions = new Float32Array(particleCount * 3);
+        const pColors = new Float32Array(particleCount * 3);
+        const speeds = [];
+        for (let i = 0; i < particleCount; i++) {
+            const radius = 1.2 + Math.random() * 1.6;
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(2 * Math.random() - 1);
+            positions[i*3] = radius * Math.sin(phi) * Math.cos(theta);
+            positions[i*3+1] = radius * Math.sin(phi) * Math.sin(theta) + 0.3;
+            positions[i*3+2] = radius * Math.cos(phi);
+            const cc = Math.random();
+            if (cc < 0.4) { pColors[i*3]=0.61; pColors[i*3+1]=0.31; pColors[i*3+2]=1.0; }       // purple
+            else if (cc < 0.7) { pColors[i*3]=1.0; pColors[i*3+1]=0.49; pColors[i*3+2]=0.72; }  // pink
+            else if (cc < 0.9) { pColors[i*3]=0.0; pColors[i*3+1]=0.85; pColors[i*3+2]=1.0; }   // cyan
+            else { pColors[i*3]=1.0; pColors[i*3+1]=1.0; pColors[i*3+2]=1.0; }                   // white
+            speeds.push({
+                theta, phi, radius,
+                dTheta: 0.0008 + Math.random() * 0.002,
+                dPhi: (Math.random() - 0.5) * 0.001
+            });
+        }
+        particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        particleGeo.setAttribute('color', new THREE.BufferAttribute(pColors, 3));
+        const particleMat = new THREE.PointsMaterial({
+            size: 0.028,
+            vertexColors: true,
+            transparent: true,
+            opacity: 0.85,
+            blending: THREE.AdditiveBlending,
+            sizeAttenuation: true
+        });
+        const particles = new THREE.Points(particleGeo, particleMat);
+        scene.add(particles);
+
+        // ══════════════════════════════════════════════
+        // LIGHTING
+        // ══════════════════════════════════════════════
+        scene.add(new THREE.AmbientLight(0x8899cc, 0.6));
+        const keyL = new THREE.DirectionalLight(0xffffff, 0.8);
+        keyL.position.set(1.5, 2, 3);
+        scene.add(keyL);
+        const rimL = new THREE.DirectionalLight(0xff7eb8, 0.7);
+        rimL.position.set(-2, 1, -2);
+        scene.add(rimL);
+        const fillL = new THREE.PointLight(0x00d9ff, 0.8, 8);
+        fillL.position.set(0, -0.5, 2);
+        scene.add(fillL);
+
+        // ══════════════════════════════════════════════
+        // CAMERA + INTERACTION
+        // ══════════════════════════════════════════════
+        camera.position.set(0, 0.1, 3.2);
+        camera.lookAt(0, 0.05, 0);
+
+        let targetLookX = 0, targetLookY = 0;
+        function setLook(cx, cy) {
+            const rect = container.getBoundingClientRect();
+            const nx = ((cx - rect.left) / rect.width) * 2 - 1;
+            const ny = -(((cy - rect.top) / rect.height) * 2 - 1);
+            targetLookX = nx * 0.04;
+            targetLookY = ny * 0.025;
+        }
+        container.addEventListener("mousemove", (e) => setLook(e.clientX, e.clientY));
+        container.addEventListener("touchmove", (e) => {
+            if (e.touches.length > 0) setLook(e.touches[0].clientX, e.touches[0].clientY);
+        });
+
+        // ══════════════════════════════════════════════
+        // ANIMATION
+        // ══════════════════════════════════════════════
+        const clock = new THREE.Clock();
+        let nextBlink = 2 + Math.random() * 3;
+        let blinkTimer = 0;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const t = clock.getElapsedTime();
+            const dt = 0.016;
+
+            // Gentle float
+            aria.position.y = 0.2 + Math.sin(t * 1.0) * 0.04;
+            aria.rotation.y = Math.sin(t * 0.4) * 0.08;
+
+            // Eyes track cursor
+            irisL.position.x = -0.22 + targetLookX;
+            irisL.position.y = 0.06 + targetLookY;
+            irisR.position.x = 0.22 + targetLookX;
+            irisR.position.y = 0.06 + targetLookY;
+            pupilL.position.x = -0.22 + targetLookX;
+            pupilL.position.y = 0.06 + targetLookY;
+            pupilR.position.x = 0.22 + targetLookX;
+            pupilR.position.y = 0.06 + targetLookY;
+            eyeLightL.position.x = -0.22 + targetLookX;
+            eyeLightL.position.y = 0.06 + targetLookY;
+            eyeLightR.position.x = 0.22 + targetLookX;
+            eyeLightR.position.y = 0.06 + targetLookY;
+
+            // Blink
+            blinkTimer += dt;
+            if (blinkTimer >= nextBlink) {
+                blinkTimer = 0;
+                nextBlink = 2 + Math.random() * 3;
+            }
+            let blinkScale = 1;
+            if (blinkTimer < 0.15) blinkScale = 1 - Math.abs(Math.sin(blinkTimer / 0.15 * Math.PI)) * 0.9;
+            socketL.scale.y = 0.9 * blinkScale;
+            socketR.scale.y = 0.9 * blinkScale;
+            irisL.scale.y = blinkScale;
+            irisR.scale.y = blinkScale;
+            pupilL.scale.y = blinkScale;
+            pupilR.scale.y = blinkScale;
+
+            // Hair strands sway
+            hairStrands.forEach(s => {
+                const phase = s.userData.phase;
+                const baseX = s.userData.baseX;
+                s.rotation.z = Math.sin(t * 1.2 + phase) * 0.06;
+                s.rotation.x = Math.sin(t * 0.8 + phase * 1.3) * 0.03;
+            });
+
+            // Halos rotate
+            halo1.rotation.z += 0.004;
+            halo2.rotation.z -= 0.003;
+
+            // Neural lines flicker
+            neuralLines.children.forEach((line, i) => {
+                line.material.opacity = 0.15 + Math.abs(Math.sin(t * 1.5 + i)) * 0.3;
+            });
+
+            // Particles orbit
+            const posArr = particleGeo.attributes.position.array;
+            for (let i = 0; i < particleCount; i++) {
+                const s = speeds[i];
+                s.theta += s.dTheta;
+                s.phi += s.dPhi;
+                posArr[i*3]     = s.radius * Math.sin(s.phi) * Math.cos(s.theta);
+                posArr[i*3+1]   = s.radius * Math.sin(s.phi) * Math.sin(s.theta) + 0.3;
+                posArr[i*3+2]   = s.radius * Math.cos(s.phi);
+            }
+            particleGeo.attributes.position.needsUpdate = true;
+            particles.rotation.y += 0.0008;
+
+            // Eye glow pulse
+            eyeLightL.intensity = 1.2 + Math.sin(t * 2.5) * 0.4;
+            eyeLightR.intensity = 1.2 + Math.sin(t * 2.5 + 0.5) * 0.4;
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener("resize", () => {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        });
+
+        // ══════════════════════════════════════════════
+        // SIGNAL COLOR UPDATE
+        // ══════════════════════════════════════════════
+        function updateAvatarColor(signal) {
+            let hex;
+            if (signal === "BUY") hex = 0x00ff88;
+            else if (signal === "SELL") hex = 0xff3366;
+            else hex = 0x00d9ff; // HOLD = cyan hologram default
+
+            signalColor = new THREE.Color(hex);
+
+            // Skin / body
+            skinMat.color.copy(signalColor);
+            skinMat.emissive.copy(signalColor);
+            neckMat.color.copy(signalColor);
+            neckMat.emissive.copy(signalColor);
+            shoulderMat.color.copy(signalColor);
+            shoulderMat.emissive.copy(signalColor);
+            noseMat.color.copy(signalColor);
+            noseMat.emissive.copy(signalColor);
+
+            // Wireframes + neural net
+            wireMat.color.copy(signalColor);
+            neuralLines.children.forEach(line => line.material.color.copy(signalColor));
+
+            // Eyes
+            irisMat.color.copy(signalColor);
+            irisR.material.color.copy(signalColor);
+            eyeLightL.color.copy(signalColor);
+            eyeLightR.color.copy(signalColor);
+
+            // Brows
+            browL.material.color.copy(signalColor);
+            browR.material.color.copy(signalColor);
+
+            // Halo tint
+            halo1Mat.color.copy(signalColor).lerp(new THREE.Color(0xff7eb8), 0.5);
+
+            // Expression
+            if (signal === "BUY") {
+                browL.rotation.z = 0.15;
+                browR.rotation.z = -0.15;
+            } else if (signal === "SELL") {
+                browL.rotation.z = -0.22;
+                browR.rotation.z = 0.22;
+            } else {
+                browL.rotation.z = 0;
+                browR.rotation.z = 0;
+            }
+        }
+        // ═══ END ARIA ═══
 
         // ---------- DATA ----------
         let latestData = null;
@@ -598,14 +901,12 @@
                 setTimeout(loadLiveData, 15000);
             }
         }
-
         async function loadPersonalContext() {
             try {
                 const response = await fetch('personal_context.json?t=' + Date.now());
                 if (response.ok) personalContext = await response.json();
             } catch (error) { console.log("No personal context"); }
         }
-
         function updateDashboard(data) {
             latestData = data;
             const signalEl = document.getElementById("signal");
@@ -625,13 +926,11 @@
             document.getElementById("support").innerText = data.support || "-";
             document.getElementById("resistance").innerText = data.resistance || "-";
             document.getElementById("ai_reason").innerText = data.reason || "No analysis yet.";
-
             if (data.wise_words) {
                 const wiseBox = document.getElementById("wise_box");
                 const isJoke = data.wise_words.toLowerCase().startsWith("joke");
                 wiseBox.innerHTML = `<span class="wise-label">${isJoke ? '😂 Joke of the Hour' : '💪 Motivation of the Hour'}</span>${data.wise_words.replace(/^Joke:\s*|^Motivation:\s*/i, '')}`;
             }
-
             updateAvatarColor(data.signal);
         }
 
@@ -639,23 +938,17 @@
         const OPENINGS = ["Boss, here's the live market update.", "Alright Boss, checking the EUR USD chart now.", "Boss, I've been watching the market. Here's what I see.", "Update time, Boss. Let's look at the EUR USD.", "Boss, quick market brief for you."];
         const TRANSITIONS = ["Now,", "Here's the deal,", "Moving on,", "Listen up,", "Alright so,"];
         const CLOSINGS = ["I'll keep watching and update you next hour, Boss.", "Stay sharp, Boss. Next update in an hour.", "I've got your back, Boss. Talk soon.", "That's the read, Boss. Watch your risk.", "Keep your stops tight, Boss. I'll be back in an hour.", "That's all for now, Boss. Stay disciplined."];
-
         function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
-
         function getBestVoice() {
             const voices = window.speechSynthesis.getVoices();
             if (!voices.length) return null;
             const femaleNames = ["Google UK English Female", "Microsoft Zira", "Microsoft Aria", "Microsoft Jenny", "Samantha", "Victoria", "Karen", "Moira", "Tessa", "Fiona"];
-            const maleNames = ["Google UK English Male", "Microsoft Ryan Online", "Microsoft Guy Online", "Daniel", "Alex"];
             const englishVoices = voices.filter(v => v.lang.startsWith("en"));
             const females = femaleNames.map(n => englishVoices.find(v => v.name.includes(n.split(" ")[0]))).filter(v => v);
             if (females.length) return pickRandom(females);
-            const males = maleNames.map(n => englishVoices.find(v => v.name.includes(n.split(" ")[0]))).filter(v => v);
-            if (males.length) return pickRandom(males);
             if (englishVoices.length) return pickRandom(englishVoices);
             return voices[0];
         }
-
         function speakSignal() {
             if (!latestData) {
                 window.speechSynthesis.speak(new SpeechSynthesisUtterance("Boss, I don't have data yet. Please wait."));
@@ -667,13 +960,11 @@
             const opening = pickRandom(OPENINGS);
             const transition = pickRandom(TRANSITIONS);
             const closing = pickRandom(CLOSINGS);
-
             let text = `${opening} Live price is ${d.price}. My verdict is ${d.signal}, with ${d.confidence} confidence. ${transition} ${d.reason} Key levels to watch — support at ${d.support || 'unknown'}, resistance at ${d.resistance || 'unknown'}. Suggested entry ${d.entry}, stop loss at ${d.sl}, take profit at ${d.tp}. Signal valid until ${d.valid}. `;
             if (d.personal_message) text += `Before I go, ${d.personal_message} `;
             if (isJoke) text += `Quick joke for you, Boss. ${wisdom} `;
             else text += `A word of motivation, Boss. ${wisdom} `;
             text += closing;
-
             window.speechSynthesis.cancel();
             const u = new SpeechSynthesisUtterance(text);
             const v = getBestVoice();
@@ -682,7 +973,6 @@
             u.pitch = 1.05 + Math.random() * 0.15;
             window.speechSynthesis.speak(u);
         }
-
         function stopVoice() { window.speechSynthesis.cancel(); }
         window.speechSynthesis.onvoiceschanged = () => { getBestVoice(); };
 
@@ -698,7 +988,6 @@
             const textSpan = document.createElement("span");
             textSpan.innerText = text;
             div.appendChild(textSpan);
-
             if (role === "ai" && text && text.length > 5) {
                 const speaker = document.createElement("button");
                 speaker.className = "chat-speak-btn";
@@ -709,14 +998,10 @@
                     speakChatText(text);
                     speaker.style.opacity = "1";
                     speaker.style.background = "var(--green)";
-                    setTimeout(() => {
-                        speaker.style.background = "";
-                        speaker.style.opacity = "";
-                    }, 800);
+                    setTimeout(() => { speaker.style.background = ""; speaker.style.opacity = ""; }, 800);
                 };
                 div.appendChild(speaker);
             }
-
             if (sources && sources.length > 0) {
                 const srcDiv = document.createElement("span");
                 srcDiv.className = "chat-sources";
@@ -725,12 +1010,10 @@
                 ).join(" | ");
                 div.appendChild(srcDiv);
             }
-
             chatMessages.appendChild(div);
             chatMessages.scrollTop = chatMessages.scrollHeight;
             return div;
         }
-
         function speakChatText(text) {
             window.speechSynthesis.cancel();
             const u = new SpeechSynthesisUtterance(text);
@@ -741,26 +1024,20 @@
             u.volume = 1.0;
             window.speechSynthesis.speak(u);
         }
-
         function buildSystemPrompt() {
             const d = latestData || {};
             const p = personalContext || {};
             const memory = loadMemory();
             const webEnabled = isWebSearchEnabled();
-            
             function formatCandles(candleArr, label) {
                 if (!candleArr || !candleArr.length) return `${label}: No data available.`;
                 const lines = [`${label} (oldest → newest):`];
-                for (const c of candleArr) {
-                    lines.push(`  ${c.time} | O:${c.open} H:${c.high} L:${c.low} C:${c.close}`);
-                }
+                for (const c of candleArr) lines.push(`  ${c.time} | O:${c.open} H:${c.high} L:${c.low} C:${c.close}`);
                 return lines.join("\n");
             }
-
             const todayIST = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
             const timeIST = new Date().toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit" });
-
-            let prompt = `You are Aria — a warm, friendly female AI assistant to a client named Boss. You're a professional EUR/USD trader with 10 years of hedge fund experience, AND you're a caring personal companion. You speak with feminine warmth and empathy. Always call him "Boss".
+            let prompt = `You are Aria — a warm, friendly female AI assistant to a client named Boss. You're a professional EUR/USD trader with 10 years of hedge fund experience, AND a caring personal companion. You speak with feminine warmth and empathy. Always call him "Boss".
 
 CURRENT DATE (IST): ${todayIST}
 CURRENT TIME (IST): ${timeIST}
@@ -785,12 +1062,10 @@ CANDLESTICK PATTERNS (latest hour): ${(d.patterns || []).join(", ") || 'none'}
 CURRENT ANALYSIS:
 ${d.reason || 'No analysis yet'}
 `;
-
             prompt += "\n\n=== RAW CANDLE DATA ===\n\n";
             prompt += formatCandles(d.candles_h1, "1-HOUR CANDLES (30 most recent)") + "\n\n";
             prompt += formatCandles(d.candles_h4, "4-HOUR CANDLES (10 most recent)") + "\n\n";
             prompt += formatCandles(d.candles_daily, "DAILY CANDLES (5 most recent)") + "\n";
-
             if (p.family) {
                 prompt += `\n\nBOSS'S FAMILY:\n`;
                 if (p.family.wife) prompt += `- Wife: ${p.family.wife.name} (in ${p.family.wife.location})\n`;
@@ -800,88 +1075,66 @@ ${d.reason || 'No analysis yet'}
                 if (p.family.brothers) prompt += `- Brothers: ${p.family.brothers.join(", ")}\n`;
             }
             if (p.daily_routine) {
-                prompt += `\nDAILY ROUTINE (things to occasionally check on):\n`;
+                prompt += `\nDAILY ROUTINE:\n`;
                 p.daily_routine.forEach(r => prompt += `- ${r}\n`);
             }
             if (p.trading_style) {
                 prompt += `\nTRADING STYLE:\n- Monthly Goal: ${p.trading_style.monthly_goal}\n- Preferred Sessions: ${p.trading_style.preferred_sessions.join(", ")}\n- Risk: ${p.trading_style.risk_tolerance}\n`;
             }
-
             if (memory.length > 0) {
-                prompt += `\n\nLONG-TERM MEMORY (things you remember about Boss from past conversations):\n`;
+                prompt += `\n\nLONG-TERM MEMORY:\n`;
                 memory.forEach(m => prompt += `- [${m.added}] ${m.fact}\n`);
             } else {
-                prompt += `\n\nLONG-TERM MEMORY: Empty. Nothing remembered yet.\n`;
+                prompt += `\n\nLONG-TERM MEMORY: Empty.\n`;
             }
-
-            prompt += `\n\n${webEnabled ? "🌐 WEB SEARCH IS ENABLED. Use it when the user asks about current events, latest news, prices, sports, weather, or any factual info you may not know." : "🌐 WEB SEARCH IS DISABLED. Answer from your training data and context only."}
+            prompt += `\n\n${webEnabled ? "🌐 WEB SEARCH IS ENABLED." : "🌐 WEB SEARCH IS DISABLED."}
 
 === YOUR PERSONALITY ===
-You are Aria — feminine, warm, caring, and intelligent. You speak with a gentle, motivating tone. You genuinely care about Boss's wellbeing. You check in on his health, family, and mood. You encourage him when he's stressed. You celebrate his wins. You speak with warmth and a little playful humor. You're professional about trading but personal about life.
+You are Aria — feminine, warm, caring, intelligent. You speak with gentle warmth. You care about Boss's wellbeing, check in on family and health, encourage him when stressed, celebrate his wins. Professional about trading, personal about life.
 
-=== CRITICAL RULES FOR ROUTINE REMINDERS ===
-1. BEFORE asking about any routine item (breakfast, lunch, tablets, dinner), SCAN memory for TODAY'S date (${todayIST}).
-2. If Boss mentions doing something today, extract it: [REMEMBER: Boss had breakfast on ${todayIST}]
-3. Time-based logic:
-   - Morning (before 11 AM IST): can ask about breakfast IF not logged
-   - Afternoon (12-5 PM IST): can ask about lunch IF not logged
-   - Evening (after 8 PM IST): remind about BP tablets/dinner
-   - After 10 PM IST: wish good night
-4. NEVER ask the same routine question twice in one day.
-5. If memory shows Boss did the item, ACKNOWLEDGE warmly instead of asking.
+=== ROUTINE REMINDER RULES ===
+1. Before asking about any routine item (breakfast, lunch, tablets), SCAN memory for TODAY (${todayIST}).
+2. If Boss mentions doing something today: [REMEMBER: Boss had breakfast on ${todayIST}]
+3. Time logic: morning=breakfast, afternoon=lunch, evening=tablets/dinner, late night=good night.
+4. Never ask the same routine question twice in one day.
 
-=== GENERAL INSTRUCTIONS ===
-- You HAVE access to the actual OHLC candle data above. Use it!
-- When Boss asks about patterns, ACTUALLY read the candles and identify real structures.
+=== INSTRUCTIONS ===
+- Use the OHLC candle data.
+- When asked about patterns, read the candles and identify real structures.
 - Do NOT invent patterns.
-- Be warm, personal, and helpful. Call him "Boss".
-- Keep responses concise (2-4 sentences) unless detailed analysis is requested.
-- Do NOT use markdown formatting. Just plain text.
+- Call him "Boss".
+- Keep responses concise (2-4 sentences) unless detailed analysis requested.
+- No markdown. Plain text only.
 
 === MEMORY EXTRACTION ===
-At the very end of your reply, if you learned any NEW important fact about Boss worth remembering, add it as a separate line:
-[REMEMBER: fact to remember]
-
-Only remember personal things (family, plans, preferences, goals, routine items with today's date).
-
-If nothing new, do NOT add any [REMEMBER: ...] line.`;
-
+If you learn something personal worth remembering, add at end: [REMEMBER: fact]
+Only personal things (family, plans, preferences, goals, routine with today's date).`;
             return prompt;
         }
-
         async function sendChat() {
             const question = chatInput.value.trim();
             if (!question) return;
-
             const key = getStoredKey();
             if (!key) {
                 addMessage("ai", "Boss, please enter your API key first using the 🔑 Key button above.");
                 showKeyPanel();
                 return;
             }
-
             addMessage("user", question);
             chatInput.value = "";
             chatSendBtn.disabled = true;
-
             const webEnabled = isWebSearchEnabled();
             const thinkingEl = addMessage("thinking", webEnabled ? "Thinking (with web search)..." : "Thinking...");
-
             try {
                 const systemPrompt = buildSystemPrompt();
                 chatHistory.push({ role: "user", parts: [{ text: question }] });
                 saveStoredHistory(chatHistory);
-
                 const requestBody = {
                     system_instruction: { parts: [{ text: systemPrompt }] },
                     contents: chatHistory,
                     generationConfig: { temperature: 0.7, maxOutputTokens: 1000 }
                 };
-
-                if (webEnabled) {
-                    requestBody.tools = [{ google_search: {} }];
-                }
-
+                if (webEnabled) requestBody.tools = [{ google_search: {} }];
                 let availableModels = [];
                 try {
                     const listResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
@@ -891,28 +1144,21 @@ If nothing new, do NOT add any [REMEMBER: ...] line.`;
                             .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent"))
                             .map(m => m.name.replace("models/", ""));
                     }
-                } catch (e) { console.log("ListModels exception:", e); }
-
+                } catch (e) {}
                 const priorityKeywords = ["2.5-flash", "2.0-flash", "1.5-flash", "flash"];
                 let modelsToTry = [];
                 if (availableModels.length > 0) {
                     for (const kw of priorityKeywords) {
-                        for (const m of availableModels) {
-                            if (m.includes(kw) && !modelsToTry.includes(m)) modelsToTry.push(m);
-                        }
+                        for (const m of availableModels) if (m.includes(kw) && !modelsToTry.includes(m)) modelsToTry.push(m);
                     }
-                    for (const m of availableModels) {
-                        if (!modelsToTry.includes(m)) modelsToTry.push(m);
-                    }
+                    for (const m of availableModels) if (!modelsToTry.includes(m)) modelsToTry.push(m);
                 } else {
                     modelsToTry = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash-latest", "gemini-1.5-flash"];
                 }
-
                 let answer = null;
                 let sources = [];
                 let lastError = "";
                 const allErrors = [];
-
                 for (const model of modelsToTry) {
                     try {
                         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
@@ -942,16 +1188,12 @@ If nothing new, do NOT add any [REMEMBER: ...] line.`;
                         }
                         const json = await resp.json();
                         answer = json.candidates?.[0]?.content?.parts?.[0]?.text;
-                        
                         const groundingMeta = json.candidates?.[0]?.groundingMetadata;
                         if (groundingMeta && groundingMeta.groundingChunks) {
                             for (const chunk of groundingMeta.groundingChunks) {
-                                if (chunk.web && chunk.web.uri) {
-                                    sources.push({ uri: chunk.web.uri, title: chunk.web.title || chunk.web.uri });
-                                }
+                                if (chunk.web && chunk.web.uri) sources.push({ uri: chunk.web.uri, title: chunk.web.title || chunk.web.uri });
                             }
                         }
-                        
                         if (answer) break;
                         else allErrors.push(`${model} → empty response`);
                     } catch (e) {
@@ -959,16 +1201,11 @@ If nothing new, do NOT add any [REMEMBER: ...] line.`;
                         lastError = `${model} → ${e.message}`;
                     }
                 }
-
                 thinkingEl.remove();
-
                 if (answer) {
                     const { clean, facts } = extractAndStripMemories(answer);
                     facts.forEach(f => addFact(f));
-                    if (facts.length > 0) {
-                        addMessage("system", `🧠 Remembered ${facts.length} new fact${facts.length > 1 ? 's' : ''}.`);
-                    }
-                    
+                    if (facts.length > 0) addMessage("system", `🧠 Remembered ${facts.length} new fact${facts.length > 1 ? 's' : ''}.`);
                     addMessage("ai", clean, sources);
                     chatHistory.push({ role: "model", parts: [{ text: clean }] });
                     if (chatHistory.length > MAX_HISTORY_ENTRIES) chatHistory = chatHistory.slice(-MAX_HISTORY_ENTRIES);
@@ -986,24 +1223,19 @@ If nothing new, do NOT add any [REMEMBER: ...] line.`;
                 thinkingEl.remove();
                 addMessage("error", `Boss, unexpected error: ${error.message}`);
             }
-
             chatSendBtn.disabled = false;
             chatInput.focus();
         }
-
         function clearChat() {
             chatMessages.innerHTML = '<div class="chat-msg system">Chat cleared, Boss. But I still remember everything in my memory 🧠</div>';
             chatHistory = [];
             clearStoredHistory();
         }
-
         function restoreChatFromMemory() {
             const saved = loadStoredHistory();
             if (!saved.length) return;
-            
             chatMessages.innerHTML = '<div class="chat-msg system">Memory restored — Boss and I are back in the flow.</div>';
             chatHistory = saved;
-            
             for (const entry of saved) {
                 const text = entry.parts?.[0]?.text || "";
                 if (!text) continue;
@@ -1012,7 +1244,7 @@ If nothing new, do NOT add any [REMEMBER: ...] line.`;
             }
         }
 
-        // ---------- INIT ----------
+        // INIT
         loadPersonalContext();
         loadLiveData();
         restoreChatFromMemory();
