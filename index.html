@@ -140,7 +140,7 @@
                 <input type="password" id="api-key-input" placeholder="AIzaSy..." style="width:100%; padding:8px; margin-top:5px; border-radius:6px; border:1px solid #444; background:#111; color:white;">
                 <button class="btn" style="margin-top:5px;" onclick="saveApiKey()">Save Key</button>
             </div>
-            <div class="chat-history" id="chat-history"><div class="msg ai fade-in">Ready, Boss. Model list updated to gemini-3.8-flash.</div></div>
+            <div class="chat-history" id="chat-history"><div class="msg ai fade-in">Ready, Boss. Using gemini-flash-latest (permanent alias).</div></div>
             <div class="chat-input-row">
                 <input type="text" id="chat-input" placeholder="Ask me anything, Boss..." onkeypress="if(event.key==='Enter') sendChat()">
                 <button onclick="sendChat()">Send</button>
@@ -170,19 +170,18 @@
         const FALLBACK_URL = 'https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/data.json';
         const CONTEXT_URL = 'https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/personal_context.json';
 
-        // === UPDATED MODEL LIST (includes gemini-3.8-flash per Google's instruction) ===
+        // === PERMANENT ALIAS (never 404s) + stable fallbacks ===
         const STABLE_CHAT_MODELS = [
-            'gemini-3.8-flash',
+            'gemini-flash-latest',
             'gemini-2.5-flash',
-            'gemini-1.5-flash',
-            'gemini-1.5-pro',
-            'gemini-pro'
+            'gemini-2.0-flash',
+            'gemini-1.5-flash'
         ];
         const STABLE_SIGNAL_MODELS = [
-            'gemini-3.8-flash',
+            'gemini-flash-latest',
             'gemini-2.5-flash',
-            'gemini-1.5-flash',
-            'gemini-pro'
+            'gemini-2.0-flash',
+            'gemini-1.5-flash'
         ];
 
         let globalData = null, personalContext = null;
@@ -351,7 +350,7 @@
                             method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)
                         });
                         if (res.ok) { const d = await res.json(); reply = d.candidates[0].content.parts[0].text; console.log(`Signal from: ${model}`); break; }
-                        else { const err = await res.json(); lastErr = err.error?.message; }
+                        else { const err = await res.json(); lastErr = err.error?.message; console.log(`Signal ${model} failed: ${lastErr}`); }
                     } catch(e) { lastErr = e.message; }
                 }
                 if (!reply) throw new Error(lastErr || "All signal models failed");
@@ -520,7 +519,7 @@
 Current time: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.
 
 === REMINDER INSTRUCTIONS ===
-When Boss asks you to remind him IN X MINUTES, add X minutes to current time and append [REMINDER: HH:MM - message].
+When Boss asks you to remind him IN X MINUTES, add X minutes to current IST time and append [REMINDER: HH:MM - message].
 When given absolute time (e.g. "at 4 PM"), use [REMINDER: 16:00 - message].
 
 === MEMORY ===
