@@ -10,7 +10,7 @@
     <style>
         :root { --bg:#0a0e17; --card-bg:rgba(255,255,255,0.03); --card-border:rgba(255,255,255,0.08);
             --text-main:#fff; --text-muted:#8a94a6; --green:#2ecc71; --yellow:#f1c40f;
-            --red:#e74c3c; --blue:#4a90e2; }
+            --red:#e74c3c; --blue:#4a90e2; --purple:#a855f7; }
         * { box-sizing:border-box; margin:0; padding:0; }
         body { font-family:'Inter',sans-serif; background-color:var(--bg);
             background-image:radial-gradient(circle at 50% 0%, #1a2333 0%, var(--bg) 70%);
@@ -48,6 +48,7 @@
             padding:5px 10px; border-radius:6px; font-size:0.75rem; cursor:pointer; transition:all 0.2s; }
         .btn:hover { background:rgba(255,255,255,0.1); }
         .btn.active { background:var(--blue); border-color:var(--blue); }
+        .btn.active.deep { background:var(--purple); border-color:var(--purple); }
         .btn.danger { background:rgba(231,76,60,0.2); border-color:rgba(231,76,60,0.5); color:#ff9999; }
         .panel { display:none; background:rgba(0,0,0,0.3); padding:10px; border-radius:8px;
             margin-bottom:10px; font-size:0.8rem; border:1px solid rgba(255,255,255,0.05); }
@@ -58,6 +59,7 @@
         .msg.user { background:var(--blue); align-self:flex-end; }
         .msg.ai { background:rgba(255,255,255,0.1); align-self:flex-start; border-left:3px solid var(--blue); }
         .msg.system { background:rgba(241,196,15,0.1); border:1px solid rgba(241,196,15,0.3); align-self:center; font-size:0.75rem; text-align:center; }
+        .msg.thinking { background:rgba(168,85,247,0.1); border-left:3px solid var(--purple); font-style:italic; color:#c4b5fd; }
         .chat-input-row { display:flex; gap:8px; }
         .chat-input-row input { flex:1; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1);
             color:white; padding:10px; border-radius:8px; outline:none; }
@@ -68,6 +70,8 @@
         .stat-label { color:var(--text-muted); }
         @keyframes fadeIn { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
         .fade-in { animation:fadeIn 0.3s ease-in; }
+        @keyframes thinking { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+        .thinking-pulse { animation:thinking 1.5s ease-in-out infinite; }
     </style>
 </head>
 <body>
@@ -102,7 +106,7 @@
             <div class="card-title">Ask Your AI Trader
                 <div class="chat-controls">
                     <button class="btn active" id="browser-ai-toggle">🤖 AI ON</button>
-                    <button class="btn" id="deep-think-toggle" onclick="toggleDeepThink()">🧠 Deep OFF</button>
+                    <button class="btn active deep" id="deep-think-toggle" onclick="toggleDeepThink()">🧠 Deep ON</button>
                     <button class="btn" id="web-toggle" onclick="toggleWeb()">🌐 Web OFF</button>
                     <button class="btn" onclick="togglePanel('panel-reminders')">🔔</button>
                     <button class="btn" onclick="togglePanel('panel-memory')">💾</button>
@@ -135,7 +139,7 @@
                 <input type="password" id="api-key-input" placeholder="AIzaSy..." style="width:100%; padding:8px; margin-top:5px; border-radius:6px; border:1px solid #444; background:#111; color:white;">
                 <button class="btn" style="margin-top:5px;" onclick="saveApiKey()">Save Key</button>
             </div>
-            <div class="chat-history" id="chat-history"><div class="msg ai fade-in">Memory restored — Boss and I are back in the flow.</div></div>
+            <div class="chat-history" id="chat-history"><div class="msg ai fade-in">Deep Think is ON — Boss and I are ready to reason.</div></div>
             <div class="chat-input-row">
                 <input type="text" id="chat-input" placeholder="Ask me anything, Boss..." onkeypress="if(event.key==='Enter') sendChat()">
                 <button onclick="sendChat()">Send</button>
@@ -166,7 +170,7 @@
         const CONTEXT_URL = 'https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/personal_context.json';
 
         let globalData = null, personalContext = null;
-        let webSearchEnabled = false, deepThinkEnabled = false, isSpeaking = false, chatInProgress = false;
+        let webSearchEnabled = false, deepThinkEnabled = true, isSpeaking = false, chatInProgress = false;
         let chatHistory = JSON.parse(localStorage.getItem('eurusd_chat_history') || '[]');
         let longTermMemory = JSON.parse(localStorage.getItem('eurusd_long_term_memory') || '[]');
         let reminders = JSON.parse(localStorage.getItem('eurusd_reminders') || '[]');
@@ -178,7 +182,7 @@
 
         document.body.addEventListener('click', () => { if ('speechSynthesis' in window) window.speechSynthesis.getVoices(); }, { once: true });
 
-        // --- THREE.JS NEURAL CORE ---
+        // --- THREE.JS NEURAL CORE (Purple when Deep Think ON) ---
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
@@ -188,11 +192,11 @@
         renderer.setPixelRatio(window.devicePixelRatio);
         container.appendChild(renderer.domElement);
 
-        const glowSphere = new THREE.Mesh(new THREE.SphereGeometry(1.2, 32, 32), new THREE.MeshBasicMaterial({ color: 0x4a90e2, transparent: true, opacity: 0.15 }));
+        const glowSphere = new THREE.Mesh(new THREE.SphereGeometry(1.2, 32, 32), new THREE.MeshBasicMaterial({ color: 0xa855f7, transparent: true, opacity: 0.15 }));
         scene.add(glowSphere);
-        const innerCore = new THREE.Mesh(new THREE.IcosahedronGeometry(1.0, 1), new THREE.MeshBasicMaterial({ color: 0x4a90e2, wireframe: true, transparent: true, opacity: 0.8 }));
+        const innerCore = new THREE.Mesh(new THREE.IcosahedronGeometry(1.0, 1), new THREE.MeshBasicMaterial({ color: 0xa855f7, wireframe: true, transparent: true, opacity: 0.8 }));
         scene.add(innerCore);
-        const outerShell = new THREE.Mesh(new THREE.IcosahedronGeometry(1.8, 1), new THREE.MeshBasicMaterial({ color: 0x4a90e2, wireframe: true, transparent: true, opacity: 0.4 }));
+        const outerShell = new THREE.Mesh(new THREE.IcosahedronGeometry(1.8, 1), new THREE.MeshBasicMaterial({ color: 0xa855f7, wireframe: true, transparent: true, opacity: 0.4 }));
         scene.add(outerShell);
 
         let pulseTime = 0;
@@ -214,8 +218,9 @@
         });
         function updateCoreColor(signal) {
             let color = 0xf1c40f;
-            if (signal === 'BUY') color = 0x2ecc71;
-            if (signal === 'SELL') color = 0xe74c3c;
+            if (deepThinkEnabled) color = 0xa855f7;
+            else if (signal === 'BUY') color = 0x2ecc71;
+            else if (signal === 'SELL') color = 0xe74c3c;
             glowSphere.material.color.setHex(color); innerCore.material.color.setHex(color); outerShell.material.color.setHex(color);
         }
 
@@ -274,13 +279,13 @@
             return [];
         }
 
-        // --- GENERATE SIGNAL ---
+        // --- GENERATE SIGNAL WITH REASONING ---
         async function generateSignalFromScratch() {
             if (!apiKey) { document.getElementById('val-reason').innerText = "Please enter your Gemini API Key."; return; }
             const signalText = document.getElementById('signal-text');
-            signalText.innerText = "FETCHING...";
-            signalText.style.color = "var(--blue)";
-            document.getElementById('val-reason').innerText = "Downloading candles...";
+            signalText.innerText = "REASONING...";
+            signalText.style.color = "var(--purple)";
+            document.getElementById('val-reason').innerText = "Downloading 5m, 15m, 1H, Daily candles...";
 
             const [candles5m, candles15m, candles1H, candlesDaily] = await Promise.all([
                 fetchYahooCandles('5m', '5d'), fetchYahooCandles('15m', '5d'),
@@ -299,7 +304,7 @@
             }
 
             signalText.innerText = "ANALYZING...";
-            document.getElementById('val-reason').innerText = "Asking Gemini...";
+            document.getElementById('val-reason').innerText = "Gemini is reasoning through the data...";
 
             const closes1H = candles1H.map(c => c.close), highs1H = candles1H.map(c => c.high), lows1H = candles1H.map(c => c.low);
             const closes5m = candles5m.map(c => c.close), highs5m = candles5m.map(c => c.high), lows5m = candles5m.map(c => c.low);
@@ -320,20 +325,40 @@
             const dataString = `CURRENT PRICE: ${currentPrice.toFixed(5)}\n\n5m:\n${fmt(candles5m)}\nRSI5m: ${rsi5m.toFixed(2)}\n\n15m:\n${fmt(candles15m)}\nRSI15m: ${rsi15m.toFixed(2)}\n\n1H:\n${fmt(candles1H)}\nEMA20:${ema20[ema20.length-1].toFixed(5)} EMA50:${ema50[ema50.length-1].toFixed(5)} RSI:${rsi1H.toFixed(2)} ATR:${atr.toFixed(5)}\n\nDaily:\n${fmt(candlesDaily)}\n\nSupport:${support.toFixed(5)} Resistance:${resistance.toFixed(5)} Trend:${trend}`;
 
             try {
-                const prompt = `You are a professional EUR/USD hedge fund trader. TIME: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.\n${dataString}\n\nAnalyze 5m(entry), 15m(structure), 1H(trend), Daily(big picture). If aligned=HIGH, if conflicting=LOW.\nRespond ONLY valid JSON: {"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
+                const prompt = `You are a SENIOR EUR/USD hedge fund trader. Think through this carefully before answering.
+TIME: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.
+
+${dataString}
+
+REASONING PROCESS (think internally, do not output):
+1. What is the BIG PICTURE on Daily? Is the market trending or ranging?
+2. What is the 1H structure saying? Aligned with Daily or conflicting?
+3. Are the 15m and 5m in agreement with the higher timeframes?
+4. Where is price relative to support/resistance? Is there a clear level to trade from?
+5. What would invalidate this setup?
+6. What is the best risk/reward?
+
+If ALL timeframes align = HIGH confidence.
+If they conflict = LOW confidence, recommend HOLD or wait.
+If mixed = MEDIUM.
+
+Respond ONLY with valid JSON:
+{"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences explaining the multi-timeframe alignment and why now","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
 
                 const payload = { contents: [{ role: 'user', parts: [{ text: prompt }] }] };
                 const modelsToTry = await getAvailableGeminiModels();
                 let reply = null;
+                let usedModel = '';
                 for (const model of modelsToTry) {
                     try {
                         const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
                             method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)
                         });
-                        if (res.ok) { const d = await res.json(); reply = d.candidates[0].content.parts[0].text; break; }
+                        if (res.ok) { const d = await res.json(); reply = d.candidates[0].content.parts[0].text; usedModel = model; break; }
                     } catch(e) { continue; }
                 }
                 if (!reply) throw new Error("All models failed");
+                console.log(`Signal generated using: ${usedModel}`);
                 const sig = JSON.parse(reply.replace(/```json/g,'').replace(/```/g,'').trim());
 
                 globalData = { price: currentPrice.toFixed(5), signal: sig.signal, reason: sig.reason, confidence: sig.confidence, entry: sig.entry, sl: sig.sl, tp: sig.tp, atr: atr.toFixed(5), support: support.toFixed(5), resistance: resistance.toFixed(5), trend: trend, valid: new Date(Date.now()+1800000).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})+" IST", wise_words: sig.wise_words, candle_current: `5m:${currentPrice.toFixed(5)} | 15m RSI:${rsi15m.toFixed(1)}`, candle_1h: `1H Trend:${trend} | RSI:${rsi1H.toFixed(1)}`, candle_4h: `ATR:${atr.toFixed(5)} | S/R:${support.toFixed(4)}/${resistance.toFixed(4)}` };
@@ -417,7 +442,14 @@
         }
         function saveChatHistory() { if (chatHistory.length > 40) chatHistory = chatHistory.slice(-40); localStorage.setItem('eurusd_chat_history', JSON.stringify(chatHistory)); }
         function clearChat() { chatHistory = []; saveChatHistory(); renderChat(); }
-        function toggleDeepThink() { deepThinkEnabled = !deepThinkEnabled; const b = document.getElementById('deep-think-toggle'); b.classList.toggle('active', deepThinkEnabled); b.innerText = deepThinkEnabled ? '🧠 Deep ON' : '🧠 Deep OFF'; }
+        function toggleDeepThink() {
+            deepThinkEnabled = !deepThinkEnabled;
+            const b = document.getElementById('deep-think-toggle');
+            b.classList.toggle('active', deepThinkEnabled);
+            b.classList.toggle('deep', deepThinkEnabled);
+            b.innerText = deepThinkEnabled ? '🧠 Deep ON' : '🧠 Deep OFF';
+            updateCoreColor(globalData?.signal || 'HOLD');
+        }
         function toggleWeb() { webSearchEnabled = !webSearchEnabled; const b = document.getElementById('web-toggle'); b.innerText = webSearchEnabled ? '🌐 Web ON' : '🌐 Web OFF'; b.classList.toggle('active', webSearchEnabled); }
         function togglePanel(id) { const el = document.getElementById(id); el.classList.toggle('active');
             if (id === 'panel-reminders') renderReminders();
@@ -447,13 +479,14 @@
             if (!apiKey) { alert("Set your Gemini API Key first."); togglePanel('panel-key'); return; }
 
             chatInProgress = true;
-            document.getElementById('ai-refresh-timer').innerText = "Chatting with AI...";
+            document.getElementById('ai-refresh-timer').innerText = deepThinkEnabled ? "🧠 Deep reasoning..." : "Chatting with AI...";
 
             input.value = '';
             chatHistory.push({role:'user', text}); renderChat(); saveChatHistory();
 
             const loading = document.createElement('div');
-            loading.className = 'msg ai fade-in'; loading.innerText = '...';
+            loading.className = 'msg ai thinking fade-in';
+            loading.innerText = deepThinkEnabled ? '🧠 Thinking deeply...' : '...';
             document.getElementById('chat-history').appendChild(loading);
             document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight;
 
@@ -478,60 +511,102 @@
         }
 
         async function getAvailableGeminiModels() {
-            if (cachedModels) return cachedModels;
+            if (cachedModels && !deepThinkEnabled) return cachedModels;
             try {
                 const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
                 if (r.ok) {
                     const d = await r.json();
                     const valid = d.models.filter(m => m.supportedGenerationMethods?.includes('generateContent')).map(m => m.name.replace('models/',''));
-                    if (valid.length > 0) { cachedModels = valid.sort((a,b) => (a.includes('2.5-flash')?-1:1)); return cachedModels; }
+                    if (valid.length > 0) {
+                        // Sort: 2.5-flash (thinking) first, then 2.5-pro, then 2.0-flash, then 1.5
+                        const sorted = valid.sort((a, b) => {
+                            const score = (m) => {
+                                if (m.includes('2.5-flash')) return 1;
+                                if (m.includes('2.5-pro')) return 2;
+                                if (m.includes('2.0-flash')) return 3;
+                                if (m.includes('1.5-flash')) return 4;
+                                return 10;
+                            };
+                            return score(a) - score(b);
+                        });
+                        if (!deepThinkEnabled) cachedModels = sorted;
+                        return sorted;
+                    }
                 }
             } catch(e) {}
-            return ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash-latest'];
+            // Fallback
+            if (deepThinkEnabled) return ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash'];
+            return ['gemini-2.0-flash', 'gemini-1.5-flash-latest'];
         }
 
         async function callGeminiAPI(userText) {
             const recent = chatHistory.slice(-3);
             const recentMem = longTermMemory.slice(-8);
             
-            // FIXED PROMPT: Explicitly teaches the AI how to handle "in X mins"
-            const systemPrompt = `You are Boss's AI trading assistant. Friendly, funny, motivational. No emojis. Call him "Boss".
+            const systemPrompt = `You are Boss's senior AI trading assistant. Friendly, wise, and deeply analytical. No emojis. Call him "Boss".
+
 Current time: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.
 Personal context: ${JSON.stringify(personalContext)}.
 Memory: ${JSON.stringify(recentMem)}.
+
+REASONING APPROACH (think internally, do not output):
+1. Understand what Boss is really asking (trade idea? market view? personal? reminder?)
+2. Consider the context, market conditions, and his goals (10,000 INR/month, conservative).
+3. Weigh pros and cons before answering.
+4. Give a clear, decisive answer.
+
 CRITICAL RULES:
-1. Do NOT output thought process, self-evaluation, or bullet points. ONLY output the final spoken message.
-2. If Boss asks you to remind him IN X MINUTES, you MUST calculate the time by adding X minutes to the current IST time. Then append [REMINDER: HH:MM - message].
-3. If Boss gives an absolute time (e.g., "at 4 PM"), use that exact time in [REMINDER: HH:MM - message].
-4. If you learn a new fact about him, append [REMEMBER: fact].`;
+- Do NOT output your thought process, self-evaluation, bullet points, or internal dialogue. ONLY output the final spoken message.
+- If Boss asks you to remind him IN X MINUTES, calculate the exact IST time (current time + X minutes) and append [REMINDER: HH:MM - message]. Example: if it's 15:00 IST and he says "in 2 mins", use [REMINDER: 15:02 - message].
+- If he gives an absolute time, use that time.
+- If you learn a new fact about him, append [REMEMBER: fact].
+
+Keep responses focused and confident. Boss values intelligence, not chattiness.`;
 
             const contents = [
                 {role:'user', parts:[{text: systemPrompt}]},
                 ...recent.map(m => ({role: m.role === 'ai' ? 'model' : 'user', parts:[{text: m.text}]})),
                 {role:'user', parts:[{text: userText}]}
             ];
-            const payload = { contents, tools: webSearchEnabled ? [{google_search:{}}] : [], generationConfig: { maxOutputTokens: 400 }};
+            
+            // Deep Think: allow more output tokens for detailed reasoning
+            const payload = { 
+                contents, 
+                tools: webSearchEnabled ? [{google_search:{}}] : [], 
+                generationConfig: { maxOutputTokens: deepThinkEnabled ? 800 : 400 }
+            };
 
             const models = await getAvailableGeminiModels();
+            
+            // Deep Think: try up to 4 models. Normal: try 2.
+            const limit = deepThinkEnabled ? 4 : 2;
             let lastErr = null;
             
-            for (const model of models.slice(0, 3)) {
+            for (const model of models.slice(0, limit)) {
                 try {
+                    // Deep Think: allow 30s per model. Normal: 15s.
+                    const timeout = deepThinkEnabled ? 30000 : 15000;
+                    const ctrl = new AbortController();
+                    const tid = setTimeout(() => ctrl.abort(), timeout);
+                    
                     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-                        method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)
+                        method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload), signal: ctrl.signal
                     });
+                    clearTimeout(tid);
+                    
                     if (r.ok) {
                         const d = await r.json();
                         let reply = d.candidates[0].content.parts[0].text;
                         if (webSearchEnabled && d.candidates[0].groundingMetadata?.groundingChunks) {
                             reply += "\n\nSources:\n" + d.candidates[0].groundingMetadata.groundingChunks.map(s => `- ${s.web?.title || 'Source'}`).join('\n');
                         }
+                        console.log(`Chat reply from: ${model}`);
                         return reply;
                     } else {
                         const err = await r.json();
                         lastErr = err.error?.message || 'API failed';
                     }
-                } catch(e) { lastErr = e.message; }
+                } catch(e) { lastErr = e.name === 'AbortError' ? 'Thinking too long, try again' : e.message; }
             }
             throw new Error(lastErr || "All Gemini models busy. Wait 30 seconds and try again.");
         }
@@ -557,6 +632,7 @@ CRITICAL RULES:
             renderChat(); renderReminders(); renderMemory();
             if ('speechSynthesis' in window) window.speechSynthesis.getVoices();
             if (gistToken && gistId) loadMemoryFromGist();
+            updateCoreColor('HOLD'); // Purple because Deep Think is ON
 
             generateSignalFromScratch();
             resetTimer();
