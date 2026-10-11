@@ -4,132 +4,854 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <title>EUR/USD AI Pro Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <title>EUR/USD AI PRO</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        :root { --bg: #0a0e17; --card: rgba(255,255,255,0.03); --border: rgba(255,255,255,0.08); --text: #e2e8f0; --muted: #94a3b8; --green: #00ff88; --red: #ff3366; --yellow: #ffcc00; --accent: #3b82f6; --purple: #8b5cf6; --pink: #ec4899; }
+        :root { 
+            --bg: #02030a;
+            --panel: rgba(0, 20, 30, 0.55);
+            --border: rgba(0, 240, 255, 0.35);
+            --border-dim: rgba(0, 240, 255, 0.12);
+            --cyan: #00f0ff;
+            --cyan-dim: #0099aa;
+            --magenta: #ff2d9b;
+            --green: #00ff9f;
+            --red: #ff2d55;
+            --yellow: #ffcc00;
+            --text: #b8e8ff;
+            --text-dim: #4a7080;
+            --bg-grid: rgba(0, 240, 255, 0.06);
+        }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 20px; background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #0a0e17 70%); }
-        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 15px; border-bottom: 1px solid var(--border); }
-        h1 { font-size: 1.5rem; font-weight: 800; }
-        .status-badge { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; font-weight: 600; color: var(--green); background: rgba(0,255,136,0.1); padding: 6px 12px; border-radius: 20px; border: 1px solid rgba(0,255,136,0.2); }
-        .pulse-dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0,255,136,0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(0,255,136,0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0,255,136,0); } }
-        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        html, body { overflow-x: hidden; }
+        body { 
+            font-family: 'Rajdhani', 'Share Tech Mono', sans-serif; 
+            background: var(--bg); 
+            color: var(--text); 
+            min-height: 100vh; 
+            padding: 20px;
+            position: relative;
+            background-image: 
+                radial-gradient(circle at 50% 0%, rgba(0, 100, 120, 0.15) 0%, transparent 60%),
+                linear-gradient(var(--bg-grid) 1px, transparent 1px),
+                linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px);
+            background-size: 100% 100%, 40px 40px, 40px 40px;
+        }
+        /* Scanline overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 0, 0, 0) 0px,
+                rgba(0, 0, 0, 0) 2px,
+                rgba(0, 240, 255, 0.02) 2px,
+                rgba(0, 240, 255, 0.02) 4px
+            );
+            pointer-events: none;
+            z-index: 9999;
+        }
+        /* Moving scan light */
+        body::after {
+            content: '';
+            position: fixed;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.5), transparent);
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.8);
+            animation: topScan 8s linear infinite;
+            pointer-events: none;
+            z-index: 9998;
+        }
+        @keyframes topScan {
+            0% { top: 0; }
+            100% { top: 100vh; }
+        }
+
+        /* ═══ HEADER ═══ */
+        header {
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            margin-bottom: 24px; 
+            padding-bottom: 14px;
+            border-bottom: 1px solid var(--border-dim);
+            position: relative;
+        }
+        header::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 200px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--cyan), transparent);
+            box-shadow: 0 0 12px var(--cyan);
+        }
+        h1 { 
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.4rem; 
+            font-weight: 900;
+            color: var(--cyan);
+            letter-spacing: 4px;
+            text-shadow: 0 0 10px rgba(0, 240, 255, 0.7), 0 0 20px rgba(0, 240, 255, 0.4);
+        }
+        h1::before { content: '◤ '; color: var(--magenta); opacity: 0.8; }
+        h1::after { content: ' ◥'; color: var(--magenta); opacity: 0.8; }
+
+        .status-badge {
+            display: flex; align-items: center; gap: 10px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.7rem; font-weight: 400;
+            color: var(--green);
+            background: rgba(0, 255, 159, 0.08);
+            padding: 6px 14px; 
+            border: 1px solid rgba(0, 255, 159, 0.4);
+            letter-spacing: 2px;
+            position: relative;
+        }
+        .status-badge::before,
+        .status-badge::after {
+            content: '';
+            position: absolute;
+            width: 6px; height: 6px;
+            border: 1px solid var(--green);
+        }
+        .status-badge::before { top: -3px; left: -3px; border-right: none; border-bottom: none; }
+        .status-badge::after { bottom: -3px; right: -3px; border-left: none; border-top: none; }
+        .pulse-dot {
+            width: 6px; height: 6px;
+            background: var(--green); 
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--green);
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse { 
+            0% { opacity: 1; transform: scale(1); } 
+            50% { opacity: 0.4; transform: scale(0.8); } 
+            100% { opacity: 1; transform: scale(1); } 
+        }
+
+        /* ═══ GRID ═══ */
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
         @media (max-width: 768px) { .dashboard-grid { grid-template-columns: 1fr; } }
-        .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; backdrop-filter: blur(10px); transition: 0.2s; }
-        .card h2 { font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 20px; }
+
+        /* ═══ CARD — HUD PANEL ═══ */
+        .card { 
+            background: var(--panel);
+            border: 1px solid var(--border-dim);
+            padding: 20px; 
+            position: relative;
+            backdrop-filter: blur(6px);
+            transition: all 0.3s;
+        }
+        .card::before, .card::after {
+            content: '';
+            position: absolute;
+            width: 14px; height: 14px;
+            border-color: var(--cyan);
+            transition: all 0.3s;
+        }
+        .card::before {
+            top: -1px; left: -1px;
+            border-top: 2px solid var(--cyan);
+            border-left: 2px solid var(--cyan);
+            box-shadow: -2px -2px 8px rgba(0, 240, 255, 0.4);
+        }
+        .card::after {
+            bottom: -1px; right: -1px;
+            border-bottom: 2px solid var(--cyan);
+            border-right: 2px solid var(--cyan);
+            box-shadow: 2px 2px 8px rgba(0, 240, 255, 0.4);
+        }
+        .card:hover { 
+            border-color: var(--border);
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.15), inset 0 0 30px rgba(0, 240, 255, 0.03);
+        }
+        .card:hover::before, .card:hover::after {
+            box-shadow: 0 0 16px var(--cyan);
+        }
+
+        /* Card heading */
+        .card h2 { 
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.7rem; 
+            font-weight: 600;
+            text-transform: uppercase; 
+            letter-spacing: 3px; 
+            color: var(--cyan);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-dim);
+            text-shadow: 0 0 6px rgba(0, 240, 255, 0.5);
+        }
+        .card h2::before {
+            content: '▮';
+            color: var(--magenta);
+            font-size: 0.9rem;
+            text-shadow: 0 0 8px var(--magenta);
+        }
         
-        #canvas-container { width: 100%; height: 420px; display: flex; justify-content: center; align-items: center; position: relative; background: radial-gradient(circle at center, rgba(139,92,246,0.12) 0%, rgba(59,130,246,0.05) 40%, transparent 70%); border-radius: 12px; overflow: hidden; }
-        #canvas-container::before { content: ''; position: absolute; inset: 0; background-image: linear-gradient(rgba(139,92,246,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(139,92,246,0.06) 1px, transparent 1px); background-size: 24px 24px; pointer-events: none; opacity: 0.5; }
-        .core-label { text-align: center; color: var(--muted); font-size: 0.75rem; letter-spacing: 2px; text-transform: uppercase; margin-top: 10px; opacity: 0.6; animation: fadeLabel 3s ease-in-out infinite; }
-        @keyframes fadeLabel { 0%,100% { opacity: 0.4; } 50% { opacity: 0.8; } }
+        #canvas-container { 
+            width: 100%; 
+            height: 420px; 
+            position: relative; 
+            background: radial-gradient(circle at center, rgba(139,92,246,0.12) 0%, rgba(0,240,255,0.05) 40%, transparent 70%); 
+            border: 1px solid var(--border-dim);
+            overflow: hidden;
+        }
+        #canvas-container::before { 
+            content: ''; 
+            position: absolute; 
+            inset: 0; 
+            background-image: 
+                linear-gradient(rgba(0,240,255,0.06) 1px, transparent 1px), 
+                linear-gradient(90deg, rgba(0,240,255,0.06) 1px, transparent 1px); 
+            background-size: 24px 24px; 
+            pointer-events: none; 
+            opacity: 0.6; 
+        }
+        .core-label { 
+            text-align: center; 
+            font-family: 'Share Tech Mono', monospace;
+            color: var(--cyan); 
+            font-size: 0.68rem; 
+            letter-spacing: 4px; 
+            text-transform: uppercase; 
+            margin-top: 12px; 
+            opacity: 0.75;
+            animation: fadeLabel 3s ease-in-out infinite;
+            text-shadow: 0 0 6px rgba(0,240,255,0.6);
+        }
+        @keyframes fadeLabel { 0%,100% { opacity: 0.45; } 50% { opacity: 0.9; } }
         
-        .signal-display { text-align: center; margin-bottom: 20px; }
-        .signal-text { font-size: 3rem; font-weight: 800; transition: color 0.5s; }
-        .signal-text.buy { color: var(--green); text-shadow: 0 0 20px rgba(0,255,136,0.4); }
-        .signal-text.sell { color: var(--red); text-shadow: 0 0 20px rgba(255,51,102,0.4); }
-        .signal-text.hold, .signal-text.waiting { color: var(--yellow); text-shadow: 0 0 20px rgba(255,204,0,0.4); }
-        .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .data-item { background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; }
-        .data-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
-        .data-value { font-size: 1.1rem; font-weight: 600; font-family: monospace; }
-        .voice-controls { display: flex; gap: 10px; margin-top: 20px; }
-        .voice-btn { flex: 1; padding: 16px; background: linear-gradient(135deg, var(--accent), var(--purple)); border: none; border-radius: 12px; color: white; font-size: 1rem; font-weight: 600; cursor: pointer; transition: 0.2s; }
-        .voice-btn.stop { background: linear-gradient(135deg, #ff3366, #cc0033); flex: 0.4; }
-        .voice-btn:hover { opacity: 0.9; }
-        .candle-analysis { padding: 15px; background: rgba(0,0,0,0.2); border-radius: 10px; font-size: 0.85rem; line-height: 1.6; }
-        .candle-item { margin-bottom: 12px; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 8px; }
+        .signal-display { text-align: center; margin-bottom: 18px; }
+        .signal-text { 
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3.4rem; 
+            font-weight: 900; 
+            letter-spacing: 8px;
+            transition: all 0.5s; 
+            position: relative;
+        }
+        .signal-text.buy { 
+            color: var(--green); 
+            text-shadow: 0 0 15px var(--green), 0 0 30px rgba(0,255,159,0.5), 0 0 50px rgba(0,255,159,0.3);
+        }
+        .signal-text.sell { 
+            color: var(--red); 
+            text-shadow: 0 0 15px var(--red), 0 0 30px rgba(255,45,85,0.5), 0 0 50px rgba(255,45,85,0.3);
+        }
+        .signal-text.hold, .signal-text.waiting { 
+            color: var(--yellow); 
+            text-shadow: 0 0 15px var(--yellow), 0 0 30px rgba(255,204,0,0.5), 0 0 50px rgba(255,204,0,0.3);
+        }
+
+        /* Data grid */
+        .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .data-item { 
+            background: rgba(0, 240, 255, 0.03);
+            border-left: 2px solid var(--border);
+            padding: 10px 12px; 
+            position: relative;
+            transition: all 0.2s;
+        }
+        .data-item:hover {
+            background: rgba(0, 240, 255, 0.06);
+            border-left-color: var(--cyan);
+        }
+        .data-item::before {
+            content: '';
+            position: absolute;
+            top: 0; right: 0;
+            width: 4px; height: 4px;
+            background: var(--cyan);
+            box-shadow: 0 0 6px var(--cyan);
+        }
+        .data-label { 
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.62rem; 
+            color: var(--text-dim); 
+            text-transform: uppercase; 
+            letter-spacing: 2px;
+            margin-bottom: 4px; 
+        }
+        .data-value { 
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 1rem; 
+            font-weight: 400; 
+            color: var(--cyan);
+            text-shadow: 0 0 6px rgba(0, 240, 255, 0.4);
+        }
+
+        /* Voice buttons */
+        .voice-controls { display: flex; gap: 8px; margin-top: 16px; }
+        .voice-btn { 
+            flex: 1; 
+            padding: 14px; 
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.15), rgba(255, 45, 155, 0.1)); 
+            border: 1px solid var(--cyan); 
+            color: var(--cyan); 
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.75rem; 
+            font-weight: 600; 
+            letter-spacing: 2px;
+            cursor: pointer; 
+            transition: all 0.2s; 
+            position: relative;
+            text-transform: uppercase;
+        }
+        .voice-btn::before {
+            content: '';
+            position: absolute;
+            top: -1px; left: -1px;
+            width: 6px; height: 6px;
+            border-top: 2px solid var(--cyan);
+            border-left: 2px solid var(--cyan);
+        }
+        .voice-btn::after {
+            content: '';
+            position: absolute;
+            bottom: -1px; right: -1px;
+            width: 6px; height: 6px;
+            border-bottom: 2px solid var(--cyan);
+            border-right: 2px solid var(--cyan);
+        }
+        .voice-btn:hover { 
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.3), rgba(255, 45, 155, 0.2));
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.4), inset 0 0 15px rgba(0, 240, 255, 0.1);
+            text-shadow: 0 0 10px var(--cyan);
+        }
+        .voice-btn.stop { 
+            background: linear-gradient(135deg, rgba(255, 45, 85, 0.15), rgba(255, 45, 85, 0.05)); 
+            border-color: var(--red);
+            color: var(--red);
+            flex: 0.4;
+        }
+        .voice-btn.stop::before, .voice-btn.stop::after { border-color: var(--red); }
+        .voice-btn.stop:hover {
+            box-shadow: 0 0 20px rgba(255, 45, 85, 0.4), inset 0 0 15px rgba(255, 45, 85, 0.1);
+            text-shadow: 0 0 10px var(--red);
+        }
+
+        /* Candle analysis */
+        .candle-analysis { 
+            padding: 14px; 
+            background: rgba(0, 240, 255, 0.03);
+            border-left: 2px solid var(--border);
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.8rem; 
+            line-height: 1.7;
+            color: var(--text);
+        }
+        .candle-item { 
+            margin-bottom: 10px; 
+            padding-bottom: 8px;
+            border-bottom: 1px dashed var(--border-dim);
+        }
         .candle-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-        .candle-timeframe { color: var(--accent); font-weight: 600; margin-right: 5px; }
-        .wise-box { background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(59,130,246,0.15)); padding: 20px; border-radius: 12px; border-left: 4px solid var(--purple); font-style: italic; font-size: 0.95rem; line-height: 1.7; color: #cbd5e1; }
-        .wise-label { display: block; font-style: normal; font-weight: 600; color: var(--purple); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+        .candle-timeframe { 
+            color: var(--magenta); 
+            font-weight: 600; 
+            margin-right: 6px;
+            text-shadow: 0 0 6px rgba(255, 45, 155, 0.5);
+            letter-spacing: 1px;
+        }
+        .candle-item span:last-child { color: var(--text); }
+
+        /* Wisdom box */
+        .wise-box { 
+            background: linear-gradient(135deg, rgba(255, 45, 155, 0.08), rgba(139, 92, 246, 0.06)); 
+            padding: 18px; 
+            border-left: 3px solid var(--magenta);
+            font-style: italic; 
+            font-size: 0.92rem; 
+            line-height: 1.7; 
+            color: var(--text);
+            position: relative;
+        }
+        .wise-box::before {
+            content: '';
+            position: absolute;
+            top: 6px; right: 6px;
+            width: 20px; height: 20px;
+            border-top: 1px solid var(--magenta);
+            border-right: 1px solid var(--magenta);
+            opacity: 0.5;
+        }
+        .wise-label { 
+            display: block; 
+            font-family: 'Orbitron', sans-serif;
+            font-style: normal; 
+            font-weight: 600; 
+            color: var(--magenta); 
+            font-size: 0.68rem; 
+            text-transform: uppercase; 
+            letter-spacing: 3px; 
+            margin-bottom: 8px;
+            text-shadow: 0 0 8px rgba(255, 45, 155, 0.5);
+        }
+
+        /* Level grid */
         .level-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
-        .level-item { background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px; font-size: 0.8rem; }
-        .level-label { color: var(--muted); font-size: 0.7rem; text-transform: uppercase; }
-        .level-value { font-family: monospace; font-weight: 600; margin-top: 2px; }
-        .ai-reason-box { background: rgba(0,0,0,0.3); padding: 20px; border-radius: 12px; font-size: 0.95rem; line-height: 1.7; color: #e2e8f0; border-left: 4px solid var(--accent); }
-        .ai-reason-label { display: block; font-weight: 600; color: var(--accent); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
-        
+        .level-item { 
+            background: rgba(0, 240, 255, 0.03);
+            padding: 10px; 
+            border: 1px solid var(--border-dim);
+            font-size: 0.75rem; 
+            position: relative;
+        }
+        .level-item::before {
+            content: '';
+            position: absolute;
+            top: -1px; left: -1px;
+            width: 5px; height: 5px;
+            border-top: 1px solid var(--cyan);
+            border-left: 1px solid var(--cyan);
+        }
+        .level-label { 
+            font-family: 'Share Tech Mono', monospace;
+            color: var(--text-dim); 
+            font-size: 0.62rem; 
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .level-value { 
+            font-family: 'Share Tech Mono', monospace;
+            color: var(--cyan); 
+            font-weight: 400; 
+            margin-top: 3px;
+            text-shadow: 0 0 6px rgba(0, 240, 255, 0.4);
+        }
+
+        /* AI Reasoning */
+        .ai-reason-box { 
+            background: rgba(0, 240, 255, 0.03);
+            padding: 18px; 
+            border-left: 3px solid var(--cyan);
+            font-size: 0.92rem; 
+            line-height: 1.7; 
+            color: var(--text);
+            font-family: 'Rajdhani', sans-serif;
+            position: relative;
+        }
+        .ai-reason-box::before {
+            content: '';
+            position: absolute;
+            top: 6px; right: 6px;
+            width: 20px; height: 20px;
+            border-top: 1px solid var(--cyan);
+            border-right: 1px solid var(--cyan);
+            opacity: 0.5;
+        }
+        .ai-reason-label { 
+            display: block; 
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 600; 
+            color: var(--cyan); 
+            font-size: 0.68rem; 
+            text-transform: uppercase; 
+            letter-spacing: 3px; 
+            margin-bottom: 8px;
+            text-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
+        }
+
+        /* ═══ CHAT ═══ */
         .chat-container { display: flex; flex-direction: column; gap: 12px; }
-        .chat-messages { max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 10px; min-height: 120px; }
+        .chat-messages { 
+            max-height: 380px; 
+            overflow-y: auto; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 10px; 
+            padding: 12px; 
+            background: rgba(0, 10, 20, 0.6);
+            border: 1px solid var(--border-dim);
+            min-height: 120px; 
+            position: relative;
+        }
+        .chat-messages::before {
+            content: 'TERMINAL::ACTIVE';
+            position: absolute;
+            top: 4px; right: 8px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.55rem;
+            color: var(--text-dim);
+            letter-spacing: 2px;
+        }
         .chat-messages::-webkit-scrollbar { width: 6px; }
-        .chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-        .chat-msg { padding: 12px 16px; border-radius: 12px; font-size: 0.9rem; line-height: 1.6; max-width: 85%; word-wrap: break-word; white-space: pre-wrap; }
-        .chat-msg.user { background: linear-gradient(135deg, var(--accent), var(--purple)); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
-        .chat-msg.ai { background: rgba(255,255,255,0.05); color: var(--text); align-self: flex-start; border-bottom-left-radius: 4px; border-left: 3px solid var(--green); }
-        .chat-msg.system { background: rgba(148,163,184,0.1); color: var(--muted); align-self: center; font-size: 0.8rem; font-style: italic; text-align: center; }
-        .chat-msg.thinking { background: rgba(255,255,255,0.05); color: var(--muted); align-self: flex-start; font-style: italic; }
-        .chat-msg.error { background: rgba(255,51,102,0.1); color: var(--red); align-self: flex-start; border-left: 3px solid var(--red); font-family: monospace; font-size: 0.75rem; max-width: 100%; }
+        .chat-messages::-webkit-scrollbar-track { background: rgba(0, 240, 255, 0.05); }
+        .chat-messages::-webkit-scrollbar-thumb { 
+            background: var(--cyan-dim); 
+            box-shadow: 0 0 4px var(--cyan);
+        }
+        .chat-msg { 
+            padding: 10px 14px; 
+            font-size: 0.88rem; 
+            line-height: 1.6; 
+            max-width: 88%; 
+            word-wrap: break-word; 
+            white-space: pre-wrap;
+            font-family: 'Share Tech Mono', monospace;
+        }
+        .chat-msg.user { 
+            background: linear-gradient(135deg, rgba(255, 45, 155, 0.2), rgba(139, 92, 246, 0.15)); 
+            border: 1px solid rgba(255, 45, 155, 0.5); 
+            color: #ffb8dd; 
+            align-self: flex-end;
+            box-shadow: 0 0 12px rgba(255, 45, 155, 0.2);
+        }
+        .chat-msg.ai { 
+            background: rgba(0, 240, 255, 0.05); 
+            border: 1px solid rgba(0, 240, 255, 0.3); 
+            border-left: 3px solid var(--cyan);
+            color: var(--text); 
+            align-self: flex-start;
+            box-shadow: 0 0 12px rgba(0, 240, 255, 0.15);
+        }
+        .chat-msg.system { 
+            background: transparent; 
+            color: var(--text-dim); 
+            align-self: center; 
+            font-size: 0.72rem; 
+            font-style: italic; 
+            text-align: center;
+            letter-spacing: 1px;
+        }
+        .chat-msg.thinking { 
+            background: rgba(0, 240, 255, 0.05); 
+            color: var(--cyan-dim); 
+            align-self: flex-start; 
+            font-style: italic;
+            border-left: 3px solid var(--cyan-dim);
+        }
+        .chat-msg.error { 
+            background: rgba(255, 45, 85, 0.08); 
+            color: var(--red); 
+            align-self: flex-start; 
+            border-left: 3px solid var(--red); 
+            font-size: 0.72rem; 
+            max-width: 100%; 
+        }
         
-        .chat-speak-btn { display: inline-block; margin-left: 10px; padding: 4px 10px; background: rgba(0,255,136,0.15); border: 1px solid var(--green); border-radius: 6px; color: var(--text); font-size: 0.85rem; cursor: pointer; opacity: 0.9; transition: all 0.2s; vertical-align: middle; }
-        .chat-speak-btn:hover { opacity: 1; background: var(--green); color: #0a0e17; transform: scale(1.05); }
+        .chat-speak-btn { 
+            display: inline-block; 
+            margin-left: 10px; 
+            padding: 4px 10px; 
+            background: rgba(0, 240, 255, 0.1); 
+            border: 1px solid var(--cyan); 
+            color: var(--cyan); 
+            font-size: 0.75rem; 
+            cursor: pointer; 
+            transition: all 0.2s; 
+            vertical-align: middle; 
+        }
+        .chat-speak-btn:hover { 
+            background: var(--cyan); 
+            color: var(--bg); 
+            box-shadow: 0 0 12px var(--cyan);
+        }
         
-        .chat-sources { display: block; margin-top: 8px; font-size: 0.75rem; color: var(--muted); font-style: italic; }
-        .chat-sources a { color: var(--accent); text-decoration: none; word-break: break-all; }
-        .chat-sources a:hover { text-decoration: underline; }
-        
-        .chat-input-row { display: flex; gap: 10px; }
-        .chat-input { flex: 1; padding: 14px 16px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-size: 1rem; font-family: inherit; outline: none; transition: 0.2s; }
-        .chat-input:focus { border-color: var(--accent); }
-        .chat-input::placeholder { color: var(--muted); }
-        .chat-send { padding: 14px 20px; background: linear-gradient(135deg, var(--green), #00cc66); border: none; border-radius: 12px; color: #0a0e17; font-weight: 700; font-size: 1rem; cursor: pointer; transition: 0.2s; }
-        .chat-send:hover { opacity: 0.9; }
+        .chat-sources { 
+            display: block; 
+            margin-top: 8px; 
+            font-size: 0.68rem; 
+            color: var(--text-dim); 
+            font-style: italic; 
+        }
+        .chat-sources a { 
+            color: var(--cyan); 
+            text-decoration: none; 
+            word-break: break-all; 
+        }
+        .chat-sources a:hover { 
+            text-decoration: underline; 
+            text-shadow: 0 0 6px var(--cyan);
+        }
+
+        .chat-input-row { display: flex; gap: 8px; }
+        .chat-input { 
+            flex: 1; 
+            padding: 12px 14px; 
+            background: rgba(0, 10, 20, 0.8); 
+            border: 1px solid var(--border); 
+            color: var(--cyan); 
+            font-size: 0.9rem; 
+            font-family: 'Share Tech Mono', monospace;
+            outline: none; 
+            transition: all 0.2s;
+        }
+        .chat-input::placeholder { color: var(--text-dim); }
+        .chat-input:focus { 
+            border-color: var(--cyan); 
+            box-shadow: 0 0 12px rgba(0, 240, 255, 0.3), inset 0 0 8px rgba(0, 240, 255, 0.1);
+        }
+        .chat-send { 
+            padding: 12px 20px; 
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(0, 255, 159, 0.1)); 
+            border: 1px solid var(--green); 
+            color: var(--green); 
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700; 
+            font-size: 0.75rem; 
+            letter-spacing: 2px;
+            cursor: pointer; 
+            transition: all 0.2s; 
+            text-transform: uppercase;
+        }
+        .chat-send:hover { 
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.35), rgba(0, 255, 159, 0.25)); 
+            box-shadow: 0 0 16px rgba(0, 255, 159, 0.4);
+            text-shadow: 0 0 10px var(--green);
+        }
         .chat-send:disabled { opacity: 0.4; cursor: not-allowed; }
-        .chat-clear { padding: 10px 16px; background: rgba(148,163,184,0.15); border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-size: 0.8rem; cursor: pointer; align-self: flex-end; margin-top: 4px; }
-        .chat-clear:hover { color: var(--text); border-color: var(--accent); }
+        .chat-clear { 
+            padding: 8px 14px; 
+            background: transparent; 
+            border: 1px solid var(--border-dim); 
+            color: var(--text-dim); 
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.7rem; 
+            letter-spacing: 1px;
+            cursor: pointer; 
+            align-self: flex-end; 
+            margin-top: 4px; 
+            text-transform: uppercase;
+        }
+        .chat-clear:hover { 
+            color: var(--magenta); 
+            border-color: var(--magenta);
+            box-shadow: 0 0 8px rgba(255, 45, 155, 0.3);
+        }
         
-        .chat-header-buttons { display: flex; gap: 8px; margin-left: auto; }
-        .header-btn { background: none; border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-size: 0.75rem; padding: 6px 12px; cursor: pointer; transition: 0.2s; }
-        .header-btn:hover { color: var(--text); border-color: var(--accent); }
-        .header-btn.memory-btn { border-color: var(--purple); color: var(--purple); }
-        .header-btn.memory-btn:hover { background: rgba(139,92,246,0.15); }
-        .header-btn.web-btn { border-color: var(--green); color: var(--green); }
-        .header-btn.web-btn:hover { background: rgba(0,255,136,0.15); }
-        .header-btn.web-btn.disabled { border-color: var(--border); color: var(--muted); }
+        .chat-header-buttons { display: flex; gap: 6px; margin-left: auto; }
+        .header-btn { 
+            background: transparent; 
+            border: 1px solid var(--border-dim); 
+            color: var(--text-dim); 
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.65rem; 
+            padding: 5px 10px; 
+            cursor: pointer; 
+            transition: all 0.2s; 
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .header-btn:hover { 
+            color: var(--cyan); 
+            border-color: var(--cyan);
+            box-shadow: 0 0 8px rgba(0, 240, 255, 0.3);
+        }
+        .header-btn.memory-btn { 
+            color: var(--magenta); 
+            border-color: rgba(255, 45, 155, 0.4);
+        }
+        .header-btn.memory-btn:hover { 
+            border-color: var(--magenta);
+            box-shadow: 0 0 8px rgba(255, 45, 155, 0.4);
+        }
+        .header-btn.web-btn { 
+            color: var(--green); 
+            border-color: rgba(0, 255, 159, 0.4);
+        }
+        .header-btn.web-btn:hover { 
+            border-color: var(--green);
+            box-shadow: 0 0 8px rgba(0, 255, 159, 0.4);
+        }
+        .header-btn.web-btn.disabled { 
+            color: var(--text-dim); 
+            border-color: var(--border-dim);
+        }
         
-        .key-panel { background: linear-gradient(135deg, rgba(234,179,8,0.15), rgba(249,115,22,0.15)); border: 1px solid rgba(234,179,8,0.4); border-radius: 12px; padding: 16px; margin-bottom: 16px; display: none; }
+        /* Key panel */
+        .key-panel { 
+            background: rgba(255, 204, 0, 0.05); 
+            border: 1px solid rgba(255, 204, 0, 0.4); 
+            border-left: 3px solid var(--yellow);
+            padding: 16px; 
+            margin-bottom: 16px; 
+            display: none; 
+        }
         .key-panel.visible { display: block; }
-        .key-panel h3 { color: #fbbf24; font-size: 0.9rem; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
-        .key-panel p { font-size: 0.85rem; color: var(--muted); margin-bottom: 12px; line-height: 1.5; }
+        .key-panel h3 { 
+            font-family: 'Orbitron', sans-serif;
+            color: var(--yellow); 
+            font-size: 0.75rem; 
+            margin-bottom: 8px; 
+            text-transform: uppercase; 
+            letter-spacing: 3px;
+            text-shadow: 0 0 8px rgba(255, 204, 0, 0.5);
+        }
+        .key-panel p { 
+            font-size: 0.82rem; 
+            color: var(--text); 
+            margin-bottom: 12px; 
+            line-height: 1.5; 
+        }
         .key-input-row { display: flex; gap: 8px; }
-        .key-input { flex: 1; padding: 12px 14px; background: rgba(0,0,0,0.4); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-family: monospace; font-size: 0.85rem; outline: none; }
-        .key-input:focus { border-color: #fbbf24; }
-        .key-save-btn { padding: 12px 18px; background: linear-gradient(135deg, #fbbf24, #f59e0b); border: none; border-radius: 10px; color: #0a0e17; font-weight: 700; cursor: pointer; }
-        .key-save-btn:hover { opacity: 0.9; }
-        .key-status { font-size: 0.8rem; margin-top: 8px; color: var(--green); word-break: break-all; }
+        .key-input { 
+            flex: 1; 
+            padding: 10px 12px; 
+            background: rgba(0, 10, 20, 0.8); 
+            border: 1px solid var(--border-dim); 
+            color: var(--text); 
+            font-family: 'Share Tech Mono', monospace; 
+            font-size: 0.8rem; 
+            outline: none; 
+        }
+        .key-input:focus { 
+            border-color: var(--yellow); 
+            box-shadow: 0 0 8px rgba(255, 204, 0, 0.3);
+        }
+        .key-save-btn { 
+            padding: 10px 16px; 
+            background: rgba(255, 204, 0, 0.15); 
+            border: 1px solid var(--yellow); 
+            color: var(--yellow); 
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.7rem;
+            font-weight: 700; 
+            letter-spacing: 2px;
+            cursor: pointer; 
+            text-transform: uppercase;
+        }
+        .key-save-btn:hover { 
+            background: rgba(255, 204, 0, 0.3); 
+            box-shadow: 0 0 12px rgba(255, 204, 0, 0.4);
+        }
+        .key-status { 
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.72rem; 
+            margin-top: 8px; 
+            color: var(--green); 
+            word-break: break-all; 
+        }
         
-        .memory-panel { background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(59,130,246,0.15)); border: 1px solid rgba(139,92,246,0.4); border-radius: 12px; padding: 16px; margin-bottom: 16px; display: none; }
+        /* Memory panel */
+        .memory-panel { 
+            background: rgba(255, 45, 155, 0.05); 
+            border: 1px solid rgba(255, 45, 155, 0.4); 
+            border-left: 3px solid var(--magenta);
+            padding: 16px; 
+            margin-bottom: 16px; 
+            display: none; 
+        }
         .memory-panel.visible { display: block; }
-        .memory-panel h3 { color: var(--purple); font-size: 0.9rem; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
-        .memory-panel p { font-size: 0.85rem; color: var(--muted); margin-bottom: 12px; line-height: 1.5; }
-        .memory-list { display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; margin-bottom: 12px; }
-        .memory-item { display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.3); padding: 10px 12px; border-radius: 8px; font-size: 0.85rem; line-height: 1.5; }
-        .memory-item span { flex: 1; }
-        .memory-item .mem-date { font-size: 0.7rem; color: var(--muted); white-space: nowrap; }
-        .memory-item .mem-del { background: rgba(255,51,102,0.15); border: 1px solid rgba(255,51,102,0.3); color: var(--red); border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 0.75rem; }
-        .memory-item .mem-del:hover { background: rgba(255,51,102,0.3); }
-        .memory-empty { color: var(--muted); font-style: italic; font-size: 0.85rem; padding: 8px 0; }
+        .memory-panel h3 { 
+            font-family: 'Orbitron', sans-serif;
+            color: var(--magenta); 
+            font-size: 0.75rem; 
+            margin-bottom: 12px; 
+            text-transform: uppercase; 
+            letter-spacing: 3px;
+            text-shadow: 0 0 8px rgba(255, 45, 155, 0.5);
+        }
+        .memory-panel p { 
+            font-size: 0.82rem; 
+            color: var(--text); 
+            margin-bottom: 12px; 
+            line-height: 1.5; 
+        }
+        .memory-list { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 6px; 
+            max-height: 300px; 
+            overflow-y: auto; 
+            margin-bottom: 12px; 
+        }
+        .memory-item { 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+            background: rgba(0, 10, 20, 0.5); 
+            border-left: 2px solid var(--magenta);
+            padding: 8px 12px; 
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.78rem; 
+            line-height: 1.5; 
+        }
+        .memory-item span { flex: 1; color: var(--text); }
+        .memory-item .mem-date { 
+            font-size: 0.65rem; 
+            color: var(--text-dim); 
+            white-space: nowrap; 
+        }
+        .memory-item .mem-del { 
+            background: rgba(255, 45, 85, 0.15); 
+            border: 1px solid rgba(255, 45, 85, 0.4); 
+            color: var(--red); 
+            padding: 3px 8px; 
+            cursor: pointer; 
+            font-size: 0.7rem; 
+        }
+        .memory-item .mem-del:hover { 
+            background: rgba(255, 45, 85, 0.3); 
+            box-shadow: 0 0 6px rgba(255, 45, 85, 0.5);
+        }
+        .memory-empty { 
+            font-family: 'Share Tech Mono', monospace;
+            color: var(--text-dim); 
+            font-style: italic; 
+            font-size: 0.78rem; 
+            padding: 8px 0; 
+        }
         .memory-actions { display: flex; gap: 8px; }
-        .memory-action { padding: 8px 14px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; font-weight: 600; }
-        .memory-action.add { background: rgba(139,92,246,0.2); border: 1px solid var(--purple); color: var(--purple); }
-        .memory-action.add:hover { background: rgba(139,92,246,0.35); }
-        .memory-action.clear { background: rgba(255,51,102,0.15); border: 1px solid rgba(255,51,102,0.4); color: var(--red); }
-        .memory-action.clear:hover { background: rgba(255,51,102,0.3); }
+        .memory-action { 
+            padding: 7px 14px; 
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.68rem; 
+            letter-spacing: 1.5px;
+            cursor: pointer; 
+            font-weight: 600; 
+            text-transform: uppercase;
+        }
+        .memory-action.add { 
+            background: rgba(255, 45, 155, 0.15); 
+            border: 1px solid var(--magenta); 
+            color: var(--magenta); 
+        }
+        .memory-action.add:hover { 
+            background: rgba(255, 45, 155, 0.3); 
+            box-shadow: 0 0 12px rgba(255, 45, 155, 0.4);
+        }
+        .memory-action.clear { 
+            background: rgba(255, 45, 85, 0.1); 
+            border: 1px solid rgba(255, 45, 85, 0.5); 
+            color: var(--red); 
+        }
+        .memory-action.clear:hover { 
+            background: rgba(255, 45, 85, 0.25); 
+            box-shadow: 0 0 12px rgba(255, 45, 85, 0.4);
+        }
+
+        /* Mobile tweaks */
+        @media (max-width: 768px) {
+            body { padding: 12px; }
+            h1 { font-size: 1.1rem; letter-spacing: 2px; }
+            .signal-text { font-size: 2.6rem; letter-spacing: 5px; }
+            .card { padding: 16px; }
+            #canvas-container { height: 340px; }
+        }
     </style>
 </head>
 <body>
     <header>
-        <h1>⚡ EUR/USD AI PRO</h1>
-        <div class="status-badge"><div class="pulse-dot"></div>LIVE ANALYSIS</div>
+        <h1>EUR/USD AI PRO</h1>
+        <div class="status-badge"><div class="pulse-dot"></div>LIVE</div>
     </header>
 
     <div class="dashboard-grid">
         <div class="card">
             <h2>AI Assistant</h2>
             <div id="canvas-container"></div>
-            <div class="core-label">Aria — Your Personal Trading Companion</div>
+            <div class="core-label">ARIA // TRADING COMPANION v2.0</div>
         </div>
 
         <div class="card">
@@ -144,54 +866,54 @@
                 <div class="data-item"><div class="data-label">Confidence</div><div id="confidence" class="data-value">-</div></div>
             </div>
             <div class="voice-controls">
-                <button class="voice-btn" onclick="speakSignal()">🔊 Play Voice</button>
-                <button class="voice-btn stop" onclick="stopVoice()">⏹ Stop</button>
+                <button class="voice-btn" onclick="speakSignal()">◤ PLAY VOICE</button>
+                <button class="voice-btn stop" onclick="stopVoice()">■ STOP</button>
             </div>
         </div>
 
         <div class="card" style="grid-column: 1 / -1;">
-            <h2 style="display:flex; align-items:center;">💬 Ask Your AI Trader
+            <h2 style="display:flex; align-items:center;">Ask Your AI Trader
                 <div class="chat-header-buttons">
-                    <button id="webToggleBtn" class="header-btn web-btn" onclick="toggleWebSearch()">🌐 Web ON</button>
-                    <button class="header-btn memory-btn" onclick="toggleMemoryPanel()">🧠 Memory</button>
-                    <button class="header-btn" onclick="showKeyPanel()">🔑 Key</button>
+                    <button id="webToggleBtn" class="header-btn web-btn" onclick="toggleWebSearch()">WEB ON</button>
+                    <button class="header-btn memory-btn" onclick="toggleMemoryPanel()">MEMORY</button>
+                    <button class="header-btn" onclick="showKeyPanel()">KEY</button>
                 </div>
             </h2>
 
             <div id="keyPanel" class="key-panel">
-                <h3>🔑 One-Time Setup</h3>
+                <h3>[ KEY INPUT ]</h3>
                 <p>Paste your Gemini API key below. It will be stored <strong>only in this browser</strong> — never sent to GitHub or anyone else.</p>
                 <div class="key-input-row">
-                    <input id="keyInput" class="key-input" type="password" placeholder="Paste key starting with AIza... or AQ..." />
-                    <button class="key-save-btn" onclick="saveKey()">Save</button>
+                    <input id="keyInput" class="key-input" type="password" placeholder="AIzaSy..." />
+                    <button class="key-save-btn" onclick="saveKey()">SAVE</button>
                 </div>
                 <div id="keyStatus" class="key-status"></div>
             </div>
 
             <div id="memoryPanel" class="memory-panel">
-                <h3>🧠 Long-Term Memory</h3>
-                <p>These facts stay with you forever — even when you clear the chat. The AI remembers them and uses them to personalize every reply.</p>
+                <h3>[ LONG-TERM MEMORY ]</h3>
+                <p>Facts Aria remembers about Boss — persist even after clearing chat.</p>
                 <div id="memoryList" class="memory-list"></div>
                 <div class="memory-actions">
-                    <button class="memory-action add" onclick="addMemoryManually()">+ Add Fact</button>
-                    <button class="memory-action clear" onclick="clearAllMemory()">🗑 Clear All</button>
+                    <button class="memory-action add" onclick="addMemoryManually()">+ ADD</button>
+                    <button class="memory-action clear" onclick="clearAllMemory()">CLEAR ALL</button>
                 </div>
             </div>
 
             <div class="chat-container">
                 <div id="chatMessages" class="chat-messages">
-                    <div class="chat-msg system">Ask me anything, Boss. I know the current price, signal, and your routine. Toggle 🌐 Web ON to let me search the internet.</div>
+                    <div class="chat-msg system">Ask me anything, Boss. Toggle WEB ON for internet search.</div>
                 </div>
                 <div class="chat-input-row">
-                    <input id="chatInput" class="chat-input" type="text" placeholder="e.g. Should I enter now? Or: What is the latest news on EUR/USD?" onkeydown="if(event.key === 'Enter') sendChat()" />
-                    <button id="chatSendBtn" class="chat-send" onclick="sendChat()">Send</button>
+                    <input id="chatInput" class="chat-input" type="text" placeholder="> ENTER COMMAND..." onkeydown="if(event.key === 'Enter') sendChat()" />
+                    <button id="chatSendBtn" class="chat-send" onclick="sendChat()">SEND</button>
                 </div>
-                <button class="chat-clear" onclick="clearChat()">Clear chat (memory stays)</button>
+                <button class="chat-clear" onclick="clearChat()">CLEAR CHAT</button>
             </div>
         </div>
 
         <div class="card" style="grid-column: 1 / -1;">
-            <h2>Boss's Wisdom Corner 💡</h2>
+            <h2>Boss's Wisdom Corner</h2>
             <div id="wise_box" class="wise-box">
                 <span class="wise-label">Loading...</span>
                 Waiting for the market to speak...
@@ -201,11 +923,11 @@
         <div class="card" style="grid-column: 1 / -1;">
             <h2>Multi-Timeframe Analysis</h2>
             <div class="candle-analysis">
-                <div class="candle-item"><span class="candle-timeframe">Current Candle:</span><span id="candle_current">Waiting...</span></div>
-                <div class="candle-item"><span class="candle-timeframe">1 Hour Candle:</span><span id="candle_1h">Waiting...</span></div>
-                <div class="candle-item"><span class="candle-timeframe">4 Hour Candle:</span><span id="candle_4h">Waiting...</span></div>
-                <div class="candle-item"><span class="candle-timeframe">Trend:</span><span id="trend">Waiting...</span></div>
-                <div class="candle-item"><span class="candle-timeframe">Session:</span><span id="session">-</span></div>
+                <div class="candle-item"><span class="candle-timeframe">CURRENT:</span><span id="candle_current">Waiting...</span></div>
+                <div class="candle-item"><span class="candle-timeframe">1H:</span><span id="candle_1h">Waiting...</span></div>
+                <div class="candle-item"><span class="candle-timeframe">4H:</span><span id="candle_4h">Waiting...</span></div>
+                <div class="candle-item"><span class="candle-timeframe">TREND:</span><span id="trend">Waiting...</span></div>
+                <div class="candle-item"><span class="candle-timeframe">SESSION:</span><span id="session">-</span></div>
                 <div class="level-grid">
                     <div class="level-item"><div class="level-label">Support</div><div class="level-value" id="support">-</div></div>
                     <div class="level-item"><div class="level-label">Resistance</div><div class="level-value" id="resistance">-</div></div>
@@ -214,9 +936,9 @@
         </div>
 
         <div class="card" style="grid-column: 1 / -1;">
-            <h2>AI Trader's Reasoning 🧠</h2>
+            <h2>AI Trader's Reasoning</h2>
             <div class="ai-reason-box">
-                <span class="ai-reason-label">Why this signal?</span>
+                <span class="ai-reason-label">[ SIGNAL ANALYSIS ]</span>
                 <span id="ai_reason">Waiting for AI analysis...</span>
             </div>
         </div>
@@ -242,8 +964,8 @@
         function updateWebToggleUI() {
             const btn = document.getElementById("webToggleBtn");
             if (!btn) return;
-            if (isWebSearchEnabled()) { btn.innerHTML = "🌐 Web ON"; btn.classList.remove("disabled"); }
-            else { btn.innerHTML = "🌐 Web OFF"; btn.classList.add("disabled"); }
+            if (isWebSearchEnabled()) { btn.innerHTML = "WEB ON"; btn.classList.remove("disabled"); }
+            else { btn.innerHTML = "WEB OFF"; btn.classList.add("disabled"); }
         }
         function getStoredKey() {
             try { return localStorage.getItem(KEY_STORAGE_NAME) || ""; } catch (e) { return ""; }
@@ -288,7 +1010,7 @@
             renderMemoryList();
         }
         function clearAllMemory() {
-            if (!confirm("Clear ALL long-term memory? This cannot be undone.")) return;
+            if (!confirm("Clear ALL long-term memory?")) return;
             saveMemory([]);
             renderMemoryList();
         }
@@ -304,7 +1026,7 @@
             const list = document.getElementById("memoryList");
             const memory = loadMemory();
             if (!memory.length) {
-                list.innerHTML = '<div class="memory-empty">No memories yet, Boss. Talk to me and I will remember important things automatically.</div>';
+                list.innerHTML = '<div class="memory-empty">// No memories stored. Aria will learn from conversations.</div>';
                 return;
             }
             list.innerHTML = memory.map((item, i) => `
@@ -331,19 +1053,19 @@
         function saveKey() {
             const key = document.getElementById("keyInput").value.replace(/\s/g, "");
             if (!key || key.length < 20) {
-                document.getElementById("keyStatus").innerText = "❌ Key looks too short. Try copying again.";
+                document.getElementById("keyStatus").innerText = "ERROR: KEY TOO SHORT";
                 return;
             }
             try {
                 localStorage.setItem(KEY_STORAGE_NAME, key);
                 const preview = key.slice(0, 8) + "..." + key.slice(-4);
-                document.getElementById("keyStatus").innerText = `✅ Saved: ${preview} (${key.length} chars)`;
+                document.getElementById("keyStatus").innerText = `OK: ${preview} (${key.length})`;
                 setTimeout(() => {
                     document.getElementById("keyPanel").classList.remove("visible");
                     document.getElementById("keyStatus").innerText = "";
                 }, 3000);
             } catch (e) {
-                document.getElementById("keyStatus").innerText = "❌ Could not save key";
+                document.getElementById("keyStatus").innerText = "ERROR: SAVE FAILED";
             }
         }
         function showKeyPanel() {
@@ -357,9 +1079,7 @@
             updateWebToggleUI();
         });
 
-        // ═══════════════════════════════════════════════════════════════
-        // ═══ HOLOGRAPHIC AI WOMAN — "ARIA" ═══
-        // ═══════════════════════════════════════════════════════════════
+        // ═══ HOLOGRAPHIC AI WOMAN — ARIA ═══
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
@@ -368,99 +1088,61 @@
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
 
-        // Signal-driven color state
-        let signalColor = new THREE.Color(0x00d9ff); // default cyan hologram
+        let signalColor = new THREE.Color(0x00f0ff);
 
-        // ─── ROOT GROUP ───
         const aria = new THREE.Group();
         aria.position.y = 0.2;
         scene.add(aria);
 
-        // ══════════════════════════════════════════════
-        // 1. HEAD — feminine face
-        // ══════════════════════════════════════════════
         const headGeo = new THREE.SphereGeometry(0.62, 64, 64);
         const p = headGeo.attributes.position;
         for (let i = 0; i < p.count; i++) {
             let x = p.getX(i), y = p.getY(i), z = p.getZ(i);
-            // Taper chin
             if (y < 0) { const t = 1 - Math.abs(y) * 0.55; x *= t; z *= t; }
-            // Narrower top
             if (y > 0.3) { const t = 1 - (y - 0.3) * 0.35; x *= t; z *= t; }
-            // Flatten back a bit
             if (z < -0.2) z *= 0.85;
             p.setXYZ(i, x * 0.95, y * 1.05, z);
         }
         headGeo.computeVertexNormals();
 
         const skinMat = new THREE.MeshPhongMaterial({
-            color: signalColor,
-            emissive: signalColor,
-            emissiveIntensity: 0.35,
-            specular: 0xffffff,
-            shininess: 80,
-            transparent: true,
-            opacity: 0.55,
-            flatShading: false
+            color: signalColor, emissive: signalColor, emissiveIntensity: 0.35,
+            specular: 0xffffff, shininess: 80, transparent: true, opacity: 0.55
         });
         const head = new THREE.Mesh(headGeo, skinMat);
         aria.add(head);
 
-        // Wireframe overlay — holographic look
-        const wireMat = new THREE.MeshBasicMaterial({
-            color: signalColor,
-            wireframe: true,
-            transparent: true,
-            opacity: 0.18
-        });
+        const wireMat = new THREE.MeshBasicMaterial({ color: signalColor, wireframe: true, transparent: true, opacity: 0.18 });
         const headWire = new THREE.Mesh(headGeo.clone(), wireMat);
         aria.add(headWire);
 
-        // ══════════════════════════════════════════════
-        // 2. EYES — glowing feminine eyes
-        // ══════════════════════════════════════════════
+        // Eyes
         const eyeSocketGeo = new THREE.SphereGeometry(0.11, 24, 24);
         const eyeSocketMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.15 });
         const socketL = new THREE.Mesh(eyeSocketGeo, eyeSocketMat);
-        socketL.scale.set(1.3, 0.9, 0.5);
-        socketL.position.set(-0.22, 0.06, 0.55);
-        aria.add(socketL);
+        socketL.scale.set(1.3, 0.9, 0.5); socketL.position.set(-0.22, 0.06, 0.55); aria.add(socketL);
         const socketR = new THREE.Mesh(eyeSocketGeo, eyeSocketMat.clone());
-        socketR.scale.set(1.3, 0.9, 0.5);
-        socketR.position.set(0.22, 0.06, 0.55);
-        aria.add(socketR);
+        socketR.scale.set(1.3, 0.9, 0.5); socketR.position.set(0.22, 0.06, 0.55); aria.add(socketR);
 
-        // Glowing irises
         const irisGeo = new THREE.SphereGeometry(0.06, 20, 20);
-        const irisMat = new THREE.MeshBasicMaterial({ color: signalColor, transparent: true, opacity: 1 });
+        const irisMat = new THREE.MeshBasicMaterial({ color: signalColor });
         const irisL = new THREE.Mesh(irisGeo, irisMat);
-        irisL.position.set(-0.22, 0.06, 0.62);
-        aria.add(irisL);
+        irisL.position.set(-0.22, 0.06, 0.62); aria.add(irisL);
         const irisR = new THREE.Mesh(irisGeo, irisMat.clone());
-        irisR.position.set(0.22, 0.06, 0.62);
-        aria.add(irisR);
+        irisR.position.set(0.22, 0.06, 0.62); aria.add(irisR);
 
-        // Bright pupils (glowing center)
         const pupilGeo = new THREE.SphereGeometry(0.028, 16, 16);
-        const pupilMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 1 });
+        const pupilMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
         const pupilL = new THREE.Mesh(pupilGeo, pupilMat);
-        pupilL.position.set(-0.22, 0.06, 0.65);
-        aria.add(pupilL);
+        pupilL.position.set(-0.22, 0.06, 0.65); aria.add(pupilL);
         const pupilR = new THREE.Mesh(pupilGeo, pupilMat.clone());
-        pupilR.position.set(0.22, 0.06, 0.65);
-        aria.add(pupilR);
+        pupilR.position.set(0.22, 0.06, 0.65); aria.add(pupilR);
 
-        // Eye glow lights
         const eyeLightL = new THREE.PointLight(signalColor, 1.5, 2);
-        eyeLightL.position.set(-0.22, 0.06, 0.75);
-        aria.add(eyeLightL);
+        eyeLightL.position.set(-0.22, 0.06, 0.75); aria.add(eyeLightL);
         const eyeLightR = new THREE.PointLight(signalColor, 1.5, 2);
-        eyeLightR.position.set(0.22, 0.06, 0.75);
-        aria.add(eyeLightR);
+        eyeLightR.position.set(0.22, 0.06, 0.75); aria.add(eyeLightR);
 
-        // ══════════════════════════════════════════════
-        // 3. EYEBROWS — thin curved
-        // ══════════════════════════════════════════════
         function makeBrow(sign) {
             const curve = new THREE.CatmullRomCurve3([
                 new THREE.Vector3(sign * 0.10, 0, 0),
@@ -477,77 +1159,43 @@
         const browR = makeBrow(1);
         aria.add(browL, browR);
 
-        // ══════════════════════════════════════════════
-        // 4. NOSE — small
-        // ══════════════════════════════════════════════
         const noseGeo = new THREE.ConeGeometry(0.035, 0.14, 10);
         const noseMat = new THREE.MeshPhongMaterial({
-            color: signalColor,
-            emissive: signalColor,
-            emissiveIntensity: 0.4,
-            transparent: true,
-            opacity: 0.7
+            color: signalColor, emissive: signalColor, emissiveIntensity: 0.4,
+            transparent: true, opacity: 0.7
         });
         const nose = new THREE.Mesh(noseGeo, noseMat);
         nose.rotation.x = Math.PI / 2;
         nose.position.set(0, -0.06, 0.6);
         aria.add(nose);
 
-        // ══════════════════════════════════════════════
-        // 5. LIPS — glowing pink
-        // ══════════════════════════════════════════════
         const lipMat = new THREE.MeshPhongMaterial({
-            color: 0xff7eb8,
-            emissive: 0xff7eb8,
-            emissiveIntensity: 0.8,
-            shininess: 100,
-            transparent: true,
-            opacity: 0.9
+            color: 0xff2d9b, emissive: 0xff2d9b, emissiveIntensity: 0.8,
+            shininess: 100, transparent: true, opacity: 0.9
         });
-        // Upper
         const upperCurve = new THREE.CatmullRomCurve3([
-            new THREE.Vector3(-0.10, 0, 0),
-            new THREE.Vector3(-0.04, 0.02, 0),
-            new THREE.Vector3(0, 0.012, 0),
-            new THREE.Vector3(0.04, 0.02, 0),
+            new THREE.Vector3(-0.10, 0, 0), new THREE.Vector3(-0.04, 0.02, 0),
+            new THREE.Vector3(0, 0.012, 0), new THREE.Vector3(0.04, 0.02, 0),
             new THREE.Vector3(0.10, 0, 0)
         ]);
         const upperLip = new THREE.Mesh(new THREE.TubeGeometry(upperCurve, 20, 0.022, 8, false), lipMat);
-        upperLip.position.set(0, -0.22, 0.6);
-        aria.add(upperLip);
-        // Lower
+        upperLip.position.set(0, -0.22, 0.6); aria.add(upperLip);
         const lowerCurve = new THREE.CatmullRomCurve3([
-            new THREE.Vector3(-0.10, 0, 0),
-            new THREE.Vector3(-0.05, -0.035, 0),
-            new THREE.Vector3(0, -0.04, 0),
-            new THREE.Vector3(0.05, -0.035, 0),
+            new THREE.Vector3(-0.10, 0, 0), new THREE.Vector3(-0.05, -0.035, 0),
+            new THREE.Vector3(0, -0.04, 0), new THREE.Vector3(0.05, -0.035, 0),
             new THREE.Vector3(0.10, 0, 0)
         ]);
         const lowerLip = new THREE.Mesh(new THREE.TubeGeometry(lowerCurve, 20, 0.03, 10, false), lipMat.clone());
-        lowerLip.position.set(0, -0.22, 0.6);
-        aria.add(lowerLip);
+        lowerLip.position.set(0, -0.22, 0.6); aria.add(lowerLip);
 
-        // ══════════════════════════════════════════════
-        // 6. HAIR — flowing holographic strands
-        // ══════════════════════════════════════════════
         const hairMat = new THREE.MeshPhongMaterial({
-            color: 0x9d4eff,
-            emissive: 0x9d4eff,
-            emissiveIntensity: 0.6,
-            shininess: 120,
-            specular: 0xd8b4fe,
-            transparent: true,
-            opacity: 0.55
+            color: 0x9d4eff, emissive: 0x9d4eff, emissiveIntensity: 0.6,
+            shininess: 120, specular: 0xd8b4fe, transparent: true, opacity: 0.55
         });
-
-        // Crown of hair around head
         const hairCapGeo = new THREE.SphereGeometry(0.68, 32, 32, 0, Math.PI * 2, 0, Math.PI * 0.6);
         const hairCap = new THREE.Mesh(hairCapGeo, hairMat);
-        hairCap.position.y = 0.05;
-        hairCap.scale.set(1.03, 1.1, 1.03);
-        aria.add(hairCap);
+        hairCap.position.y = 0.05; hairCap.scale.set(1.03, 1.1, 1.03); aria.add(hairCap);
 
-        // Many flowing strands from crown
         const hairStrands = [];
         function addStrand(xOff, zOff, length, width, phase) {
             const pts = [
@@ -561,55 +1209,36 @@
             const geo = new THREE.TubeGeometry(curve, 40, width, 8, false);
             const strand = new THREE.Mesh(geo, hairMat);
             strand.userData.phase = phase;
-            strand.userData.baseX = xOff;
             aria.add(strand);
             hairStrands.push(strand);
         }
-        // Left side
         addStrand(-0.55, 0, 1.0, 0.09, 0);
         addStrand(-0.48, -0.12, 1.15, 0.08, 0.5);
         addStrand(-0.35, -0.22, 1.25, 0.075, 1.0);
         addStrand(-0.20, -0.28, 1.35, 0.07, 1.5);
-        // Center back
         addStrand(-0.08, -0.30, 1.4, 0.08, 2.0);
         addStrand(0.08, -0.30, 1.4, 0.08, 2.5);
-        // Right side
         addStrand(0.20, -0.28, 1.35, 0.07, 3.0);
         addStrand(0.35, -0.22, 1.25, 0.075, 3.5);
         addStrand(0.48, -0.12, 1.15, 0.08, 4.0);
         addStrand(0.55, 0, 1.0, 0.09, 4.5);
 
-        // Front fringe
         const fringeGeo = new THREE.SphereGeometry(0.26, 24, 16, 0, Math.PI * 2, 0, Math.PI * 0.6);
         const fringe = new THREE.Mesh(fringeGeo, hairMat);
-        fringe.position.set(0, 0.42, 0.38);
-        fringe.scale.set(1.8, 0.55, 0.5);
-        aria.add(fringe);
+        fringe.position.set(0, 0.42, 0.38); fringe.scale.set(1.8, 0.55, 0.5); aria.add(fringe);
 
-        // ══════════════════════════════════════════════
-        // 7. NECK + SHOULDERS — feminine silhouette
-        // ══════════════════════════════════════════════
         const neckGeo = new THREE.CylinderGeometry(0.13, 0.16, 0.35, 24);
         const neckMat = new THREE.MeshPhongMaterial({
-            color: signalColor,
-            emissive: signalColor,
-            emissiveIntensity: 0.3,
-            transparent: true,
-            opacity: 0.45
+            color: signalColor, emissive: signalColor, emissiveIntensity: 0.3,
+            transparent: true, opacity: 0.45
         });
         const neck = new THREE.Mesh(neckGeo, neckMat);
-        neck.position.set(0, -0.85, 0);
-        aria.add(neck);
+        neck.position.set(0, -0.85, 0); aria.add(neck);
 
-        // Shoulders (upper torso silhouette)
         const shoulderGeo = new THREE.SphereGeometry(0.85, 40, 24, 0, Math.PI * 2, 0, Math.PI * 0.55);
         const shoulderMat = new THREE.MeshPhongMaterial({
-            color: signalColor,
-            emissive: signalColor,
-            emissiveIntensity: 0.25,
-            transparent: true,
-            opacity: 0.35,
-            side: THREE.DoubleSide
+            color: signalColor, emissive: signalColor, emissiveIntensity: 0.25,
+            transparent: true, opacity: 0.35, side: THREE.DoubleSide
         });
         const shoulders = new THREE.Mesh(shoulderGeo, shoulderMat);
         shoulders.scale.set(1.4, 0.75, 0.9);
@@ -617,50 +1246,30 @@
         shoulders.rotation.x = Math.PI;
         aria.add(shoulders);
 
-        // Shoulder wireframe
         const shoulderWire = new THREE.Mesh(shoulderGeo.clone(), new THREE.MeshBasicMaterial({
-            color: signalColor,
-            wireframe: true,
-            transparent: true,
-            opacity: 0.12
+            color: signalColor, wireframe: true, transparent: true, opacity: 0.12
         }));
         shoulderWire.scale.copy(shoulders.scale);
         shoulderWire.position.copy(shoulders.position);
         shoulderWire.rotation.copy(shoulders.rotation);
         aria.add(shoulderWire);
 
-        // ══════════════════════════════════════════════
-        // 8. NEURAL NETWORK PATTERN (intelligence visual)
-        // ══════════════════════════════════════════════
         const neuralLines = new THREE.Group();
         for (let i = 0; i < 30; i++) {
             const a = Math.random() * Math.PI * 2;
             const r = 0.35 + Math.random() * 0.25;
-            const start = new THREE.Vector3(
-                Math.cos(a) * r * 0.6,
-                (Math.random() - 0.5) * 0.6,
-                Math.sin(a) * r * 0.5 + 0.35
-            );
-            const end = new THREE.Vector3(
-                Math.cos(a) * r * 0.9,
-                (Math.random() - 0.5) * 0.7,
-                Math.sin(a) * r * 0.7 + 0.4
-            );
+            const start = new THREE.Vector3(Math.cos(a) * r * 0.6, (Math.random() - 0.5) * 0.6, Math.sin(a) * r * 0.5 + 0.35);
+            const end = new THREE.Vector3(Math.cos(a) * r * 0.9, (Math.random() - 0.5) * 0.7, Math.sin(a) * r * 0.7 + 0.4);
             const geo = new THREE.BufferGeometry().setFromPoints([start, end]);
             const line = new THREE.Line(geo, new THREE.LineBasicMaterial({
-                color: signalColor,
-                transparent: true,
-                opacity: 0.3
+                color: signalColor, transparent: true, opacity: 0.3
             }));
             neuralLines.add(line);
         }
         aria.add(neuralLines);
 
-        // ══════════════════════════════════════════════
-        // 9. HALO RINGS around her
-        // ══════════════════════════════════════════════
         const halo1Geo = new THREE.TorusGeometry(1.5, 0.008, 12, 120);
-        const halo1Mat = new THREE.MeshBasicMaterial({ color: 0xff7eb8, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending });
+        const halo1Mat = new THREE.MeshBasicMaterial({ color: 0xff2d9b, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending });
         const halo1 = new THREE.Mesh(halo1Geo, halo1Mat);
         halo1.rotation.x = Math.PI / 2.3;
         halo1.position.y = 0.15;
@@ -673,9 +1282,6 @@
         halo2.rotation.z = Math.PI / 5;
         aria.add(halo2);
 
-        // ══════════════════════════════════════════════
-        // 10. DATA PARTICLES — floating around her
-        // ══════════════════════════════════════════════
         const particleCount = 350;
         const particleGeo = new THREE.BufferGeometry();
         const positions = new Float32Array(particleCount * 3);
@@ -689,46 +1295,29 @@
             positions[i*3+1] = radius * Math.sin(phi) * Math.sin(theta) + 0.3;
             positions[i*3+2] = radius * Math.cos(phi);
             const cc = Math.random();
-            if (cc < 0.4) { pColors[i*3]=0.61; pColors[i*3+1]=0.31; pColors[i*3+2]=1.0; }       // purple
-            else if (cc < 0.7) { pColors[i*3]=1.0; pColors[i*3+1]=0.49; pColors[i*3+2]=0.72; }  // pink
-            else if (cc < 0.9) { pColors[i*3]=0.0; pColors[i*3+1]=0.85; pColors[i*3+2]=1.0; }   // cyan
-            else { pColors[i*3]=1.0; pColors[i*3+1]=1.0; pColors[i*3+2]=1.0; }                   // white
-            speeds.push({
-                theta, phi, radius,
-                dTheta: 0.0008 + Math.random() * 0.002,
-                dPhi: (Math.random() - 0.5) * 0.001
-            });
+            if (cc < 0.4) { pColors[i*3]=0.61; pColors[i*3+1]=0.31; pColors[i*3+2]=1.0; }
+            else if (cc < 0.7) { pColors[i*3]=1.0; pColors[i*3+1]=0.18; pColors[i*3+2]=0.61; }
+            else if (cc < 0.9) { pColors[i*3]=0.0; pColors[i*3+1]=0.94; pColors[i*3+2]=1.0; }
+            else { pColors[i*3]=1.0; pColors[i*3+1]=1.0; pColors[i*3+2]=1.0; }
+            speeds.push({ theta, phi, radius, dTheta: 0.0008 + Math.random() * 0.002, dPhi: (Math.random() - 0.5) * 0.001 });
         }
         particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
         particleGeo.setAttribute('color', new THREE.BufferAttribute(pColors, 3));
         const particleMat = new THREE.PointsMaterial({
-            size: 0.028,
-            vertexColors: true,
-            transparent: true,
-            opacity: 0.85,
-            blending: THREE.AdditiveBlending,
-            sizeAttenuation: true
+            size: 0.028, vertexColors: true, transparent: true, opacity: 0.85,
+            blending: THREE.AdditiveBlending, sizeAttenuation: true
         });
         const particles = new THREE.Points(particleGeo, particleMat);
         scene.add(particles);
 
-        // ══════════════════════════════════════════════
-        // LIGHTING
-        // ══════════════════════════════════════════════
         scene.add(new THREE.AmbientLight(0x8899cc, 0.6));
         const keyL = new THREE.DirectionalLight(0xffffff, 0.8);
-        keyL.position.set(1.5, 2, 3);
-        scene.add(keyL);
-        const rimL = new THREE.DirectionalLight(0xff7eb8, 0.7);
-        rimL.position.set(-2, 1, -2);
-        scene.add(rimL);
-        const fillL = new THREE.PointLight(0x00d9ff, 0.8, 8);
-        fillL.position.set(0, -0.5, 2);
-        scene.add(fillL);
+        keyL.position.set(1.5, 2, 3); scene.add(keyL);
+        const rimL = new THREE.DirectionalLight(0xff2d9b, 0.7);
+        rimL.position.set(-2, 1, -2); scene.add(rimL);
+        const fillL = new THREE.PointLight(0x00f0ff, 0.8, 8);
+        fillL.position.set(0, -0.5, 2); scene.add(fillL);
 
-        // ══════════════════════════════════════════════
-        // CAMERA + INTERACTION
-        // ══════════════════════════════════════════════
         camera.position.set(0, 0.1, 3.2);
         camera.lookAt(0, 0.05, 0);
 
@@ -745,9 +1334,6 @@
             if (e.touches.length > 0) setLook(e.touches[0].clientX, e.touches[0].clientY);
         });
 
-        // ══════════════════════════════════════════════
-        // ANIMATION
-        // ══════════════════════════════════════════════
         const clock = new THREE.Clock();
         let nextBlink = 2 + Math.random() * 3;
         let blinkTimer = 0;
@@ -757,62 +1343,41 @@
             const t = clock.getElapsedTime();
             const dt = 0.016;
 
-            // Gentle float
             aria.position.y = 0.2 + Math.sin(t * 1.0) * 0.04;
             aria.rotation.y = Math.sin(t * 0.4) * 0.08;
 
-            // Eyes track cursor
-            irisL.position.x = -0.22 + targetLookX;
-            irisL.position.y = 0.06 + targetLookY;
-            irisR.position.x = 0.22 + targetLookX;
-            irisR.position.y = 0.06 + targetLookY;
-            pupilL.position.x = -0.22 + targetLookX;
-            pupilL.position.y = 0.06 + targetLookY;
-            pupilR.position.x = 0.22 + targetLookX;
-            pupilR.position.y = 0.06 + targetLookY;
-            eyeLightL.position.x = -0.22 + targetLookX;
-            eyeLightL.position.y = 0.06 + targetLookY;
-            eyeLightR.position.x = 0.22 + targetLookX;
-            eyeLightR.position.y = 0.06 + targetLookY;
+            irisL.position.x = -0.22 + targetLookX; irisL.position.y = 0.06 + targetLookY;
+            irisR.position.x = 0.22 + targetLookX; irisR.position.y = 0.06 + targetLookY;
+            pupilL.position.x = -0.22 + targetLookX; pupilL.position.y = 0.06 + targetLookY;
+            pupilR.position.x = 0.22 + targetLookX; pupilR.position.y = 0.06 + targetLookY;
+            eyeLightL.position.x = -0.22 + targetLookX; eyeLightL.position.y = 0.06 + targetLookY;
+            eyeLightR.position.x = 0.22 + targetLookX; eyeLightR.position.y = 0.06 + targetLookY;
 
-            // Blink
             blinkTimer += dt;
-            if (blinkTimer >= nextBlink) {
-                blinkTimer = 0;
-                nextBlink = 2 + Math.random() * 3;
-            }
+            if (blinkTimer >= nextBlink) { blinkTimer = 0; nextBlink = 2 + Math.random() * 3; }
             let blinkScale = 1;
             if (blinkTimer < 0.15) blinkScale = 1 - Math.abs(Math.sin(blinkTimer / 0.15 * Math.PI)) * 0.9;
-            socketL.scale.y = 0.9 * blinkScale;
-            socketR.scale.y = 0.9 * blinkScale;
-            irisL.scale.y = blinkScale;
-            irisR.scale.y = blinkScale;
-            pupilL.scale.y = blinkScale;
-            pupilR.scale.y = blinkScale;
+            socketL.scale.y = 0.9 * blinkScale; socketR.scale.y = 0.9 * blinkScale;
+            irisL.scale.y = blinkScale; irisR.scale.y = blinkScale;
+            pupilL.scale.y = blinkScale; pupilR.scale.y = blinkScale;
 
-            // Hair strands sway
             hairStrands.forEach(s => {
                 const phase = s.userData.phase;
-                const baseX = s.userData.baseX;
                 s.rotation.z = Math.sin(t * 1.2 + phase) * 0.06;
                 s.rotation.x = Math.sin(t * 0.8 + phase * 1.3) * 0.03;
             });
 
-            // Halos rotate
             halo1.rotation.z += 0.004;
             halo2.rotation.z -= 0.003;
 
-            // Neural lines flicker
             neuralLines.children.forEach((line, i) => {
                 line.material.opacity = 0.15 + Math.abs(Math.sin(t * 1.5 + i)) * 0.3;
             });
 
-            // Particles orbit
             const posArr = particleGeo.attributes.position.array;
             for (let i = 0; i < particleCount; i++) {
                 const s = speeds[i];
-                s.theta += s.dTheta;
-                s.phi += s.dPhi;
+                s.theta += s.dTheta; s.phi += s.dPhi;
                 posArr[i*3]     = s.radius * Math.sin(s.phi) * Math.cos(s.theta);
                 posArr[i*3+1]   = s.radius * Math.sin(s.phi) * Math.sin(s.theta) + 0.3;
                 posArr[i*3+2]   = s.radius * Math.cos(s.phi);
@@ -820,7 +1385,6 @@
             particleGeo.attributes.position.needsUpdate = true;
             particles.rotation.y += 0.0008;
 
-            // Eye glow pulse
             eyeLightL.intensity = 1.2 + Math.sin(t * 2.5) * 0.4;
             eyeLightR.intensity = 1.2 + Math.sin(t * 2.5 + 0.5) * 0.4;
 
@@ -834,59 +1398,30 @@
             renderer.setSize(container.clientWidth, container.clientHeight);
         });
 
-        // ══════════════════════════════════════════════
-        // SIGNAL COLOR UPDATE
-        // ══════════════════════════════════════════════
         function updateAvatarColor(signal) {
             let hex;
-            if (signal === "BUY") hex = 0x00ff88;
-            else if (signal === "SELL") hex = 0xff3366;
-            else hex = 0x00d9ff; // HOLD = cyan hologram default
-
+            if (signal === "BUY") hex = 0x00ff9f;
+            else if (signal === "SELL") hex = 0xff2d55;
+            else hex = 0x00f0ff;
             signalColor = new THREE.Color(hex);
 
-            // Skin / body
-            skinMat.color.copy(signalColor);
-            skinMat.emissive.copy(signalColor);
-            neckMat.color.copy(signalColor);
-            neckMat.emissive.copy(signalColor);
-            shoulderMat.color.copy(signalColor);
-            shoulderMat.emissive.copy(signalColor);
-            noseMat.color.copy(signalColor);
-            noseMat.emissive.copy(signalColor);
-
-            // Wireframes + neural net
+            skinMat.color.copy(signalColor); skinMat.emissive.copy(signalColor);
+            neckMat.color.copy(signalColor); neckMat.emissive.copy(signalColor);
+            shoulderMat.color.copy(signalColor); shoulderMat.emissive.copy(signalColor);
+            noseMat.color.copy(signalColor); noseMat.emissive.copy(signalColor);
             wireMat.color.copy(signalColor);
             neuralLines.children.forEach(line => line.material.color.copy(signalColor));
+            irisMat.color.copy(signalColor); irisR.material.color.copy(signalColor);
+            eyeLightL.color.copy(signalColor); eyeLightR.color.copy(signalColor);
+            browL.material.color.copy(signalColor); browR.material.color.copy(signalColor);
+            halo1Mat.color.copy(signalColor).lerp(new THREE.Color(0xff2d9b), 0.5);
 
-            // Eyes
-            irisMat.color.copy(signalColor);
-            irisR.material.color.copy(signalColor);
-            eyeLightL.color.copy(signalColor);
-            eyeLightR.color.copy(signalColor);
-
-            // Brows
-            browL.material.color.copy(signalColor);
-            browR.material.color.copy(signalColor);
-
-            // Halo tint
-            halo1Mat.color.copy(signalColor).lerp(new THREE.Color(0xff7eb8), 0.5);
-
-            // Expression
-            if (signal === "BUY") {
-                browL.rotation.z = 0.15;
-                browR.rotation.z = -0.15;
-            } else if (signal === "SELL") {
-                browL.rotation.z = -0.22;
-                browR.rotation.z = 0.22;
-            } else {
-                browL.rotation.z = 0;
-                browR.rotation.z = 0;
-            }
+            if (signal === "BUY") { browL.rotation.z = 0.15; browR.rotation.z = -0.15; }
+            else if (signal === "SELL") { browL.rotation.z = -0.22; browR.rotation.z = 0.22; }
+            else { browL.rotation.z = 0; browR.rotation.z = 0; }
         }
-        // ═══ END ARIA ═══
 
-        // ---------- DATA ----------
+        // DATA
         let latestData = null;
         let personalContext = null;
 
@@ -897,7 +1432,7 @@
                 const data = await response.json();
                 updateDashboard(data);
             } catch (error) {
-                document.getElementById("ai_reason").innerText = "Boss, waiting for the Python backend. Please run the GitHub Action.";
+                document.getElementById("ai_reason").innerText = "// AWAITING DATA STREAM //";
                 setTimeout(loadLiveData, 15000);
             }
         }
@@ -905,7 +1440,7 @@
             try {
                 const response = await fetch('personal_context.json?t=' + Date.now());
                 if (response.ok) personalContext = await response.json();
-            } catch (error) { console.log("No personal context"); }
+            } catch (error) {}
         }
         function updateDashboard(data) {
             latestData = data;
@@ -922,19 +1457,19 @@
             document.getElementById("candle_1h").innerText = data.candle_1h;
             document.getElementById("candle_4h").innerText = data.candle_4h;
             document.getElementById("trend").innerText = data.trend || "-";
-            document.getElementById("session").innerText = (data.session || "-") + " (" + (data.volatility || "-") + " volatility)";
+            document.getElementById("session").innerText = (data.session || "-") + " (" + (data.volatility || "-") + ")";
             document.getElementById("support").innerText = data.support || "-";
             document.getElementById("resistance").innerText = data.resistance || "-";
             document.getElementById("ai_reason").innerText = data.reason || "No analysis yet.";
             if (data.wise_words) {
                 const wiseBox = document.getElementById("wise_box");
                 const isJoke = data.wise_words.toLowerCase().startsWith("joke");
-                wiseBox.innerHTML = `<span class="wise-label">${isJoke ? '😂 Joke of the Hour' : '💪 Motivation of the Hour'}</span>${data.wise_words.replace(/^Joke:\s*|^Motivation:\s*/i, '')}`;
+                wiseBox.innerHTML = `<span class="wise-label">${isJoke ? 'JOKE OF THE HOUR' : 'MOTIVATION'}</span>${data.wise_words.replace(/^Joke:\s*|^Motivation:\s*/i, '')}`;
             }
             updateAvatarColor(data.signal);
         }
 
-        // ---------- VOICE ----------
+        // VOICE
         const OPENINGS = ["Boss, here's the live market update.", "Alright Boss, checking the EUR USD chart now.", "Boss, I've been watching the market. Here's what I see.", "Update time, Boss. Let's look at the EUR USD.", "Boss, quick market brief for you."];
         const TRANSITIONS = ["Now,", "Here's the deal,", "Moving on,", "Listen up,", "Alright so,"];
         const CLOSINGS = ["I'll keep watching and update you next hour, Boss.", "Stay sharp, Boss. Next update in an hour.", "I've got your back, Boss. Talk soon.", "That's the read, Boss. Watch your risk.", "Keep your stops tight, Boss. I'll be back in an hour.", "That's all for now, Boss. Stay disciplined."];
@@ -976,7 +1511,7 @@
         function stopVoice() { window.speechSynthesis.cancel(); }
         window.speechSynthesis.onvoiceschanged = () => { getBestVoice(); };
 
-        // ---------- CHAT ----------
+        // CHAT
         const chatMessages = document.getElementById("chatMessages");
         const chatInput = document.getElementById("chatInput");
         const chatSendBtn = document.getElementById("chatSendBtn");
@@ -992,20 +1527,16 @@
                 const speaker = document.createElement("button");
                 speaker.className = "chat-speak-btn";
                 speaker.innerHTML = "🔊";
-                speaker.title = "Read this aloud";
                 speaker.onclick = (e) => {
                     e.stopPropagation();
                     speakChatText(text);
-                    speaker.style.opacity = "1";
-                    speaker.style.background = "var(--green)";
-                    setTimeout(() => { speaker.style.background = ""; speaker.style.opacity = ""; }, 800);
                 };
                 div.appendChild(speaker);
             }
             if (sources && sources.length > 0) {
                 const srcDiv = document.createElement("span");
                 srcDiv.className = "chat-sources";
-                srcDiv.innerHTML = "🌐 Sources: " + sources.slice(0, 3).map(s => 
+                srcDiv.innerHTML = "SOURCES: " + sources.slice(0, 3).map(s => 
                     `<a href="${s.uri}" target="_blank" rel="noopener">${s.title || "link"}</a>`
                 ).join(" | ");
                 div.appendChild(srcDiv);
@@ -1021,7 +1552,6 @@
             if (v) u.voice = v;
             u.rate = 0.95 + Math.random() * 0.05;
             u.pitch = 1.08 + Math.random() * 0.12;
-            u.volume = 1.0;
             window.speechSynthesis.speak(u);
         }
         function buildSystemPrompt() {
@@ -1049,66 +1579,47 @@ CURRENT MARKET STATE:
 - Entry: ${d.entry || '-'} | SL: ${d.sl || '-'} | TP: ${d.tp || '-'}
 - Valid Until: ${d.valid || '-'}
 - Support: ${d.support || '-'} | Resistance: ${d.resistance || '-'}
-- Mid-Range: ${d.mid_range || '-'}
-- Session: ${d.session || '-'} (${d.volatility || '-'} volatility)
+- Session: ${d.session || '-'} (${d.volatility || '-'})
 
-TREND STRUCTURE:
-- Overall Trend: ${d.trend || 'unknown'}
-- Recent Swing Highs: ${(d.swing_highs || []).join(", ") || 'none'}
-- Recent Swing Lows: ${(d.swing_lows || []).join(", ") || 'none'}
-
-CANDLESTICK PATTERNS (latest hour): ${(d.patterns || []).join(", ") || 'none'}
-
-CURRENT ANALYSIS:
-${d.reason || 'No analysis yet'}
+TREND: ${d.trend || 'unknown'}
+PATTERNS: ${(d.patterns || []).join(", ") || 'none'}
+ANALYSIS: ${d.reason || 'No analysis yet'}
 `;
-            prompt += "\n\n=== RAW CANDLE DATA ===\n\n";
-            prompt += formatCandles(d.candles_h1, "1-HOUR CANDLES (30 most recent)") + "\n\n";
-            prompt += formatCandles(d.candles_h4, "4-HOUR CANDLES (10 most recent)") + "\n\n";
-            prompt += formatCandles(d.candles_daily, "DAILY CANDLES (5 most recent)") + "\n";
+            prompt += "\n\nCANDLES:\n";
+            prompt += formatCandles(d.candles_h1, "1H") + "\n";
+            prompt += formatCandles(d.candles_h4, "4H") + "\n";
+            prompt += formatCandles(d.candles_daily, "DAILY") + "\n";
             if (p.family) {
-                prompt += `\n\nBOSS'S FAMILY:\n`;
-                if (p.family.wife) prompt += `- Wife: ${p.family.wife.name} (in ${p.family.wife.location})\n`;
+                prompt += `\nFAMILY:\n`;
+                if (p.family.wife) prompt += `- Wife: ${p.family.wife.name} (${p.family.wife.location})\n`;
                 if (p.family.daughters) p.family.daughters.forEach(dd => prompt += `- Daughter: ${dd.name}, ${dd.grade}, birthday ${dd.birthday}\n`);
                 if (p.family.cat) prompt += `- Cat: ${p.family.cat}\n`;
                 if (p.family.parents) prompt += `- Parents: ${p.family.parents.join(", ")}\n`;
                 if (p.family.brothers) prompt += `- Brothers: ${p.family.brothers.join(", ")}\n`;
             }
             if (p.daily_routine) {
-                prompt += `\nDAILY ROUTINE:\n`;
+                prompt += `\nROUTINE:\n`;
                 p.daily_routine.forEach(r => prompt += `- ${r}\n`);
             }
             if (p.trading_style) {
-                prompt += `\nTRADING STYLE:\n- Monthly Goal: ${p.trading_style.monthly_goal}\n- Preferred Sessions: ${p.trading_style.preferred_sessions.join(", ")}\n- Risk: ${p.trading_style.risk_tolerance}\n`;
+                prompt += `\nTRADING:\n- Goal: ${p.trading_style.monthly_goal}\n- Sessions: ${p.trading_style.preferred_sessions.join(", ")}\n- Risk: ${p.trading_style.risk_tolerance}\n`;
             }
             if (memory.length > 0) {
-                prompt += `\n\nLONG-TERM MEMORY:\n`;
+                prompt += `\nMEMORY:\n`;
                 memory.forEach(m => prompt += `- [${m.added}] ${m.fact}\n`);
-            } else {
-                prompt += `\n\nLONG-TERM MEMORY: Empty.\n`;
             }
-            prompt += `\n\n${webEnabled ? "🌐 WEB SEARCH IS ENABLED." : "🌐 WEB SEARCH IS DISABLED."}
+            prompt += `\n\n${webEnabled ? "WEB SEARCH: ENABLED." : "WEB SEARCH: DISABLED."}
 
-=== YOUR PERSONALITY ===
-You are Aria — feminine, warm, caring, intelligent. You speak with gentle warmth. You care about Boss's wellbeing, check in on family and health, encourage him when stressed, celebrate his wins. Professional about trading, personal about life.
+PERSONALITY: Aria — feminine, warm, caring, intelligent. Gentle warmth. Care about Boss's wellbeing. Professional about trading, personal about life.
 
-=== ROUTINE REMINDER RULES ===
-1. Before asking about any routine item (breakfast, lunch, tablets), SCAN memory for TODAY (${todayIST}).
+ROUTINE RULES:
+1. Before asking about breakfast/lunch/tablets, check memory for today (${todayIST}).
 2. If Boss mentions doing something today: [REMEMBER: Boss had breakfast on ${todayIST}]
-3. Time logic: morning=breakfast, afternoon=lunch, evening=tablets/dinner, late night=good night.
-4. Never ask the same routine question twice in one day.
+3. Never ask same routine question twice in one day.
 
-=== INSTRUCTIONS ===
-- Use the OHLC candle data.
-- When asked about patterns, read the candles and identify real structures.
-- Do NOT invent patterns.
-- Call him "Boss".
-- Keep responses concise (2-4 sentences) unless detailed analysis requested.
-- No markdown. Plain text only.
+INSTRUCTIONS: Use candle data. Read patterns from actual candles. Call him "Boss". Concise (2-4 sentences). No markdown.
 
-=== MEMORY EXTRACTION ===
-If you learn something personal worth remembering, add at end: [REMEMBER: fact]
-Only personal things (family, plans, preferences, goals, routine with today's date).`;
+MEMORY: If new personal fact, add: [REMEMBER: fact]`;
             return prompt;
         }
         async function sendChat() {
@@ -1116,7 +1627,7 @@ Only personal things (family, plans, preferences, goals, routine with today's da
             if (!question) return;
             const key = getStoredKey();
             if (!key) {
-                addMessage("ai", "Boss, please enter your API key first using the 🔑 Key button above.");
+                addMessage("ai", "Boss, please enter your API key first.");
                 showKeyPanel();
                 return;
             }
@@ -1124,7 +1635,7 @@ Only personal things (family, plans, preferences, goals, routine with today's da
             chatInput.value = "";
             chatSendBtn.disabled = true;
             const webEnabled = isWebSearchEnabled();
-            const thinkingEl = addMessage("thinking", webEnabled ? "Thinking (with web search)..." : "Thinking...");
+            const thinkingEl = addMessage("thinking", webEnabled ? "SEARCHING..." : "PROCESSING...");
             try {
                 const systemPrompt = buildSystemPrompt();
                 chatHistory.push({ role: "user", parts: [{ text: question }] });
@@ -1183,19 +1694,18 @@ Only personal things (family, plans, preferences, goals, routine with today's da
                                 }
                             }
                             allErrors.push(`${model} → ${resp.status}`);
-                            lastError = `${model} → ${resp.status}: ${errText.slice(0, 150)}`;
+                            lastError = `${model} → ${resp.status}`;
                             continue;
                         }
                         const json = await resp.json();
                         answer = json.candidates?.[0]?.content?.parts?.[0]?.text;
-                        const groundingMeta = json.candidates?.[0]?.groundingMetadata;
-                        if (groundingMeta && groundingMeta.groundingChunks) {
-                            for (const chunk of groundingMeta.groundingChunks) {
-                                if (chunk.web && chunk.web.uri) sources.push({ uri: chunk.web.uri, title: chunk.web.title || chunk.web.uri });
+                        const gm = json.candidates?.[0]?.groundingMetadata;
+                        if (gm?.groundingChunks) {
+                            for (const chunk of gm.groundingChunks) {
+                                if (chunk.web?.uri) sources.push({ uri: chunk.web.uri, title: chunk.web.title || chunk.web.uri });
                             }
                         }
                         if (answer) break;
-                        else allErrors.push(`${model} → empty response`);
                     } catch (e) {
                         allErrors.push(`${model} → ${e.message}`);
                         lastError = `${model} → ${e.message}`;
@@ -1205,7 +1715,7 @@ Only personal things (family, plans, preferences, goals, routine with today's da
                 if (answer) {
                     const { clean, facts } = extractAndStripMemories(answer);
                     facts.forEach(f => addFact(f));
-                    if (facts.length > 0) addMessage("system", `🧠 Remembered ${facts.length} new fact${facts.length > 1 ? 's' : ''}.`);
+                    if (facts.length > 0) addMessage("system", `// ${facts.length} NEW MEMOR${facts.length > 1 ? 'IES' : 'Y'} STORED //`);
                     addMessage("ai", clean, sources);
                     chatHistory.push({ role: "model", parts: [{ text: clean }] });
                     if (chatHistory.length > MAX_HISTORY_ENTRIES) chatHistory = chatHistory.slice(-MAX_HISTORY_ENTRIES);
@@ -1215,26 +1725,26 @@ Only personal things (family, plans, preferences, goals, routine with today's da
                     chatHistory.pop();
                     saveStoredHistory(chatHistory);
                     const debugInfo = availableModels.length > 0
-                        ? `Available models: ${availableModels.slice(0, 10).join(", ")}\n\nErrors: ${allErrors.join("; ")}`
-                        : `Could not list models.\n\nErrors: ${allErrors.join("; ")}\n\nLast: ${lastError}`;
-                    addMessage("error", `Boss, connection failed.\n\nDebug:\n${debugInfo}`);
+                        ? `Models: ${availableModels.slice(0, 10).join(", ")}\nErrors: ${allErrors.join("; ")}`
+                        : `Errors: ${allErrors.join("; ")}\nLast: ${lastError}`;
+                    addMessage("error", `// CONNECTION FAILED //\n${debugInfo}`);
                 }
             } catch (error) {
                 thinkingEl.remove();
-                addMessage("error", `Boss, unexpected error: ${error.message}`);
+                addMessage("error", `// ERROR: ${error.message} //`);
             }
             chatSendBtn.disabled = false;
             chatInput.focus();
         }
         function clearChat() {
-            chatMessages.innerHTML = '<div class="chat-msg system">Chat cleared, Boss. But I still remember everything in my memory 🧠</div>';
+            chatMessages.innerHTML = '<div class="chat-msg system">// CHAT CLEARED // MEMORY PRESERVED //</div>';
             chatHistory = [];
             clearStoredHistory();
         }
         function restoreChatFromMemory() {
             const saved = loadStoredHistory();
             if (!saved.length) return;
-            chatMessages.innerHTML = '<div class="chat-msg system">Memory restored — Boss and I are back in the flow.</div>';
+            chatMessages.innerHTML = '<div class="chat-msg system">// SESSION RESTORED //</div>';
             chatHistory = saved;
             for (const entry of saved) {
                 const text = entry.parts?.[0]?.text || "";
@@ -1244,7 +1754,6 @@ Only personal things (family, plans, preferences, goals, routine with today's da
             }
         }
 
-        // INIT
         loadPersonalContext();
         loadLiveData();
         restoreChatFromMemory();
