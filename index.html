@@ -37,6 +37,8 @@
             margin-bottom: 30px; 
             padding-bottom: 15px; 
             border-bottom: 1px solid var(--border); 
+            flex-wrap: wrap;
+            gap: 10px;
         }
         h1 { font-size: 1.5rem; font-weight: 800; }
         .status-badge { 
@@ -407,7 +409,7 @@
         }
         .chat-clear:hover { color: var(--text); border-color: var(--accent); }
         
-        .chat-header-buttons { display: flex; gap: 8px; margin-left: auto; }
+        .chat-header-buttons { display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap; }
         .header-btn { 
             background: none; 
             border: 1px solid var(--border); 
@@ -430,6 +432,9 @@
         .header-btn.deep-btn { border-color: var(--pink); color: var(--pink); }
         .header-btn.deep-btn:hover { background: rgba(236,72,153,0.15); }
         .header-btn.deep-btn.disabled { border-color: var(--border); color: var(--muted); }
+        .header-btn.browser-btn { border-color: var(--accent); color: var(--accent); }
+        .header-btn.browser-btn:hover { background: rgba(59,130,246,0.15); }
+        .header-btn.browser-btn.disabled { border-color: var(--border); color: var(--muted); }
         
         .key-panel { 
             background: linear-gradient(135deg, rgba(234,179,8,0.15), rgba(249,115,22,0.15)); 
@@ -710,6 +715,7 @@
         <div class="card" style="grid-column: 1 / -1;">
             <h2 style="display:flex; align-items:center;">💬 Ask Your AI Trader
                 <div class="chat-header-buttons">
+                    <button id="browserAIBtn" class="header-btn browser-btn" onclick="toggleBrowserAI()">🤖 Browser AI ON</button>
                     <button id="deepThinkBtn" class="header-btn deep-btn" onclick="toggleDeepThink()">🧠 Deep Think ON</button>
                     <button id="webToggleBtn" class="header-btn web-btn" onclick="toggleWebSearch()">🌐 Web ON</button>
                     <button id="reminderToggleBtn" class="header-btn reminder-btn" onclick="toggleReminderPanel()">⏰ Reminders</button>
@@ -752,7 +758,7 @@
 
             <div class="chat-container">
                 <div id="chatMessages" class="chat-messages">
-                    <div class="chat-msg system">Ask me anything, Boss. Try: "Should I enter now?" or "What's the 5m showing?"</div>
+                    <div class="chat-msg system">Ask me anything, Boss. Browser AI runs every 5 min when enabled. Chat works anytime.</div>
                 </div>
                 <div class="chat-input-row">
                     <input id="chatInput" class="chat-input" type="text" placeholder="Ask me anything, Boss..." onkeydown="if(event.key === 'Enter') sendChat()" />
@@ -801,17 +807,43 @@
         const WEBSEARCH_STORAGE_NAME = "eurusd_websearch_enabled";
         const DEEPTHINK_STORAGE_NAME = "eurusd_deepthink_enabled";
         const REMINDERS_STORAGE_NAME = "eurusd_reminders";
+        const BROWSER_AI_STORAGE_NAME = "eurusd_browser_ai_enabled";
         const MAX_HISTORY_ENTRIES = 40;
 
-        // ═══ LIVE STATE ═══
-        let latestData = null;         // From data.json (hourly)
+        // ═══ STATE ═══
+        let latestData = null;         // From data.json (hourly Python)
         let personalContext = null;    // From personal_context.json
-        let livePrice = null;          // From Yahoo Finance (5-min)
-        let liveRsi = null;            // Computed from live price history
+        let livePrice = null;
+        let liveRsi = null;
         let liveEma20 = null;
-        let lastKnownAtr = null;       // From last data.json
-        let ruleSignal = null;         // Rule-based 5-min signal
-        let priceHistory = [];         // Rolling price history for live RSI calc
+        let lastKnownAtr = null;
+        let ruleSignal = null;
+        let priceHistory = [];
+        let browserAIData = null;      // Latest browser AI analysis result
+        let browserAILastRun = 0;
+        let browserAIRunning = false;
+
+        // ═══ BROWSER AI TOGGLE ═══
+        function isBrowserAIEnabled() {
+            try { return localStorage.getItem(BROWSER_AI_STORAGE_NAME) !== "false"; }
+            catch (e) { return true; }
+        }
+        function toggleBrowserAI() {
+            const newState = !isBrowserAIEnabled();
+            try { localStorage.setItem(BROWSER_AI_STORAGE_NAME, newState ? "true" : "false"); }
+            catch (e) {}
+            updateBrowserAIUI();
+            if (newState) {
+                // Run immediately when turning on
+                runBrowserAnalysis();
+            }
+        }
+        function updateBrowserAIUI() {
+            const btn = document.getElementById("browserAIBtn");
+            if (!btn) return;
+            if (isBrowserAIEnabled()) { btn.innerHTML = "🤖 Browser AI ON"; btn.classList.remove("disabled"); }
+            else { btn.innerHTML = "🤖 Browser AI OFF"; btn.classList.add("disabled"); }
+        }
 
         // ═══ DEEP THINK TOGGLE ═══
         function isDeepThinkEnabled() {
@@ -1116,6 +1148,10 @@
                     document.getElementById("keyPanel").classList.remove("visible");
                     document.getElementById("keyStatus").innerText = "";
                 }, 3000);
+                // Trigger browser AI immediately if enabled
+                if (isBrowserAIEnabled()) {
+                    runBrowserAnalysis();
+                }
             } catch (e) {
                 document.getElementById("keyStatus").innerText = "❌ Could not save key";
             }
@@ -1131,15 +1167,482 @@
             renderReminderList();
             updateWebToggleUI();
             updateDeepThinkUI();
+            updateBrowserAIUI();
             requestNotificationPermission();
             checkReminders();
         });
 
         // ═══════════════════════════════════════════════════════
-        // ═══ LIVE PRICE FETCH (EVERY 5 MIN, ALIGNED) ═══
+        // ═══ BROWSER AI ENGINE — FETCHES CANDLES DIRECTLY ═══
+        // ═══════════════════════════════════════════════════════
+
+        // Fetch candles from Yahoo Finance (with CORS proxy fallback)
+        async function fetchYahooCandles(interval, range) {
+            const directUrl = `https://query1.finance.yahoo.com/v8/finance/chart/EURUSD=X?interval=${interval}&range=${range}`;
+            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(directUrl)}`;
+            
+            let json;
+            try {
+                const resp = await fetch(directUrl);
+                if (!resp.ok) throw new Error("Direct fetch failed: " + resp.status);
+                json = await resp.json();
+            } catch (e) {
+                console.log(`Direct fetch failed for ${interval}, trying proxy...`);
+                const proxyResp = await fetch(proxyUrl);
+                if (!proxyResp.ok) throw new Error("Proxy fetch failed");
+                json = await proxyResp.json();
+            }
+            return json;
+        }
+
+        function candlesFromYahooResponse(json) {
+            const result = json.chart?.result?.[0];
+            if (!result) return null;
+            const timestamps = result.timestamp || [];
+            const quote = result.indicators?.quote?.[0] || {};
+            const opens = quote.open || [];
+            const highs = quote.high || [];
+            const lows = quote.low || [];
+            const closes = quote.close || [];
+            
+            const candles = [];
+            for (let i = 0; i < timestamps.length; i++) {
+                if (opens[i] == null || closes[i] == null || highs[i] == null || lows[i] == null) continue;
+                const d = new Date(timestamps[i] * 1000);
+                candles.push({
+                    time: d.toISOString().slice(0, 16).replace('T', ' '),
+                    timestamp: timestamps[i],
+                    open: opens[i],
+                    high: highs[i],
+                    low: lows[i],
+                    close: closes[i]
+                });
+            }
+            return candles;
+        }
+
+        // Resample 1H candles to 4H
+        function resampleTo4H(h1Candles) {
+            const result = [];
+            for (let i = 0; i < h1Candles.length; i += 4) {
+                const chunk = h1Candles.slice(i, i + 4);
+                if (chunk.length === 0) continue;
+                result.push({
+                    time: chunk[0].time,
+                    timestamp: chunk[0].timestamp,
+                    open: chunk[0].open,
+                    high: Math.max(...chunk.map(c => c.high)),
+                    low: Math.min(...chunk.map(c => c.low)),
+                    close: chunk[chunk.length-1].close
+                });
+            }
+            return result;
+        }
+
+        // Compute RSI
+        function computeRSIArray(values, period = 14) {
+            if (values.length < period + 1) return [];
+            const rsiArr = new Array(values.length).fill(null);
+            let avgGain = 0, avgLoss = 0;
+            for (let i = 1; i <= period; i++) {
+                const diff = values[i] - values[i-1];
+                if (diff > 0) avgGain += diff;
+                else avgLoss -= diff;
+            }
+            avgGain /= period;
+            avgLoss /= period;
+            rsiArr[period] = avgLoss === 0 ? 100 : 100 - 100/(1 + avgGain/avgLoss);
+            for (let i = period + 1; i < values.length; i++) {
+                const diff = values[i] - values[i-1];
+                const gain = diff > 0 ? diff : 0;
+                const loss = diff < 0 ? -diff : 0;
+                avgGain = (avgGain*(period-1) + gain)/period;
+                avgLoss = (avgLoss*(period-1) + loss)/period;
+                rsiArr[i] = avgLoss === 0 ? 100 : 100 - 100/(1 + avgGain/avgLoss);
+            }
+            return rsiArr;
+        }
+
+        // Compute EMA array
+        function computeEMAArray(values, period) {
+            if (values.length < period) return [];
+            const k = 2/(period+1);
+            const emaArr = [values.slice(0, period).reduce((a,b)=>a+b,0) / period];
+            for (let i = period; i < values.length; i++) {
+                emaArr.push(values[i]*k + emaArr[emaArr.length-1]*(1-k));
+            }
+            return emaArr;
+        }
+
+        // Compute ATR
+        function computeATR(candles, period = 14) {
+            if (candles.length < period + 1) return null;
+            const trs = [];
+            for (let i = 1; i < candles.length; i++) {
+                const h = candles[i].high;
+                const l = candles[i].low;
+                const prevC = candles[i-1].close;
+                const tr = Math.max(h-l, Math.abs(h-prevC), Math.abs(l-prevC));
+                trs.push(tr);
+            }
+            let atr = trs.slice(0, period).reduce((a,b)=>a+b,0)/period;
+            for (let i = period; i < trs.length; i++) {
+                atr = (atr*(period-1) + trs[i])/period;
+            }
+            return atr;
+        }
+
+        // Support/resistance
+        function findSupportResistance(candles, lookback = 50) {
+            const recent = candles.slice(-lookback);
+            if (!recent.length) return { support: null, resistance: null };
+            const resistance = Math.max(...recent.map(c => c.high));
+            const support = Math.min(...recent.map(c => c.low));
+            return { resistance, support };
+        }
+
+        // Trend detection
+        function detectTrend(candles) {
+            if (candles.length < 20) return "Unclear";
+            const recent = candles.slice(-20);
+            const highs = [];
+            const lows = [];
+            for (let i = 2; i < recent.length - 2; i++) {
+                const window = recent.slice(i-2, i+3);
+                const h = recent[i].high;
+                const l = recent[i].low;
+                if (h === Math.max(...window.map(c=>c.high))) highs.push(h);
+                if (l === Math.min(...window.map(c=>c.low))) lows.push(l);
+            }
+            if (highs.length >= 2 && lows.length >= 2) {
+                const hh = highs[highs.length-1] > highs[highs.length-2];
+                const hl = lows[lows.length-1] > lows[lows.length-2];
+                const lh = highs[highs.length-1] < highs[highs.length-2];
+                const ll = lows[lows.length-1] < lows[lows.length-2];
+                if (hh && hl) return "Uptrend (higher highs + higher lows)";
+                if (lh && ll) return "Downtrend (lower highs + lower lows)";
+                return "Ranging/Consolidating";
+            }
+            return "Unclear";
+        }
+
+        // Simple pattern detection
+        function detectPatterns(candles) {
+            if (candles.length < 3) return ["No clear pattern"];
+            const patterns = [];
+            const last = candles[candles.length-1];
+            const prev = candles[candles.length-2];
+            
+            const bodyLast = Math.abs(last.close - last.open);
+            const bodyPrev = Math.abs(prev.close - prev.open);
+            const rangeLast = last.high - last.low;
+            const upperWick = last.high - Math.max(last.open, last.close);
+            const lowerWick = Math.min(last.open, last.close) - last.low;
+            
+            if (last.close > last.open && prev.close < prev.open && 
+                last.open <= prev.close && last.close >= prev.open && bodyLast > bodyPrev) {
+                patterns.push("Bullish Engulfing");
+            }
+            if (last.close < last.open && prev.close > prev.open && 
+                last.open >= prev.close && last.close <= prev.open && bodyLast > bodyPrev) {
+                patterns.push("Bearish Engulfing");
+            }
+            if (rangeLast > 0 && bodyLast < rangeLast * 0.1) {
+                patterns.push("Doji");
+            }
+            if (bodyLast > 0 && lowerWick > bodyLast * 2 && upperWick < bodyLast) {
+                patterns.push("Hammer");
+            }
+            if (bodyLast > 0 && upperWick > bodyLast * 2 && lowerWick < bodyLast) {
+                patterns.push("Shooting Star");
+            }
+            
+            return patterns.length ? patterns : ["No clear pattern"];
+        }
+
+        // Format candles as text
+        function candlesToText(candles, count, label) {
+            const recent = candles.slice(-count);
+            const lines = [`${label} (oldest → newest):`];
+            for (const c of recent) {
+                const dir = c.close > c.open ? "UP" : "DOWN";
+                lines.push(`  ${c.time} | O:${c.open.toFixed(4)} H:${c.high.toFixed(4)} L:${c.low.toFixed(4)} C:${c.close.toFixed(4)} (${dir})`);
+            }
+            return lines.join("\n");
+        }
+
+        // Get session info
+        function getSession() {
+            const hour = new Date().getUTCHours();
+            if (hour >= 7 && hour < 10) return { name: "London Kill Zone", volatility: "high" };
+            if (hour >= 12 && hour < 15) return { name: "New York Kill Zone", volatility: "high" };
+            if (hour >= 2 && hour < 5) return { name: "Asian Kill Zone", volatility: "low" };
+            return { name: "Off-Session", volatility: "low" };
+        }
+
+        // Build prompt for browser AI
+        function buildBrowserAIPrompt(candles) {
+            const { m5, m15, h1, h4, daily } = candles;
+            const closes1h = h1.map(c => c.close);
+            const rsi1h = computeRSIArray(closes1h, 14);
+            const ema20arr = computeEMAArray(closes1h, 20);
+            const ema50arr = computeEMAArray(closes1h, 50);
+            const atr1h = computeATR(h1, 14);
+            
+            const latest = h1[h1.length-1];
+            const price = latest.close;
+            const rsi = rsi1h[rsi1h.length-1] || 50;
+            const ema20 = ema20arr[ema20arr.length-1] || price;
+            const ema50 = ema50arr[ema50arr.length-1] || price;
+            const atr = atr1h || 0.0015;
+            
+            const { resistance, support } = findSupportResistance(h1, 50);
+            const trend = detectTrend(h1);
+            const patterns = detectPatterns(h1);
+            const session = getSession();
+            
+            const istNow = new Date(Date.now() + 5.5 * 3600 * 1000);
+            const timeIST = istNow.toISOString().slice(11, 16);
+            const dateIST = istNow.toISOString().slice(0, 10);
+            const hourIST = parseInt(timeIST.slice(0, 2));
+            let greeting = "Good evening";
+            if (hourIST < 12) greeting = "Good morning";
+            else if (hourIST < 17) greeting = "Good afternoon";
+            
+            const prompt = `You are a professional EUR/USD trader. Analyze this market data and respond with a trading verdict.
+
+CURRENT TIME (IST): ${timeIST} on ${dateIST} — Start with "${greeting}".
+
+MARKET DATA:
+- Current Price: ${price.toFixed(4)}
+- RSI(14): ${rsi.toFixed(1)}
+- EMA20: ${ema20.toFixed(4)}
+- EMA50: ${ema50.toFixed(4)}
+- ATR(14): ${atr.toFixed(4)}
+- Resistance (50-candle): ${resistance.toFixed(4)}
+- Support (50-candle): ${support.toFixed(4)}
+- Trend: ${trend}
+- Patterns: ${patterns.join(", ")}
+- Session: ${session.name} (${session.volatility} volatility)
+
+${candlesToText(m5, 20, "5-MINUTE CANDLES")}
+
+${candlesToText(m15, 15, "15-MINUTE CANDLES")}
+
+${candlesToText(h1, 20, "1-HOUR CANDLES")}
+
+${candlesToText(h4, 8, "4-HOUR CANDLES")}
+
+${candlesToText(daily, 5, "DAILY CANDLES")}
+
+YOUR TASK:
+Give a trading verdict: BUY / SELL / HOLD.
+Reason in 2-4 sentences. Consider:
+- Trend alignment across timeframes
+- Entry timing from 5m candles
+- Contradictions between timeframes
+- Risk levels
+
+RULES:
+- If signals conflict, say HOLD
+- If unclear, say HOLD
+- Speak directly to Boss
+
+Respond ONLY with valid JSON:
+{"verdict": "BUY/SELL/HOLD", "reason": "2-4 sentences", "confidence": "LOW/MEDIUM/HIGH"}`;
+
+            return { prompt, price, rsi, ema20, ema50, atr, resistance, support, trend, patterns, session };
+        }
+
+        // Call Gemini for browser AI
+        async function callGeminiForSignal(prompt, key) {
+            const body = {
+                contents: [{ role: "user", parts: [{ text: prompt }] }],
+                generationConfig: { temperature: 0.4, maxOutputTokens: 500 }
+            };
+            
+            const models = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash-latest"];
+            
+            for (const model of models) {
+                try {
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
+                    const resp = await fetch(url, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(body)
+                    });
+                    if (!resp.ok) continue;
+                    const json = await resp.json();
+                    const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (text) {
+                        console.log(`✅ Browser AI used: ${model}`);
+                        return text;
+                    }
+                } catch (e) {
+                    console.log(`Model ${model} failed:`, e.message);
+                }
+            }
+            return null;
+        }
+
+        // Main orchestrator
+        async function runBrowserAnalysis() {
+            if (!isBrowserAIEnabled()) return;
+            const key = getStoredKey();
+            if (!key) {
+                console.log("Browser AI: no key, skipping");
+                return;
+            }
+            if (browserAIRunning) {
+                console.log("Browser AI: already running, skipping");
+                return;
+            }
+            
+            browserAIRunning = true;
+            console.log("🤖 Running Browser AI analysis...");
+            
+            try {
+                // Fetch all timeframes in parallel
+                const [m5json, m15json, h1json, h1for4hjson, dailyjson] = await Promise.all([
+                    fetchYahooCandles("5m", "5d"),
+                    fetchYahooCandles("15m", "5d"),
+                    fetchYahooCandles("1h", "30d"),
+                    fetchYahooCandles("1h", "90d"),
+                    fetchYahooCandles("1d", "90d")
+                ]);
+                
+                const m5 = candlesFromYahooResponse(m5json) || [];
+                const m15 = candlesFromYahooResponse(m15json) || [];
+                const h1 = candlesFromYahooResponse(h1json) || [];
+                const h1for4h = candlesFromYahooResponse(h1for4hjson) || [];
+                const daily = candlesFromYahooResponse(dailyjson) || [];
+                const h4 = resampleTo4H(h1for4h);
+                
+                if (h1.length < 20) {
+                    throw new Error("Not enough 1H candles: " + h1.length);
+                }
+                
+                console.log(`Fetched: 5m=${m5.length}, 15m=${m15.length}, 1h=${h1.length}, 4h=${h4.length}, daily=${daily.length}`);
+                
+                const { prompt, price, rsi, ema20, ema50, atr, resistance, support, trend, patterns, session } = buildBrowserAIPrompt({ m5, m15, h1, h4, daily });
+                
+                const rawResponse = await callGeminiForSignal(prompt, key);
+                
+                if (!rawResponse) {
+                    throw new Error("Gemini returned no response");
+                }
+                
+                // Parse JSON
+                let clean = rawResponse.trim();
+                if (clean.startsWith("```")) {
+                    clean = clean.split("```")[1];
+                    if (clean.startsWith("json")) clean = clean.slice(4);
+                }
+                clean = clean.trim();
+                
+                const result = JSON.parse(clean);
+                
+                // Save browser AI data
+                browserAIData = {
+                    signal: result.verdict,
+                    reason: result.reason,
+                    confidence: result.confidence,
+                    price: price.toFixed(4),
+                    rsi: rsi.toFixed(1),
+                    ema20: ema20.toFixed(4),
+                    ema50: ema50.toFixed(4),
+                    atr: atr.toFixed(4),
+                    support: support.toFixed(4),
+                    resistance: resistance.toFixed(4),
+                    trend: trend,
+                    patterns: patterns,
+                    session: session.name,
+                    volatility: session.volatility,
+                    timestamp: Date.now(),
+                    source: "browser"
+                };
+                
+                browserAILastRun = Date.now();
+                console.log("✅ Browser AI result:", browserAIData);
+                
+                // Update display
+                updateDashboardWithBrowserAI();
+                
+            } catch (e) {
+                console.error("Browser AI error:", e);
+            } finally {
+                browserAIRunning = false;
+            }
+        }
+
+        // Update dashboard with browser AI result
+        function updateDashboardWithBrowserAI() {
+            if (!browserAIData) return;
+            
+            const d = browserAIData;
+            const signalEl = document.getElementById("signal");
+            signalEl.innerText = d.signal;
+            signalEl.className = `signal-text ${d.signal.toLowerCase()}`;
+            document.getElementById("signalSource").innerHTML = '<span class="live">⚡ Browser AI (' + new Date(d.timestamp).toTimeString().slice(0, 5) + ')</span>';
+            
+            document.getElementById("price").innerText = d.price;
+            document.getElementById("entry").innerText = d.price;
+            
+            // Recalculate SL/TP
+            const atr = parseFloat(d.atr);
+            let sl, tp;
+            if (d.signal === "BUY") {
+                sl = (parseFloat(d.price) - atr * 1.5).toFixed(4);
+                tp = (parseFloat(d.price) + atr * 3.0).toFixed(4);
+            } else if (d.signal === "SELL") {
+                sl = (parseFloat(d.price) + atr * 1.5).toFixed(4);
+                tp = (parseFloat(d.price) - atr * 3.0).toFixed(4);
+            } else {
+                sl = (parseFloat(d.price) - atr * 1.5).toFixed(4);
+                tp = (parseFloat(d.price) + atr * 3.0).toFixed(4);
+            }
+            
+            document.getElementById("sl").innerText = sl;
+            document.getElementById("tp").innerText = tp;
+            document.getElementById("confidence").innerText = d.confidence || "MEDIUM";
+            document.getElementById("valid").innerText = new Date(Date.now() + 5*60*1000).toTimeString().slice(0, 5) + " IST";
+            
+            document.getElementById("trend").innerText = d.trend;
+            document.getElementById("support").innerText = d.support;
+            document.getElementById("resistance").innerText = d.resistance;
+            document.getElementById("session").innerText = d.session + " (" + d.volatility + " volatility)";
+            
+            // Update reasoning
+            document.getElementById("ai_reason").innerText = d.reason;
+            document.getElementById("candle_current").innerText = `Price: ${d.price} | RSI: ${d.rsi} | ATR: ${d.atr}`;
+            document.getElementById("candle_1h").innerText = `EMA20: ${d.ema20} | EMA50: ${d.ema50}`;
+            document.getElementById("candle_4h").innerText = `Patterns: ${d.patterns.join(", ")}`;
+            
+            updateCoreColor(d.signal);
+        }
+
+        // Schedule browser AI every 5 min aligned
+        function scheduleBrowserAIAnalysis() {
+            const now = new Date();
+            const minutes = now.getMinutes();
+            const nextMinute = Math.ceil((minutes + 1) / 5) * 5;
+            const secondsToNext = (nextMinute - minutes) * 60 - now.getSeconds();
+            
+            console.log(`Browser AI next run in ${secondsToNext} seconds`);
+            
+            setTimeout(async () => {
+                if (isBrowserAIEnabled()) {
+                    await runBrowserAnalysis();
+                }
+                scheduleBrowserAIAnalysis();
+            }, secondsToNext * 1000);
+        }
+        // ═══ END BROWSER AI ENGINE ═══
+
+        // ═══════════════════════════════════════════════════════
+        // ═══ LIVE PRICE FETCH (every 5 min) ═══
         // ═══════════════════════════════════════════════════════
         
-        // Compute RSI from a price array
         function computeRSI(prices, period = 14) {
             if (prices.length < period + 1) return null;
             let gains = 0, losses = 0;
@@ -1162,7 +1665,6 @@
             return 100 - (100 / (1 + rs));
         }
 
-        // Compute EMA from a price array
         function computeEMA(prices, period) {
             if (prices.length < period) return null;
             const k = 2 / (period + 1);
@@ -1173,117 +1675,57 @@
             return ema;
         }
 
-        // Rule-based signal — mimics what a human trader would eyeball on a 5m chart
         function computeRuleSignal() {
             if (!livePrice || priceHistory.length < 20) return null;
-            
             const ema20 = computeEMA(priceHistory, 20);
             const rsi = computeRSI(priceHistory, 14);
-            
             if (!ema20 || !rsi) return null;
-            
             liveEma20 = ema20;
             liveRsi = rsi;
-            
-            // Rule logic — simple but effective
             if (livePrice > ema20 * 1.0003 && rsi > 55) return "BUY";
             if (livePrice < ema20 * 0.9997 && rsi < 45) return "SELL";
             return "HOLD";
         }
 
-        // Fetch live EUR/USD price from Yahoo Finance
         async function fetchLivePrice() {
             try {
                 const url = "https://query1.finance.yahoo.com/v8/finance/chart/EURUSD=X?interval=1m&range=1d";
                 const resp = await fetch(url);
                 if (!resp.ok) throw new Error("Yahoo fetch failed");
                 const json = await resp.json();
-                const result = json.chart?.result?.[0];
-                if (!result) throw new Error("No result");
-                
-                const meta = result.meta;
-                const price = meta.regularMarketPrice;
+                const meta = json.chart?.result?.[0]?.meta;
+                const price = meta?.regularMarketPrice;
                 if (!price) throw new Error("No price");
                 
-                // Add to rolling history (cap at 100 points)
                 priceHistory.push(price);
                 if (priceHistory.length > 100) priceHistory.shift();
-                
                 livePrice = price;
-                
-                // Compute rule signal
                 ruleSignal = computeRuleSignal();
                 
-                // Update display
-                updateLiveDisplay();
+                // Only show live price if browser AI isn't overriding
+                if (!browserAIData) {
+                    const priceEl = document.getElementById("price");
+                    if (priceEl) {
+                        priceEl.innerText = price.toFixed(4);
+                        priceEl.classList.add("updating");
+                        setTimeout(() => priceEl.classList.remove("updating"), 1500);
+                    }
+                }
                 
-                console.log(`Live price: ${price} | Rule signal: ${ruleSignal} | RSI: ${liveRsi?.toFixed(1)}`);
-                
+                console.log(`Live: ${price} | Rule: ${ruleSignal}`);
             } catch (e) {
                 console.log("Live price fetch error:", e.message);
             }
         }
 
-        // Update the display with live price + rule-based entry/SL/TP
-        function updateLiveDisplay() {
-            if (!livePrice) return;
-            
-            const priceEl = document.getElementById("price");
-            priceEl.innerText = livePrice.toFixed(4);
-            priceEl.classList.add("updating");
-            setTimeout(() => priceEl.classList.remove("updating"), 1500);
-            
-            // If we have rule signal and ATR, update entry/SL/TP
-            if (ruleSignal && lastKnownAtr) {
-                const atr = lastKnownAtr;
-                const entry = livePrice;
-                let sl, tp;
-                
-                if (ruleSignal === "BUY") {
-                    sl = entry - (atr * 1.5);
-                    tp = entry + (atr * 3.0);
-                } else if (ruleSignal === "SELL") {
-                    sl = entry + (atr * 1.5);
-                    tp = entry - (atr * 3.0);
-                } else {
-                    sl = entry - (atr * 1.5);
-                    tp = entry + (atr * 3.0);
-                }
-                
-                document.getElementById("entry").innerText = entry.toFixed(4);
-                document.getElementById("sl").innerText = sl.toFixed(4);
-                document.getElementById("tp").innerText = tp.toFixed(4);
-                
-                // Update signal display if it differs from the hourly AI signal
-                const signalEl = document.getElementById("signal");
-                const signalSource = document.getElementById("signalSource");
-                
-                // Only override if the rule signal is more recent than the hourly signal
-                // (i.e., we're between hourly updates and the rule has something new to say)
-                if (ruleSignal !== latestData?.signal) {
-                    signalEl.innerText = ruleSignal + " ⚡";
-                    signalEl.className = `signal-text ${ruleSignal.toLowerCase()}`;
-                    signalSource.innerHTML = '<span class="live">⚡ Live rule signal (5m)</span>';
-                } else {
-                    signalEl.innerText = latestData.signal;
-                    signalEl.className = `signal-text ${latestData.signal.toLowerCase()}`;
-                    signalSource.innerText = "🤖 AI signal (hourly)";
-                }
-            }
-        }
-
-        // Schedule the next aligned fetch (:00, :05, :10, :15, :20...)
         function scheduleAlignedFetch() {
             const now = new Date();
             const minutes = now.getMinutes();
-            const nextMinute = Math.ceil((minutes + 1) / 5) * 5; // next multiple of 5
+            const nextMinute = Math.ceil((minutes + 1) / 5) * 5;
             const secondsToNext = (nextMinute - minutes) * 60 - now.getSeconds();
-            
-            console.log(`Next live fetch in ${secondsToNext} seconds`);
-            
             setTimeout(async () => {
                 await fetchLivePrice();
-                scheduleAlignedFetch();  // Schedule the next one
+                scheduleAlignedFetch();
             }, secondsToNext * 1000);
         }
         // ═══ END LIVE PRICE ═══
@@ -1356,14 +1798,18 @@
                 if (!response.ok) throw new Error("No data yet");
                 const data = await response.json();
                 latestData = data;
-                
-                // Save ATR for live SL/TP calc
                 if (data.atr) lastKnownAtr = parseFloat(data.atr);
                 
-                updateDashboard(data);
+                // Only update display if browser AI hasn't run recently
+                const browserRecent = browserAIData && (Date.now() - browserAIData.timestamp < 6 * 60 * 1000);
+                if (!browserRecent) {
+                    updateDashboard(data);
+                }
             } catch (error) {
-                document.getElementById("ai_reason").innerText = "Boss, waiting for the Python backend. Please run the GitHub Action.";
-                setTimeout(loadLiveData, 60000); // Retry every 60 sec
+                if (!browserAIData) {
+                    document.getElementById("ai_reason").innerText = "Boss, waiting for data...";
+                }
+                setTimeout(loadLiveData, 60000);
             }
         }
         async function loadPersonalContext() {
@@ -1377,7 +1823,6 @@
             signalEl.innerText = data.signal;
             signalEl.className = `signal-text ${data.signal.toLowerCase()}`;
             document.getElementById("signalSource").innerText = "🤖 AI signal (hourly)";
-            
             if (data.price) document.getElementById("price").innerText = data.price;
             document.getElementById("entry").innerText = data.entry;
             document.getElementById("sl").innerText = data.sl;
@@ -1416,9 +1861,9 @@
             return voices[0];
         }
         function speakSignal() {
-            const source = latestData || {};
-            const currentPrice = livePrice ? livePrice.toFixed(4) : source.price;
-            const currentSignal = ruleSignal && ruleSignal !== source.signal ? ruleSignal : source.signal;
+            const source = browserAIData || latestData || {};
+            const currentPrice = source.price || (livePrice ? livePrice.toFixed(4) : "-");
+            const currentSignal = source.signal || "HOLD";
             
             const isJoke = (source.wise_words || "").toLowerCase().startsWith("joke");
             const wisdom = (source.wise_words || "").replace(/^Joke:\s*|^Motivation:\s*/i, '');
@@ -1492,46 +1937,29 @@
 
         function buildSystemPrompt() {
             const d = latestData || {};
+            const b = browserAIData || {};
             const p = personalContext || {};
             const memory = loadMemory();
             const reminders = loadReminders().filter(r => !r.fired);
             const webEnabled = isWebSearchEnabled();
             const deepThink = isDeepThinkEnabled();
             
-            function formatCandles(candleArr, label) {
-                if (!candleArr || !candleArr.length) return `${label}: No data available.`;
-                const lines = [`${label} (oldest → newest):`];
-                for (const c of candleArr) lines.push(`  ${c.time} | O:${c.open} H:${c.high} L:${c.low} C:${c.close}`);
-                return lines.join("\n");
-            }
-            
             const now = new Date();
             const todayIST = now.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
             const timeIST = now.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: false });
             
             const timePlus1 = getISTTimePlusMinutes(1);
-            const timePlus2 = getISTTimePlusMinutes(2);
             const timePlus5 = getISTTimePlusMinutes(5);
-            const timePlus10 = getISTTimePlusMinutes(10);
             const timePlus15 = getISTTimePlusMinutes(15);
             const timePlus30 = getISTTimePlusMinutes(30);
             const timePlus60 = getISTTimePlusMinutes(60);
             
-            // Live price section
-            let liveSection = "";
-            if (livePrice) {
-                liveSection = `
-=== LIVE PRICE (fetched every 5 min) ===
-- Current Live Price: ${livePrice.toFixed(4)}
-- Live RSI(14): ${liveRsi ? liveRsi.toFixed(1) : 'calculating...'}
-- Live EMA20: ${liveEma20 ? liveEma20.toFixed(4) : 'calculating...'}
-- Rule-based 5-min signal: ${ruleSignal || 'calculating...'}
-`;
-            }
+            // Current active signal source
+            const browserRecent = browserAIData && (Date.now() - browserAIData.timestamp < 6 * 60 * 1000);
+            const activeSource = browserRecent ? "browser" : "python";
+            const active = browserRecent ? b : d;
             
-            let prompt = `You are Aria — a warm, intelligent, thinking AI trading companion to a client named Boss. You have 10 years of hedge fund experience AND you genuinely reason about what you see. You speak to Boss like a real human colleague: warm, honest, occasionally humorous, and never robotic.
-
-You are speaking as a WOMAN. Warm, feminine tone. No emojis. Call him "Boss".
+            let prompt = `You are Aria — a warm, intelligent, thinking AI trading companion to a client named Boss. You have 10 years of hedge fund experience. Speak like a real human colleague: warm, honest, occasionally humorous, never robotic. You are a WOMAN. No emojis. Call him "Boss".
 
 CURRENT DATE (IST): ${todayIST}
 CURRENT TIME (IST): ${timeIST}
@@ -1543,77 +1971,81 @@ REFERENCE TIMES:
 - In 30 minutes: ${timePlus30}
 - In 60 minutes: ${timePlus60}
 
-${liveSection}
+=== ACTIVE SIGNAL SOURCE: ${activeSource.toUpperCase()} ===
+${browserRecent ? "This is the FRESH browser AI signal (runs every 5 min)" : "This is the hourly Python AI signal"}
 
-=== HOURLY AI SIGNAL (from Gemini) ===
-- AI Signal: ${d.signal || 'unknown'}
-- Confidence: ${d.confidence || 'unknown'}
-- Entry: ${d.entry || '-'} | SL: ${d.sl || '-'} | TP: ${d.tp || '-'}
-- Valid Until: ${d.valid || '-'}
-- Support: ${d.support || '-'} | Resistance: ${d.resistance || '-'}
-- Mid-Range: ${d.mid_range || '-'}
-- Session: ${d.session || '-'} (${d.volatility || '-'} volatility)
+CURRENT SIGNAL STATE:
+- Signal: ${active.signal || 'unknown'}
+- Confidence: ${active.confidence || 'unknown'}
+- Price: ${active.price || 'unknown'}
+- Entry: ${active.entry || active.price || '-'}
+- SL: ${active.sl || '-'}
+- TP: ${active.tp || '-'}
+- Support: ${active.support || '-'}
+- Resistance: ${active.resistance || '-'}
+- Trend: ${active.trend || '-'}
+- Session: ${active.session || '-'}
+- Patterns: ${Array.isArray(active.patterns) ? active.patterns.join(", ") : (active.patterns || 'none')}
 
-TREND STRUCTURE:
-- Overall Trend: ${d.trend || 'unknown'}
-- Recent Swing Highs: ${(d.swing_highs || []).join(", ") || 'none'}
-- Recent Swing Lows: ${(d.swing_lows || []).join(", ") || 'none'}
-
-PATTERNS (latest hour): ${(d.patterns || []).join(", ") || 'none'}
-
-HOURLY AI REASONING:
-${d.reason || 'No analysis yet'}
+SIGNAL REASONING:
+${active.reason || 'No analysis yet'}
 `;
 
-            prompt += "\n\n=== RAW CANDLE DATA (5 TIMEFRAMES) ===\n\n";
-            prompt += formatCandles(d.candles_5m, "5-MINUTE CANDLES (30 most recent — for entry timing)") + "\n\n";
-            prompt += formatCandles(d.candles_15m, "15-MINUTE CANDLES (20 most recent — for short-term structure)") + "\n\n";
-            prompt += formatCandles(d.candles_h1, "1-HOUR CANDLES (30 most recent — main trend)") + "\n\n";
-            prompt += formatCandles(d.candles_h4, "4-HOUR CANDLES (10 most recent — medium trend)") + "\n\n";
-            prompt += formatCandles(d.candles_daily, "DAILY CANDLES (5 most recent — big picture)") + "\n";
+            if (livePrice) {
+                prompt += `\n=== LIVE PRICE (5-min) ===\n- Live: ${livePrice.toFixed(4)}\n- Live RSI: ${liveRsi ? liveRsi.toFixed(1) : 'N/A'}\n- Live EMA20: ${liveEma20 ? liveEma20.toFixed(4) : 'N/A'}\n- Rule signal: ${ruleSignal || 'N/A'}\n`;
+            }
+            
+            // Add candles if available from Python
+            if (d.candles_h1 && d.candles_h1.length) {
+                function fmt(arr, label, count) {
+                    if (!arr || !arr.length) return "";
+                    const lines = [`\n${label}:`];
+                    for (const c of arr.slice(-count)) lines.push(`  ${c.time} | O:${c.open} H:${c.high} L:${c.low} C:${c.close}`);
+                    return lines.join("\n");
+                }
+                prompt += "\n=== RECENT CANDLES ===\n";
+                prompt += fmt(d.candles_5m, "5m", 20);
+                prompt += fmt(d.candles_15m, "15m", 15);
+                prompt += fmt(d.candles_h1, "1H", 20);
+                prompt += fmt(d.candles_h4, "4H", 8);
+                prompt += fmt(d.candles_daily, "Daily", 5);
+                prompt += "\n";
+            }
             
             if (p.family) {
-                prompt += `\n\nBOSS'S FAMILY:\n`;
-                if (p.family.wife) prompt += `- Wife: ${p.family.wife.name} (in ${p.family.wife.location})\n`;
-                if (p.family.daughters) p.family.daughters.forEach(dd => prompt += `- Daughter: ${dd.name}, ${dd.grade}, birthday ${dd.birthday}\n`);
+                prompt += `\nBOSS'S FAMILY:\n`;
+                if (p.family.wife) prompt += `- Wife: ${p.family.wife.name} (${p.family.wife.location})\n`;
+                if (p.family.daughters) p.family.daughters.forEach(dd => prompt += `- Daughter: ${dd.name}, ${dd.grade}\n`);
                 if (p.family.cat) prompt += `- Cat: ${p.family.cat}\n`;
-                if (p.family.parents) prompt += `- Parents: ${p.family.parents.join(", ")}\n`;
-                if (p.family.brothers) prompt += `- Brothers: ${p.family.brothers.join(", ")}\n`;
-                if (p.family.location) prompt += `- Family lives in ${p.family.location}\n`;
             }
             if (p.daily_routine) {
-                prompt += `\nDAILY ROUTINE:\n`;
+                prompt += `\nROUTINE:\n`;
                 p.daily_routine.forEach(r => prompt += `- ${r}\n`);
             }
             if (p.trading_style) {
-                prompt += `\nTRADING STYLE:\n- Monthly Goal: ${p.trading_style.monthly_goal}\n- Preferred Sessions: ${p.trading_style.preferred_sessions.join(", ")}\n- Risk: ${p.trading_style.risk_tolerance}\n`;
+                prompt += `\nTRADING STYLE:\n- Goal: ${p.trading_style.monthly_goal}\n- Sessions: ${p.trading_style.preferred_sessions.join(", ")}\n`;
             }
             if (memory.length > 0) {
-                prompt += `\n\nLONG-TERM MEMORY:\n`;
+                prompt += `\nLONG-TERM MEMORY:\n`;
                 memory.forEach(m => prompt += `- [${m.added}] ${m.fact}\n`);
             }
             if (reminders.length > 0) {
-                prompt += `\n\nACTIVE REMINDERS:\n`;
+                prompt += `\nACTIVE REMINDERS:\n`;
                 reminders.forEach(r => prompt += `- ${r.time} — ${r.message}\n`);
             }
-            prompt += `\n\n${webEnabled ? "WEB SEARCH IS ENABLED." : "WEB SEARCH IS DISABLED."}`;
+            prompt += `\n${webEnabled ? "WEB SEARCH IS ENABLED." : "WEB SEARCH IS DISABLED."}`;
 
             if (deepThink) {
                 prompt += `\n\n=== DEEP THINK MODE ===
-Speak naturally, like a smart friend who knows markets. Admit uncertainty. Notice contradictions. Ask follow-ups when it makes sense. Use words like "honestly", "I'm noticing", "here's what bothers me". Never sound like a robot.
-`;
+Speak naturally, admit uncertainty, notice contradictions. Use words like "honestly", "I'm noticing". Never sound robotic.`;
             }
 
-            prompt += `\n\n=== REMINDER SYSTEM ===
-When Boss asks for a reminder, ALWAYS add this tag at the end (on its own line):
-[REMINDER: HH:MM - message]
+            prompt += `\n\n=== REMINDERS ===
+When Boss asks for a reminder, ALWAYS add at end (own line): [REMINDER: HH:MM - message]
+Time rules: 4 PM → 16:00, 9 AM → 09:00. "In X min" → use reference times above.
+Morning → 09:00, Afternoon → 14:00, Evening → 19:00, Night → 21:00.
 
-Time rules:
-- 4 PM → 16:00, 9 AM → 09:00
-- "In X minutes" → use reference times above
-- Morning → 09:00, Afternoon → 14:00, Evening → 19:00, Night → 21:00
-
-=== MEMORY SYSTEM ===
+=== MEMORY ===
 When you learn a personal fact, add: [REMEMBER: fact]
 
 Reply warmly, then the tag on a new line.`;
@@ -1693,7 +2125,7 @@ Reply warmly, then the tag on a new line.`;
                                 }
                             }
                             allErrors.push(`${model} → ${resp.status}`);
-                            lastError = `${model} → ${resp.status}: ${errText.slice(0, 150)}`;
+                            lastError = `${model} → ${resp.status}`;
                             continue;
                         }
                         const json = await resp.json();
@@ -1715,14 +2147,12 @@ Reply warmly, then the tag on a new line.`;
                     const { clean: clean1, facts } = extractAndStripMemories(answer);
                     facts.forEach(f => addFact(f));
                     if (facts.length > 0) addMessage("system", `🧠 Remembered ${facts.length} new fact${facts.length > 1 ? 's' : ''}.`);
-                    
                     const { clean: clean2, reminders } = extractAndStripReminders(clean1);
                     reminders.forEach(r => addReminder(r.time, r.message));
                     if (reminders.length > 0) {
                         const remList = reminders.map(r => `${r.time} — ${r.message}`).join(", ");
                         addMessage("system", `⏰ Reminder${reminders.length > 1 ? 's' : ''} set: ${remList}`);
                     }
-                    
                     addMessage("ai", clean2, sources);
                     chatHistory.push({ role: "model", parts: [{ text: clean2 }] });
                     if (chatHistory.length > MAX_HISTORY_ENTRIES) chatHistory = chatHistory.slice(-MAX_HISTORY_ENTRIES);
@@ -1731,10 +2161,7 @@ Reply warmly, then the tag on a new line.`;
                 } else {
                     chatHistory.pop();
                     saveStoredHistory(chatHistory);
-                    const debugInfo = availableModels.length > 0
-                        ? `Available models: ${availableModels.slice(0, 10).join(", ")}\n\nErrors: ${allErrors.join("; ")}`
-                        : `Could not list models.\n\nErrors: ${allErrors.join("; ")}\n\nLast: ${lastError}`;
-                    addMessage("error", `Boss, connection failed.\n\nDebug:\n${debugInfo}`);
+                    addMessage("error", `Boss, connection failed.\n\nLast: ${lastError}`);
                 }
             } catch (error) {
                 thinkingEl.remove();
@@ -1766,13 +2193,21 @@ Reply warmly, then the tag on a new line.`;
         loadLiveData();
         restoreChatFromMemory();
         
-        // Start live price schedule (first fetch in 3 sec, then aligned)
+        // Start live price schedule
         setTimeout(() => {
             fetchLivePrice();
             scheduleAlignedFetch();
         }, 3000);
         
-        // Refresh hourly data every 30 min (catches updates when workflow runs)
+        // Start browser AI schedule (first run in 5 sec to let things settle)
+        setTimeout(() => {
+            if (isBrowserAIEnabled() && getStoredKey()) {
+                runBrowserAnalysis();
+            }
+            scheduleBrowserAIAnalysis();
+        }, 5000);
+        
+        // Refresh hourly data every 30 min
         setInterval(loadLiveData, 30 * 60 * 1000);
     </script>
 </body>
