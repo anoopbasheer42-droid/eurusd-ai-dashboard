@@ -370,6 +370,14 @@
         let reminders = JSON.parse(localStorage.getItem('eurusd_reminders') || '[]');
         let apiKey = localStorage.getItem('eurusd_chat_key') || '';
 
+        // --- FIX 1: VOICE INITIALIZATION ON ANDROID ---
+        // Chrome blocks voices until user interacts. This forces it to load.
+        document.body.addEventListener('click', () => {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.getVoices();
+            }
+        }, { once: true });
+
         // --- 1. THREE.JS NEURAL CORE (Clean: Glow sphere + inner/outer wireframes, NO rings, NO particles) ---
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
@@ -405,18 +413,15 @@
             requestAnimationFrame(animate);
             
             pulseTime += 0.05;
-            // Breathing effect for inner core
             const scale = 1 + Math.sin(pulseTime) * 0.05;
             innerCore.scale.set(scale, scale, scale);
 
-            // Rotations
             innerCore.rotation.x += 0.01;
             innerCore.rotation.y += 0.015;
             
             outerShell.rotation.x -= 0.003;
             outerShell.rotation.y -= 0.005;
 
-            // Glow pulse
             glowSphere.material.opacity = 0.1 + Math.sin(pulseTime * 0.5) * 0.05;
 
             renderer.render(scene, camera);
@@ -442,7 +447,7 @@
         // --- 2. DATA FETCHING & UI UPDATE ---
         async function fetchData() {
             try {
-                const response = await fetch(DATA_URL + '?t=' + new Date().getTime());
+                const response = await fetch(DATA_URL + '?v=' + new Date().getTime());
                 if (!response.ok) throw new Error('Network response was not ok');
                 globalData = await response.json();
                 updateUI(globalData);
@@ -454,16 +459,14 @@
 
         async function fetchContext() {
             try {
-                const response = await fetch(CONTEXT_URL + '?t=' + new Date().getTime());
+                const response = await fetch(CONTEXT_URL + '?v=' + new Date().getTime());
                 if (response.ok) personalContext = await response.json();
             } catch (e) { console.log('Context not loaded'); }
         }
 
         function updateUI(data) {
-            // Header
             document.getElementById('live-price').innerText = data.price || '1.00000';
             
-            // Signal
             const signalText = document.getElementById('signal-text');
             signalText.innerText = data.signal || 'WAITING';
             if (data.signal === 'BUY') { signalText.style.color = 'var(--green)'; signalText.style.textShadow = '0 0 30px rgba(46, 204, 113, 0.6)'; }
@@ -472,7 +475,6 @@
             
             updateCoreColor(data.signal);
 
-            // Details
             document.getElementById('val-confidence').innerText = data.confidence || '-';
             document.getElementById('val-valid').innerText = data.valid || '-';
             document.getElementById('val-entry').innerText = data.entry || '-';
@@ -480,7 +482,6 @@
             document.getElementById('val-tp').innerText = data.tp || '-';
             document.getElementById('val-atr').innerText = data.atr || '-';
 
-            // Analysis
             document.getElementById('val-trend').innerText = data.trend || '-';
             document.getElementById('val-session').innerText = data.session || '-';
             document.getElementById('val-support').innerText = data.support || '-';
@@ -489,7 +490,6 @@
             document.getElementById('val-candle-1h').innerText = data.candle_1h || '-';
             document.getElementById('val-candle-4h').innerText = data.candle_4h || '-';
 
-            // Reasoning & Wisdom
             document.getElementById('val-reason').innerText = data.reason || 'No reasoning provided.';
             document.getElementById('wise-words').innerText = data.wise_words || 'Stay disciplined, Boss.';
         }
@@ -590,7 +590,6 @@
             renderChat();
             saveChatHistory();
 
-            // Add loading indicator
             const loadingDiv = document.createElement('div');
             loadingDiv.className = 'msg ai';
             loadingDiv.innerText = '...';
@@ -601,14 +600,12 @@
                 const response = await callGeminiAPI(text);
                 document.getElementById('chat-history').removeChild(loadingDiv);
                 
-                // Parse reminders from AI response
                 const reminderMatch = response.match(/\[REMINDER:\s*(\d{2}:\d{2})\s*-\s*(.*?)\]/);
                 if (reminderMatch) {
                     addReminder(reminderMatch[1], reminderMatch[2]);
                     response = response.replace(/\[REMINDER:.*?\]/g, '').trim();
                 }
 
-                // Parse long-term memory
                 const memoryMatch = response.match(/\[REMEMBER:\s*(.*?)\]/);
                 if (memoryMatch) {
                     addLongTermMemory(memoryMatch[1]);
@@ -628,7 +625,6 @@
         }
 
         async function callGeminiAPI(userText) {
-            // Build context
             let systemPrompt = `You are an AI trading assistant for Boss. You are friendly, funny, and motivational. Do not use emojis. Call him "Boss". 
             Current time: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST.
             Here is his personal context: ${JSON.stringify(personalContext)}.
@@ -649,11 +645,23 @@
                 tools: webSearchEnabled ? [{ google_search: {} }] : []
             };
 
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+            // FIX 2: Try 2.5-flash, fallback to 1.5-flash
+            let model = 'gemini-2.5-flash';
+            let response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
+
+            if (!response.ok) {
+                // Fallback if 2.5-flash fails (common with free tier)
+                model = 'gemini-1.5-flash';
+                response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+            }
 
             if (!response.ok) {
                 const err = await response.json();
@@ -663,11 +671,12 @@
             const data = await response.json();
             let reply = data.candidates[0].content.parts[0].text;
             
-            // Handle Google Search citations if web is on
+            // FIX 3: Safe parsing for web search citations
             if (webSearchEnabled && data.candidates[0].groundingMetadata) {
                 const sources = data.candidates[0].groundingMetadata.groundingChunks;
                 if (sources && sources.length > 0) {
-                    reply += "\n\nSources:\n" + sources.map(s => `- ${s.web.title}`).join('\n');
+                    const sourceTitles = sources.map(s => `- ${s.web?.title || 'Source'}`).join('\n');
+                    reply += "\n\nSources:\n" + sourceTitles;
                 }
             }
             return reply;
@@ -714,16 +723,20 @@
         function triggerNotification(title, body) {
             if (!("Notification" in window)) { alert("This browser does not support desktop notification"); }
             else if (Notification.permission === "granted") {
-                new Notification(title, { body: body });
+                const notif = new Notification(title, { body: body });
+                // FIX 4: Focus window on click
+                notif.onclick = () => { window.focus(); };
             } else if (Notification.permission !== "denied") {
                 Notification.requestPermission().then(function (permission) {
-                    if (permission === "granted") new Notification(title, { body: body });
+                    if (permission === "granted") {
+                        const notif = new Notification(title, { body: body });
+                        notif.onclick = () => { window.focus(); };
+                    }
                 });
             }
             speakText(`Reminder: ${body}`);
         }
 
-        // Check reminders every 20 seconds
         setInterval(() => {
             const now = new Date();
             const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
@@ -782,12 +795,11 @@
             renderMemory();
             if (apiKey) document.getElementById('web-toggle').style.display = 'block';
             
-            // Load voices for speech synthesis
+            // FIX 5: Force voice list load on startup
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.getVoices();
             }
             
-            // Refresh data every 10 minutes
             setInterval(fetchData, 600000);
         };
     </script>
