@@ -18,8 +18,9 @@
             flex-direction:column; align-items:center; }
         .dashboard { width:100%; max-width:600px; display:flex; flex-direction:column; gap:15px; }
         header { display:flex; justify-content:space-between; align-items:center; padding:10px 0; }
-        .logo { display:flex; align-items:center; gap:5px; font-size:1.2rem; font-weight:800; }
+        .logo { display:flex; align-items:center; gap:5px; font-size:1.2rem; font-weight:800; flex-direction:column; align-items:flex-start; }
         .logo span { color:var(--yellow); }
+        .ist-clock { font-size:0.7rem; color:var(--text-muted); font-family:'JetBrains Mono'; margin-top:2px; font-weight:400; }
         .price-ticker { font-family:'JetBrains Mono',monospace; font-size:1.2rem; font-weight:700;
             color:var(--green); background:rgba(46,204,113,0.1); padding:4px 10px; border-radius:8px;
             border:1px solid rgba(46,204,113,0.3); display:flex; flex-direction:column; align-items:flex-end; }
@@ -74,7 +75,10 @@
 <body>
     <div class="dashboard">
         <header>
-            <div class="logo">⚡ EUR/USD <span>AI PRO</span></div>
+            <div class="logo">
+                ⚡ EUR/USD <span>AI PRO</span>
+                <div class="ist-clock" id="ist-clock">IST: --:--:--</div>
+            </div>
             <div class="price-ticker" id="live-price">Loading...<div class="last-updated" id="last-updated">Updated: --:--:--</div></div>
         </header>
 
@@ -82,7 +86,7 @@
 
         <div class="card signal-card">
             <div class="card-title">Current Signal</div>
-            <div id="signal-text">TAP ASK AI</div>
+            <div id="signal-text">WAITING</div>
             <div class="signal-details">
                 <div><span>Confidence:</span> <span id="val-confidence">-</span></div>
                 <div><span>Valid Until:</span> <span id="val-valid">-</span></div>
@@ -96,13 +100,12 @@
                 <button class="btn" onclick="playVoiceReport()">▶ Play Voice</button>
                 <button class="btn danger" onclick="stopVoice()">■ Stop</button>
             </div>
-            <div class="signal-hint">💡 Market data auto-refreshes silently every 5:30. AI auto-refreshes every hour or on demand.</div>
+            <div class="signal-hint">💡 Market data auto-refreshes every 5:30. AI auto-refreshes every hour or on demand.</div>
         </div>
 
         <div class="card">
             <div class="card-title">Ask Your AI Trader
                 <div class="chat-controls">
-                    <button class="btn active" id="browser-ai-toggle">🤖 AI ON</button>
                     <button class="btn active deep" id="deep-think-toggle" onclick="toggleDeepThink()">🧠 Deep ON</button>
                     <button class="btn" id="web-toggle" onclick="toggleWeb()">🌐 Web OFF</button>
                     <button class="btn" onclick="togglePanel('panel-reminders')">🔔</button>
@@ -139,7 +142,7 @@
                 <input type="password" id="api-key-input" placeholder="AIzaSy..." style="width:100%; padding:8px; margin-top:5px; border-radius:6px; border:1px solid #444; background:#111; color:white;">
                 <button class="btn" style="margin-top:5px;" onclick="saveApiKey()">Save Key</button>
             </div>
-            <div class="chat-history" id="chat-history"><div class="msg ai fade-in">Hello Boss! I'm warming up. Give me a second to load your data.</div></div>
+            <div class="chat-history" id="chat-history"><div class="msg ai fade-in">Hello Boss! Give me a second to load your data.</div></div>
             <div class="chat-input-row">
                 <input type="text" id="chat-input" placeholder="Talk to me, Boss..." onkeypress="if(event.key==='Enter') sendChat()">
                 <button onclick="sendChat()">Send</button>
@@ -190,6 +193,14 @@
         let gistId = localStorage.getItem('eurusd_gist_id') || '';
 
         document.body.addEventListener('click', () => { if ('speechSynthesis' in window) window.speechSynthesis.getVoices(); }, { once: true });
+
+        // --- IST CLOCK ---
+        function updateISTClock() {
+            const istTime = new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false });
+            const el = document.getElementById('ist-clock');
+            if (el) el.innerText = `IST: ${istTime}`;
+        }
+        setInterval(updateISTClock, 1000);
 
         // --- THREE.JS ---
         const container = document.getElementById('canvas-container');
@@ -345,7 +356,7 @@
             if (!globalData) updateCoreColor(trend === "Uptrend" ? 'BUY' : trend === "Downtrend" ? 'SELL' : 'HOLD');
         }
 
-        // === AI SIGNAL (uses quota) ===
+        // === AI SIGNAL ===
         function isMarketQuestion(text) {
             const lower = text.toLowerCase();
             return MARKET_KEYWORDS.some(kw => lower.includes(kw));
@@ -405,8 +416,8 @@
                 playVoiceReport();
                 return globalData;
             } catch(e) {
-                signalText.innerText = "AI BUSY";
-                signalText.style.color = "var(--red)";
+                signalText.innerText = "WAITING";
+                signalText.style.color = "var(--text-muted)";
                 document.getElementById('val-reason').innerText = "AI error: " + e.message;
                 return null;
             }
@@ -488,25 +499,22 @@
         function buildPersonalityPrompt(includeSignal) {
             const now = new Date();
             const istTime = now.toLocaleString('en-IN', {timeZone:'Asia/Kolkata'});
-            const hour = new Date(istTime).getHours();
+            const istHour = parseInt(now.toLocaleString('en-US', {timeZone:'Asia/Kolkata', hour:'2-digit', hour12:false}));
             let greeting = "Hi";
-            if (hour < 12) greeting = "Good morning";
-            else if (hour < 17) greeting = "Good afternoon";
+            if (istHour < 12) greeting = "Good morning";
+            else if (istHour < 17) greeting = "Good afternoon";
             else greeting = "Good evening";
 
-            // Build personal details block
             let personalBlock = "";
             if (personalContext) {
                 personalBlock = `\n=== WHO BOSS IS ===\n- His name is Boss (call him that).\n- He lives in Thrissur, Kerala, India.\n- His wife Sadia is in Dubai. Ask about her often.\n- He has two daughters: Emy (7th grade, birthday July 22) and Bismah (5th grade, birthday Dec 26). Ask about them.\n- He has a cat named Cookie.\n- His parents and brothers Binu and Shanu are around.\n- He takes BP tablets after breakfast and dinner. Remind him gently if he forgets.\n- He has a monthly trading goal of 10,000 INR. Be his accountability partner.\n- Preferred sessions: London and New York. Risk tolerance: Conservative.\n`;
             }
 
-            // Build memory block
             let memoryBlock = "";
             if (longTermMemory.length > 0) {
                 memoryBlock = `\n=== THINGS YOU REMEMBER ABOUT BOSS ===\n${longTermMemory.slice(-20).map(m => `- ${m.fact}`).join('\n')}\n`;
             }
 
-            // Build market block
             let marketBlock = "";
             if (marketData) {
                 marketBlock = `\n=== LIVE MARKET (EUR/USD) ===\nPrice: ${marketData.currentPrice.toFixed(5)}\nTrend: ${marketData.trend}\nSupport: ${marketData.support.toFixed(5)} | Resistance: ${marketData.resistance.toFixed(5)}\nRSI 1H: ${marketData.rsi1H.toFixed(1)} | RSI 15m: ${marketData.rsi15m.toFixed(1)}\nEMA20 1H: ${marketData.ema20.toFixed(5)} | EMA50 1H: ${marketData.ema50.toFixed(5)}\nATR 1H: ${marketData.atr.toFixed(5)}\nSession: ${marketData.session}\n`;
@@ -655,21 +663,6 @@ Keep replies natural to speak out loud. Short sentences, warm tone, no markdown,
             throw new Error(lastErr || "All models busy. Wait 30 seconds.");
         }
 
-        // === PROACTIVE GREETING ===
-        async function proactiveGreeting() {
-            if (!apiKey || !marketData) return;
-            if (chatHistory.length > 0) return; // Only greet on fresh session
-            const istTime = new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'});
-            const hour = new Date(istTime).getHours();
-            let greeting = "Good evening";
-            if (hour < 12) greeting = "Good morning";
-            else if (hour < 17) greeting = "Good afternoon";
-
-            const greetingMsg = {role:'ai', text: `${greeting}, Boss! Hope you're doing well. Market's at ${marketData.currentPrice.toFixed(5)} right now, ${marketData.trend.toLowerCase()}. Ready to talk trading, family, or anything else on your mind.`};
-            chatHistory.push(greetingMsg);
-            renderChat(); saveChatHistory();
-        }
-
         // --- REMINDERS ---
         function addReminder(time, message) {
             const reminder = {id: Math.random().toString(36).substr(2,9), time, message, voice:true, fired:false, created: new Date().toISOString()};
@@ -740,15 +733,14 @@ Keep replies natural to speak out loud. Short sentences, warm tone, no markdown,
             if ('speechSynthesis' in window) window.speechSynthesis.getVoices();
             if (gistToken && gistId) loadMemoryFromGist();
             updateCoreColor('HOLD');
+            updateISTClock();
 
             if ('Notification' in window && Notification.permission === 'default') {
                 setTimeout(() => Notification.requestPermission(), 2000);
             }
             setTimeout(checkMissedReminders, 3000);
 
-            refreshMarketData().then(() => {
-                setTimeout(proactiveGreeting, 3000);
-            });
+            refreshMarketData();
 
             setInterval(() => {
                 if (chatInProgress) return;
