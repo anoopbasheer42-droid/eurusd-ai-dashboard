@@ -6,7 +6,6 @@ import random
 from datetime import datetime, timedelta
 import time
 
-# Optional imports
 try:
     import pandas_ta_classic as ta
     HAS_TA = True
@@ -50,7 +49,6 @@ MOTIVATIONS = [
 
 
 def load_personal_context():
-    """Load the personal context file if it exists."""
     try:
         with open("personal_context.json", "r") as f:
             return json.load(f)
@@ -59,65 +57,12 @@ def load_personal_context():
         return None
 
 
-def calculate_support_resistance(df):
-    recent = df.tail(50)
-    recent_high = round(recent['High'].max(), 4)
-    recent_low = round(recent['Low'].min(), 4)
-    mid = round((recent_high + recent_low) / 2, 4)
-    return recent_high, recent_low, mid
-
-
-def get_market_context(df):
-    recent = df.tail(5)
-    last_5 = []
-    for _, row in recent.iterrows():
-        last_5.append({
-            "open": round(row['Open'], 4),
-            "high": round(row['High'], 4),
-            "low": round(row['Low'], 4),
-            "close": round(row['Close'], 4),
-            "direction": "up" if row['Close'] > row['Open'] else "down"
-        })
-    ranges = (df['High'] - df['Low']).tail(3).tolist()
-    momentum = "expanding" if ranges[-1] > ranges[-2] > ranges[-3] else \
-               "contracting" if ranges[-1] < ranges[-2] < ranges[-3] else "mixed"
-    return last_5, momentum
-
-
-def call_gemini(prompt):
-    if not (HAS_GEMINI and os.environ.get("GEMINI_API_KEY")):
-        return None
-    genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
-    model_names = [
-        "gemini-2.0-flash",
-        "gemini-2.0-flash-exp",
-        "gemini-2.5-flash",
-        "gemini-1.5-flash-latest",
-        "gemini-1.5-flash",
-        "gemini-flash-latest",
-        "gemini-pro"
-    ]
-    for m_name in model_names:
-        try:
-            model = genai.GenerativeModel(m_name)
-            response = model.generate_content(prompt)
-            print(f"Gemini model used: {m_name}")
-            return response.text.strip()
-        except Exception as e:
-            print(f"Model {m_name} failed: {e}")
-            continue
-    return None
-
-
 def build_personal_section(personal):
-    """Format the personal context for the AI prompt."""
     if not personal:
         return "No personal context provided."
-    
     lines = []
     name = personal.get("name", "Boss")
     lines.append(f"Client's preferred name: {name}")
-    
     family = personal.get("family", {})
     if family:
         lines.append("\nFAMILY:")
@@ -133,67 +78,188 @@ def build_personal_section(personal):
             lines.append(f"- Parents: {', '.join(family['parents'])}")
         if "brothers" in family:
             lines.append(f"- Brothers: {', '.join(family['brothers'])}")
-    
     routine = personal.get("daily_routine", [])
     if routine:
         lines.append("\nDAILY ROUTINE REMINDERS:")
         for r in routine:
             lines.append(f"- {r}")
-    
     style = personal.get("trading_style", {})
     if style:
         lines.append("\nTRADING STYLE:")
         lines.append(f"- Monthly goal: {style.get('monthly_goal')}")
         lines.append(f"- Preferred sessions: {', '.join(style.get('preferred_sessions', []))}")
         lines.append(f"- Risk tolerance: {style.get('risk_tolerance')}")
-    
     personality = personal.get("ai_personality", {})
     if personality:
         lines.append("\nAI PERSONALITY:")
         lines.append(f"- Tone: {personality.get('tone')}")
         lines.append(f"- Always call the client: {personality.get('should_call_user', 'Boss')}")
-    
     return "\n".join(lines)
+
+
+def resample_to_4h(df_1h):
+    """Resample hourly data to 4-hour candles."""
+    df = df_1h.copy()
+    df_4h = df.resample('4h').agg({
+        'Open': 'first',
+        'High': 'max',
+        'Low': 'min',
+        'Close': 'last',
+        'Volume': 'sum'
+    }).dropna()
+    return df_4h
+
+
+def find_swing_points(df, lookback=60, window=3):
+    """Find recent swing highs and lows using a window."""
+    recent = df.tail(lookback)
+    highs = []
+    lows = []
+    for i in range(window, len(recent) - window):
+        high_win = recent['High'].iloc[i-window:i+window+1]
+        low_win = recent['Low'].iloc[i-window:i+window+1]
+        if recent['High'].iloc[i] == high_win.max():
+            highs.append(round(float(recent['High'].iloc[i]), 4))
+        if recent['Low'].iloc[i] == low_win.min():
+            lows.append(round(float(recent['Low'].iloc[i]), 4))
+    return highs[-5:], lows[-5:]
+
+
+def determine_trend(df):
+    """Simple trend detection using swing highs and lows."""
+    highs, lows = find_swing_points(df)
+    if len(highs) >= 2 and len(lows) >= 2:
+        hh = highs[-1] > highs[-2]
+        hl = lows[-1] > lows[-2]
+        lh = highs[-1] < highs[-2]
+        ll = lows[-1] < lows[-2]
+        if hh and hl:
+            return "Uptrend (higher highs + higher lows)"
+        elif lh and ll:
+            return "Downtrend (lower highs + lower lows)"
+        else:
+            return "Ranging/Consolidating"
+    return "Unclear"
+
+
+def candles_to_text(df, count, label):
+    """Format last N candles as text for the AI prompt."""
+    recent = df.tail(count)
+    lines = [f"{label} (oldest → newest):"]
+    for idx, row in recent.iterrows():
+        try:
+            time_str = idx.strftime("%m-%d %H:%M")
+        except Exception:
+            time_str = str(idx)
+        direction = "UP" if row['Close'] > row['Open'] else "DOWN"
+        lines.append(
+            f"  {time_str} | O:{row['Open']:.4f} H:{row['High']:.4f} L:{row['Low']:.4f} C:{row['Close']:.4f} ({direction})"
+        )
+    return "\n".join(lines)
+
+
+def candles_to_json(df, count):
+    """Convert last N candles to JSON-serializable list."""
+    recent = df.tail(count)
+    result = []
+    for idx, row in recent.iterrows():
+        try:
+            time_str = idx.strftime("%Y-%m-%d %H:%M")
+        except Exception:
+            time_str = str(idx)
+        result.append({
+            "time": time_str,
+            "open": round(float(row['Open']), 4),
+            "high": round(float(row['High']), 4),
+            "low": round(float(row['Low']), 4),
+            "close": round(float(row['Close']), 4)
+        })
+    return result
+
+
+def call_gemini(prompt):
+    if not (HAS_GEMINI and os.environ.get("GEMINI_API_KEY")):
+        return None
+    genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+    model_names = [
+        "gemini-2.0-flash",
+        "gemini-2.0-flash-exp",
+        "gemini-2.5-flash",
+        "gemini-1.5-flash-latest",
+        "gemini-1.5-flash",
+        "gemini-flash-latest"
+    ]
+    for m_name in model_names:
+        try:
+            model = genai.GenerativeModel(m_name)
+            response = model.generate_content(prompt)
+            print(f"Gemini model used: {m_name}")
+            return response.text.strip()
+        except Exception as e:
+            print(f"Model {m_name} failed: {e}")
+            continue
+    return None
 
 
 def get_analysis():
     for attempt in range(3):
         try:
             ticker = yf.Ticker("EURUSD=X")
-            df = ticker.history(period="5d", interval="1h")
-            if df.empty:
+
+            # Fetch 1H data (30 days for good history)
+            df_1h = ticker.history(period="30d", interval="1h")
+            if df_1h.empty:
                 time.sleep(5)
                 continue
-            df = df.dropna()
+            df_1h = df_1h.dropna()
 
-            df['EMA_20'] = df['Close'].ewm(span=20, adjust=False).mean()
-            df['EMA_50'] = df['Close'].ewm(span=50, adjust=False).mean()
-            delta = df['Close'].diff()
+            # Fetch Daily data
+            df_daily = ticker.history(period="90d", interval="1d")
+            if df_daily.empty:
+                df_daily = df_1h.resample('1D').agg({
+                    'Open': 'first', 'High': 'max', 'Low': 'min',
+                    'Close': 'last', 'Volume': 'sum'
+                }).dropna()
+            else:
+                df_daily = df_daily.dropna()
+
+            # Resample 1H → 4H
+            df_4h = resample_to_4h(df_1h)
+
+            # Indicators on 1H
+            df_1h['EMA_20'] = df_1h['Close'].ewm(span=20, adjust=False).mean()
+            df_1h['EMA_50'] = df_1h['Close'].ewm(span=50, adjust=False).mean()
+            delta = df_1h['Close'].diff()
             gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
             loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
             rs = gain / loss
-            df['RSI'] = 100 - (100 / (1 + rs))
+            df_1h['RSI'] = 100 - (100 / (1 + rs))
 
-            tr1 = df['High'] - df['Low']
-            tr2 = (df['High'] - df['Close'].shift()).abs()
-            tr3 = (df['Low'] - df['Close'].shift()).abs()
-            df['TR'] = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
-            df['ATR'] = df['TR'].rolling(window=14).mean()
+            tr1 = df_1h['High'] - df_1h['Low']
+            tr2 = (df_1h['High'] - df_1h['Close'].shift()).abs()
+            tr3 = (df_1h['Low'] - df_1h['Close'].shift()).abs()
+            df_1h['TR'] = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+            df_1h['ATR'] = df_1h['TR'].rolling(window=14).mean()
 
-            latest = df.iloc[-1]
-            price = round(latest['Close'], 4)
-            rsi = round(latest['RSI'], 1)
-            ema20 = round(latest['EMA_20'], 4)
-            ema50 = round(latest['EMA_50'], 4)
-            atr = round(latest['ATR'], 4)
+            latest = df_1h.iloc[-1]
+            price = round(float(latest['Close']), 4)
+            rsi = round(float(latest['RSI']), 1)
+            ema20 = round(float(latest['EMA_20']), 4)
+            ema50 = round(float(latest['EMA_50']), 4)
+            atr = round(float(latest['ATR']), 4)
 
             if pd.isna(atr) or atr < 0.0005:
-                recent_ranges = (df['High'] - df['Low']).tail(10)
-                atr = round(recent_ranges.mean(), 4)
+                recent_ranges = (df_1h['High'] - df_1h['Low']).tail(10)
+                atr = round(float(recent_ranges.mean()), 4)
                 if atr < 0.0003:
                     atr = 0.0015
 
-            resistance, support, mid_range = calculate_support_resistance(df)
+            # Support/Resistance
+            recent50 = df_1h.tail(50)
+            resistance = round(float(recent50['High'].max()), 4)
+            support = round(float(recent50['Low'].min()), 4)
+            mid_range = round((resistance + support) / 2, 4)
+
             if price > resistance * 0.998:
                 location = "near recent resistance"
             elif price < support * 1.002:
@@ -201,8 +267,25 @@ def get_analysis():
             else:
                 location = "middle of the recent range"
 
-            last_5, momentum = get_market_context(df)
+            # Trend + swings
+            swing_highs, swing_lows = find_swing_points(df_1h)
+            trend = determine_trend(df_1h)
 
+            # Candle data (text + JSON)
+            candles_1h_text = candles_to_text(df_1h, 30, "1-HOUR CANDLES")
+            candles_4h_text = candles_to_text(df_4h, 10, "4-HOUR CANDLES")
+            candles_daily_text = candles_to_text(df_daily, 5, "DAILY CANDLES")
+
+            candles_1h_json = candles_to_json(df_1h, 30)
+            candles_4h_json = candles_to_json(df_4h, 10)
+            candles_daily_json = candles_to_json(df_daily, 5)
+
+            # Momentum
+            ranges = (df_1h['High'] - df_1h['Low']).tail(3).tolist()
+            momentum = "expanding" if ranges[-1] > ranges[-2] > ranges[-3] else \
+                       "contracting" if ranges[-1] < ranges[-2] < ranges[-3] else "mixed"
+
+            # News
             news_bias, news_score = "unavailable", 0
             try:
                 from fxnewsbias import Client
@@ -213,10 +296,11 @@ def get_analysis():
             except Exception as e:
                 print(f"News error: {e}")
 
+            # Patterns
             patterns_list = ["No clear pattern"]
             if HAS_TA:
                 try:
-                    patterns = df.ta.cdl_pattern(name="all")
+                    patterns = df_1h.ta.cdl_pattern(name="all")
                     patterns_list = []
                     for col in patterns.columns:
                         if patterns[col].iloc[-1] != 0:
@@ -228,6 +312,7 @@ def get_analysis():
                 except Exception as e:
                     print(f"Pattern error: {e}")
 
+            # Session
             hour = datetime.utcnow().hour
             if 7 <= hour < 10:
                 session, volatility = "London Kill Zone", "high"
@@ -238,6 +323,7 @@ def get_analysis():
             else:
                 session, volatility = "Off-Session", "low"
 
+            # Technical signal
             if latest['Close'] > latest['EMA_20'] and rsi > 50:
                 tech_signal = "BUY"
             elif latest['Close'] < latest['EMA_20'] and rsi < 50:
@@ -245,16 +331,10 @@ def get_analysis():
             else:
                 tech_signal = "HOLD"
 
-            verdict = tech_signal
-            llm_reason = f"Technical signal: Price {'above' if latest['Close'] > latest['EMA_20'] else 'below'} 20 EMA, RSI at {rsi}."
-            personal_message = ""
-            confidence = "MEDIUM"
-
-            # Load personal context
+            # Personal
             personal = load_personal_context()
             personal_section = build_personal_section(personal)
 
-            # Build a time-of-day greeting based on IST
             ist_now = datetime.utcnow() + timedelta(hours=5, minutes=30)
             ist_hour = ist_now.hour
             if ist_hour < 12:
@@ -264,60 +344,73 @@ def get_analysis():
             else:
                 time_greeting = "Good evening"
 
-            last_5_text = "\n".join([
-                f"  Candle {i+1}: O={c['open']} H={c['high']} L={c['low']} C={c['close']} ({c['direction']})"
-                for i, c in enumerate(last_5)
-            ])
+            # === BUILD THE ENHANCED PROMPT ===
+            prompt = f"""You are a professional EUR/USD trader AND personal assistant to a client named Boss. You have 10 years of hedge fund experience.
 
-            prompt = f"""You are a professional EUR/USD trader AND a personal assistant to a client named Boss. You have 10 years of hedge fund experience, and you also care about Boss's daily life, family, and health.
-
-TIME: {ist_now.strftime('%H:%M IST, %A')} — Start with a "{time_greeting}".
+TIME: {ist_now.strftime('%H:%M IST, %A')} — Start with "{time_greeting}".
 
 PERSONAL CONTEXT:
 {personal_section}
 
-MARKET DATA:
-- Current Price: {price}
+=== MARKET DATA ===
+
+CURRENT PRICE: {price}
+
+INDICATORS (1H):
 - RSI(14): {rsi}
 - EMA20: {ema20}
 - EMA50: {ema50}
 - ATR(14): {atr}
-- Recent Resistance: {resistance}
-- Recent Support: {support}
-- Mid-Range: {mid_range}
-- Price Location: {location}
 
-LAST 5 CANDLES:
-{last_5_text}
+KEY LEVELS:
+- Resistance (50H high): {resistance}
+- Support (50H low): {support}
+- Mid-range: {mid_range}
+- Price location: {location}
+
+TREND STRUCTURE:
+- Overall: {trend}
+- Recent swing highs: {', '.join(str(h) for h in swing_highs) if swing_highs else 'None'}
+- Recent swing lows: {', '.join(str(l) for l in swing_lows) if swing_lows else 'None'}
 
 MOMENTUM: {momentum}
-CANDLESTICK PATTERNS: {', '.join(patterns_list)}
+
+CANDLESTICK PATTERNS (latest 1H): {', '.join(patterns_list)}
+
 NEWS BIAS: {news_bias} (score: {news_score})
 SESSION: {session} ({volatility} volatility)
 TECHNICAL SIGNAL: {tech_signal}
 
-YOUR TASK — Return TWO things:
+{candles_1h_text}
 
-1) TRADING VERDICT: BUY / SELL / HOLD with reason (3-4 sentences) explaining the setup, what confirms it, and what would invalidate it. Speak directly to Boss. If signals conflict or confidence is low, say HOLD.
+{candles_4h_text}
 
-2) PERSONAL MESSAGE: A short, friendly check-in (2-3 sentences) that includes:
-   - Time-appropriate greeting ("{time_greeting}, Boss")
-   - ONE relevant reminder from Boss's daily routine (don't list all of them — pick one that fits the time of day)
-   - A warm, motivational or funny line
-   - Optionally mention ONE family member naturally if appropriate (like asking about Sadia in Dubai, or the daughters, or Cookie the cat) — don't overdo it, only if it flows naturally
+{candles_daily_text}
 
-RULES FOR PERSONAL MESSAGE:
-- Keep it warm, funny, motivating
-- Never sound robotic or list-like
-- Boss's wife Sadia is in Dubai — you can occasionally ask if he's spoken to her
-- Boss has BP tablets — always remind him after breakfast and dinner
-- Boss cooks for his daughters — recognize this as important work
-- Be a friend, not a nag
+=== YOUR TASK ===
 
-Respond ONLY with valid JSON (no markdown):
-{{"verdict": "BUY/SELL/HOLD", "reason": "3-4 sentences of trading reasoning", "confidence": "LOW/MEDIUM/HIGH", "personal_message": "2-3 sentences of warm personal check-in"}}"""
+Return TWO things:
+
+1) TRADING VERDICT: BUY / SELL / HOLD with reason (3-4 sentences). Explain:
+   - What the overall trend and structure says
+   - What you actually see in the candles above (support/resistance touches, higher highs/lows, engulfing, breakouts, false breakouts, consolidation, etc.)
+   - What would confirm entry and what would invalidate it
+   - Speak directly to Boss
+
+2) PERSONAL MESSAGE: Short, friendly check-in (2-3 sentences) with:
+   - Time-appropriate greeting
+   - ONE relevant reminder from Boss's routine
+   - Warm/funny/motivational line
+
+Respond ONLY with valid JSON:
+{{"verdict": "BUY/SELL/HOLD", "reason": "3-4 sentences", "confidence": "LOW/MEDIUM/HIGH", "personal_message": "2-3 sentences"}}"""
 
             raw_response = call_gemini(prompt)
+
+            verdict = tech_signal
+            llm_reason = f"Technical signal: Price {'above' if latest['Close'] > latest['EMA_20'] else 'below'} 20 EMA, RSI at {rsi}."
+            confidence = "MEDIUM"
+            personal_message = f"{time_greeting}, Boss. Stay disciplined today."
 
             if raw_response:
                 try:
@@ -327,19 +420,16 @@ Respond ONLY with valid JSON (no markdown):
                         if clean.startswith("json"):
                             clean = clean[4:]
                     clean = clean.strip()
-
                     result = json.loads(clean)
                     verdict = result.get("verdict", tech_signal)
                     llm_reason = result.get("reason", llm_reason)
                     confidence = result.get("confidence", "MEDIUM")
-                    personal_message = result.get("personal_message", "")
-                    print(f"AI verdict: {verdict} ({confidence})")
-                    print(f"AI reason: {llm_reason[:100]}...")
-                    print(f"Personal: {personal_message[:100]}...")
+                    personal_message = result.get("personal_message", personal_message)
                 except Exception as e:
                     print(f"JSON parse error: {e}")
-                    print(f"Raw response: {raw_response[:300]}")
+                    print(f"Raw: {raw_response[:300]}")
 
+            # Candle summary text
             if latest['Close'] > latest['Open']:
                 candle_current = f"Bullish candle. Open: {latest['Open']:.4f}, Now: {price}. Buyers in control."
             else:
@@ -348,6 +438,7 @@ Respond ONLY with valid JSON (no markdown):
             c1h = f"1H candle at {price}. " + ("Above 20 EMA - uptrend." if latest['Close'] > latest['EMA_20'] else "Below 20 EMA - downtrend.")
             c4h = f"4H trend: " + ("bullish above moving averages." if latest['Close'] > latest['EMA_50'] else "bearish below moving averages.")
 
+            # SL/TP
             entry = price
             if verdict == "BUY":
                 sl = round(price - (atr * 1.5), 4)
@@ -369,7 +460,7 @@ Respond ONLY with valid JSON (no markdown):
             return {
                 "signal": verdict,
                 "reason": llm_reason,
-                "personal_message": personal_message or f"{time_greeting}, Boss. Stay disciplined today.",
+                "personal_message": personal_message,
                 "confidence": confidence,
                 "price": str(price),
                 "entry": str(entry),
@@ -378,10 +469,17 @@ Respond ONLY with valid JSON (no markdown):
                 "atr": str(atr),
                 "support": str(support),
                 "resistance": str(resistance),
+                "mid_range": str(mid_range),
+                "trend": trend,
+                "swing_highs": [str(h) for h in swing_highs],
+                "swing_lows": [str(l) for l in swing_lows],
                 "valid": valid_until,
                 "candle_current": candle_current,
                 "candle_1h": c1h,
                 "candle_4h": c4h,
+                "candles_h1": candles_1h_json,
+                "candles_h4": candles_4h_json,
+                "candles_daily": candles_daily_json,
                 "news_bias": news_bias,
                 "news_score": news_score,
                 "patterns": patterns_list,
@@ -391,6 +489,8 @@ Respond ONLY with valid JSON (no markdown):
             }
         except Exception as e:
             print(f"Attempt {attempt+1} error: {e}")
+            import traceback
+            traceback.print_exc()
             time.sleep(5)
     return None
 
@@ -402,9 +502,9 @@ if __name__ == "__main__":
             json.dump(data, f, indent=4)
         print("=" * 60)
         print("SUCCESS: data.json updated.")
-        print(f"Signal: {data['signal']} | Confidence: {data['confidence']}")
-        print(f"Reason: {data['reason'][:150]}...")
-        print(f"Personal: {data['personal_message']}")
+        print(f"Price: {data['price']} | Signal: {data['signal']} | Confidence: {data['confidence']}")
+        print(f"Trend: {data['trend']}")
+        print(f"Reason: {data['reason'][:200]}")
         print("=" * 60)
     else:
         print("FAILED: Could not fetch data.")
