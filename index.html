@@ -49,7 +49,7 @@
         .personal-box { background: linear-gradient(135deg, rgba(236,72,153,0.15), rgba(139,92,246,0.15)); padding: 20px; border-radius: 12px; border-left: 4px solid var(--pink); font-size: 0.95rem; line-height: 1.7; color: #f1f5f9; }
         .personal-label { display: block; font-weight: 600; color: var(--pink); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
         
-        /* --- CHAT BOX STYLES --- */
+        /* Chat styles */
         .chat-container { display: flex; flex-direction: column; gap: 12px; }
         .chat-messages { max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 10px; min-height: 120px; }
         .chat-messages::-webkit-scrollbar { width: 6px; }
@@ -68,6 +68,20 @@
         .chat-send:disabled { opacity: 0.4; cursor: not-allowed; }
         .chat-clear { padding: 10px 16px; background: rgba(148,163,184,0.15); border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-size: 0.8rem; cursor: pointer; align-self: flex-end; }
         .chat-clear:hover { color: var(--text); border-color: var(--accent); }
+        
+        /* Key setup panel */
+        .key-panel { background: linear-gradient(135deg, rgba(234,179,8,0.15), rgba(249,115,22,0.15)); border: 1px solid rgba(234,179,8,0.4); border-radius: 12px; padding: 16px; margin-bottom: 16px; display: none; }
+        .key-panel.visible { display: block; }
+        .key-panel h3 { color: #fbbf24; font-size: 0.9rem; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+        .key-panel p { font-size: 0.85rem; color: var(--muted); margin-bottom: 12px; line-height: 1.5; }
+        .key-input-row { display: flex; gap: 8px; }
+        .key-input { flex: 1; padding: 12px 14px; background: rgba(0,0,0,0.4); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-family: monospace; font-size: 0.85rem; outline: none; }
+        .key-input:focus { border-color: #fbbf24; }
+        .key-save-btn { padding: 12px 18px; background: linear-gradient(135deg, #fbbf24, #f59e0b); border: none; border-radius: 10px; color: #0a0e17; font-weight: 700; cursor: pointer; }
+        .key-save-btn:hover { opacity: 0.9; }
+        .key-status { font-size: 0.8rem; margin-top: 8px; color: var(--green); }
+        .change-key-btn { background: none; border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-size: 0.75rem; padding: 6px 12px; cursor: pointer; margin-left: auto; }
+        .change-key-btn:hover { color: var(--text); border-color: var(--accent); }
     </style>
 </head>
 <body>
@@ -140,19 +154,27 @@
 
         <!-- ========== CHAT BOX ========== -->
         <div class="card" style="grid-column: 1 / -1;">
-            <h2>💬 Ask Your AI Trader</h2>
+            <h2 style="display:flex; align-items:center;">💬 Ask Your AI Trader
+                <button class="change-key-btn" onclick="showKeyPanel()">🔑 Change Key</button>
+            </h2>
+
+            <!-- Key setup panel -->
+            <div id="keyPanel" class="key-panel">
+                <h3>🔑 One-Time Setup</h3>
+                <p>Paste your Gemini API key below. It will be stored <strong>only in this browser</strong> — never sent to GitHub or anyone else.</p>
+                <div class="key-input-row">
+                    <input id="keyInput" class="key-input" type="password" placeholder="Paste key starting with AIza... or AQ..." />
+                    <button class="key-save-btn" onclick="saveKey()">Save</button>
+                </div>
+                <div id="keyStatus" class="key-status"></div>
+            </div>
+
             <div class="chat-container">
                 <div id="chatMessages" class="chat-messages">
                     <div class="chat-msg system">Ask me anything, Boss. I know the current price, signal, and your routine.</div>
                 </div>
                 <div class="chat-input-row">
-                    <input 
-                        id="chatInput" 
-                        class="chat-input" 
-                        type="text" 
-                        placeholder="e.g. Should I enter now? Or: Remind me of my routine" 
-                        onkeydown="if(event.key === 'Enter') sendChat()"
-                    />
+                    <input id="chatInput" class="chat-input" type="text" placeholder="e.g. Should I enter now? Or: Remind me of my routine" onkeydown="if(event.key === 'Enter') sendChat()" />
                     <button id="chatSendBtn" class="chat-send" onclick="sendChat()">Send</button>
                 </div>
                 <button class="chat-clear" onclick="clearChat()">Clear chat</button>
@@ -161,11 +183,46 @@
     </div>
 
     <script>
-        // ============================================================
-        // ⚠️ PASTE YOUR CHAT API KEY BELOW (between the quotes) ⚠️
-        // ============================================================
-        const CHAT_API_KEY = "";
-        // ============================================================
+        // --- KEY STORAGE ---
+        const KEY_STORAGE_NAME = "eurusd_chat_key";
+
+        function getStoredKey() {
+            try { return localStorage.getItem(KEY_STORAGE_NAME) || ""; }
+            catch (e) { return ""; }
+        }
+
+        function showKeyPanel() {
+            document.getElementById("keyPanel").classList.add("visible");
+            const existing = getStoredKey();
+            if (existing) {
+                document.getElementById("keyInput").value = existing;
+            }
+        }
+
+        function saveKey() {
+            const key = document.getElementById("keyInput").value.trim();
+            if (!key) {
+                document.getElementById("keyStatus").innerText = "❌ Please paste a valid key";
+                return;
+            }
+            try {
+                localStorage.setItem(KEY_STORAGE_NAME, key);
+                document.getElementById("keyStatus").innerText = "✅ Key saved in this browser only";
+                setTimeout(() => {
+                    document.getElementById("keyPanel").classList.remove("visible");
+                    document.getElementById("keyStatus").innerText = "";
+                }, 1500);
+            } catch (e) {
+                document.getElementById("keyStatus").innerText = "❌ Could not save key";
+            }
+        }
+
+        // Show key panel automatically on first load if no key
+        window.addEventListener("load", () => {
+            if (!getStoredKey()) {
+                document.getElementById("keyPanel").classList.add("visible");
+            }
+        });
 
         // --- 3D MODEL ---
         const container = document.getElementById('canvas-container');
@@ -195,7 +252,7 @@
         // --- FETCH LIVE DATA ---
         let latestData = null;
         let personalContext = null;
-        
+
         async function loadLiveData() {
             try {
                 const response = await fetch('data.json?t=' + Date.now());
@@ -207,16 +264,12 @@
                 setTimeout(loadLiveData, 15000);
             }
         }
-        
+
         async function loadPersonalContext() {
             try {
                 const response = await fetch('personal_context.json?t=' + Date.now());
-                if (response.ok) {
-                    personalContext = await response.json();
-                }
-            } catch (error) {
-                console.log("No personal context loaded");
-            }
+                if (response.ok) personalContext = await response.json();
+            } catch (error) { console.log("No personal context"); }
         }
 
         function updateDashboard(data) {
@@ -251,22 +304,9 @@
         }
 
         // --- VOICE ---
-        const OPENINGS = [
-            "Boss, here's the live market update.",
-            "Alright Boss, checking the EUR USD chart now.",
-            "Boss, I've been watching the market. Here's what I see.",
-            "Update time, Boss. Let's look at the EUR USD.",
-            "Boss, quick market brief for you."
-        ];
+        const OPENINGS = ["Boss, here's the live market update.", "Alright Boss, checking the EUR USD chart now.", "Boss, I've been watching the market. Here's what I see.", "Update time, Boss. Let's look at the EUR USD.", "Boss, quick market brief for you."];
         const TRANSITIONS = ["Now,", "Here's the deal,", "Moving on,", "Listen up,", "Alright so,"];
-        const CLOSINGS = [
-            "I'll keep watching and update you next hour, Boss.",
-            "Stay sharp, Boss. Next update in an hour.",
-            "I've got your back, Boss. Talk soon.",
-            "That's the read, Boss. Watch your risk.",
-            "Keep your stops tight, Boss. I'll be back in an hour.",
-            "That's all for now, Boss. Stay disciplined."
-        ];
+        const CLOSINGS = ["I'll keep watching and update you next hour, Boss.", "Stay sharp, Boss. Next update in an hour.", "I've got your back, Boss. Talk soon.", "That's the read, Boss. Watch your risk.", "Keep your stops tight, Boss. I'll be back in an hour.", "That's all for now, Boss. Stay disciplined."];
 
         function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
@@ -311,9 +351,7 @@
         function stopVoice() { window.speechSynthesis.cancel(); }
         window.speechSynthesis.onvoiceschanged = () => { getBestVoice(); };
 
-        // ============================================================
-        // --- CHAT BOX LOGIC ---
-        // ============================================================
+        // --- CHAT LOGIC ---
         const chatMessages = document.getElementById("chatMessages");
         const chatInput = document.getElementById("chatInput");
         const chatSendBtn = document.getElementById("chatSendBtn");
@@ -331,7 +369,6 @@
         function buildSystemPrompt() {
             const d = latestData || {};
             const p = personalContext || {};
-            
             let prompt = `You are a professional EUR/USD trader AND personal assistant to a client named Boss. You have 10 years of hedge fund experience. Be friendly, funny, and motivational. Always call him "Boss".
 
 CURRENT MARKET STATE:
@@ -344,11 +381,10 @@ CURRENT MARKET STATE:
 - Session: ${d.session || '-'} (${d.volatility || '-'} volatility)
 - Current Analysis: ${d.reason || 'No analysis yet'}
 `;
-
             if (p.family) {
                 prompt += `\nBOSS'S FAMILY:\n`;
                 if (p.family.wife) prompt += `- Wife: ${p.family.wife.name} (in ${p.family.wife.location})\n`;
-                if (p.family.daughters) p.family.daughters.forEach(d => prompt += `- Daughter: ${d.name}, ${d.grade}, birthday ${d.birthday}\n`);
+                if (p.family.daughters) p.family.daughters.forEach(dd => prompt += `- Daughter: ${dd.name}, ${dd.grade}, birthday ${dd.birthday}\n`);
                 if (p.family.cat) prompt += `- Cat: ${p.family.cat}\n`;
                 if (p.family.parents) prompt += `- Parents: ${p.family.parents.join(", ")}\n`;
                 if (p.family.brothers) prompt += `- Brothers: ${p.family.brothers.join(", ")}\n`;
@@ -360,7 +396,6 @@ CURRENT MARKET STATE:
             if (p.trading_style) {
                 prompt += `\nTRADING STYLE:\n- Monthly Goal: ${p.trading_style.monthly_goal}\n- Preferred Sessions: ${p.trading_style.preferred_sessions.join(", ")}\n- Risk: ${p.trading_style.risk_tolerance}\n`;
             }
-
             prompt += `\nINSTRUCTIONS:
 - Answer Boss's question clearly and directly.
 - Be warm, personal, and helpful.
@@ -369,15 +404,17 @@ CURRENT MARKET STATE:
 - If you don't know something, say so honestly.
 - Keep responses concise (2-4 sentences usually, unless more detail is needed).
 - Do NOT use markdown formatting. Just plain text.`;
-
             return prompt;
         }
 
         async function sendChat() {
             const question = chatInput.value.trim();
             if (!question) return;
-            if (CHAT_API_KEY === "PASTE_YOUR_CHAT_KEY_HERE") {
-                addMessage("ai", "Boss, the chat API key isn't set up yet. Please paste it into the HTML code.");
+
+            const key = getStoredKey();
+            if (!key) {
+                addMessage("ai", "Boss, please enter your API key first using the 🔑 Change Key button above.");
+                showKeyPanel();
                 return;
             }
 
@@ -394,10 +431,7 @@ CURRENT MARKET STATE:
                 const requestBody = {
                     system_instruction: { parts: [{ text: systemPrompt }] },
                     contents: chatHistory,
-                    generationConfig: {
-                        temperature: 0.7,
-                        maxOutputTokens: 800
-                    }
+                    generationConfig: { temperature: 0.7, maxOutputTokens: 800 }
                 };
 
                 const modelNames = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash-latest"];
@@ -405,7 +439,7 @@ CURRENT MARKET STATE:
 
                 for (const model of modelNames) {
                     try {
-                        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${CHAT_API_KEY}`;
+                        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
                         const resp = await fetch(url, {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
@@ -419,9 +453,7 @@ CURRENT MARKET STATE:
                         const json = await resp.json();
                         answer = json.candidates?.[0]?.content?.parts?.[0]?.text;
                         if (answer) break;
-                    } catch (e) {
-                        console.log(`Model ${model} exception:`, e);
-                    }
+                    } catch (e) { console.log(`Model ${model} exception:`, e); }
                 }
 
                 thinkingEl.remove();
@@ -429,15 +461,13 @@ CURRENT MARKET STATE:
                 if (answer) {
                     addMessage("ai", answer.trim());
                     chatHistory.push({ role: "model", parts: [{ text: answer.trim() }] });
-                    // Keep history manageable
                     if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
                 } else {
-                    addMessage("ai", "Boss, I couldn't reach the AI right now. Try again in a moment.");
+                    addMessage("ai", "Boss, I couldn't reach the AI right now. Please check your API key.");
                 }
             } catch (error) {
                 thinkingEl.remove();
                 addMessage("ai", "Boss, something went wrong. Please try again.");
-                console.error(error);
             }
 
             chatSendBtn.disabled = false;
