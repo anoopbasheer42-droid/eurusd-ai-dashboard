@@ -169,11 +169,11 @@
         const FALLBACK_URL = 'https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/data.json';
         const CONTEXT_URL = 'https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/personal_context.json';
 
-        // === ONLY NEWEST ALIASES ===
+        // === UPDATED MODEL LIST: Using the exact name Google provided ===
         const STABLE_CHAT_MODELS = [
+            'gemini-3.8-flash',
             'gemini-flash-latest',
-            'gemini-2.5-flash',
-            'gemini-2.0-flash'
+            'gemini-2.5-flash'
         ];
 
         const MARKET_KEYWORDS = ['market', 'buy', 'sell', 'trade', 'signal', 'entry', 'sl', 'tp',
@@ -586,7 +586,6 @@
                     const ctrl = new AbortController();
                     const tid = setTimeout(() => ctrl.abort(), timeout);
                     
-                    // Use v1beta for gemini-flash-latest and 2.5-flash
                     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
                         method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload), signal: ctrl.signal
                     });
