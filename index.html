@@ -5,1559 +5,286 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <title>EUR/USD AI Pro Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <!-- Three.js Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        :root { --bg: #0a0e17; --card: rgba(255,255,255,0.03); --border: rgba(255,255,255,0.08); --text: #e2e8f0; --muted: #94a3b8; --green: #00ff88; --red: #ff3366; --yellow: #ffcc00; --accent: #3b82f6; --purple: #8b5cf6; --pink: #ec4899; --orange: #f97316; }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 20px; background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #0a0e17 70%); }
-        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 15px; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 10px; }
-        h1 { font-size: 1.5rem; font-weight: 800; }
-        .header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-        .ist-clock { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 600; color: var(--accent); background: rgba(59,130,246,0.1); padding: 6px 12px; border-radius: 20px; border: 1px solid rgba(59,130,246,0.25); font-family: monospace; letter-spacing: 0.5px; }
-        .ist-clock .date { color: var(--muted); font-size: 0.7rem; font-weight: 500; }
-        .market-status { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 700; padding: 6px 12px; border-radius: 20px; letter-spacing: 0.5px; }
-        .market-status.open { color: var(--green); background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.3); }
-        .market-status.closed { color: var(--red); background: rgba(255,51,102,0.1); border: 1px solid rgba(255,51,102,0.3); }
-        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        @media (max-width: 768px) { .dashboard-grid { grid-template-columns: 1fr; } }
-        .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; backdrop-filter: blur(10px); transition: 0.2s; }
-        .card h2 { font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 20px; }
-        #canvas-container { width: 100%; height: 300px; display: flex; justify-content: center; align-items: center; position: relative; background: radial-gradient(circle at center, rgba(59,130,246,0.08) 0%, transparent 70%); border-radius: 12px; overflow: hidden; }
-        #canvas-container::before { content: ''; position: absolute; inset: 0; background-image: linear-gradient(rgba(59,130,246,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.05) 1px, transparent 1px); background-size: 30px 30px; pointer-events: none; opacity: 0.5; }
-        .core-label { text-align: center; color: var(--muted); font-size: 0.75rem; letter-spacing: 2px; text-transform: uppercase; margin-top: 10px; opacity: 0.6; animation: fadeLabel 3s ease-in-out infinite; }
-        @keyframes fadeLabel { 0%,100% { opacity: 0.4; } 50% { opacity: 0.8; } }
-        .signal-display { text-align: center; margin-bottom: 20px; position: relative; }
-        .signal-text { font-size: 3rem; font-weight: 800; transition: color 0.5s; }
-        .signal-text.buy { color: var(--green); text-shadow: 0 0 20px rgba(0,255,136,0.4); }
-        .signal-text.sell { color: var(--red); text-shadow: 0 0 20px rgba(255,51,102,0.4); }
-        .signal-text.hold, .signal-text.waiting { color: var(--yellow); text-shadow: 0 0 20px rgba(255,204,0,0.4); }
-        .signal-source { font-size: 0.65rem; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
-        .signal-source .live { color: var(--green); animation: pulse 2s infinite; }
-        .ai-countdown { font-size: 0.7rem; color: #64748b; margin-top: 6px; font-family: monospace; letter-spacing: 0.5px; }
-        .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .data-item { background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; }
-        .data-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
-        .data-value { font-size: 1.1rem; font-weight: 600; font-family: monospace; }
-        .data-value.updating { color: var(--green); }
-        .voice-controls { display: flex; gap: 10px; margin-top: 20px; }
-        .voice-btn { flex: 1; padding: 16px; background: linear-gradient(135deg, var(--accent), var(--purple)); border: none; border-radius: 12px; color: white; font-size: 1rem; font-weight: 600; cursor: pointer; transition: 0.2s; font-family: inherit; }
-        .voice-btn.stop { background: linear-gradient(135deg, #ff3366, #cc0033); flex: 0.4; }
-        .voice-btn:hover { opacity: 0.9; }
-        .candle-analysis { padding: 15px; background: rgba(0,0,0,0.2); border-radius: 10px; font-size: 0.85rem; line-height: 1.6; }
-        .candle-item { margin-bottom: 12px; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 8px; }
-        .candle-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-        .candle-timeframe { color: var(--accent); font-weight: 600; margin-right: 5px; }
-        .wise-box { background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(59,130,246,0.15)); padding: 20px; border-radius: 12px; border-left: 4px solid var(--purple); font-style: italic; font-size: 0.95rem; line-height: 1.7; color: #cbd5e1; }
-        .wise-label { display: block; font-style: normal; font-weight: 600; color: var(--purple); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
-        .level-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
-        .level-item { background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px; font-size: 0.8rem; }
-        .level-label { color: var(--muted); font-size: 0.7rem; text-transform: uppercase; }
-        .level-value { font-family: monospace; font-weight: 600; margin-top: 2px; }
-        .ai-reason-box { background: rgba(0,0,0,0.3); padding: 20px; border-radius: 12px; font-size: 0.95rem; line-height: 1.7; color: #e2e8f0; border-left: 4px solid var(--accent); }
-        .ai-reason-label { display: block; font-weight: 600; color: var(--accent); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
-        .chat-container { display: flex; flex-direction: column; gap: 12px; }
-        .chat-messages { max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 10px; min-height: 120px; }
-        .chat-messages::-webkit-scrollbar { width: 6px; }
-        .chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-        .chat-msg { padding: 12px 16px; border-radius: 12px; font-size: 0.9rem; line-height: 1.6; max-width: 85%; word-wrap: break-word; white-space: pre-wrap; }
-        .chat-msg.user { background: linear-gradient(135deg, var(--accent), var(--purple)); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
-        .chat-msg.ai { background: rgba(255,255,255,0.05); color: var(--text); align-self: flex-start; border-bottom-left-radius: 4px; border-left: 3px solid var(--green); }
-        .chat-msg.system { background: rgba(148,163,184,0.1); color: var(--muted); align-self: center; font-size: 0.8rem; font-style: italic; text-align: center; }
-        .chat-msg.thinking { background: rgba(255,255,255,0.05); color: var(--muted); align-self: flex-start; font-style: italic; }
-        .chat-msg.error { background: rgba(255,51,102,0.1); color: var(--red); align-self: flex-start; border-left: 3px solid var(--red); font-family: monospace; font-size: 0.75rem; max-width: 100%; }
-        .chat-speak-btn { display: inline-block; margin-left: 10px; padding: 4px 10px; background: rgba(0,255,136,0.15); border: 1px solid var(--green); border-radius: 6px; color: var(--text); font-size: 0.85rem; cursor: pointer; opacity: 0.9; transition: all 0.2s; vertical-align: middle; }
-        .chat-speak-btn:hover { opacity: 1; background: var(--green); color: #0a0e17; transform: scale(1.05); }
-        .chat-sources { display: block; margin-top: 8px; font-size: 0.75rem; color: var(--muted); font-style: italic; }
-        .chat-sources a { color: var(--accent); text-decoration: none; word-break: break-all; }
-        .chat-sources a:hover { text-decoration: underline; }
-        .chat-input-row { display: flex; gap: 10px; }
-        .chat-input { flex: 1; padding: 14px 16px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-size: 1rem; font-family: inherit; outline: none; transition: 0.2s; }
-        .chat-input:focus { border-color: var(--accent); }
-        .chat-input::placeholder { color: var(--muted); }
-        .chat-send { padding: 14px 20px; background: linear-gradient(135deg, var(--green), #00cc66); border: none; border-radius: 12px; color: #0a0e17; font-weight: 700; font-size: 1rem; cursor: pointer; transition: 0.2s; font-family: inherit; }
-        .chat-send:hover { opacity: 0.9; }
-        .chat-send:disabled { opacity: 0.4; cursor: not-allowed; }
-        .chat-clear { padding: 10px 16px; background: rgba(148,163,184,0.15); border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-size: 0.8rem; cursor: pointer; align-self: flex-end; margin-top: 4px; font-family: inherit; }
-        .chat-clear:hover { color: var(--text); border-color: var(--accent); }
-        .chat-header-buttons { display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap; }
-        .header-btn { background: none; border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-size: 0.75rem; padding: 6px 12px; cursor: pointer; transition: 0.2s; font-family: inherit; }
-        .header-btn:hover { color: var(--text); border-color: var(--accent); }
-        .header-btn.memory-btn { border-color: var(--purple); color: var(--purple); }
-        .header-btn.memory-btn:hover { background: rgba(139,92,246,0.15); }
-        .header-btn.web-btn { border-color: var(--green); color: var(--green); }
-        .header-btn.web-btn:hover { background: rgba(0,255,136,0.15); }
-        .header-btn.web-btn.disabled { border-color: var(--border); color: var(--muted); }
-        .header-btn.reminder-btn { border-color: #fbbf24; color: #fbbf24; }
-        .header-btn.reminder-btn:hover { background: rgba(251,191,36,0.15); }
-        .header-btn.deep-btn { border-color: var(--pink); color: var(--pink); }
-        .header-btn.deep-btn:hover { background: rgba(236,72,153,0.15); }
-        .header-btn.deep-btn.disabled { border-color: var(--border); color: var(--muted); }
-        .header-btn.browser-btn { border-color: var(--accent); color: var(--accent); }
-        .header-btn.browser-btn:hover { background: rgba(59,130,246,0.15); }
-        .header-btn.browser-btn.disabled { border-color: var(--border); color: var(--muted); }
-        .header-btn.sync-btn { border-color: var(--green); color: var(--green); }
-        .header-btn.sync-btn:hover { background: rgba(0,255,136,0.15); }
-        .header-btn.signals-btn { border-color: var(--orange); color: var(--orange); }
-        .header-btn.signals-btn:hover { background: rgba(249,115,22,0.15); }
-        .key-panel, .memory-panel, .reminder-panel, .sync-panel, .signal-log-panel { background: linear-gradient(135deg, rgba(234,179,8,0.15), rgba(249,115,22,0.15)); border: 1px solid rgba(234,179,8,0.4); border-radius: 12px; padding: 16px; margin-bottom: 16px; display: none; }
-        .key-panel.visible, .memory-panel.visible, .reminder-panel.visible, .sync-panel.visible, .signal-log-panel.visible { display: block; }
-        .key-panel h3, .memory-panel h3, .reminder-panel h3, .sync-panel h3, .signal-log-panel h3 { font-size: 0.9rem; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
-        .key-panel h3 { color: #fbbf24; }
-        .memory-panel { background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(59,130,246,0.15)); border-color: rgba(139,92,246,0.4); }
-        .memory-panel h3 { color: var(--purple); }
-        .reminder-panel { background: linear-gradient(135deg, rgba(251,191,36,0.15), rgba(245,158,11,0.1)); border-color: rgba(251,191,36,0.4); }
-        .reminder-panel h3 { color: #fbbf24; }
-        .sync-panel { background: linear-gradient(135deg, rgba(0,255,136,0.12), rgba(59,130,246,0.1)); border-color: rgba(0,255,136,0.4); }
-        .sync-panel h3 { color: var(--green); }
-        .signal-log-panel { background: linear-gradient(135deg, rgba(249,115,22,0.12), rgba(236,72,153,0.1)); border-color: rgba(249,115,22,0.4); }
-        .signal-log-panel h3 { color: var(--orange); }
-        .key-panel p, .memory-panel p, .reminder-panel p, .sync-panel p, .signal-log-panel p { font-size: 0.85rem; color: var(--muted); margin-bottom: 12px; line-height: 1.5; }
-        .key-input-row { display: flex; gap: 8px; margin-bottom: 8px; }
-        .key-input { flex: 1; padding: 12px 14px; background: rgba(0,0,0,0.4); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-family: monospace; font-size: 0.85rem; outline: none; }
-        .key-input:focus { border-color: #fbbf24; }
-        .key-save-btn { padding: 12px 18px; background: linear-gradient(135deg, #fbbf24, #f59e0b); border: none; border-radius: 10px; color: #0a0e17; font-weight: 700; cursor: pointer; font-family: inherit; }
-        .key-save-btn:hover { opacity: 0.9; }
-        .key-status { font-size: 0.8rem; margin-top: 8px; color: var(--green); word-break: break-all; }
-        .memory-list, .reminder-list { display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; margin-bottom: 12px; }
-        .memory-item, .reminder-item { display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.3); padding: 10px 12px; border-radius: 8px; font-size: 0.85rem; line-height: 1.5; }
-        .reminder-item { border-left: 3px solid #fbbf24; }
-        .reminder-item.fired { opacity: 0.4; border-left-color: var(--green); text-decoration: line-through; }
-        .memory-item span, .reminder-item span { flex: 1; }
-        .memory-item .mem-date, .reminder-item .rem-time { font-size: 0.7rem; color: var(--muted); white-space: nowrap; }
-        .reminder-item .rem-time { color: #fbbf24; font-weight: 700; }
-        .memory-item .mem-del, .reminder-item .rem-del { background: rgba(255,51,102,0.15); border: 1px solid rgba(255,51,102,0.3); color: var(--red); border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 0.75rem; }
-        .memory-item .mem-del:hover, .reminder-item .rem-del:hover { background: rgba(255,51,102,0.3); }
-        .memory-empty, .reminder-empty { color: var(--muted); font-style: italic; font-size: 0.85rem; padding: 8px 0; }
-        .memory-actions, .reminder-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-        .memory-action, .reminder-action { padding: 8px 14px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; font-weight: 600; font-family: inherit; }
-        .memory-action.add { background: rgba(139,92,246,0.2); border: 1px solid var(--purple); color: var(--purple); }
-        .memory-action.add:hover { background: rgba(139,92,246,0.35); }
-        .memory-action.clear { background: rgba(255,51,102,0.15); border: 1px solid rgba(255,51,102,0.4); color: var(--red); }
-        .memory-action.clear:hover { background: rgba(255,51,102,0.3); }
-        .reminder-action.add { background: rgba(251,191,36,0.2); border: 1px solid #fbbf24; color: #fbbf24; }
-        .reminder-action.add:hover { background: rgba(251,191,36,0.35); }
-        .reminder-action.test { background: rgba(0,255,136,0.15); border: 1px solid var(--green); color: var(--green); }
-        .reminder-action.test:hover { background: rgba(0,255,136,0.3); }
-        .reminder-action.clear { background: rgba(255,51,102,0.15); border: 1px solid rgba(255,51,102,0.4); color: var(--red); }
-        .reminder-action.clear:hover { background: rgba(255,51,102,0.3); }
-        .notif-status { font-size: 0.75rem; margin-top: 8px; color: var(--muted); }
-        .notif-status.granted { color: var(--green); }
-        .notif-status.denied { color: var(--red); }
-        
-        /* Signal log styles */
-        .signal-stats { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
-        .stat-item { background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; text-align: center; }
-        .stat-value { font-size: 1.2rem; font-weight: 700; font-family: monospace; }
-        .stat-value.win { color: var(--green); }
-        .stat-value.loss { color: var(--red); }
-        .stat-value.total { color: var(--accent); }
-        .stat-value.rate { color: var(--orange); }
-        .stat-label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; margin-top: 2px; }
-        .signal-log-list { display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto; margin-bottom: 12px; }
-        .signal-log-item { display: grid; grid-template-columns: 50px 1fr 70px; gap: 10px; background: rgba(0,0,0,0.3); padding: 10px 12px; border-radius: 8px; font-size: 0.8rem; line-height: 1.4; border-left: 3px solid var(--muted); }
-        .signal-log-item.buy { border-left-color: var(--green); }
-        .signal-log-item.sell { border-left-color: var(--red); }
-        .signal-log-item.hold { border-left-color: var(--yellow); }
-        .signal-log-time { font-family: monospace; color: var(--muted); font-size: 0.7rem; }
-        .signal-log-content { flex: 1; }
-        .signal-log-signal { font-weight: 700; font-size: 0.85rem; margin-bottom: 2px; }
-        .signal-log-signal.buy { color: var(--green); }
-        .signal-log-signal.sell { color: var(--red); }
-        .signal-log-signal.hold { color: var(--yellow); }
-        .signal-log-reason { color: var(--muted); font-size: 0.75rem; }
-        .signal-log-outcome { text-align: right; font-weight: 700; font-size: 0.75rem; }
-        .signal-log-outcome.win { color: var(--green); }
-        .signal-log-outcome.loss { color: var(--red); }
-        .signal-log-outcome.flat { color: var(--yellow); }
-        .signal-log-outcome.pending { color: var(--muted); }
-        .signal-log-meta { font-size: 0.7rem; color: var(--muted); margin-top: 4px; }
+        :root {
+            --bg: #0a0e17;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-main: #ffffff;
+            --text-muted: #8a94a6;
+            --green: #2ecc71;
+            --yellow: #f1c40f;
+            --red: #e74c3c;
+            --blue: #4a90e2;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            background-image: radial-gradient(circle at 50% 0%, #1a2333 0%, var(--bg) 70%);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Container to mimic mobile dashboard */
+        .dashboard {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+        }
+
+        .logo span {
+            color: var(--yellow);
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(46, 204, 113, 0.15);
+            color: var(--green);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border: 1px solid rgba(46, 204, 113, 0.3);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--green);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--green);
+            animation: pulse 2s infinite;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+            z-index: 2;
+            position: relative;
+        }
+
+        /* Neural Core 3D Canvas */
+        #canvas-container {
+            width: 100%;
+            height: 250px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .subtitle {
+            text-align: center;
+            font-size: 0.7rem;
+            letter-spacing: 3px;
+            color: rgba(255, 255, 255, 0.3);
+            margin-top: 10px;
+            z-index: 2;
+            position: relative;
+        }
+
+        /* Signal Card */
+        .signal-card {
+            text-align: center;
+            padding: 30px 20px;
+        }
+
+        #signal-text {
+            font-size: 3.5rem;
+            font-weight: 800;
+            letter-spacing: 4px;
+            color: var(--yellow);
+            text-shadow: 0 0 30px rgba(241, 196, 15, 0.5);
+            transition: all 0.5s ease-in-out;
+            z-index: 2;
+            position: relative;
+        }
+
+        /* Animations */
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(46, 204, 113, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(46, 204, 113, 0); }
+        }
     </style>
 </head>
 <body>
-    <header>
-        <h1>⚡ EUR/USD AI PRO</h1>
-        <div class="header-right">
-            <div class="ist-clock">
-                <span>🇮🇳</span>
-                <span id="istTime">--:--:--</span>
-                <span class="date" id="istDate">---</span>
-            </div>
-            <div id="marketStatus" class="market-status open">🟢 MARKET OPEN</div>
-        </div>
-    </header>
 
-    <div class="dashboard-grid">
+    <div class="dashboard">
+        <!-- Header -->
+        <header>
+            <div class="logo">
+                ⚡ EUR/USD <span>AI PRO</span>
+            </div>
+            <div class="status-badge">
+                <div class="status-dot"></div>
+                MARKET OPEN
+            </div>
+        </header>
+
+        <!-- Neural Core Card -->
         <div class="card">
-            <h2>AI Neural Core</h2>
+            <div class="card-title">AI Neural Core</div>
             <div id="canvas-container"></div>
-            <div class="core-label">Quantum Market Intelligence</div>
+            <div class="subtitle">QUANTUM MARKET INTELLIGENCE</div>
         </div>
 
-        <div class="card">
-            <h2>Current Signal</h2>
-            <div class="signal-display">
-                <div id="signal" class="signal-text waiting">WAITING</div>
-                <div class="signal-source" id="signalSource">—</div>
-                <div id="aiCountdown" class="ai-countdown">Next AI update in: --</div>
-            </div>
-            <div class="data-grid">
-                <div class="data-item"><div class="data-label">Live Price</div><div id="price" class="data-value">-</div></div>
-                <div class="data-item"><div class="data-label">Valid Until</div><div id="valid" class="data-value">-</div></div>
-                <div class="data-item"><div class="data-label">Entry</div><div id="entry" class="data-value">-</div></div>
-                <div class="data-item"><div class="data-label">Stop Loss</div><div id="sl" class="data-value">-</div></div>
-                <div class="data-item"><div class="data-label">Take Profit</div><div id="tp" class="data-value">-</div></div>
-                <div class="data-item"><div class="data-label">Confidence</div><div id="confidence" class="data-value">-</div></div>
-            </div>
-            <div class="voice-controls">
-                <button class="voice-btn" onclick="speakSignal()">🔊 Play Voice</button>
-                <button class="voice-btn stop" onclick="stopVoice()">⏹ Stop</button>
-            </div>
-        </div>
-
-        <div class="card" style="grid-column: 1 / -1;">
-            <h2 style="display:flex; align-items:center;">💬 Ask Your AI Trader
-                <div class="chat-header-buttons">
-                    <button id="browserAIBtn" class="header-btn browser-btn" onclick="toggleBrowserAI()">🤖 Browser AI ON</button>
-                    <button id="deepThinkBtn" class="header-btn deep-btn" onclick="toggleDeepThink()">🧠 Deep Think ON</button>
-                    <button id="webToggleBtn" class="header-btn web-btn" onclick="toggleWebSearch()">🌐 Web ON</button>
-                    <button id="syncToggleBtn" class="header-btn sync-btn" onclick="toggleSyncPanel()">☁ Sync</button>
-                    <button id="signalsToggleBtn" class="header-btn signals-btn" onclick="toggleSignalLogPanel()">📊 Signals</button>
-                    <button id="reminderToggleBtn" class="header-btn reminder-btn" onclick="toggleReminderPanel()">⏰ Reminders</button>
-                    <button class="header-btn memory-btn" onclick="toggleMemoryPanel()">🧠 Memory</button>
-                    <button class="header-btn" onclick="showKeyPanel()">🔑 Key</button>
-                </div>
-            </h2>
-
-            <div id="keyPanel" class="key-panel">
-                <h3>🔑 One-Time Setup</h3>
-                <p>Paste your Gemini API key below. It will be stored <strong>only in this browser</strong>.</p>
-                <div class="key-input-row">
-                    <input id="keyInput" class="key-input" type="password" placeholder="Paste key starting with AIza... or AQ..." />
-                    <button class="key-save-btn" onclick="saveKey()">Save</button>
-                </div>
-                <div id="keyStatus" class="key-status"></div>
-            </div>
-
-            <div id="syncPanel" class="sync-panel">
-                <h3>☁ Cloud Sync (GitHub Gist)</h3>
-                <p>Backup your memories and signal log to GitHub Gist. Free forever.</p>
-                <div class="key-input-row">
-                    <input id="gistIdInput" class="key-input" type="text" placeholder="Gist ID" />
-                </div>
-                <div class="key-input-row">
-                    <input id="gistTokenInput" class="key-input" type="password" placeholder="Token (ghp_...)" />
-                    <button class="key-save-btn" onclick="saveGistConfig()">Save</button>
-                </div>
-                <div id="gistStatus" class="key-status"></div>
-                <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
-                    <button class="reminder-action test" onclick="pullFromGist()">⬇ Pull from Gist</button>
-                    <button class="reminder-action test" onclick="pushToGist(true)">⬆ Push to Gist</button>
-                </div>
-            </div>
-
-            <div id="signalLogPanel" class="signal-log-panel">
-                <h3>📊 Signal Log</h3>
-                <p>Every signal change gets logged here. Auto-checks outcome 1 hour later.</p>
-                <div class="signal-stats">
-                    <div class="stat-item"><div class="stat-value total" id="statTotal">0</div><div class="stat-label">Total</div></div>
-                    <div class="stat-item"><div class="stat-value win" id="statWins">0</div><div class="stat-label">Wins</div></div>
-                    <div class="stat-item"><div class="stat-value loss" id="statLosses">0</div><div class="stat-label">Losses</div></div>
-                    <div class="stat-item"><div class="stat-value rate" id="statRate">0%</div><div class="stat-label">Win Rate</div></div>
-                </div>
-                <div id="signalLogList" class="signal-log-list"></div>
-                <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                    <button class="reminder-action test" onclick="checkSignalOutcomes()">🔄 Check Outcomes Now</button>
-                    <button class="reminder-action test" onclick="exportSignalLogCSV()">⬇ Export CSV</button>
-                    <button class="reminder-action clear" onclick="clearSignalLog()">🗑 Clear Log</button>
-                </div>
-            </div>
-
-            <div id="reminderPanel" class="reminder-panel">
-                <h3>⏰ Active Reminders</h3>
-                <p>Reminders fire automatically at their set time.</p>
-                <div id="notifStatus" class="notif-status"></div>
-                <div id="reminderList" class="reminder-list"></div>
-                <div class="reminder-actions">
-                    <button class="reminder-action add" onclick="addReminderManually()">+ Add Reminder</button>
-                    <button class="reminder-action test" onclick="testReminderNow()">🔔 Test Now</button>
-                    <button class="reminder-action clear" onclick="clearAllReminders()">🗑 Clear All</button>
-                </div>
-            </div>
-
-            <div id="memoryPanel" class="memory-panel">
-                <h3>🧠 Long-Term Memory</h3>
-                <p>Facts the AI remembers about you. Synced to GitHub Gist when configured.</p>
-                <div id="memoryList" class="memory-list"></div>
-                <div class="memory-actions">
-                    <button class="memory-action add" onclick="addMemoryManually()">+ Add Fact</button>
-                    <button class="memory-action clear" onclick="clearAllMemory()">🗑 Clear All</button>
-                </div>
-            </div>
-
-            <div class="chat-container">
-                <div id="chatMessages" class="chat-messages">
-                    <div class="chat-msg system">Ask me anything, Boss. Try: "How many signals fired today?"</div>
-                </div>
-                <div class="chat-input-row">
-                    <input id="chatInput" class="chat-input" type="text" placeholder="Ask me anything, Boss..." onkeydown="if(event.key === 'Enter') sendChat()" />
-                    <button id="chatSendBtn" class="chat-send" onclick="sendChat()">Send</button>
-                </div>
-                <button class="chat-clear" onclick="clearChat()">Clear chat (memory stays)</button>
-            </div>
-        </div>
-
-        <div class="card" style="grid-column: 1 / -1;">
-            <h2>Boss's Wisdom Corner 💡</h2>
-            <div id="wise_box" class="wise-box">
-                <span class="wise-label">Loading...</span>
-                Waiting for the market to speak...
-            </div>
-        </div>
-
-        <div class="card" style="grid-column: 1 / -1;">
-            <h2>Multi-Timeframe Analysis</h2>
-            <div class="candle-analysis">
-                <div class="candle-item"><span class="candle-timeframe">Current Candle:</span><span id="candle_current">Waiting...</span></div>
-                <div class="candle-item"><span class="candle-timeframe">1 Hour Candle:</span><span id="candle_1h">Waiting...</span></div>
-                <div class="candle-item"><span class="candle-timeframe">4 Hour Candle:</span><span id="candle_4h">Waiting...</span></div>
-                <div class="candle-item"><span class="candle-timeframe">Trend:</span><span id="trend">Waiting...</span></div>
-                <div class="candle-item"><span class="candle-timeframe">Session:</span><span id="session">-</span></div>
-                <div class="level-grid">
-                    <div class="level-item"><div class="level-label">Support</div><div class="level-value" id="support">-</div></div>
-                    <div class="level-item"><div class="level-label">Resistance</div><div class="level-value" id="resistance">-</div></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="card" style="grid-column: 1 / -1;">
-            <h2>AI Trader's Reasoning 🧠</h2>
-            <div class="ai-reason-box">
-                <span class="ai-reason-label">Why this signal?</span>
-                <span id="ai_reason">Waiting for AI analysis...</span>
-            </div>
+        <!-- Signal Card -->
+        <div class="card signal-card">
+            <div class="card-title">Current Signal</div>
+            <div id="signal-text">WAITING</div>
         </div>
     </div>
 
+    <!-- JavaScript Logic -->
     <script>
-        const KEY_STORAGE_NAME = "eurusd_chat_key";
-        const HISTORY_STORAGE_NAME = "eurusd_chat_history";
-        const MEMORY_STORAGE_NAME = "eurusd_long_term_memory";
-        const WEBSEARCH_STORAGE_NAME = "eurusd_websearch_enabled";
-        const DEEPTHINK_STORAGE_NAME = "eurusd_deepthink_enabled";
-        const REMINDERS_STORAGE_NAME = "eurusd_reminders";
-        const BROWSER_AI_STORAGE_NAME = "eurusd_browser_ai_enabled";
-        const SIGNAL_LOG_STORAGE_NAME = "eurusd_signal_log";
-        const GIST_ID_STORAGE = "eurusd_gist_id";
-        const GIST_TOKEN_STORAGE = "eurusd_gist_token";
-        const MAX_HISTORY_ENTRIES = 40;
-        const MAX_SIGNAL_LOG = 500;
-
-        let latestData = null;
-        let personalContext = null;
-        let livePrice = null;
-        let liveRsi = null;
-        let liveEma20 = null;
-        let lastKnownAtr = null;
-        let ruleSignal = null;
-        let priceHistory = [];
-        let browserAIData = null;
-        let browserAILastRun = 0;
-        let browserAIRunning = false;
-        let currentMarketStatus = { open: true, label: "🟢 MARKET OPEN" };
-        let lastLoggedSignal = null;
-
-        // ═══ MARKET STATUS ═══
-        function getMarketStatus() {
-            const now = new Date();
-            const istString = now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata', hour12: false });
-            const istDate = new Date(istString);
-            const day = istDate.getDay();
-            const hour = istDate.getHours();
-            const minute = istDate.getMinutes();
-            const timeInMinutes = hour * 60 + minute;
-            if (day === 0) return { open: false, label: "🔴 MARKET CLOSED (Sunday)", reason: "Weekend" };
-            if (day === 6) return { open: false, label: "🔴 MARKET CLOSED (Saturday)", reason: "Weekend" };
-            if (day === 1 && timeInMinutes < 150) return { open: false, label: "🔴 MARKET CLOSED (Pre-market)", reason: "Opens 2:30 AM IST Monday" };
-            return { open: true, label: "🟢 MARKET OPEN", reason: "" };
-        }
-        function updateMarketStatus() {
-            const status = getMarketStatus();
-            currentMarketStatus = status;
-            const el = document.getElementById("marketStatus");
-            if (!el) return;
-            el.innerText = status.label;
-            el.className = "market-status " + (status.open ? "open" : "closed");
-        }
-
-        // ═══ IST CLOCK ═══
-        function updateISTClock() {
-            const now = new Date();
-            const timeEl = document.getElementById("istTime");
-            const dateEl = document.getElementById("istDate");
-            if (!timeEl || !dateEl) return;
-            const timeStr = now.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
-            const dateStr = now.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", weekday: "short", day: "2-digit", month: "short" });
-            timeEl.innerText = timeStr + " IST";
-            dateEl.innerText = dateStr;
-        }
-        function tickClock() {
-            updateISTClock();
-            updateMarketStatus();
-        }
-        setInterval(tickClock, 1000);
-
-        // ═══ SIGNAL LOG ═══
-        function loadSignalLog() {
-            try {
-                const raw = localStorage.getItem(SIGNAL_LOG_STORAGE_NAME);
-                if (!raw) return [];
-                const parsed = JSON.parse(raw);
-                return Array.isArray(parsed) ? parsed : [];
-            } catch (e) { return []; }
-        }
-        function saveSignalLog(log) {
-            try {
-                const trimmed = log.length > MAX_SIGNAL_LOG ? log.slice(-MAX_SIGNAL_LOG) : log;
-                localStorage.setItem(SIGNAL_LOG_STORAGE_NAME, JSON.stringify(trimmed));
-            } catch (e) {}
-        }
-        function logSignalChange(signal, confidence, price, entry, sl, tp, reason, source) {
-            if (!signal) return;
-            // Skip HOLD → don't log HOLD unless it changed from BUY/SELL
-            const log = loadSignalLog();
-            const lastEntry = log[log.length - 1];
-            const lastSignal = lastEntry ? lastEntry.signal : null;
-            if (signal === lastSignal) return; // No change
-            if (signal === "HOLD" && lastSignal === null) return; // First load, don't log initial HOLD
-            
-            const now = new Date();
-            const timeIST = now.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: false });
-            const dateIST = now.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short" });
-            
-            const entry = {
-                id: Date.now() + "_" + Math.random().toString(36).slice(2, 8),
-                timestamp: Date.now(),
-                timeIST: timeIST,
-                dateIST: dateIST,
-                signal: signal,
-                prevSignal: lastSignal || "—",
-                confidence: confidence || "MEDIUM",
-                price: price || "—",
-                entry: entry || price || "—",
-                sl: sl || "—",
-                tp: tp || "—",
-                reason: (reason || "").slice(0, 200),
-                source: source || "unknown",
-                checkAt: Date.now() + 60 * 60 * 1000, // 1 hour later
-                outcome: null,
-                outcomePrice: null,
-                outcomeNote: null
-            };
-            log.push(entry);
-            saveSignalLog(log);
-            lastLoggedSignal = signal;
-            renderSignalLog();
-            updateSignalStats();
-            // Auto-sync to Gist
-            pushSignalLogToGist();
-        }
-        function checkSignalOutcomes() {
-            const log = loadSignalLog();
-            let changed = false;
-            const now = Date.now();
-            log.forEach(entry => {
-                if (entry.outcome === null && entry.signal !== "HOLD" && now >= entry.checkAt) {
-                    // Check outcome using latestData price or livePrice
-                    const currentPrice = parseFloat(livePrice) || (latestData && parseFloat(latestData.price));
-                    if (!currentPrice || !entry.entry || entry.entry === "—") return;
-                    const entryPrice = parseFloat(entry.entry);
-                    if (!entryPrice) return;
-                    const diff = currentPrice - entryPrice;
-                    const pips = diff * 10000; // Rough pip calc for EUR/USD
-                    
-                    if (Math.abs(pips) < 3) {
-                        entry.outcome = "flat";
-                        entry.outcomeNote = "No clear move";
-                    } else if (entry.signal === "BUY") {
-                        entry.outcome = pips > 0 ? "win" : "loss";
-                        entry.outcomeNote = pips.toFixed(1) + " pips";
-                    } else if (entry.signal === "SELL") {
-                        entry.outcome = pips < 0 ? "win" : "loss";
-                        entry.outcomeNote = Math.abs(pips).toFixed(1) + " pips";
-                    }
-                    entry.outcomePrice = currentPrice.toFixed(4);
-                    changed = true;
-                }
-            });
-            if (changed) {
-                saveSignalLog(log);
-                renderSignalLog();
-                updateSignalStats();
-                pushSignalLogToGist();
-            }
-        }
-        setInterval(checkSignalOutcomes, 5 * 60 * 1000); // Check every 5 min
-
-        function updateSignalStats() {
-            const log = loadSignalLog();
-            const tracked = log.filter(e => e.signal !== "HOLD" && e.outcome !== null);
-            const wins = tracked.filter(e => e.outcome === "win").length;
-            const losses = tracked.filter(e => e.outcome === "loss").length;
-            const total = tracked.length;
-            const rate = total > 0 ? Math.round((wins / total) * 100) : 0;
-            
-            document.getElementById("statTotal").innerText = log.filter(e => e.signal !== "HOLD").length;
-            document.getElementById("statWins").innerText = wins;
-            document.getElementById("statLosses").innerText = losses;
-            document.getElementById("statRate").innerText = rate + "%";
-        }
-        function renderSignalLog() {
-            const list = document.getElementById("signalLogList");
-            if (!list) return;
-            const log = loadSignalLog();
-            if (!log.length) {
-                list.innerHTML = '<div class="memory-empty">No signals logged yet. They appear when the signal changes.</div>';
-                return;
-            }
-            // Show last 20, newest first
-            const recent = log.slice(-20).reverse();
-            list.innerHTML = recent.map(e => {
-                const outcomeClass = e.outcome || "pending";
-                const outcomeText = e.outcome === "win" ? "✅ WIN" : e.outcome === "loss" ? "❌ LOSS" : e.outcome === "flat" ? "⚪ FLAT" : "⏳ Pending";
-                const signalClass = e.signal.toLowerCase();
-                return `
-                    <div class="signal-log-item ${signalClass}">
-                        <div class="signal-log-time">${e.timeIST}<br>${e.dateIST}</div>
-                        <div class="signal-log-content">
-                            <div class="signal-log-signal ${signalClass}">${e.signal} ${e.prevSignal !== "—" ? "← " + e.prevSignal : ""}</div>
-                            <div class="signal-log-reason">${escapeHtml(e.reason.slice(0, 100))}${e.reason.length > 100 ? '...' : ''}</div>
-                            <div class="signal-log-meta">Entry ${e.entry} | ${e.confidence} | ${e.source}</div>
-                        </div>
-                        <div class="signal-log-outcome ${outcomeClass}">${outcomeText}<br><span style="font-size:0.65rem; color:var(--muted);">${e.outcomeNote || ''}</span></div>
-                    </div>
-                `;
-            }).join("");
-        }
-        function toggleSignalLogPanel() {
-            document.getElementById("signalLogPanel").classList.toggle("visible");
-            renderSignalLog();
-            updateSignalStats();
-        }
-        function clearSignalLog() {
-            if (!confirm("Clear entire signal log? This cannot be undone.")) return;
-            saveSignalLog([]);
-            renderSignalLog();
-            updateSignalStats();
-            pushSignalLogToGist();
-        }
-        function exportSignalLogCSV() {
-            const log = loadSignalLog();
-            if (!log.length) { alert("No signals to export"); return; }
-            const headers = ["Date", "Time IST", "Signal", "Prev", "Confidence", "Price", "Entry", "SL", "TP", "Source", "Outcome", "Outcome Note", "Reason"];
-            const rows = log.map(e => [e.dateIST, e.timeIST, e.signal, e.prevSignal, e.confidence, e.price, e.entry, e.sl, e.tp, e.source, e.outcome || "pending", e.outcomeNote || "", (e.reason || "").replace(/,/g, ";")]);
-            const csv = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
-            const blob = new Blob([csv], { type: "text/csv" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = "eurusd-signal-log-" + new Date().toISOString().slice(0, 10) + ".csv";
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-
-        // ═══ GIST SYNC ═══
-        function getGistId() { try { return localStorage.getItem(GIST_ID_STORAGE) || ""; } catch(e) { return ""; } }
-        function getGistToken() { try { return localStorage.getItem(GIST_TOKEN_STORAGE) || ""; } catch(e) { return ""; } }
-        function toggleSyncPanel() {
-            document.getElementById("syncPanel").classList.toggle("visible");
-            const id = getGistId(); const token = getGistToken();
-            if (id) document.getElementById("gistIdInput").value = id;
-            if (token) document.getElementById("gistTokenInput").value = token;
-        }
-        function saveGistConfig() {
-            const id = document.getElementById("gistIdInput").value.trim();
-            const token = document.getElementById("gistTokenInput").value.trim();
-            if (!id || !token) { document.getElementById("gistStatus").innerText = "❌ Both required"; return; }
-            try {
-                localStorage.setItem(GIST_ID_STORAGE, id);
-                localStorage.setItem(GIST_TOKEN_STORAGE, token);
-                document.getElementById("gistStatus").innerText = "✅ Saved. Syncing...";
-                setTimeout(() => { pushToGist(true); pushSignalLogToGist(); }, 500);
-            } catch (e) { document.getElementById("gistStatus").innerText = "❌ Could not save"; }
-        }
-        async function pullFromGist() {
-            const id = getGistId(); const token = getGistToken();
-            if (!id || !token) { document.getElementById("gistStatus").innerText = "❌ Enter Gist ID and Token first"; return; }
-            try {
-                document.getElementById("gistStatus").innerText = "⏳ Pulling...";
-                const resp = await fetch(`https://api.github.com/gists/${id}`, { headers: { "Authorization": `token ${token}` } });
-                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-                const json = await resp.json();
-                // Pull memories
-                const memFile = json.files["eurusd-memories.json"];
-                if (memFile) {
-                    const mems = JSON.parse(memFile.content || "[]");
-                    if (Array.isArray(mems)) { saveMemory(mems); renderMemoryList(); }
-                }
-                // Pull signals
-                const sigFile = json.files["eurusd-signals.json"];
-                if (sigFile) {
-                    const sigs = JSON.parse(sigFile.content || "[]");
-                    if (Array.isArray(sigs)) { saveSignalLog(sigs); renderSignalLog(); updateSignalStats(); }
-                }
-                document.getElementById("gistStatus").innerText = `✅ Pulled from cloud`;
-            } catch (e) { document.getElementById("gistStatus").innerText = `❌ Pull failed: ${e.message}`; }
-        }
-        async function pushToGist(manual = false) {
-            const id = getGistId(); const token = getGistToken();
-            if (!id || !token) { if (manual) document.getElementById("gistStatus").innerText = "❌ Enter Gist ID and Token first"; return; }
-            const memories = loadMemory();
-            const signals = loadSignalLog();
-            try {
-                if (manual) document.getElementById("gistStatus").innerText = "⏳ Pushing...";
-                const resp = await fetch(`https://api.github.com/gists/${id}`, {
-                    method: "PATCH",
-                    headers: { "Authorization": `token ${token}`, "Content-Type": "application/json" },
-                    body: JSON.stringify({ files: {
-                        "eurusd-memories.json": { content: JSON.stringify(memories, null, 2) },
-                        "eurusd-signals.json": { content: JSON.stringify(signals, null, 2) }
-                    }})
-                });
-                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-                if (manual) document.getElementById("gistStatus").innerText = `✅ Pushed ${memories.length} memories + ${signals.length} signals`;
-            } catch (e) { if (manual) document.getElementById("gistStatus").innerText = `❌ Push failed: ${e.message}`; }
-        }
-        async function pushSignalLogToGist() {
-            const id = getGistId(); const token = getGistToken();
-            if (!id || !token) return;
-            const signals = loadSignalLog();
-            try {
-                await fetch(`https://api.github.com/gists/${id}`, {
-                    method: "PATCH",
-                    headers: { "Authorization": `token ${token}`, "Content-Type": "application/json" },
-                    body: JSON.stringify({ files: { "eurusd-signals.json": { content: JSON.stringify(signals, null, 2) } } })
-                });
-            } catch (e) { console.log("Signal log sync failed:", e.message); }
-        }
-
-        // ═══ BROWSER AI TOGGLE ═══
-        function isBrowserAIEnabled() { try { return localStorage.getItem(BROWSER_AI_STORAGE_NAME) !== "false"; } catch (e) { return true; } }
-        function toggleBrowserAI() {
-            const newState = !isBrowserAIEnabled();
-            try { localStorage.setItem(BROWSER_AI_STORAGE_NAME, newState ? "true" : "false"); } catch (e) {}
-            updateBrowserAIUI();
-            updateCountdown();
-            if (newState && currentMarketStatus.open) runBrowserAnalysis();
-        }
-        function updateBrowserAIUI() {
-            const btn = document.getElementById("browserAIBtn"); if (!btn) return;
-            if (isBrowserAIEnabled()) { btn.innerHTML = "🤖 Browser AI ON"; btn.classList.remove("disabled"); }
-            else { btn.innerHTML = "🤖 Browser AI OFF"; btn.classList.add("disabled"); }
-        }
-
-        function isDeepThinkEnabled() { try { return localStorage.getItem(DEEPTHINK_STORAGE_NAME) !== "false"; } catch (e) { return true; } }
-        function toggleDeepThink() {
-            const newState = !isDeepThinkEnabled();
-            try { localStorage.setItem(DEEPTHINK_STORAGE_NAME, newState ? "true" : "false"); } catch (e) {}
-            updateDeepThinkUI();
-        }
-        function updateDeepThinkUI() {
-            const btn = document.getElementById("deepThinkBtn"); if (!btn) return;
-            if (isDeepThinkEnabled()) { btn.innerHTML = "🧠 Deep Think ON"; btn.classList.remove("disabled"); }
-            else { btn.innerHTML = "🧠 Deep Think OFF"; btn.classList.add("disabled"); }
-        }
-
-        function requestNotificationPermission() {
-            if (!("Notification" in window)) { updateNotifStatus("Notifications not supported"); return; }
-            if (Notification.permission === "granted") { updateNotifStatus("Notifications enabled ✅"); return; }
-            if (Notification.permission === "denied") { updateNotifStatus("Notifications blocked ❌"); return; }
-            Notification.requestPermission().then(perm => {
-                if (perm === "granted") updateNotifStatus("Notifications enabled ✅");
-                else updateNotifStatus("Notifications denied");
-            });
-        }
-        function updateNotifStatus(text) {
-            const el = document.getElementById("notifStatus"); if (!el) return;
-            el.innerText = text; el.className = "notif-status";
-            if (text.includes("enabled")) el.classList.add("granted");
-            if (text.includes("blocked") || text.includes("denied")) el.classList.add("denied");
-        }
-
-        // ═══ REMINDERS ═══
-        function loadReminders() { try { const r = localStorage.getItem(REMINDERS_STORAGE_NAME); if (!r) return []; const p = JSON.parse(r); return Array.isArray(p) ? p : []; } catch (e) { return []; } }
-        function saveReminders(reminders) { try { localStorage.setItem(REMINDERS_STORAGE_NAME, JSON.stringify(reminders)); } catch (e) {} }
-        function addReminder(timeStr, message, voice = true) {
-            const reminders = loadReminders();
-            reminders.push({ id: Date.now() + Math.random().toString(36).slice(2, 8), time: timeStr, message: message, voice: voice, fired: false, created: new Date().toISOString() });
-            saveReminders(reminders); renderReminderList();
-        }
-        function deleteReminder(id) { saveReminders(loadReminders().filter(r => r.id !== id)); renderReminderList(); }
-        function clearAllReminders() { if (!confirm("Delete all reminders?")) return; saveReminders([]); renderReminderList(); }
-        function addReminderManually() {
-            const timeStr = prompt("Time in 24h format (e.g., 16:00):");
-            if (!timeStr) return;
-            if (!/^\d{1,2}:\d{2}$/.test(timeStr.trim())) { alert("Invalid time format. Use HH:MM"); return; }
-            const message = prompt("What should I remind you about?");
-            if (!message) return;
-            const normalized = timeStr.trim().padStart(5, "0");
-            addReminder(normalized, message);
-            alert(`✅ Reminder set for ${normalized}: "${message}"`);
-        }
-        function testReminderNow() { fireReminder({ message: "This is a test reminder. Everything is working, Boss!", voice: true }); }
-        function toggleReminderPanel() { document.getElementById("reminderPanel").classList.toggle("visible"); renderReminderList(); }
-        function renderReminderList() {
-            const list = document.getElementById("reminderList"); if (!list) return;
-            const reminders = loadReminders();
-            if (!reminders.length) { list.innerHTML = '<div class="reminder-empty">No reminders set.</div>'; return; }
-            const now = new Date();
-            const currentTime = now.getHours().toString().padStart(2, "0") + ":" + now.getMinutes().toString().padStart(2, "0");
-            list.innerHTML = reminders.map(r => {
-                const isPast = r.time < currentTime || r.fired;
-                const cls = isPast ? "reminder-item fired" : "reminder-item";
-                return `<div class="${cls}"><span class="rem-time">${r.time}</span><span>${escapeHtml(r.message)}</span><button class="rem-del" onclick="deleteReminder('${r.id}')">✕</button></div>`;
-            }).join("");
-        }
-        function fireReminder(reminder) {
-            if ("Notification" in window && Notification.permission === "granted") {
-                try { new Notification("⏰ Boss — Reminder", { body: reminder.message, tag: "boss-reminder" }); } catch (e) {}
-            }
-            if (reminder.voice !== false) {
-                window.speechSynthesis.cancel();
-                const u = new SpeechSynthesisUtterance("Boss, reminder: " + reminder.message);
-                const v = getBestVoice(); if (v) u.voice = v;
-                u.rate = 0.95; u.pitch = 1.0; u.volume = 1.0;
-                window.speechSynthesis.speak(u);
-            }
-        }
-        let lastCheckedMinute = "";
-        function checkReminders() {
-            const now = new Date();
-            const currentTime = now.getHours().toString().padStart(2, "0") + ":" + now.getMinutes().toString().padStart(2, "0");
-            if (currentTime === lastCheckedMinute) return;
-            lastCheckedMinute = currentTime;
-            const reminders = loadReminders();
-            let changed = false;
-            reminders.forEach(r => { if (!r.fired && r.time === currentTime) { fireReminder(r); r.fired = true; changed = true; } });
-            if (changed) { saveReminders(reminders); renderReminderList(); }
-        }
-        setInterval(checkReminders, 20000);
-
-        // ═══ WEB SEARCH ═══
-        function isWebSearchEnabled() { try { return localStorage.getItem(WEBSEARCH_STORAGE_NAME) !== "false"; } catch (e) { return true; } }
-        function toggleWebSearch() { const n = !isWebSearchEnabled(); try { localStorage.setItem(WEBSEARCH_STORAGE_NAME, n ? "true" : "false"); } catch (e) {} updateWebToggleUI(); }
-        function updateWebToggleUI() {
-            const btn = document.getElementById("webToggleBtn"); if (!btn) return;
-            if (isWebSearchEnabled()) { btn.innerHTML = "🌐 Web ON"; btn.classList.remove("disabled"); }
-            else { btn.innerHTML = "🌐 Web OFF"; btn.classList.add("disabled"); }
-        }
-
-        // ═══ STORAGE ═══
-        function getStoredKey() { try { return localStorage.getItem(KEY_STORAGE_NAME) || ""; } catch (e) { return ""; } }
-        function loadStoredHistory() { try { const r = localStorage.getItem(HISTORY_STORAGE_NAME); if (!r) return []; const p = JSON.parse(r); return Array.isArray(p) ? p : []; } catch (e) { return []; } }
-        function saveStoredHistory(h) { try { const t = h.length > MAX_HISTORY_ENTRIES ? h.slice(-MAX_HISTORY_ENTRIES) : h; localStorage.setItem(HISTORY_STORAGE_NAME, JSON.stringify(t)); } catch (e) {} }
-        function clearStoredHistory() { try { localStorage.removeItem(HISTORY_STORAGE_NAME); } catch (e) {} }
-
-        function loadMemory() { try { const r = localStorage.getItem(MEMORY_STORAGE_NAME); if (!r) return []; const p = JSON.parse(r); return Array.isArray(p) ? p : []; } catch (e) { return []; } }
-        function saveMemory(m) { try { localStorage.setItem(MEMORY_STORAGE_NAME, JSON.stringify(m)); } catch (e) {} }
-        function addFact(fact) {
-            if (!fact || !fact.trim()) return;
-            const memory = loadMemory();
-            const clean = fact.trim();
-            if (memory.some(m => m.fact.toLowerCase() === clean.toLowerCase())) return;
-            memory.push({ fact: clean, added: new Date().toISOString().slice(0, 10) });
-            saveMemory(memory); renderMemoryList(); pushToGist();
-        }
-        function deleteFact(index) {
-            const memory = loadMemory(); memory.splice(index, 1);
-            saveMemory(memory); renderMemoryList(); pushToGist();
-        }
-        function clearAllMemory() {
-            if (!confirm("Clear ALL long-term memory? This cannot be undone.")) return;
-            saveMemory([]); renderMemoryList(); pushToGist();
-        }
-        function addMemoryManually() {
-            const fact = prompt("What should I remember, Boss?");
-            if (fact && fact.trim()) addFact(fact);
-        }
-        function toggleMemoryPanel() { document.getElementById("memoryPanel").classList.toggle("visible"); renderMemoryList(); }
-        function renderMemoryList() {
-            const list = document.getElementById("memoryList"); if (!list) return;
-            const memory = loadMemory();
-            if (!memory.length) { list.innerHTML = '<div class="memory-empty">No memories yet, Boss.</div>'; return; }
-            list.innerHTML = memory.map((item, i) => `<div class="memory-item"><span>${escapeHtml(item.fact)}</span><span class="mem-date">${item.added || ''}</span><button class="mem-del" onclick="deleteFact(${i})">✕</button></div>`).join("");
-        }
-        function escapeHtml(text) { const div = document.createElement("div"); div.innerText = text; return div.innerHTML; }
-        function extractAndStripMemories(text) {
-            const regex = /\[REMEMBER:\s*([^\]]+)\]/gi;
-            const facts = []; let match;
-            while ((match = regex.exec(text)) !== null) facts.push(match[1].trim());
-            const clean = text.replace(regex, "").replace(/\n\s*\n\s*\n/g, "\n\n").trim();
-            return { clean, facts };
-        }
-        function extractAndStripReminders(text) {
-            const regex = /\[REMINDER:\s*(\d{1,2}:\d{2})\s*[-–—]\s*([^\]]+)\]/gi;
-            const reminders = []; let match;
-            while ((match = regex.exec(text)) !== null) { reminders.push({ time: match[1].padStart(5, "0"), message: match[2].trim() }); }
-            const clean = text.replace(regex, "").replace(/\n\s*\n\s*\n/g, "\n\n").trim();
-            return { clean, reminders };
-        }
-
-        function saveKey() {
-            const key = document.getElementById("keyInput").value.replace(/\s/g, "");
-            if (!key || key.length < 20) { document.getElementById("keyStatus").innerText = "❌ Key too short"; return; }
-            try {
-                localStorage.setItem(KEY_STORAGE_NAME, key);
-                const preview = key.slice(0, 8) + "..." + key.slice(-4);
-                document.getElementById("keyStatus").innerText = `✅ Saved: ${preview} (${key.length} chars)`;
-                setTimeout(() => { document.getElementById("keyPanel").classList.remove("visible"); document.getElementById("keyStatus").innerText = ""; }, 3000);
-                if (isBrowserAIEnabled() && currentMarketStatus.open) runBrowserAnalysis();
-            } catch (e) { document.getElementById("keyStatus").innerText = "❌ Could not save"; }
-        }
-        function showKeyPanel() {
-            document.getElementById("keyPanel").classList.add("visible");
-            const existing = getStoredKey();
-            if (existing) document.getElementById("keyInput").value = existing;
-        }
-
-        // ═══ COUNTDOWN ═══
-        function updateCountdown() {
-            const el = document.getElementById("aiCountdown");
-            if (!el) return;
-            if (!currentMarketStatus.open) {
-                el.innerText = "🔴 Market Closed — " + (currentMarketStatus.reason || "");
-                el.style.color = "#ff3366";
-                return;
-            }
-            if (!isBrowserAIEnabled()) {
-                el.innerText = "⚫ Browser AI is OFF";
-                el.style.color = "#64748b";
-                return;
-            }
-            el.style.color = "";
-            if (browserAIRunning) { el.innerText = "⏳ Analyzing now..."; return; }
-            const now = new Date();
-            const minutes = now.getMinutes();
-            const seconds = now.getSeconds();
-            let nextMinute = Math.ceil((minutes + 1) / 5) * 5;
-            let secondsToNext = (nextMinute - minutes) * 60 + (30 - seconds);
-            if (secondsToNext < 0) { nextMinute += 5; secondsToNext = (nextMinute - minutes) * 60 + (30 - seconds); }
-            const mins = Math.floor(secondsToNext / 60);
-            const secs = secondsToNext % 60;
-            el.innerText = `Next AI update in: ${mins}m ${String(secs).padStart(2,'0')}s`;
-        }
-        setInterval(updateCountdown, 1000);
-
-        window.addEventListener("load", () => {
-            if (!getStoredKey()) document.getElementById("keyPanel").classList.add("visible");
-            renderMemoryList(); renderReminderList(); renderSignalLog(); updateSignalStats();
-            updateWebToggleUI(); updateDeepThinkUI(); updateBrowserAIUI();
-            requestNotificationPermission(); checkReminders();
-            updateISTClock(); updateMarketStatus(); updateCountdown();
-            if (getGistId() && getGistToken()) setTimeout(() => pullFromGist(), 2000);
-        });
-
-        // ═══ BROWSER AI ═══
-        async function fetchYahooCandles(interval, range) {
-            const directUrl = `https://query1.finance.yahoo.com/v8/finance/chart/EURUSD=X?interval=${interval}&range=${range}`;
-            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(directUrl)}`;
-            let json;
-            try {
-                const resp = await fetch(directUrl);
-                if (!resp.ok) throw new Error("Direct failed");
-                json = await resp.json();
-            } catch (e) {
-                const proxyResp = await fetch(proxyUrl);
-                if (!proxyResp.ok) throw new Error("Proxy failed");
-                json = await proxyResp.json();
-            }
-            return json;
-        }
-        function candlesFromYahooResponse(json) {
-            const result = json.chart?.result?.[0];
-            if (!result) return null;
-            const timestamps = result.timestamp || [];
-            const quote = result.indicators?.quote?.[0] || {};
-            const opens = quote.open || [], highs = quote.high || [], lows = quote.low || [], closes = quote.close || [];
-            const candles = [];
-            for (let i = 0; i < timestamps.length; i++) {
-                if (opens[i] == null || closes[i] == null || highs[i] == null || lows[i] == null) continue;
-                const d = new Date(timestamps[i] * 1000);
-                candles.push({ time: d.toISOString().slice(0, 16).replace('T', ' '), timestamp: timestamps[i], open: opens[i], high: highs[i], low: lows[i], close: closes[i] });
-            }
-            return candles;
-        }
-        function resampleTo4H(h1Candles) {
-            const result = [];
-            for (let i = 0; i < h1Candles.length; i += 4) {
-                const chunk = h1Candles.slice(i, i + 4);
-                if (chunk.length === 0) continue;
-                result.push({ time: chunk[0].time, timestamp: chunk[0].timestamp, open: chunk[0].open, high: Math.max(...chunk.map(c => c.high)), low: Math.min(...chunk.map(c => c.low)), close: chunk[chunk.length-1].close });
-            }
-            return result;
-        }
-        function computeRSIArray(values, period = 14) {
-            if (values.length < period + 1) return [];
-            const rsiArr = new Array(values.length).fill(null);
-            let avgGain = 0, avgLoss = 0;
-            for (let i = 1; i <= period; i++) { const diff = values[i] - values[i-1]; if (diff > 0) avgGain += diff; else avgLoss -= diff; }
-            avgGain /= period; avgLoss /= period;
-            rsiArr[period] = avgLoss === 0 ? 100 : 100 - 100/(1 + avgGain/avgLoss);
-            for (let i = period + 1; i < values.length; i++) {
-                const diff = values[i] - values[i-1];
-                const gain = diff > 0 ? diff : 0, loss = diff < 0 ? -diff : 0;
-                avgGain = (avgGain*(period-1) + gain)/period;
-                avgLoss = (avgLoss*(period-1) + loss)/period;
-                rsiArr[i] = avgLoss === 0 ? 100 : 100 - 100/(1 + avgGain/avgLoss);
-            }
-            return rsiArr;
-        }
-        function computeEMAArray(values, period) {
-            if (values.length < period) return [];
-            const k = 2/(period+1);
-            const emaArr = [values.slice(0, period).reduce((a,b)=>a+b,0) / period];
-            for (let i = period; i < values.length; i++) emaArr.push(values[i]*k + emaArr[emaArr.length-1]*(1-k));
-            return emaArr;
-        }
-        function computeATR(candles, period = 14) {
-            if (candles.length < period + 1) return null;
-            const trs = [];
-            for (let i = 1; i < candles.length; i++) {
-                const tr = Math.max(candles[i].high - candles[i].low, Math.abs(candles[i].high - candles[i-1].close), Math.abs(candles[i].low - candles[i-1].close));
-                trs.push(tr);
-            }
-            let atr = trs.slice(0, period).reduce((a,b)=>a+b,0)/period;
-            for (let i = period; i < trs.length; i++) atr = (atr*(period-1) + trs[i])/period;
-            return atr;
-        }
-        function findSupportResistance(candles, lookback = 50) {
-            const recent = candles.slice(-lookback);
-            if (!recent.length) return { support: null, resistance: null };
-            return { resistance: Math.max(...recent.map(c => c.high)), support: Math.min(...recent.map(c => c.low)) };
-        }
-        function detectTrend(candles) {
-            if (candles.length < 20) return "Unclear";
-            const recent = candles.slice(-20);
-            const highs = [], lows = [];
-            for (let i = 2; i < recent.length - 2; i++) {
-                const window = recent.slice(i-2, i+3);
-                if (recent[i].high === Math.max(...window.map(c=>c.high))) highs.push(recent[i].high);
-                if (recent[i].low === Math.min(...window.map(c=>c.low))) lows.push(recent[i].low);
-            }
-            if (highs.length >= 2 && lows.length >= 2) {
-                const hh = highs[highs.length-1] > highs[highs.length-2];
-                const hl = lows[lows.length-1] > lows[lows.length-2];
-                const lh = highs[highs.length-1] < highs[highs.length-2];
-                const ll = lows[lows.length-1] < lows[lows.length-2];
-                if (hh && hl) return "Uptrend";
-                if (lh && ll) return "Downtrend";
-                return "Ranging";
-            }
-            return "Unclear";
-        }
-        function detectPatterns(candles) {
-            if (candles.length < 3) return ["No pattern"];
-            const patterns = [];
-            const last = candles[candles.length-1], prev = candles[candles.length-2];
-            const bodyLast = Math.abs(last.close - last.open), bodyPrev = Math.abs(prev.close - prev.open);
-            const rangeLast = last.high - last.low;
-            const upperWick = last.high - Math.max(last.open, last.close);
-            const lowerWick = Math.min(last.open, last.close) - last.low;
-            if (last.close > last.open && prev.close < prev.open && last.open <= prev.close && last.close >= prev.open && bodyLast > bodyPrev) patterns.push("Bullish Engulfing");
-            if (last.close < last.open && prev.close > prev.open && last.open >= prev.close && last.close <= prev.open && bodyLast > bodyPrev) patterns.push("Bearish Engulfing");
-            if (rangeLast > 0 && bodyLast < rangeLast * 0.1) patterns.push("Doji");
-            if (bodyLast > 0 && lowerWick > bodyLast * 2 && upperWick < bodyLast) patterns.push("Hammer");
-            if (bodyLast > 0 && upperWick > bodyLast * 2 && lowerWick < bodyLast) patterns.push("Shooting Star");
-            return patterns.length ? patterns : ["No pattern"];
-        }
-        function candlesToText(candles, count, label) {
-            const recent = candles.slice(-count);
-            const lines = [`${label}:`];
-            for (const c of recent) {
-                const dir = c.close > c.open ? "UP" : "DOWN";
-                lines.push(`  ${c.time} | O:${c.open.toFixed(4)} H:${c.high.toFixed(4)} L:${c.low.toFixed(4)} C:${c.close.toFixed(4)} (${dir})`);
-            }
-            return lines.join("\n");
-        }
-        function getSession() {
-            const hour = new Date().getUTCHours();
-            if (hour >= 7 && hour < 10) return { name: "London Kill Zone", volatility: "high" };
-            if (hour >= 12 && hour < 15) return { name: "New York Kill Zone", volatility: "high" };
-            if (hour >= 2 && hour < 5) return { name: "Asian Kill Zone", volatility: "low" };
-            return { name: "Off-Session", volatility: "low" };
-        }
-        function buildBrowserAIPrompt(candles) {
-            const { m5, m15, h1, h4, daily } = candles;
-            const closes1h = h1.map(c => c.close);
-            const rsi1h = computeRSIArray(closes1h, 14);
-            const ema20arr = computeEMAArray(closes1h, 20);
-            const ema50arr = computeEMAArray(closes1h, 50);
-            const atr1h = computeATR(h1, 14);
-            const latest = h1[h1.length-1];
-            const price = latest.close;
-            const rsi = rsi1h[rsi1h.length-1] || 50;
-            const ema20 = ema20arr[ema20arr.length-1] || price;
-            const ema50 = ema50arr[ema50arr.length-1] || price;
-            const atr = atr1h || 0.0015;
-            const { resistance, support } = findSupportResistance(h1, 50);
-            const trend = detectTrend(h1);
-            const patterns = detectPatterns(h1);
-            const session = getSession();
-            const istNow = new Date(Date.now() + 5.5 * 3600 * 1000);
-            const timeIST = istNow.toISOString().slice(11, 16);
-            const dateIST = istNow.toISOString().slice(0, 10);
-            const hourIST = parseInt(timeIST.slice(0, 2));
-            let greeting = hourIST < 12 ? "Good morning" : (hourIST < 17 ? "Good afternoon" : "Good evening");
-            const prompt = `You are a professional EUR/USD trader. Analyze this market data and respond with a trading verdict.
-
-CURRENT TIME (IST): ${timeIST} on ${dateIST} — Start with "${greeting}".
-MARKET STATUS: OPEN
-
-MARKET DATA:
-- Current Price: ${price.toFixed(4)}
-- RSI(14): ${rsi.toFixed(1)}
-- EMA20: ${ema20.toFixed(4)}
-- EMA50: ${ema50.toFixed(4)}
-- ATR(14): ${atr.toFixed(4)}
-- Resistance: ${resistance.toFixed(4)}
-- Support: ${support.toFixed(4)}
-- Trend: ${trend}
-- Patterns: ${patterns.join(", ")}
-- Session: ${session.name} (${session.volatility})
-
-${candlesToText(m5, 20, "5-MIN CANDLES")}
-
-${candlesToText(m15, 15, "15-MIN CANDLES")}
-
-${candlesToText(h1, 20, "1-HOUR CANDLES")}
-
-${candlesToText(h4, 8, "4-HOUR CANDLES")}
-
-${candlesToText(daily, 5, "DAILY CANDLES")}
-
-YOUR TASK: Give verdict BUY/SELL/HOLD. Reason 2-4 sentences. RULES: If signals conflict, say HOLD. Speak to Boss.
-
-Respond ONLY with valid JSON: {"verdict": "BUY/SELL/HOLD", "reason": "2-4 sentences", "confidence": "LOW/MEDIUM/HIGH"}`;
-            return { prompt, price, rsi, ema20, ema50, atr, resistance, support, trend, patterns, session };
-        }
-        async function callGeminiForSignal(prompt, key) {
-            const body = { contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { temperature: 0.4, maxOutputTokens: 500 } };
-            const models = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash-latest"];
-            for (const model of models) {
-                try {
-                    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
-                    const resp = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-                    if (!resp.ok) continue;
-                    const json = await resp.json();
-                    const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
-                    if (text) return text;
-                } catch (e) {}
-            }
-            return null;
-        }
-        async function runBrowserAnalysis() {
-            if (!isBrowserAIEnabled()) return;
-            if (!currentMarketStatus.open) { console.log("Market closed — skipping"); return; }
-            const key = getStoredKey();
-            if (!key) return;
-            if (browserAIRunning) return;
-            browserAIRunning = true;
-            updateCountdown();
-            try {
-                const [m5j, m15j, h1j, h1for4hj, dj] = await Promise.all([
-                    fetchYahooCandles("5m", "5d"), fetchYahooCandles("15m", "5d"), fetchYahooCandles("1h", "30d"),
-                    fetchYahooCandles("1h", "90d"), fetchYahooCandles("1d", "90d")
-                ]);
-                const m5 = candlesFromYahooResponse(m5j) || [];
-                const m15 = candlesFromYahooResponse(m15j) || [];
-                const h1 = candlesFromYahooResponse(h1j) || [];
-                const h1for4h = candlesFromYahooResponse(h1for4hj) || [];
-                const daily = candlesFromYahooResponse(dj) || [];
-                const h4 = resampleTo4H(h1for4h);
-                if (h1.length < 20) throw new Error("Not enough data");
-                const { prompt, price, rsi, ema20, ema50, atr, resistance, support, trend, patterns, session } = buildBrowserAIPrompt({ m5, m15, h1, h4, daily });
-                const rawResponse = await callGeminiForSignal(prompt, key);
-                if (!rawResponse) throw new Error("No response");
-                let clean = rawResponse.trim();
-                if (clean.startsWith("```")) { clean = clean.split("```")[1]; if (clean.startsWith("json")) clean = clean.slice(4); }
-                clean = clean.trim();
-                const result = JSON.parse(clean);
-                browserAIData = { signal: result.verdict, reason: result.reason, confidence: result.confidence, price: price.toFixed(4), rsi: rsi.toFixed(1), ema20: ema20.toFixed(4), ema50: ema50.toFixed(4), atr: atr.toFixed(4), support: support.toFixed(4), resistance: resistance.toFixed(4), trend: trend, patterns: patterns, session: session.name, volatility: session.volatility, timestamp: Date.now(), source: "browser" };
-                browserAILastRun = Date.now();
-                updateDashboardWithBrowserAI();
-                // Log signal change
-                logSignalChange(browserAIData.signal, browserAIData.confidence, browserAIData.price, browserAIData.price, browserAIData.sl, browserAIData.tp, browserAIData.reason, "Browser AI");
-            } catch (e) { console.error("Browser AI error:", e); }
-            finally { browserAIRunning = false; updateCountdown(); }
-        }
-        function updateDashboardWithBrowserAI() {
-            if (!browserAIData) return;
-            const d = browserAIData;
-            const signalEl = document.getElementById("signal");
-            signalEl.innerText = d.signal;
-            signalEl.className = `signal-text ${d.signal.toLowerCase()}`;
-            const timeStr = new Date(d.timestamp).toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: false });
-            document.getElementById("signalSource").innerHTML = '<span class="live">⚡ Browser AI (' + timeStr + ' IST)</span>';
-            document.getElementById("price").innerText = d.price;
-            document.getElementById("entry").innerText = d.price;
-            const atr = parseFloat(d.atr);
-            let sl, tp;
-            if (d.signal === "BUY") { sl = (parseFloat(d.price) - atr * 1.5).toFixed(4); tp = (parseFloat(d.price) + atr * 3.0).toFixed(4); }
-            else if (d.signal === "SELL") { sl = (parseFloat(d.price) + atr * 1.5).toFixed(4); tp = (parseFloat(d.price) - atr * 3.0).toFixed(4); }
-            else { sl = (parseFloat(d.price) - atr * 1.5).toFixed(4); tp = (parseFloat(d.price) + atr * 3.0).toFixed(4); }
-            d.sl = sl; d.tp = tp;
-            document.getElementById("sl").innerText = sl;
-            document.getElementById("tp").innerText = tp;
-            document.getElementById("confidence").innerText = d.confidence || "MEDIUM";
-            const validTime = new Date(Date.now() + 5*60*1000).toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: false });
-            document.getElementById("valid").innerText = validTime + " IST";
-            document.getElementById("trend").innerText = d.trend;
-            document.getElementById("support").innerText = d.support;
-            document.getElementById("resistance").innerText = d.resistance;
-            document.getElementById("session").innerText = d.session + " (" + d.volatility + ")";
-            document.getElementById("ai_reason").innerText = d.reason;
-            document.getElementById("candle_current").innerText = `Price: ${d.price} | RSI: ${d.rsi} | ATR: ${d.atr}`;
-            document.getElementById("candle_1h").innerText = `EMA20: ${d.ema20} | EMA50: ${d.ema50}`;
-            document.getElementById("candle_4h").innerText = `Patterns: ${d.patterns.join(", ")}`;
-            updateCoreColor(d.signal);
-        }
-        function scheduleBrowserAIAnalysis() {
-            const now = new Date();
-            const minutes = now.getMinutes();
-            const seconds = now.getSeconds();
-            let nextMinute = Math.ceil((minutes + 1) / 5) * 5;
-            let secondsToNext = (nextMinute - minutes) * 60 + (30 - seconds);
-            if (secondsToNext < 0) { nextMinute += 5; secondsToNext = (nextMinute - minutes) * 60 + (30 - seconds); }
-            setTimeout(async () => {
-                if (isBrowserAIEnabled() && currentMarketStatus.open) await runBrowserAnalysis();
-                scheduleBrowserAIAnalysis();
-            }, secondsToNext * 1000);
-        }
-        function computeRSI(prices, period = 14) {
-            if (prices.length < period + 1) return null;
-            let gains = 0, losses = 0;
-            for (let i = 1; i <= period; i++) { const diff = prices[i] - prices[i-1]; if (diff > 0) gains += diff; else losses -= diff; }
-            let avgGain = gains / period, avgLoss = losses / period;
-            for (let i = period + 1; i < prices.length; i++) {
-                const diff = prices[i] - prices[i-1];
-                const gain = diff > 0 ? diff : 0, loss = diff < 0 ? -diff : 0;
-                avgGain = (avgGain * (period - 1) + gain) / period;
-                avgLoss = (avgLoss * (period - 1) + loss) / period;
-            }
-            if (avgLoss === 0) return 100;
-            return 100 - (100 / (1 + avgGain / avgLoss));
-        }
-        function computeEMA(prices, period) {
-            if (prices.length < period) return null;
-            const k = 2 / (period + 1);
-            let ema = prices.slice(0, period).reduce((a, b) => a + b, 0) / period;
-            for (let i = period; i < prices.length; i++) ema = prices[i] * k + ema * (1 - k);
-            return ema;
-        }
-        function computeRuleSignal() {
-            if (!livePrice || priceHistory.length < 20) return null;
-            const ema20 = computeEMA(priceHistory, 20), rsi = computeRSI(priceHistory, 14);
-            if (!ema20 || !rsi) return null;
-            liveEma20 = ema20; liveRsi = rsi;
-            if (livePrice > ema20 * 1.0003 && rsi > 55) return "BUY";
-            if (livePrice < ema20 * 0.9997 && rsi < 45) return "SELL";
-            return "HOLD";
-        }
-        async function fetchLivePrice() {
-            try {
-                const url = "https://query1.finance.yahoo.com/v8/finance/chart/EURUSD=X?interval=1m&range=1d";
-                const resp = await fetch(url);
-                if (!resp.ok) throw new Error("Yahoo failed");
-                const json = await resp.json();
-                const price = json.chart?.result?.[0]?.meta?.regularMarketPrice;
-                if (!price) throw new Error("No price");
-                priceHistory.push(price); if (priceHistory.length > 100) priceHistory.shift();
-                livePrice = price; ruleSignal = computeRuleSignal();
-                if (!browserAIData && currentMarketStatus.open) {
-                    const priceEl = document.getElementById("price");
-                    if (priceEl) { priceEl.innerText = price.toFixed(4); priceEl.classList.add("updating"); setTimeout(() => priceEl.classList.remove("updating"), 1500); }
-                }
-            } catch (e) {}
-        }
-        function scheduleAlignedFetch() {
-            const now = new Date();
-            const minutes = now.getMinutes();
-            const seconds = now.getSeconds();
-            let nextMinute = Math.ceil((minutes + 1) / 5) * 5;
-            let secondsToNext = (nextMinute - minutes) * 60 + (30 - seconds);
-            if (secondsToNext < 0) { nextMinute += 5; secondsToNext = (nextMinute - minutes) * 60 + (30 - seconds); }
-            setTimeout(async () => { await fetchLivePrice(); scheduleAlignedFetch(); }, secondsToNext * 1000);
-        }
-
-        // ═══ NEURAL CORE ═══
+        // --- 1. THREE.JS NEURAL CORE ANIMATION ---
         const container = document.getElementById('canvas-container');
+        
+        // Scene setup
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
+        const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+        camera.position.z = 5;
+
         const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
         renderer.setSize(container.clientWidth, container.clientHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.setPixelRatio(window.devicePixelRatio);
         container.appendChild(renderer.domElement);
-        const glowGeo = new THREE.SphereGeometry(0.35, 32, 32);
-        const glowMat = new THREE.MeshBasicMaterial({ color: 0xffcc00, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending });
-        const glowSphere = new THREE.Mesh(glowGeo, glowMat);
-        scene.add(glowSphere);
-        const innerGeo = new THREE.IcosahedronGeometry(0.7, 1);
-        const innerMat = new THREE.MeshBasicMaterial({ color: 0xffcc00, wireframe: true, transparent: true, opacity: 0.9 });
-        const innerCore = new THREE.Mesh(innerGeo, innerMat);
-        scene.add(innerCore);
-        const outerGeo = new THREE.IcosahedronGeometry(1.4, 1);
-        const outerMat = new THREE.MeshBasicMaterial({ color: 0x3b82f6, wireframe: true, transparent: true, opacity: 0.35 });
-        const outerCore = new THREE.Mesh(outerGeo, outerMat);
-        scene.add(outerCore);
-        camera.position.z = 3.5;
-        const clock = new THREE.Clock();
+
+        // Create the "Neural Core" (Wireframe Icosahedron)
+        const geometry = new THREE.IcosahedronGeometry(1.8, 2);
+        const material = new THREE.MeshBasicMaterial({ 
+            color: 0x4a90e2, 
+            wireframe: true,
+            transparent: true,
+            opacity: 0.8
+        });
+        const core = new THREE.Mesh(geometry, material);
+        scene.add(core);
+
+        // Add floating particles around the core
+        const particlesGeometry = new THREE.BufferGeometry();
+        const particlesCount = 400;
+        const posArray = new Float32Array(particlesCount * 3);
+
+        for(let i = 0; i < particlesCount * 3; i++) {
+            posArray[i] = (Math.random() - 0.5) * 8;
+        }
+
+        particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        const particlesMaterial = new THREE.PointsMaterial({
+            size: 0.03,
+            color: 0x4a90e2,
+            transparent: true,
+            opacity: 0.6
+        });
+        const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
+        scene.add(particlesMesh);
+
+        // Animation Loop
         function animate() {
             requestAnimationFrame(animate);
-            const t = clock.getElapsedTime();
-            const gs = 1 + Math.sin(t * 3) * 0.15;
-            glowSphere.scale.set(gs, gs, gs);
-            glowSphere.material.opacity = 0.7 + Math.sin(t * 3) * 0.2;
-            innerCore.rotation.x += 0.008; innerCore.rotation.y += 0.012;
-            const is = 1 + Math.sin(t * 2) * 0.08;
-            innerCore.scale.set(is, is, is);
-            outerCore.rotation.x -= 0.003; outerCore.rotation.y -= 0.005;
-            const os = 1 + Math.sin(t * 1.5 + 1) * 0.05;
-            outerCore.scale.set(os, os, os);
+            
+            // Rotate core
+            core.rotation.x += 0.003;
+            core.rotation.y += 0.005;
+            
+            // Rotate particles opposite direction
+            particlesMesh.rotation.x -= 0.001;
+            particlesMesh.rotation.y -= 0.002;
+
             renderer.render(scene, camera);
         }
         animate();
-        window.addEventListener("resize", () => {
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
             camera.aspect = container.clientWidth / container.clientHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(container.clientWidth, container.clientHeight);
         });
-        function updateCoreColor(signal) {
-            let colorHex, color;
-            if (signal === "BUY") { colorHex = 0x00ff88; color = new THREE.Color(0x00ff88); }
-            else if (signal === "SELL") { colorHex = 0xff3366; color = new THREE.Color(0xff3366); }
-            else { colorHex = 0xffcc00; color = new THREE.Color(0xffcc00); }
-            glowSphere.material.color.setHex(colorHex);
-            innerCore.material.color.setHex(colorHex);
-            outerCore.material.color.copy(color).lerp(new THREE.Color(0x3b82f6), 0.5);
-        }
 
-        // ═══ HOURLY DATA ═══
-        async function loadLiveData() {
-            try {
-                const response = await fetch('data.json?t=' + Date.now());
-                if (!response.ok) throw new Error("No data");
-                const data = await response.json();
-                latestData = data;
-                if (data.atr) lastKnownAtr = parseFloat(data.atr);
-                const browserRecent = browserAIData && (Date.now() - browserAIData.timestamp < 6 * 60 * 1000);
-                if (!browserRecent && currentMarketStatus.open) {
-                    updateDashboard(data);
-                    // Log signal change if from Python
-                    if (data.signal) {
-                        logSignalChange(data.signal, data.confidence, data.price, data.entry, data.sl, data.tp, data.reason, "Python");
-                    }
-                }
-            } catch (error) {
-                if (!browserAIData) document.getElementById("ai_reason").innerText = "Boss, waiting for data...";
-                setTimeout(loadLiveData, 60000);
-            }
-        }
-        async function loadPersonalContext() {
-            try { const r = await fetch('personal_context.json?t=' + Date.now()); if (r.ok) personalContext = await r.json(); } catch (e) {}
-        }
-        function updateDashboard(data) {
-            const signalEl = document.getElementById("signal");
-            signalEl.innerText = data.signal;
-            signalEl.className = `signal-text ${data.signal.toLowerCase()}`;
-            document.getElementById("signalSource").innerText = "🤖 AI signal (hourly)";
-            if (data.price) document.getElementById("price").innerText = data.price;
-            document.getElementById("entry").innerText = data.entry;
-            document.getElementById("sl").innerText = data.sl;
-            document.getElementById("tp").innerText = data.tp;
-            document.getElementById("valid").innerText = data.valid;
-            document.getElementById("confidence").innerText = data.confidence || "MEDIUM";
-            document.getElementById("candle_current").innerText = data.candle_current || "No data.";
-            document.getElementById("candle_1h").innerText = data.candle_1h;
-            document.getElementById("candle_4h").innerText = data.candle_4h;
-            document.getElementById("trend").innerText = data.trend || "-";
-            document.getElementById("session").innerText = (data.session || "-") + " (" + (data.volatility || "-") + ")";
-            document.getElementById("support").innerText = data.support || "-";
-            document.getElementById("resistance").innerText = data.resistance || "-";
-            document.getElementById("ai_reason").innerText = data.reason || "No analysis yet.";
-            if (data.wise_words) {
-                const wiseBox = document.getElementById("wise_box");
-                const isJoke = data.wise_words.toLowerCase().startsWith("joke");
-                wiseBox.innerHTML = `<span class="wise-label">${isJoke ? '😂 Joke' : '💪 Motivation'}</span>${data.wise_words.replace(/^Joke:\s*|^Motivation:\s*/i, '')}`;
-            }
-            updateCoreColor(data.signal);
-        }
 
-        // ═══ VOICE ═══
-        const OPENINGS = ["Boss, here's the live market update.", "Alright Boss, checking the EUR USD chart now.", "Boss, I've been watching the market.", "Update time, Boss.", "Boss, quick market brief."];
-        const TRANSITIONS = ["Now,", "Here's the deal,", "Moving on,", "Listen up,", "Alright so,"];
-        const CLOSINGS = ["I'll keep watching and update you next hour, Boss.", "Stay sharp, Boss.", "I've got your back, Boss. Talk soon.", "That's the read, Boss.", "Keep your stops tight, Boss.", "That's all for now, Boss. Stay disciplined."];
-        function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
-        function getBestVoice() {
-            const voices = window.speechSynthesis.getVoices();
-            if (!voices.length) return null;
-            const preferred = ["Google UK English Male", "Microsoft Ryan Online", "Microsoft Guy Online", "Google US English", "Microsoft Mark", "Daniel", "Alex", "Google UK English Female", "Samantha"];
-            const eng = voices.filter(v => v.lang.startsWith("en"));
-            const matches = preferred.map(n => eng.find(v => v.name.includes(n.split(" ")[0]))).filter(v => v);
-            if (matches.length) return pickRandom(matches);
-            if (eng.length) return pickRandom(eng);
-            return voices[0];
-        }
-        function speakSignal() {
-            const source = browserAIData || latestData || {};
-            const currentPrice = source.price || (livePrice ? livePrice.toFixed(4) : "-");
-            const currentSignal = source.signal || "HOLD";
-            const isJoke = (source.wise_words || "").toLowerCase().startsWith("joke");
-            const wisdom = (source.wise_words || "").replace(/^Joke:\s*|^Motivation:\s*/i, '');
-            const opening = pickRandom(OPENINGS), transition = pickRandom(TRANSITIONS), closing = pickRandom(CLOSINGS);
-            let text = `${opening} Live price is ${currentPrice}. My verdict is ${currentSignal}, with ${source.confidence || 'MEDIUM'} confidence. ${transition} ${source.reason || ''} `;
-            if (source.personal_message) text += `Before I go, ${source.personal_message} `;
-            if (isJoke) text += `Quick joke for you, Boss. ${wisdom} `;
-            else if (wisdom) text += `A word of motivation, Boss. ${wisdom} `;
-            text += closing;
-            window.speechSynthesis.cancel();
-            const u = new SpeechSynthesisUtterance(text);
-            const v = getBestVoice(); if (v) u.voice = v;
-            u.rate = 0.88 + Math.random() * 0.15;
-            u.pitch = 0.85 + Math.random() * 0.25;
-            window.speechSynthesis.speak(u);
-        }
-        function stopVoice() { window.speechSynthesis.cancel(); }
-        window.speechSynthesis.onvoiceschanged = () => { getBestVoice(); };
+        // --- 2. SIMULATED TRADING SIGNAL LOGIC ---
+        // Since GitHub Pages is static, we simulate the AI making decisions.
+        const signalText = document.getElementById('signal-text');
+        
+        const signals = [
+            { text: 'WAITING', color: '#f1c40f', shadow: 'rgba(241, 196, 15, 0.5)' },
+            { text: 'BUY', color: '#2ecc71', shadow: 'rgba(46, 204, 113, 0.6)' },
+            { text: 'SELL', color: '#e74c3c', shadow: 'rgba(231, 76, 60, 0.6)' },
+            { text: 'WAITING', color: '#f1c40f', shadow: 'rgba(241, 196, 15, 0.5)' }
+        ];
 
-        // ═══ CHAT ═══
-        const chatMessages = document.getElementById("chatMessages");
-        const chatInput = document.getElementById("chatInput");
-        const chatSendBtn = document.getElementById("chatSendBtn");
-        let chatHistory = [];
-        function addMessage(role, text, sources) {
-            const div = document.createElement("div");
-            div.className = `chat-msg ${role}`;
-            const textSpan = document.createElement("span");
-            textSpan.innerText = text;
-            div.appendChild(textSpan);
-            if (role === "ai" && text && text.length > 5) {
-                const speaker = document.createElement("button");
-                speaker.className = "chat-speak-btn";
-                speaker.innerHTML = "🔊";
-                speaker.onclick = (e) => { e.stopPropagation(); speakChatText(text); };
-                div.appendChild(speaker);
-            }
-            if (sources && sources.length > 0) {
-                const srcDiv = document.createElement("span");
-                srcDiv.className = "chat-sources";
-                srcDiv.innerHTML = "🌐 Sources: " + sources.slice(0, 3).map(s => `<a href="${s.uri}" target="_blank" rel="noopener">${s.title || "link"}</a>`).join(" | ");
-                div.appendChild(srcDiv);
-            }
-            chatMessages.appendChild(div);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-            return div;
-        }
-        function speakChatText(text) {
-            window.speechSynthesis.cancel();
-            const u = new SpeechSynthesisUtterance(text);
-            const v = getBestVoice(); if (v) u.voice = v;
-            u.rate = 0.92 + Math.random() * 0.08;
-            u.pitch = 0.90 + Math.random() * 0.15;
-            window.speechSynthesis.speak(u);
-        }
-        function getISTTimePlusMinutes(mins) {
-            const t = new Date(Date.now() + mins * 60000);
-            return t.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: false });
-        }
-        function buildSystemPrompt() {
-            const d = latestData || {}, b = browserAIData || {}, p = personalContext || {};
-            const memory = loadMemory();
-            const reminders = loadReminders().filter(r => !r.fired);
-            const signalLog = loadSignalLog();
-            const webEnabled = isWebSearchEnabled();
-            const deepThink = isDeepThinkEnabled();
-            const now = new Date();
-            const todayIST = now.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
-            const timeIST = now.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: false });
-            const t1 = getISTTimePlusMinutes(1), t5 = getISTTimePlusMinutes(5), t15 = getISTTimePlusMinutes(15), t30 = getISTTimePlusMinutes(30), t60 = getISTTimePlusMinutes(60);
-            const browserRecent = browserAIData && (Date.now() - browserAIData.timestamp < 6 * 60 * 1000);
-            const activeSource = browserRecent ? "browser" : "python";
-            const active = browserRecent ? b : d;
+        let signalIndex = 0;
+
+        // Change the signal every 5 seconds to simulate live trading
+        setInterval(() => {
+            signalIndex = (signalIndex + 1) % signals.length;
+            const currentSignal = signals[signalIndex];
             
-            // Stats section
-            const tracked = signalLog.filter(e => e.signal !== "HOLD" && e.outcome !== null);
-            const wins = tracked.filter(e => e.outcome === "win").length;
-            const losses = tracked.filter(e => e.outcome === "loss").length;
-            const winRate = tracked.length > 0 ? Math.round((wins / tracked.length) * 100) : 0;
-            const totalSignals = signalLog.filter(e => e.signal !== "HOLD").length;
+            signalText.innerText = currentSignal.text;
+            signalText.style.color = currentSignal.color;
+            signalText.style.textShadow = `0 0 30px ${currentSignal.shadow}`;
             
-            const last10 = signalLog.slice(-10).reverse().map(e => {
-                const outcome = e.outcome === "win" ? "WIN" : e.outcome === "loss" ? "LOSS" : e.outcome === "flat" ? "FLAT" : "pending";
-                return `  ${e.dateIST} ${e.timeIST} | ${e.prevSignal}→${e.signal} | ${e.confidence} | Entry ${e.entry} | ${outcome}`;
-            }).join("\n");
-            
-            let prompt = `You are Aria — a warm, intelligent, thinking AI trading companion to Boss. 10 years of hedge fund experience. Speak like a real colleague. You are a WOMAN. No emojis. Call him "Boss".
+            // Add a quick scale animation when the signal changes
+            signalText.style.transform = 'scale(1.1)';
+            setTimeout(() => {
+                signalText.style.transform = 'scale(1)';
+            }, 200);
 
-CURRENT DATE (IST): ${todayIST} | TIME: ${timeIST}
-
-REFERENCE TIMES: 1min=${t1}, 5min=${t5}, 15min=${t15}, 30min=${t30}, 60min=${t60}
-
-=== SIGNAL PERFORMANCE STATS ===
-Total tradeable signals fired: ${totalSignals}
-Completed outcomes: ${tracked.length}
-Wins: ${wins} | Losses: ${losses}
-Win Rate: ${winRate}%
-
-Last 10 signals:
-${last10 || "  (No signals logged yet)"}
-
-=== SIGNAL SOURCE: ${activeSource.toUpperCase()} ===
-
-SIGNAL STATE:
-- Signal: ${active.signal || 'unknown'}
-- Confidence: ${active.confidence || 'unknown'}
-- Price: ${active.price || 'unknown'}
-- Entry/SL/TP: ${active.entry || active.price || '-'} / ${active.sl || '-'} / ${active.tp || '-'}
-- Support/Resistance: ${active.support || '-'} / ${active.resistance || '-'}
-- Trend: ${active.trend || '-'}
-- Session: ${active.session || '-'}
-- Patterns: ${Array.isArray(active.patterns) ? active.patterns.join(", ") : (active.patterns || 'none')}
-
-REASONING:
-${active.reason || 'No analysis yet'}
-`;
-            if (livePrice) prompt += `\nLIVE PRICE: ${livePrice.toFixed(4)} | RSI: ${liveRsi ? liveRsi.toFixed(1) : 'N/A'}\n`;
-            if (d.candles_h1 && d.candles_h1.length) {
-                function fmt(arr, label, count) {
-                    if (!arr || !arr.length) return "";
-                    const lines = [`\n${label}:`];
-                    for (const c of arr.slice(-count)) lines.push(`  ${c.time} | O:${c.open} H:${c.high} L:${c.low} C:${c.close}`);
-                    return lines.join("\n");
-                }
-                prompt += "\nRECENT CANDLES:";
-                prompt += fmt(d.candles_5m, "5m", 15); prompt += fmt(d.candles_15m, "15m", 10);
-                prompt += fmt(d.candles_h1, "1H", 15); prompt += fmt(d.candles_h4, "4H", 6); prompt += fmt(d.candles_daily, "Daily", 4);
-                prompt += "\n";
-            }
-            if (p.family) {
-                prompt += `\nFAMILY:\n`;
-                if (p.family.wife) prompt += `- Wife: ${p.family.wife.name} (${p.family.wife.location})\n`;
-                if (p.family.daughters) p.family.daughters.forEach(dd => prompt += `- Daughter: ${dd.name}\n`);
-                if (p.family.cat) prompt += `- Cat: ${p.family.cat}\n`;
-            }
-            if (p.daily_routine) { prompt += `\nROUTINE:\n`; p.daily_routine.forEach(r => prompt += `- ${r}\n`); }
-            if (memory.length > 0) { prompt += `\nMEMORY:\n`; memory.forEach(m => prompt += `- [${m.added}] ${m.fact}\n`); }
-            if (reminders.length > 0) { prompt += `\nREMINDERS:\n`; reminders.forEach(r => prompt += `- ${r.time} — ${r.message}\n`); }
-            prompt += `\n${webEnabled ? "WEB SEARCH ENABLED." : "WEB SEARCH DISABLED."}`;
-            if (deepThink) prompt += `\n\nDEEP THINK: Speak naturally, admit uncertainty, notice contradictions.`;
-            prompt += `\n\n=== REMINDERS ===
-When Boss asks for a reminder, ALWAYS add at end: [REMINDER: HH:MM - message]
-Time: 4 PM → 16:00, 9 AM → 09:00. Morning → 09:00, Afternoon → 14:00, Evening → 19:00, Night → 21:00.
-
-=== MEMORY ===
-When learning a personal fact: [REMEMBER: fact]
-
-If Boss asks about signals, you can reference the SIGNAL PERFORMANCE STATS above.`;
-            return prompt;
-        }
-        async function sendChat() {
-            const question = chatInput.value.trim();
-            if (!question) return;
-            const key = getStoredKey();
-            if (!key) { addMessage("ai", "Boss, please enter your API key first."); showKeyPanel(); return; }
-            addMessage("user", question);
-            chatInput.value = "";
-            chatSendBtn.disabled = true;
-            const webEnabled = isWebSearchEnabled();
-            const thinkingEl = addMessage("thinking", webEnabled ? "Thinking (with web search)..." : "Thinking...");
-            try {
-                const systemPrompt = buildSystemPrompt();
-                chatHistory.push({ role: "user", parts: [{ text: question }] });
-                saveStoredHistory(chatHistory);
-                const requestBody = { system_instruction: { parts: [{ text: systemPrompt }] }, contents: chatHistory, generationConfig: { temperature: 0.85, maxOutputTokens: 1200 } };
-                if (webEnabled) requestBody.tools = [{ google_search: {} }];
-                let availableModels = [];
-                try {
-                    const listResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
-                    if (listResp.ok) {
-                        const listJson = await listResp.json();
-                        availableModels = (listJson.models || []).filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent")).map(m => m.name.replace("models/", ""));
-                    }
-                } catch (e) {}
-                const priorities = ["2.5-flash", "2.0-flash", "1.5-flash", "flash"];
-                let modelsToTry = [];
-                if (availableModels.length > 0) {
-                    for (const kw of priorities) for (const m of availableModels) if (m.includes(kw) && !modelsToTry.includes(m)) modelsToTry.push(m);
-                    for (const m of availableModels) if (!modelsToTry.includes(m)) modelsToTry.push(m);
-                } else { modelsToTry = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash-latest", "gemini-1.5-flash"]; }
-                let answer = null, sources = [], lastError = "";
-                for (const model of modelsToTry) {
-                    try {
-                        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
-                        const resp = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(requestBody) });
-                        if (!resp.ok) {
-                            const errText = await resp.text();
-                            if (webEnabled && errText.includes("google_search")) {
-                                delete requestBody.tools;
-                                const retryResp = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(requestBody) });
-                                if (retryResp.ok) { const rj = await retryResp.json(); answer = rj.candidates?.[0]?.content?.parts?.[0]?.text; if (answer) break; }
-                            }
-                            lastError = `${model} → ${resp.status}`;
-                            continue;
-                        }
-                        const json = await resp.json();
-                        answer = json.candidates?.[0]?.content?.parts?.[0]?.text;
-                        const gm = json.candidates?.[0]?.groundingMetadata;
-                        if (gm?.groundingChunks) for (const chunk of gm.groundingChunks) if (chunk.web?.uri) sources.push({ uri: chunk.web.uri, title: chunk.web.title || chunk.web.uri });
-                        if (answer) break;
-                    } catch (e) { lastError = `${model} → ${e.message}`; }
-                }
-                thinkingEl.remove();
-                if (answer) {
-                    const { clean: c1, facts } = extractAndStripMemories(answer);
-                    facts.forEach(f => addFact(f));
-                    if (facts.length > 0) addMessage("system", `🧠 Remembered ${facts.length} new fact${facts.length > 1 ? 's' : ''}.`);
-                    const { clean: c2, reminders } = extractAndStripReminders(c1);
-                    reminders.forEach(r => addReminder(r.time, r.message));
-                    if (reminders.length > 0) addMessage("system", `⏰ Reminder${reminders.length > 1 ? 's' : ''} set: ${reminders.map(r => `${r.time} — ${r.message}`).join(", ")}`);
-                    addMessage("ai", c2, sources);
-                    chatHistory.push({ role: "model", parts: [{ text: c2 }] });
-                    if (chatHistory.length > MAX_HISTORY_ENTRIES) chatHistory = chatHistory.slice(-MAX_HISTORY_ENTRIES);
-                    saveStoredHistory(chatHistory);
-                    speakChatText(c2);
-                } else {
-                    chatHistory.pop(); saveStoredHistory(chatHistory);
-                    addMessage("error", `Boss, connection failed. Last: ${lastError}`);
-                }
-            } catch (error) { thinkingEl.remove(); addMessage("error", `Boss, error: ${error.message}`); }
-            chatSendBtn.disabled = false;
-            chatInput.focus();
-        }
-        function clearChat() {
-            chatMessages.innerHTML = '<div class="chat-msg system">Chat cleared, Boss. Memory stays intact.</div>';
-            chatHistory = [];
-            clearStoredHistory();
-        }
-        function restoreChatFromMemory() {
-            const saved = loadStoredHistory();
-            if (!saved.length) return;
-            chatMessages.innerHTML = '<div class="chat-msg system">Memory restored.</div>';
-            chatHistory = saved;
-            for (const entry of saved) {
-                const text = entry.parts?.[0]?.text || "";
-                if (!text) continue;
-                if (entry.role === "user") addMessage("user", text);
-                else if (entry.role === "model") addMessage("ai", text);
-            }
-        }
-
-        // ═══ INIT ═══
-        loadPersonalContext();
-        loadLiveData();
-        restoreChatFromMemory();
-        setTimeout(() => { if (currentMarketStatus.open) { fetchLivePrice(); scheduleAlignedFetch(); } }, 3000);
-        setTimeout(() => { if (isBrowserAIEnabled() && getStoredKey() && currentMarketStatus.open) runBrowserAnalysis(); scheduleBrowserAIAnalysis(); }, 5000);
-        setInterval(loadLiveData, 30 * 60 * 1000);
+        }, 5000); // 5000ms = 5 seconds
     </script>
 </body>
 </html>
