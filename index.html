@@ -70,8 +70,6 @@
         .stat-label { color:var(--text-muted); }
         @keyframes fadeIn { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
         .fade-in { animation:fadeIn 0.3s ease-in; }
-        .reminder-badge { background:rgba(241,196,15,0.2); border:1px solid rgba(241,196,15,0.5); color:var(--yellow);
-            font-size:0.7rem; padding:2px 6px; border-radius:4px; margin-left:5px; }
     </style>
 </head>
 <body>
@@ -142,7 +140,7 @@
                 <input type="password" id="api-key-input" placeholder="AIzaSy..." style="width:100%; padding:8px; margin-top:5px; border-radius:6px; border:1px solid #444; background:#111; color:white;">
                 <button class="btn" style="margin-top:5px;" onclick="saveApiKey()">Save Key</button>
             </div>
-            <div class="chat-history" id="chat-history"><div class="msg ai fade-in">Ready, Boss. Reminders now auto-voice.</div></div>
+            <div class="chat-history" id="chat-history"><div class="msg ai fade-in">Ready, Boss. Model list updated to gemini-3.8-flash.</div></div>
             <div class="chat-input-row">
                 <input type="text" id="chat-input" placeholder="Ask me anything, Boss..." onkeypress="if(event.key==='Enter') sendChat()">
                 <button onclick="sendChat()">Send</button>
@@ -172,16 +170,19 @@
         const FALLBACK_URL = 'https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/data.json';
         const CONTEXT_URL = 'https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/personal_context.json';
 
+        // === UPDATED MODEL LIST (includes gemini-3.8-flash per Google's instruction) ===
         const STABLE_CHAT_MODELS = [
+            'gemini-3.8-flash',
+            'gemini-2.5-flash',
             'gemini-1.5-flash',
-            'gemini-1.5-flash-latest',
-            'gemini-1.5-flash-002',
-            'gemini-2.0-flash'
+            'gemini-1.5-pro',
+            'gemini-pro'
         ];
         const STABLE_SIGNAL_MODELS = [
+            'gemini-3.8-flash',
+            'gemini-2.5-flash',
             'gemini-1.5-flash',
-            'gemini-1.5-flash-latest',
-            'gemini-2.0-flash'
+            'gemini-pro'
         ];
 
         let globalData = null, personalContext = null;
@@ -427,15 +428,8 @@
                 if (pref) u.voice = pref;
                 u.onstart = () => isSpeaking = true; u.onend = () => isSpeaking = false;
                 window.speechSynthesis.speak(u);
-                
-                // RETRY: If voice doesn't start within 500ms, try again (Android bug)
                 if (isReminder) {
-                    setTimeout(() => {
-                        if (!window.speechSynthesis.speaking) {
-                            console.log("Retrying reminder voice...");
-                            window.speechSynthesis.speak(u);
-                        }
-                    }, 500);
+                    setTimeout(() => { if (!window.speechSynthesis.speaking) window.speechSynthesis.speak(u); }, 500);
                 }
             }
         }
@@ -504,10 +498,7 @@
                 document.getElementById('chat-history').removeChild(loading);
 
                 const rm = response.match(/\[REMINDER:\s*(\d{2}:\d{2})\s*-\s*(.*?)\]/);
-                if (rm) { 
-                    addReminder(rm[1], rm[2]); 
-                    response = response.replace(/\[REMINDER:.*?\]/g, '').trim(); 
-                }
+                if (rm) { addReminder(rm[1], rm[2]); response = response.replace(/\[REMINDER:.*?\]/g, '').trim(); }
                 const mm = response.match(/\[REMEMBER:\s*(.*?)\]/);
                 if (mm) { addLongTermMemory(mm[1]); response = response.replace(/\[REMEMBER:.*?\]/g, '').trim(); }
 
@@ -528,23 +519,16 @@
             const systemPrompt = `You are Boss's senior AI trading assistant. Friendly, wise, analytical. No emojis. Call him "Boss".
 Current time: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.
 
-=== REMINDER INSTRUCTIONS (VERY IMPORTANT) ===
-When Boss asks you to remind him IN X MINUTES:
-1. Calculate the target IST time: current time + X minutes.
-2. Format: HH:MM in 24-hour format (e.g., 14:35).
-3. Append this tag to your reply: [REMINDER: HH:MM - the reminder message]
-Example: If current time is 15:00 IST and Boss says "remind me in 2 mins to drink water", your reply should include: [REMINDER: 15:02 - Drink water]
-When Boss gives an absolute time (e.g. "at 4 PM"):
-1. Convert to 24-hour format: 16:00
-2. Append: [REMINDER: 16:00 - the reminder message]
-The system will automatically fire the notification + voice at that time. Do not ask for confirmation.
+=== REMINDER INSTRUCTIONS ===
+When Boss asks you to remind him IN X MINUTES, add X minutes to current time and append [REMINDER: HH:MM - message].
+When given absolute time (e.g. "at 4 PM"), use [REMINDER: 16:00 - message].
 
-=== MEMORY INSTRUCTIONS ===
-If you learn a new fact about Boss, append [REMEMBER: the fact].
+=== MEMORY ===
+If you learn a new fact, append [REMEMBER: fact].
 
 === RESPONSE RULES ===
-- Do NOT output thought process, self-evaluation, or bullet points.
-- Keep responses focused and confident.`;
+- No thought process, self-evaluation, or bullet points.
+- Be confident and concise.`;
 
             const contents = [
                 {role:'user', parts:[{text: systemPrompt}]},
@@ -585,21 +569,20 @@ If you learn a new fact about Boss, append [REMEMBER: the fact].
                         const msg = err.error?.message || 'API failed';
                         console.log(`✗ ${model}: ${msg.substring(0,80)}`);
                         lastErr = msg;
-                        if (msg.includes('quota') || msg.includes('Quota') || msg.includes('exceeded') || msg.includes('not found')) continue;
+                        if (msg.includes('quota') || msg.includes('Quota') || msg.includes('exceeded') || msg.includes('not found') || msg.includes('no longer')) continue;
                         if (msg.includes('SAFETY')) throw new Error("Message blocked by safety filter.");
                     }
                 } catch(e) { lastErr = e.name === 'AbortError' ? 'Request timed out' : e.message; }
             }
-            throw new Error(lastErr || "All stable models busy. Wait 30 seconds.");
+            throw new Error(lastErr || "All models busy. Wait 30 seconds.");
         }
 
-        // === REMINDER SYSTEM (Auto-fire with Voice) ===
+        // --- REMINDERS (Auto-fire with Voice) ---
         function addReminder(time, message) {
             const reminder = {id: Math.random().toString(36).substr(2,9), time, message, voice:true, fired:false, created: new Date().toISOString()};
             reminders.push(reminder);
             localStorage.setItem('eurusd_reminders', JSON.stringify(reminders));
             renderReminders();
-            // Confirm to user
             const confirmDiv = document.createElement('div');
             confirmDiv.className = 'msg system fade-in';
             confirmDiv.innerText = `⏰ Reminder set for ${time} IST: ${message}`;
@@ -619,30 +602,16 @@ If you learn a new fact about Boss, append [REMEMBER: the fact].
 
         function deleteReminder(id) { reminders = reminders.filter(r => r.id !== id); localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); }
         function clearReminders() { reminders = []; localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); }
+        function testReminder() { triggerNotif("Test Reminder", "This is a test reminder, Boss!"); }
 
-        function testReminder() {
-            triggerNotif("Test Reminder", "This is a test reminder, Boss!");
-        }
-
-        // === TRIGGER NOTIFICATION + VOICE ===
         function triggerNotif(title, body) {
-            // 1. Show visual notification
             if (Notification.permission === "granted") {
-                try {
-                    const n = new Notification(title, {body, requireInteraction: true});
-                    n.onclick = () => { window.focus(); n.close(); };
-                } catch(e) { console.log("Notification failed:", e); }
+                try { const n = new Notification(title, {body, requireInteraction: true}); n.onclick = () => { window.focus(); n.close(); }; }
+                catch(e) { console.log("Notification failed:", e); }
             } else if (Notification.permission !== "denied") {
-                Notification.requestPermission().then(p => {
-                    if (p === "granted") new Notification(title, {body, requireInteraction: true});
-                });
+                Notification.requestPermission().then(p => { if (p === "granted") new Notification(title, {body, requireInteraction: true}); });
             }
-            
-            // 2. Fire voice IMMEDIATELY (auto, no click needed)
-            const voiceMessage = `Reminder from Boss. ${body}`;
-            speakText(voiceMessage, true);
-            
-            // 3. Also add to chat history as confirmation
+            speakText(`Reminder from Boss. ${body}`, true);
             const div = document.createElement('div');
             div.className = 'msg system fade-in';
             div.innerText = `⏰ ${title}: ${body}`;
@@ -650,35 +619,21 @@ If you learn a new fact about Boss, append [REMEMBER: the fact].
             document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight;
         }
 
-        // === CHECK REMINDERS EVERY 10 SECONDS (more accurate) ===
         function checkReminders() {
             const now = new Date();
             const cur = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
             let updated = false;
-            reminders.forEach(r => {
-                if (!r.fired && r.time === cur) {
-                    r.fired = true;
-                    updated = true;
-                    triggerNotif("Boss Reminder", r.message);
-                }
-            });
-            if (updated) {
-                localStorage.setItem('eurusd_reminders', JSON.stringify(reminders));
-                renderReminders();
-            }
+            reminders.forEach(r => { if (!r.fired && r.time === cur) { r.fired = true; updated = true; triggerNotif("Boss Reminder", r.message); } });
+            if (updated) { localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); }
         }
-        setInterval(checkReminders, 10000); // Every 10 seconds (was 20s)
+        setInterval(checkReminders, 10000);
 
-        // === ON PAGE LOAD: Check for MISSED reminders ===
         function checkMissedReminders() {
             const now = new Date();
             const cur = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
             const missed = reminders.filter(r => !r.fired && r.time < cur);
             if (missed.length > 0) {
-                missed.forEach(r => {
-                    r.fired = true;
-                    triggerNotif("Missed Reminder", r.message);
-                });
+                missed.forEach(r => { r.fired = true; triggerNotif("Missed Reminder", r.message); });
                 localStorage.setItem('eurusd_reminders', JSON.stringify(reminders));
                 renderReminders();
             }
@@ -698,12 +653,9 @@ If you learn a new fact about Boss, append [REMEMBER: the fact].
             if (gistToken && gistId) loadMemoryFromGist();
             updateCoreColor('HOLD');
 
-            // Request notification permission on first load
             if ('Notification' in window && Notification.permission === 'default') {
                 setTimeout(() => Notification.requestPermission(), 2000);
             }
-
-            // Check for missed reminders
             setTimeout(checkMissedReminders, 3000);
 
             generateSignalFromScratch();
