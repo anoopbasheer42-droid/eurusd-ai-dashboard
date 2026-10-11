@@ -5,9 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <title>EUR/USD AI Pro Dashboard</title>
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <!-- Three.js Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         :root {
@@ -21,9 +19,7 @@
             --red: #e74c3c;
             --blue: #4a90e2;
         }
-
         * { box-sizing: border-box; margin: 0; padding: 0; }
-
         body {
             font-family: 'Inter', sans-serif;
             background-color: var(--bg);
@@ -35,228 +31,86 @@
             flex-direction: column;
             align-items: center;
         }
-
-        .dashboard {
-            width: 100%;
-            max-width: 600px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 0;
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 1.2rem;
-            font-weight: 800;
-            letter-spacing: 0.5px;
-        }
-
+        .dashboard { width: 100%; max-width: 600px; display: flex; flex-direction: column; gap: 15px; }
+        header { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; }
+        .logo { display: flex; align-items: center; gap: 5px; font-size: 1.2rem; font-weight: 800; letter-spacing: 0.5px; }
         .logo span { color: var(--yellow); }
-
         .price-ticker {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: var(--green);
-            background: rgba(46, 204, 113, 0.1);
-            padding: 4px 10px;
-            border-radius: 8px;
-            border: 1px solid rgba(46, 204, 113, 0.3);
-            transition: all 0.3s ease;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
+            font-family: 'JetBrains Mono', monospace; font-size: 1.2rem; font-weight: 700;
+            color: var(--green); background: rgba(46, 204, 113, 0.1); padding: 4px 10px;
+            border-radius: 8px; border: 1px solid rgba(46, 204, 113, 0.3);
+            transition: all 0.3s ease; display: flex; flex-direction: column; align-items: flex-end;
         }
-
-        .last-updated {
-            font-size: 0.6rem;
-            color: var(--text-muted);
-            font-family: 'Inter', sans-serif;
-            font-weight: 400;
-        }
-
+        .last-updated { font-size: 0.6rem; color: var(--text-muted); font-family: 'Inter', sans-serif; font-weight: 400; }
         .card {
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 16px;
-            padding: 15px 20px;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-            position: relative;
-            overflow: hidden;
+            background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px;
+            padding: 15px 20px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2); position: relative; overflow: hidden;
         }
-
         .card-title {
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: var(--text-muted);
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            margin-bottom: 10px;
-            z-index: 2;
-            position: relative;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            font-size: 0.75rem; font-weight: 600; color: var(--text-muted); letter-spacing: 2px;
+            text-transform: uppercase; margin-bottom: 10px; z-index: 2; position: relative;
+            display: flex; justify-content: space-between; align-items: center;
         }
-
-        #canvas-container {
-            width: 100%;
-            height: 180px;
-            position: relative;
-            z-index: 1;
-            display: flex;
-            justify-content: center;
-        }
-
-        .subtitle {
-            text-align: center;
-            font-size: 0.65rem;
-            letter-spacing: 3px;
-            color: rgba(255, 255, 255, 0.3);
-            margin-top: 5px;
-            z-index: 2;
-            position: relative;
-        }
-
+        #canvas-container { width: 100%; height: 180px; position: relative; z-index: 1; display: flex; justify-content: center; }
+        .subtitle { text-align: center; font-size: 0.65rem; letter-spacing: 3px; color: rgba(255, 255, 255, 0.3); margin-top: 5px; z-index: 2; position: relative; }
         .signal-card { text-align: center; padding: 20px; }
         #signal-text {
-            font-size: 3rem;
-            font-weight: 800;
-            letter-spacing: 4px;
-            color: var(--yellow);
-            text-shadow: 0 0 30px rgba(241, 196, 15, 0.5);
-            transition: all 0.4s ease-in-out;
-            z-index: 2;
-            position: relative;
-            margin-bottom: 5px;
+            font-size: 3rem; font-weight: 800; letter-spacing: 4px; color: var(--yellow);
+            text-shadow: 0 0 30px rgba(241, 196, 15, 0.5); transition: all 0.4s ease-in-out;
+            z-index: 2; position: relative; margin-bottom: 5px;
         }
-
         .ai-refresh-timer {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.85rem;
-            color: var(--blue);
-            margin-bottom: 15px;
-            background: rgba(74, 144, 226, 0.1);
-            display: inline-block;
-            padding: 3px 10px;
-            border-radius: 6px;
-            border: 1px solid rgba(74, 144, 226, 0.3);
+            font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--blue);
+            margin-bottom: 15px; background: rgba(74, 144, 226, 0.1); display: inline-block;
+            padding: 3px 10px; border-radius: 6px; border: 1px solid rgba(74, 144, 226, 0.3);
         }
-
         .signal-details {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.85rem;
-            text-align: left;
-            background: rgba(0,0,0,0.2);
-            padding: 15px;
-            border-radius: 12px;
-            margin-top: 15px;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+            font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; text-align: left;
+            background: rgba(0,0,0,0.2); padding: 15px; border-radius: 12px; margin-top: 15px;
         }
         .signal-details div { display: flex; justify-content: space-between; }
         .signal-details span { color: var(--text-muted); }
-
-        .reasoning-text {
-            font-size: 0.85rem;
-            line-height: 1.6;
-            color: #d1d5db;
-        }
-
-        .chat-controls {
-            display: flex;
-            gap: 5px;
-            flex-wrap: wrap;
-            margin-bottom: 10px;
-        }
-
+        .reasoning-text { font-size: 0.85rem; line-height: 1.6; color: #d1d5db; }
+        .chat-controls { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; }
         .btn {
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
-            color: white;
-            padding: 5px 10px;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            cursor: pointer;
-            transition: all 0.2s;
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+            color: white; padding: 5px 10px; border-radius: 6px; font-size: 0.75rem;
+            cursor: pointer; transition: all 0.2s;
         }
         .btn:hover { background: rgba(255,255,255,0.1); }
         .btn.active { background: var(--blue); border-color: var(--blue); }
         .btn.active.pink { background: #e84393; border-color: #e84393; }
         .btn.active.green { background: #2ecc71; border-color: #2ecc71; color: black; }
         .btn.danger { background: rgba(231, 76, 60, 0.2); border-color: rgba(231, 76, 60, 0.5); color: #ff9999; }
-
         .panel {
-            display: none;
-            background: rgba(0,0,0,0.3);
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            font-size: 0.8rem;
-            border: 1px solid rgba(255,255,255,0.05);
+            display: none; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px;
+            margin-bottom: 10px; font-size: 0.8rem; border: 1px solid rgba(255,255,255,0.05);
         }
         .panel.active { display: block; }
-
         .chat-history {
-            height: 300px;
-            overflow-y: auto;
-            background: rgba(0,0,0,0.2);
-            border-radius: 8px;
-            padding: 10px;
-            margin-bottom: 10px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+            height: 300px; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 8px;
+            padding: 10px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 10px;
         }
-
         .msg { padding: 8px 12px; border-radius: 8px; max-width: 85%; line-height: 1.4; font-size: 0.85rem; }
         .msg.user { background: var(--blue); align-self: flex-end; border-bottom-right-radius: 2px; }
         .msg.ai { background: rgba(255,255,255,0.1); align-self: flex-start; border-bottom-left-radius: 2px; border-left: 3px solid var(--blue); }
         .msg.system { background: rgba(241, 196, 15, 0.1); border: 1px solid rgba(241, 196, 15, 0.3); align-self: center; font-size: 0.75rem; text-align: center; }
-
         .chat-input-row { display: flex; gap: 8px; }
         .chat-input-row input {
-            flex: 1;
-            background: rgba(0,0,0,0.3);
-            border: 1px solid rgba(255,255,255,0.1);
-            color: white;
-            padding: 10px;
-            border-radius: 8px;
-            outline: none;
+            flex: 1; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);
+            color: white; padding: 10px; border-radius: 8px; outline: none;
         }
         .chat-input-row input:focus { border-color: var(--blue); }
         .chat-input-row button {
-            background: var(--blue);
-            border: none;
-            color: white;
-            padding: 0 15px;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
+            background: var(--blue); border: none; color: white; padding: 0 15px;
+            border-radius: 8px; font-weight: 600; cursor: pointer;
         }
         .chat-input-row button.send-green { background: var(--green); color: black; }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            font-size: 0.85rem;
-        }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.85rem; }
         .stat-item { background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 8px; display: flex; justify-content: space-between; }
         .stat-label { color: var(--text-muted); }
-
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .fade-in { animation: fadeIn 0.3s ease-in; }
     </style>
@@ -395,6 +249,7 @@
         let browserAIEnabled = true; 
         let deepThinkEnabled = false; 
         let isSpeaking = false;
+        let chatInProgress = false; // NEW: Chat Priority Lock
         let chatHistory = JSON.parse(localStorage.getItem('eurusd_chat_history') || '[]');
         let longTermMemory = JSON.parse(localStorage.getItem('eurusd_long_term_memory') || '[]');
         let reminders = JSON.parse(localStorage.getItem('eurusd_reminders') || '[]');
@@ -419,7 +274,6 @@
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
         camera.position.z = 5;
-
         const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
         renderer.setSize(container.clientWidth, container.clientHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
@@ -505,43 +359,35 @@
             return trs.slice(-period).reduce((a, b) => a + b, 0) / period;
         }
 
-        // --- FETCH DATA WITH FALLBACK PROXIES & TIMEOUT ---
+        // --- FETCH DATA ---
         async function fetchYahooCandles(interval, range) {
             const url = `https://query1.finance.yahoo.com/v8/finance/chart/EURUSD=X?interval=${interval}&range=${range}`;
             const proxies = [
                 `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
                 `https://corsproxy.io/?${encodeURIComponent(url)}`
             ];
-            
             for (const proxyUrl of proxies) {
                 try {
-                    const res = await fetchWithTimeout(proxyUrl, 8000); // 8 sec timeout
+                    const res = await fetchWithTimeout(proxyUrl, 8000);
                     if (!res.ok) continue;
                     const data = await res.json();
                     if (!data || !data.chart || !data.chart.result) continue;
-                    
                     const result = data.chart.result[0];
                     const timestamps = result.timestamp;
                     const quotes = result.indicators.quote[0];
                     if (!timestamps || !quotes) continue;
-                    
                     return timestamps.map((t, i) => ({
                         time: t * 1000,
-                        open: quotes.open[i],
-                        high: quotes.high[i],
-                        low: quotes.low[i],
-                        close: quotes.close[i]
+                        open: quotes.open[i], high: quotes.high[i], low: quotes.low[i], close: quotes.close[i]
                     })).filter(c => c.open && c.high && c.low && c.close);
-                } catch (e) { 
-                    console.log(`Proxy failed: ${proxyUrl}. Trying next...`); 
-                }
+                } catch (e) { console.log(`Proxy failed: ${proxyUrl}.`); }
             }
-            return []; // All proxies failed
+            return [];
         }
 
         async function generateSignalFromScratch() {
             if (!apiKey) {
-                document.getElementById('val-reason').innerText = "Please enter your Gemini API Key to enable the AI Signal.";
+                document.getElementById('val-reason').innerText = "Please enter your Gemini API Key.";
                 return;
             }
 
@@ -555,7 +401,7 @@
             const candlesDaily = await fetchYahooCandles('1d', '3mo');
             
             if (candles1H.length === 0) {
-                document.getElementById('val-reason').innerText = "Failed to fetch market data. Both proxies failed. Check your internet or tap 'Refresh Now' again.";
+                document.getElementById('val-reason').innerText = "Failed to fetch market data. Both proxies failed.";
                 signalText.innerText = "ERROR";
                 signalText.style.color = "var(--red)";
                 resetTimer();
@@ -582,8 +428,8 @@
             const recentHighs = highs.slice(-20);
             const recentLows = lows.slice(-20);
             let trend = "Sideways";
-            if (recentHighs[recentHighs.length-1] > recentHighs[0] && recentLows[recentLows.length-1] > recentLows[0]) trend = "Uptrend (higher highs + higher lows)";
-            if (recentHighs[recentHighs.length-1] < recentHighs[0] && recentLows[recentLows.length-1] < recentLows[0]) trend = "Downtrend (lower highs + lower lows)";
+            if (recentHighs[recentHighs.length-1] > recentHighs[0] && recentLows[recentLows.length-1] > recentLows[0]) trend = "Uptrend";
+            if (recentHighs[recentHighs.length-1] < recentHighs[0] && recentLows[recentLows.length-1] < recentLows[0]) trend = "Downtrend";
 
             const formatCandles = (arr) => arr.slice(-30).map(c => 
                 `O:${c.open.toFixed(5)} H:${c.high.toFixed(5)} L:${c.low.toFixed(5)} C:${c.close.toFixed(5)}`
@@ -591,47 +437,28 @@
 
             const dataString = `
             Current Price: ${currentPrice.toFixed(5)}
-            EMA20: ${ema20[ema20.length-1].toFixed(5)}
-            EMA50: ${ema50[ema50.length-1].toFixed(5)}
-            RSI(14): ${rsi.toFixed(2)}
-            ATR(14): ${atr.toFixed(5)}
-            Support: ${support.toFixed(5)}
-            Resistance: ${resistance.toFixed(5)}
+            EMA20: ${ema20[ema20.length-1].toFixed(5)} | EMA50: ${ema50[ema50.length-1].toFixed(5)}
+            RSI(14): ${rsi.toFixed(2)} | ATR(14): ${atr.toFixed(5)}
+            Support: ${support.toFixed(5)} | Resistance: ${resistance.toFixed(5)}
             Trend: ${trend}
-            
-            Last 30x 1H Candles:
-            ${formatCandles(candles1H)}
-            
-            Last 5x Daily Candles:
-            ${formatCandles(candlesDaily)}
+            Last 30x 1H Candles:\n${formatCandles(candles1H)}
+            Last 5x Daily Candles:\n${formatCandles(candlesDaily)}
             `;
 
             try {
                 const systemPrompt = `You are a professional Forex hedge fund trader analyzing EUR/USD.
                 Current time: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST.
                 Here is the market data: ${dataString}
-                
                 CRITICAL INSTRUCTION: Respond ONLY with a valid JSON object. No markdown, no extra text. Format:
-                {
-                    "signal": "BUY" | "SELL" | "HOLD",
-                    "reason": "3-4 sentence trading reasoning",
-                    "confidence": "LOW" | "MEDIUM" | "HIGH",
-                    "entry": "1.XXXXX",
-                    "sl": "1.XXXXX",
-                    "tp": "1.XXXXX",
-                    "wise_words": "A short trading quote or joke"
-                }`;
+                { "signal": "BUY"|"SELL"|"HOLD", "reason": "3-4 sentence reasoning", "confidence": "LOW"|"MEDIUM"|"HIGH", "entry": "1.XXXXX", "sl": "1.XXXXX", "tp": "1.XXXXX", "wise_words": "A short quote" }`;
 
                 const payload = { contents: [{ role: 'user', parts: [{ text: systemPrompt }] }] };
-                
                 let modelsToTry = await getAvailableGeminiModels();
                 let reply = null;
                 
                 for (const model of modelsToTry) {
                     try {
-                        const response = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-                            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), timeout: 12000
-                        });
+                        const response = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, 12000, payload);
                         if (response.ok) {
                             const data = await response.json();
                             reply = data.candidates[0].content.parts[0].text;
@@ -640,54 +467,35 @@
                     } catch (e) { continue; }
                 }
 
-                if (!reply) throw new Error("All models failed to generate signal.");
-
+                if (!reply) throw new Error("All models failed.");
                 const jsonStr = reply.replace(/```json/g, '').replace(/```/g, '').trim();
                 const signalData = JSON.parse(jsonStr);
 
                 globalData = {
-                    price: currentPrice.toFixed(5),
-                    signal: signalData.signal,
-                    reason: signalData.reason,
-                    confidence: signalData.confidence,
-                    entry: signalData.entry,
-                    sl: signalData.sl,
-                    tp: signalData.tp,
-                    atr: atr.toFixed(5),
-                    support: support.toFixed(5),
-                    resistance: resistance.toFixed(5),
-                    trend: trend,
+                    price: currentPrice.toFixed(5), signal: signalData.signal, reason: signalData.reason,
+                    confidence: signalData.confidence, entry: signalData.entry, sl: signalData.sl, tp: signalData.tp,
+                    atr: atr.toFixed(5), support: support.toFixed(5), resistance: resistance.toFixed(5), trend: trend,
                     valid: new Date(Date.now() + 3600000).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) + " IST",
                     wise_words: signalData.wise_words,
-                    candle_current: `Current: ${currentPrice.toFixed(5)}`,
-                    candle_1h: `1H Trend: ${trend}`,
+                    candle_current: `Current: ${currentPrice.toFixed(5)}`, candle_1h: `1H Trend: ${trend}`,
                     candle_4h: `RSI: ${rsi.toFixed(2)} | ATR: ${atr.toFixed(5)}`
                 };
-
-                updateUI(globalData);
-                playVoiceReport();
-                resetTimer();
-
+                updateUI(globalData); playVoiceReport(); resetTimer();
             } catch (error) {
                 console.error(error);
-                document.getElementById('val-reason').innerText = "AI failed to parse the signal. Retrying in 5 minutes.";
-                signalText.innerText = "ERROR";
-                signalText.style.color = "var(--red)";
-                resetTimer();
+                document.getElementById('val-reason').innerText = "AI failed to parse signal. Retrying in 5 min.";
+                signalText.innerText = "ERROR"; signalText.style.color = "var(--red)"; resetTimer();
             }
         }
 
         function updateUI(data) {
-            document.getElementById('live-price').innerHTML = `${data.price}<div class="last-updated" id="last-updated">Updated: ${new Date().toLocaleTimeString('en-IN', {hour12: false})}</div>`;
-            
+            document.getElementById('live-price').innerHTML = `${data.price}<div class="last-updated">Updated: ${new Date().toLocaleTimeString('en-IN', {hour12: false})}</div>`;
             const signalText = document.getElementById('signal-text');
             signalText.innerText = data.signal || 'WAITING';
             if (data.signal === 'BUY') { signalText.style.color = 'var(--green)'; signalText.style.textShadow = '0 0 30px rgba(46, 204, 113, 0.6)'; }
             else if (data.signal === 'SELL') { signalText.style.color = 'var(--red)'; signalText.style.textShadow = '0 0 30px rgba(231, 76, 60, 0.6)'; }
             else { signalText.style.color = 'var(--yellow)'; signalText.style.textShadow = '0 0 30px rgba(241, 196, 15, 0.5)'; }
-            
             updateCoreColor(data.signal);
-
             document.getElementById('val-confidence').innerText = data.confidence || '-';
             document.getElementById('val-valid').innerText = data.valid || '-';
             document.getElementById('val-entry').innerText = data.entry || '-';
@@ -709,20 +517,16 @@
             const minutes = Math.floor(timeLeft / 60).toString().padStart(2, '0');
             const seconds = (timeLeft % 60).toString().padStart(2, '0');
             const display = document.getElementById('ai-refresh-timer');
-            if (display) display.innerText = `Next AI refresh in: ${minutes}:${seconds}`;
+            if (display && !chatInProgress) display.innerText = `Next AI refresh in: ${minutes}:${seconds}`;
         }
 
-        function resetTimer() {
-            timeLeft = 330; 
-            updateTimerDisplay();
-        }
+        function resetTimer() { timeLeft = 330; updateTimerDisplay(); }
 
         // --- VOICE SYSTEM ---
         const OPENINGS = ["Here is your market update, Boss.", "Let's look at the charts.", "Time for your hourly briefing.", "Boss, I have a new signal for you.", "Market update incoming."];
         const TRANSITIONS = ["Moving on,", "Now, looking at the details,", "Here's the breakdown:", "Next,", "Additionally,"];
         const CLOSINGS = ["Stay sharp, Boss.", "Trade safe.", "I'll keep watching the market.", "Good luck out there.", "That's all for now.", "Keep up the good work."];
         function getRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
-
         function playVoiceReport() {
             if (!globalData) return;
             if (isSpeaking) stopVoice();
@@ -763,9 +567,9 @@
         }
         function saveChatHistory() { if (chatHistory.length > 40) chatHistory = chatHistory.slice(-40); localStorage.setItem('eurusd_chat_history', JSON.stringify(chatHistory)); }
         function clearChat() { chatHistory = []; saveChatHistory(); renderChat(); }
-        function toggleBrowserAI() { browserAIEnabled = !browserAIEnabled; const btn = document.getElementById('browser-ai-toggle'); btn.classList.toggle('active', browserAIEnabled); btn.innerText = browserAIEnabled ? '🤖 Browser AI ON' : '🤖 Browser AI OFF'; }
-        function toggleDeepThink() { deepThinkEnabled = !deepThinkEnabled; const btn = document.getElementById('deep-think-toggle'); btn.classList.toggle('active', deepThinkEnabled); btn.innerText = deepThinkEnabled ? '🧠 Deep Think ON' : '🧠 Deep Think OFF'; }
-        function toggleWeb() { webSearchEnabled = !webSearchEnabled; const btn = document.getElementById('web-toggle'); btn.innerText = webSearchEnabled ? '🌐 Web ON' : '🌐 Web OFF'; btn.classList.toggle('active', webSearchEnabled); }
+        function toggleBrowserAI() { browserAIEnabled = !browserAIEnabled; document.getElementById('browser-ai-toggle').classList.toggle('active', browserAIEnabled); document.getElementById('browser-ai-toggle').innerText = browserAIEnabled ? '🤖 Browser AI ON' : '🤖 Browser AI OFF'; }
+        function toggleDeepThink() { deepThinkEnabled = !deepThinkEnabled; document.getElementById('deep-think-toggle').classList.toggle('active', deepThinkEnabled); document.getElementById('deep-think-toggle').innerText = deepThinkEnabled ? '🧠 Deep Think ON' : '🧠 Deep Think OFF'; }
+        function toggleWeb() { webSearchEnabled = !webSearchEnabled; document.getElementById('web-toggle').innerText = webSearchEnabled ? '🌐 Web ON' : '🌐 Web OFF'; document.getElementById('web-toggle').classList.toggle('active', webSearchEnabled); }
 
         function togglePanel(id) {
             const el = document.getElementById(id);
@@ -794,10 +598,17 @@
             return cleanLines.join('\n').trim();
         }
 
-        async function fetchWithTimeout(resource, timeout = 10000) {
+        // --- FETCH WITH TIMEOUT ---
+        async function fetchWithTimeout(resource, timeout = 10000, body = null) {
             const controller = new AbortController();
             const id = setTimeout(() => controller.abort(), timeout);
-            const response = await fetch(resource, { signal: controller.signal });
+            const options = { signal: controller.signal };
+            if (body) {
+                options.method = 'POST';
+                options.headers = { 'Content-Type': 'application/json' };
+                options.body = JSON.stringify(body);
+            }
+            const response = await fetch(resource, options);
             clearTimeout(id);
             return response;
         }
@@ -807,6 +618,10 @@
             const text = input.value.trim();
             if (!text) return;
             if (!apiKey) { alert("Please set your Gemini API Key first."); togglePanel('panel-key'); return; }
+
+            // CHAT PRIORITY LOCK: Stop the background timer from interfering
+            chatInProgress = true;
+            document.getElementById('ai-refresh-timer').innerText = "Chatting with AI...";
 
             input.value = '';
             chatHistory.push({ role: 'user', text: text });
@@ -840,6 +655,10 @@
                 }
                 chatHistory.push({ role: 'ai', text: `Error: ${error.message}` });
                 renderChat();
+            } finally {
+                // CHAT PRIORITY LOCK: Release the lock and resume the timer
+                chatInProgress = false;
+                updateTimerDisplay();
             }
         }
 
@@ -863,13 +682,14 @@
         }
 
         async function callGeminiAPI(userText) {
-            const recentHistory = chatHistory.slice(-3);
-            const recentMemory = longTermMemory.slice(-10);
+            // SPEED FIX: Trim context aggressively
+            const recentHistory = chatHistory.slice(-2); // Only last 2 messages for context
+            const recentMemory = longTermMemory.slice(-5); // Only last 5 facts
             
             let systemPrompt = `You are an AI trading assistant for Boss. You are friendly, funny, and motivational. Do not use emojis. Call him "Boss". 
             Current time: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST.
-            Here is his personal context: ${JSON.stringify(personalContext)}.
-            Here is what you remember about him: ${JSON.stringify(recentMemory)}.
+            Personal context: ${JSON.stringify(personalContext)}.
+            Memory: ${JSON.stringify(recentMemory)}.
             CRITICAL RULE: Do NOT output your thought process, self-evaluation, bullet points, or any internal dialogue. ONLY output the final spoken message to Boss.
             If he asks you to remind him of something, append [REMINDER: HH:MM - message] to your reply. If you learn a new fact about him, append [REMEMBER: fact] to your reply.`;
             
@@ -882,35 +702,26 @@
             const payload = { 
                 contents: contents, 
                 tools: webSearchEnabled ? [{ google_search: {} }] : [],
-                generationConfig: { maxOutputTokens: 500 }
+                generationConfig: { maxOutputTokens: 300 } // Limit output length for speed
             };
 
+            // SPEED FIX: Use only the fastest model, no fallback loop
             const model = 'gemini-1.5-flash';
-            try {
-                const response = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, 15000);
-                // Note: fetchWithTimeout returns response, but we need to send the body. Let's fix that.
-                // Re-fetching with body
-                const response2 = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
-                });
-                
-                if (response2.ok) {
-                    const data = await response2.json();
-                    let reply = data.candidates[0].content.parts[0].text;
-                    if (webSearchEnabled && data.candidates[0].groundingMetadata) {
-                        const sources = data.candidates[0].groundingMetadata.groundingChunks;
-                        if (sources && sources.length > 0) {
-                            reply += "\n\nSources:\n" + sources.map(s => `- ${s.web?.title || 'Source'}`).join('\n');
-                        }
+            const response = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, 15000, payload);
+            
+            if (response.ok) {
+                const data = await response.json();
+                let reply = data.candidates[0].content.parts[0].text;
+                if (webSearchEnabled && data.candidates[0].groundingMetadata) {
+                    const sources = data.candidates[0].groundingMetadata.groundingChunks;
+                    if (sources && sources.length > 0) {
+                        reply += "\n\nSources:\n" + sources.map(s => `- ${s.web?.title || 'Source'}`).join('\n');
                     }
-                    return reply;
-                } else {
-                    const err = await response2.json();
-                    throw new Error(err.error?.message || 'API request failed');
                 }
-            } catch (e) { 
-                if (e.name === 'AbortError') throw new Error("Request timed out. Google servers are busy.");
-                throw e;
+                return reply;
+            } else {
+                const err = await response.json();
+                throw new Error(err.error?.message || 'API request failed');
             }
         }
 
@@ -930,7 +741,6 @@
 
         window.onload = () => {
             fetch(CONTEXT_URL).then(res => res.json()).then(data => personalContext = data).catch(e => console.log('Context not loaded'));
-            
             renderChat(); renderReminders(); renderMemory();
             if (apiKey) document.getElementById('web-toggle').style.display = 'block';
             if ('speechSynthesis' in window) { window.speechSynthesis.getVoices(); }
@@ -938,7 +748,10 @@
             
             generateSignalFromScratch();
             resetTimer();
+            
+            // BACKGROUND TIMER: Pauses if chat is in progress
             setInterval(() => {
+                if (chatInProgress) return; // Skip this tick if Boss is chatting
                 timeLeft--;
                 if (timeLeft <= 0) {
                     timeLeft = 330; 
