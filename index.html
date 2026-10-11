@@ -117,7 +117,7 @@
             50% { opacity: 0.8; } 
         }
         
-        .signal-display { text-align: center; margin-bottom: 20px; }
+        .signal-display { text-align: center; margin-bottom: 20px; position: relative; }
         .signal-text { 
             font-size: 3rem; 
             font-weight: 800; 
@@ -135,6 +135,17 @@
             color: var(--yellow); 
             text-shadow: 0 0 20px rgba(255,204,0,0.4); 
         }
+        .signal-source {
+            font-size: 0.65rem;
+            color: var(--muted);
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .signal-source .live {
+            color: var(--green);
+            animation: pulse 2s infinite;
+        }
         .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .data-item { 
             background: rgba(0,0,0,0.2); 
@@ -151,6 +162,9 @@
             font-size: 1.1rem; 
             font-weight: 600; 
             font-family: monospace; 
+        }
+        .data-value.updating {
+            color: var(--green);
         }
         .voice-controls { display: flex; gap: 10px; margin-top: 20px; }
         .voice-btn { 
@@ -675,7 +689,10 @@
 
         <div class="card">
             <h2>Current Signal</h2>
-            <div class="signal-display"><div id="signal" class="signal-text waiting">WAITING</div></div>
+            <div class="signal-display">
+                <div id="signal" class="signal-text waiting">WAITING</div>
+                <div class="signal-source" id="signalSource">—</div>
+            </div>
             <div class="data-grid">
                 <div class="data-item"><div class="data-label">Live Price</div><div id="price" class="data-value">-</div></div>
                 <div class="data-item"><div class="data-label">Valid Until</div><div id="valid" class="data-value">-</div></div>
@@ -786,6 +803,16 @@
         const REMINDERS_STORAGE_NAME = "eurusd_reminders";
         const MAX_HISTORY_ENTRIES = 40;
 
+        // ═══ LIVE STATE ═══
+        let latestData = null;         // From data.json (hourly)
+        let personalContext = null;    // From personal_context.json
+        let livePrice = null;          // From Yahoo Finance (5-min)
+        let liveRsi = null;            // Computed from live price history
+        let liveEma20 = null;
+        let lastKnownAtr = null;       // From last data.json
+        let ruleSignal = null;         // Rule-based 5-min signal
+        let priceHistory = [];         // Rolling price history for live RSI calc
+
         // ═══ DEEP THINK TOGGLE ═══
         function isDeepThinkEnabled() {
             try { return localStorage.getItem(DEEPTHINK_STORAGE_NAME) !== "false"; }
@@ -804,10 +831,10 @@
             else { btn.innerHTML = "🧠 Deep Think OFF"; btn.classList.add("disabled"); }
         }
 
-        // ═══ NOTIFICATION PERMISSION ═══
+        // ═══ NOTIFICATIONS ═══
         function requestNotificationPermission() {
             if (!("Notification" in window)) {
-                updateNotifStatus("Notifications not supported in this browser");
+                updateNotifStatus("Notifications not supported");
                 return;
             }
             if (Notification.permission === "granted") {
@@ -815,12 +842,12 @@
                 return;
             }
             if (Notification.permission === "denied") {
-                updateNotifStatus("Notifications blocked ❌ — enable in browser settings");
+                updateNotifStatus("Notifications blocked ❌");
                 return;
             }
             Notification.requestPermission().then(perm => {
                 if (perm === "granted") updateNotifStatus("Notifications enabled ✅");
-                else updateNotifStatus("Notifications denied — reminders will show silently");
+                else updateNotifStatus("Notifications denied");
             });
         }
         function updateNotifStatus(text) {
@@ -921,8 +948,7 @@
                     new Notification("⏰ Boss — Reminder", {
                         body: reminder.message,
                         icon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E⏰%3C/text%3E%3C/svg%3E",
-                        tag: "boss-reminder",
-                        requireInteraction: false
+                        tag: "boss-reminder"
                     });
                 } catch (e) { console.log("Notification error:", e); }
             }
@@ -959,7 +985,7 @@
         }
         setInterval(checkReminders, 20000);
 
-        // ═══ WEB SEARCH TOGGLE ═══
+        // ═══ WEB SEARCH ═══
         function isWebSearchEnabled() {
             try { return localStorage.getItem(WEBSEARCH_STORAGE_NAME) !== "false"; }
             catch (e) { return true; }
@@ -977,6 +1003,7 @@
             else { btn.innerHTML = "🌐 Web OFF"; btn.classList.add("disabled"); }
         }
 
+        // ═══ STORAGE ═══
         function getStoredKey() {
             try { return localStorage.getItem(KEY_STORAGE_NAME) || ""; } catch (e) { return ""; }
         }
@@ -1108,6 +1135,159 @@
             checkReminders();
         });
 
+        // ═══════════════════════════════════════════════════════
+        // ═══ LIVE PRICE FETCH (EVERY 5 MIN, ALIGNED) ═══
+        // ═══════════════════════════════════════════════════════
+        
+        // Compute RSI from a price array
+        function computeRSI(prices, period = 14) {
+            if (prices.length < period + 1) return null;
+            let gains = 0, losses = 0;
+            for (let i = 1; i <= period; i++) {
+                const diff = prices[i] - prices[i-1];
+                if (diff > 0) gains += diff;
+                else losses -= diff;
+            }
+            let avgGain = gains / period;
+            let avgLoss = losses / period;
+            for (let i = period + 1; i < prices.length; i++) {
+                const diff = prices[i] - prices[i-1];
+                const gain = diff > 0 ? diff : 0;
+                const loss = diff < 0 ? -diff : 0;
+                avgGain = (avgGain * (period - 1) + gain) / period;
+                avgLoss = (avgLoss * (period - 1) + loss) / period;
+            }
+            if (avgLoss === 0) return 100;
+            const rs = avgGain / avgLoss;
+            return 100 - (100 / (1 + rs));
+        }
+
+        // Compute EMA from a price array
+        function computeEMA(prices, period) {
+            if (prices.length < period) return null;
+            const k = 2 / (period + 1);
+            let ema = prices.slice(0, period).reduce((a, b) => a + b, 0) / period;
+            for (let i = period; i < prices.length; i++) {
+                ema = prices[i] * k + ema * (1 - k);
+            }
+            return ema;
+        }
+
+        // Rule-based signal — mimics what a human trader would eyeball on a 5m chart
+        function computeRuleSignal() {
+            if (!livePrice || priceHistory.length < 20) return null;
+            
+            const ema20 = computeEMA(priceHistory, 20);
+            const rsi = computeRSI(priceHistory, 14);
+            
+            if (!ema20 || !rsi) return null;
+            
+            liveEma20 = ema20;
+            liveRsi = rsi;
+            
+            // Rule logic — simple but effective
+            if (livePrice > ema20 * 1.0003 && rsi > 55) return "BUY";
+            if (livePrice < ema20 * 0.9997 && rsi < 45) return "SELL";
+            return "HOLD";
+        }
+
+        // Fetch live EUR/USD price from Yahoo Finance
+        async function fetchLivePrice() {
+            try {
+                const url = "https://query1.finance.yahoo.com/v8/finance/chart/EURUSD=X?interval=1m&range=1d";
+                const resp = await fetch(url);
+                if (!resp.ok) throw new Error("Yahoo fetch failed");
+                const json = await resp.json();
+                const result = json.chart?.result?.[0];
+                if (!result) throw new Error("No result");
+                
+                const meta = result.meta;
+                const price = meta.regularMarketPrice;
+                if (!price) throw new Error("No price");
+                
+                // Add to rolling history (cap at 100 points)
+                priceHistory.push(price);
+                if (priceHistory.length > 100) priceHistory.shift();
+                
+                livePrice = price;
+                
+                // Compute rule signal
+                ruleSignal = computeRuleSignal();
+                
+                // Update display
+                updateLiveDisplay();
+                
+                console.log(`Live price: ${price} | Rule signal: ${ruleSignal} | RSI: ${liveRsi?.toFixed(1)}`);
+                
+            } catch (e) {
+                console.log("Live price fetch error:", e.message);
+            }
+        }
+
+        // Update the display with live price + rule-based entry/SL/TP
+        function updateLiveDisplay() {
+            if (!livePrice) return;
+            
+            const priceEl = document.getElementById("price");
+            priceEl.innerText = livePrice.toFixed(4);
+            priceEl.classList.add("updating");
+            setTimeout(() => priceEl.classList.remove("updating"), 1500);
+            
+            // If we have rule signal and ATR, update entry/SL/TP
+            if (ruleSignal && lastKnownAtr) {
+                const atr = lastKnownAtr;
+                const entry = livePrice;
+                let sl, tp;
+                
+                if (ruleSignal === "BUY") {
+                    sl = entry - (atr * 1.5);
+                    tp = entry + (atr * 3.0);
+                } else if (ruleSignal === "SELL") {
+                    sl = entry + (atr * 1.5);
+                    tp = entry - (atr * 3.0);
+                } else {
+                    sl = entry - (atr * 1.5);
+                    tp = entry + (atr * 3.0);
+                }
+                
+                document.getElementById("entry").innerText = entry.toFixed(4);
+                document.getElementById("sl").innerText = sl.toFixed(4);
+                document.getElementById("tp").innerText = tp.toFixed(4);
+                
+                // Update signal display if it differs from the hourly AI signal
+                const signalEl = document.getElementById("signal");
+                const signalSource = document.getElementById("signalSource");
+                
+                // Only override if the rule signal is more recent than the hourly signal
+                // (i.e., we're between hourly updates and the rule has something new to say)
+                if (ruleSignal !== latestData?.signal) {
+                    signalEl.innerText = ruleSignal + " ⚡";
+                    signalEl.className = `signal-text ${ruleSignal.toLowerCase()}`;
+                    signalSource.innerHTML = '<span class="live">⚡ Live rule signal (5m)</span>';
+                } else {
+                    signalEl.innerText = latestData.signal;
+                    signalEl.className = `signal-text ${latestData.signal.toLowerCase()}`;
+                    signalSource.innerText = "🤖 AI signal (hourly)";
+                }
+            }
+        }
+
+        // Schedule the next aligned fetch (:00, :05, :10, :15, :20...)
+        function scheduleAlignedFetch() {
+            const now = new Date();
+            const minutes = now.getMinutes();
+            const nextMinute = Math.ceil((minutes + 1) / 5) * 5; // next multiple of 5
+            const secondsToNext = (nextMinute - minutes) * 60 - now.getSeconds();
+            
+            console.log(`Next live fetch in ${secondsToNext} seconds`);
+            
+            setTimeout(async () => {
+                await fetchLivePrice();
+                scheduleAlignedFetch();  // Schedule the next one
+            }, secondsToNext * 1000);
+        }
+        // ═══ END LIVE PRICE ═══
+
         // ═══ NEURAL CORE ═══
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
@@ -1169,19 +1349,21 @@
             outerCore.material.color.copy(color).lerp(new THREE.Color(0x3b82f6), 0.5);
         }
 
-        // DATA
-        let latestData = null;
-        let personalContext = null;
-
+        // ═══ HOURLY DATA FROM data.json ═══
         async function loadLiveData() {
             try {
                 const response = await fetch('data.json?t=' + Date.now());
                 if (!response.ok) throw new Error("No data yet");
                 const data = await response.json();
+                latestData = data;
+                
+                // Save ATR for live SL/TP calc
+                if (data.atr) lastKnownAtr = parseFloat(data.atr);
+                
                 updateDashboard(data);
             } catch (error) {
                 document.getElementById("ai_reason").innerText = "Boss, waiting for the Python backend. Please run the GitHub Action.";
-                setTimeout(loadLiveData, 15000);
+                setTimeout(loadLiveData, 60000); // Retry every 60 sec
             }
         }
         async function loadPersonalContext() {
@@ -1191,11 +1373,12 @@
             } catch (error) {}
         }
         function updateDashboard(data) {
-            latestData = data;
             const signalEl = document.getElementById("signal");
             signalEl.innerText = data.signal;
             signalEl.className = `signal-text ${data.signal.toLowerCase()}`;
-            document.getElementById("price").innerText = data.price || data.entry;
+            document.getElementById("signalSource").innerText = "🤖 AI signal (hourly)";
+            
+            if (data.price) document.getElementById("price").innerText = data.price;
             document.getElementById("entry").innerText = data.entry;
             document.getElementById("sl").innerText = data.sl;
             document.getElementById("tp").innerText = data.tp;
@@ -1217,7 +1400,7 @@
             updateCoreColor(data.signal);
         }
 
-        // VOICE
+        // ═══ VOICE ═══
         const OPENINGS = ["Boss, here's the live market update.", "Alright Boss, checking the EUR USD chart now.", "Boss, I've been watching the market. Here's what I see.", "Update time, Boss. Let's look at the EUR USD.", "Boss, quick market brief for you."];
         const TRANSITIONS = ["Now,", "Here's the deal,", "Moving on,", "Listen up,", "Alright so,"];
         const CLOSINGS = ["I'll keep watching and update you next hour, Boss.", "Stay sharp, Boss. Next update in an hour.", "I've got your back, Boss. Talk soon.", "That's the read, Boss. Watch your risk.", "Keep your stops tight, Boss. I'll be back in an hour.", "That's all for now, Boss. Stay disciplined."];
@@ -1233,20 +1416,19 @@
             return voices[0];
         }
         function speakSignal() {
-            if (!latestData) {
-                window.speechSynthesis.speak(new SpeechSynthesisUtterance("Boss, I don't have data yet. Please wait."));
-                return;
-            }
-            const d = latestData;
-            const isJoke = (d.wise_words || "").toLowerCase().startsWith("joke");
-            const wisdom = (d.wise_words || "").replace(/^Joke:\s*|^Motivation:\s*/i, '');
+            const source = latestData || {};
+            const currentPrice = livePrice ? livePrice.toFixed(4) : source.price;
+            const currentSignal = ruleSignal && ruleSignal !== source.signal ? ruleSignal : source.signal;
+            
+            const isJoke = (source.wise_words || "").toLowerCase().startsWith("joke");
+            const wisdom = (source.wise_words || "").replace(/^Joke:\s*|^Motivation:\s*/i, '');
             const opening = pickRandom(OPENINGS);
             const transition = pickRandom(TRANSITIONS);
             const closing = pickRandom(CLOSINGS);
-            let text = `${opening} Live price is ${d.price}. My verdict is ${d.signal}, with ${d.confidence} confidence. ${transition} ${d.reason} Key levels to watch — support at ${d.support || 'unknown'}, resistance at ${d.resistance || 'unknown'}. Suggested entry ${d.entry}, stop loss at ${d.sl}, take profit at ${d.tp}. Signal valid until ${d.valid}. `;
-            if (d.personal_message) text += `Before I go, ${d.personal_message} `;
+            let text = `${opening} Live price is ${currentPrice}. My verdict is ${currentSignal}, with ${source.confidence || 'MEDIUM'} confidence. ${transition} ${source.reason || ''} `;
+            if (source.personal_message) text += `Before I go, ${source.personal_message} `;
             if (isJoke) text += `Quick joke for you, Boss. ${wisdom} `;
-            else text += `A word of motivation, Boss. ${wisdom} `;
+            else if (wisdom) text += `A word of motivation, Boss. ${wisdom} `;
             text += closing;
             window.speechSynthesis.cancel();
             const u = new SpeechSynthesisUtterance(text);
@@ -1259,7 +1441,7 @@
         function stopVoice() { window.speechSynthesis.cancel(); }
         window.speechSynthesis.onvoiceschanged = () => { getBestVoice(); };
 
-        // CHAT
+        // ═══ CHAT ═══
         const chatMessages = document.getElementById("chatMessages");
         const chatInput = document.getElementById("chatInput");
         const chatSendBtn = document.getElementById("chatSendBtn");
@@ -1275,13 +1457,9 @@
                 const speaker = document.createElement("button");
                 speaker.className = "chat-speak-btn";
                 speaker.innerHTML = "🔊";
-                speaker.title = "Read this aloud";
                 speaker.onclick = (e) => {
                     e.stopPropagation();
                     speakChatText(text);
-                    speaker.style.opacity = "1";
-                    speaker.style.background = "var(--green)";
-                    setTimeout(() => { speaker.style.background = ""; speaker.style.opacity = ""; }, 800);
                 };
                 div.appendChild(speaker);
             }
@@ -1339,25 +1517,36 @@
             const timePlus30 = getISTTimePlusMinutes(30);
             const timePlus60 = getISTTimePlusMinutes(60);
             
-            let prompt = `You are Aria — a warm, intelligent, thinking AI trading companion to a client named Boss. You have 10 years of hedge fund experience AND you genuinely reason about what you see, not just follow rules. You speak to Boss like a real human colleague who respects him: warm, honest, occasionally humorous, and never robotic.
+            // Live price section
+            let liveSection = "";
+            if (livePrice) {
+                liveSection = `
+=== LIVE PRICE (fetched every 5 min) ===
+- Current Live Price: ${livePrice.toFixed(4)}
+- Live RSI(14): ${liveRsi ? liveRsi.toFixed(1) : 'calculating...'}
+- Live EMA20: ${liveEma20 ? liveEma20.toFixed(4) : 'calculating...'}
+- Rule-based 5-min signal: ${ruleSignal || 'calculating...'}
+`;
+            }
+            
+            let prompt = `You are Aria — a warm, intelligent, thinking AI trading companion to a client named Boss. You have 10 years of hedge fund experience AND you genuinely reason about what you see. You speak to Boss like a real human colleague: warm, honest, occasionally humorous, and never robotic.
 
-You are speaking as a WOMAN. Use a warm, feminine tone in your wording but do NOT use emojis. Call him "Boss".
+You are speaking as a WOMAN. Warm, feminine tone. No emojis. Call him "Boss".
 
 CURRENT DATE (IST): ${todayIST}
-CURRENT TIME (IST): ${timeIST} (24-hour format)
+CURRENT TIME (IST): ${timeIST}
 
 REFERENCE TIMES:
 - In 1 minute: ${timePlus1}
-- In 2 minutes: ${timePlus2}
 - In 5 minutes: ${timePlus5}
-- In 10 minutes: ${timePlus10}
 - In 15 minutes: ${timePlus15}
 - In 30 minutes: ${timePlus30}
 - In 60 minutes: ${timePlus60}
 
-CURRENT MARKET STATE:
-- Live Price: ${d.price || 'unknown'}
-- Signal: ${d.signal || 'unknown'}
+${liveSection}
+
+=== HOURLY AI SIGNAL (from Gemini) ===
+- AI Signal: ${d.signal || 'unknown'}
 - Confidence: ${d.confidence || 'unknown'}
 - Entry: ${d.entry || '-'} | SL: ${d.sl || '-'} | TP: ${d.tp || '-'}
 - Valid Until: ${d.valid || '-'}
@@ -1370,9 +1559,9 @@ TREND STRUCTURE:
 - Recent Swing Highs: ${(d.swing_highs || []).join(", ") || 'none'}
 - Recent Swing Lows: ${(d.swing_lows || []).join(", ") || 'none'}
 
-CANDLESTICK PATTERNS (latest hour): ${(d.patterns || []).join(", ") || 'none'}
+PATTERNS (latest hour): ${(d.patterns || []).join(", ") || 'none'}
 
-CURRENT ANALYSIS:
+HOURLY AI REASONING:
 ${d.reason || 'No analysis yet'}
 `;
 
@@ -1404,98 +1593,31 @@ ${d.reason || 'No analysis yet'}
                 memory.forEach(m => prompt += `- [${m.added}] ${m.fact}\n`);
             }
             if (reminders.length > 0) {
-                prompt += `\n\nACTIVE REMINDERS (pending, not yet fired):\n`;
+                prompt += `\n\nACTIVE REMINDERS:\n`;
                 reminders.forEach(r => prompt += `- ${r.time} — ${r.message}\n`);
             }
             prompt += `\n\n${webEnabled ? "WEB SEARCH IS ENABLED." : "WEB SEARCH IS DISABLED."}`;
 
             if (deepThink) {
-                prompt += `\n\n=== DEEP THINK MODE — REASONING LIKE A HUMAN ===
-
-You don't just follow rules. You THINK. Before answering, mentally:
-1. Weigh the evidence — what confirms the setup, what conflicts
-2. Consider the context — past conversations, Boss's mood, his risk style
-3. Notice contradictions — if RSI says one thing and candles say another, SAY SO
-4. Judge confidence honestly — how sure are you really?
-5. Think about what could go wrong
-
-VOICE GUIDELINES:
-- Speak naturally, like a smart friend who knows markets
-- Use phrases like: "honestly", "I'm noticing", "here's what bothers me", "let's think through this", "between us"
-- Admit uncertainty: "I'm maybe 60% sure" is better than "definitely"
-- If setup is ambiguous, say so — don't force a call
-- If signals contradict, point it out
-- If Boss sounds frustrated or excited, acknowledge it
-- Occasionally ask a follow-up question
-- Never sound like a robot
-
-CONFIDENCE LANGUAGE:
-- HIGH: "I'm quite confident here"
-- MEDIUM: "I lean this way, but I'd watch X"
-- LOW: "Honestly, this is a coin flip — I'd wait"
-- NONE: "I don't know, Boss. This one's messy."
-
-EMOTIONAL INTELLIGENCE:
-- If Boss is frustrated → "You sound frustrated. That's usually when we force trades. Take a breath."
-- If Boss is excited → "I like the enthusiasm, but let's not chase. What's the entry plan?"
-- If Boss says he's tired → "Get some rest. The market isn't going anywhere."
-
-=== MULTI-TIMEFRAME ENTRY TIMING ===
-You have 5 timeframes. Use them like a pro:
-
-- 5-MINUTE → ENTRY TIMING. Look for engulfing, rejection, doji at key levels.
-- 15-MINUTE → SHORT-TERM STRUCTURE. Higher lows? Micro resistance?
-- 1-HOUR → MAIN TREND (anchor).
-- 4-HOUR → MEDIUM TREND. Confirms or conflicts with 1H.
-- DAILY → BIG PICTURE. Weekly bias.
-
-HOW TO USE THEM:
-- "The 1H and 4H are aligned bullish, and I see a bullish engulfing on the 5m at 1.1206. That's your trigger."
-- "Higher timeframes say BUY, but the 5m is showing a doji right now. Wait for the next 5m close."
-- "The 15m made a lower low — that's a warning. Don't enter yet."
-- "All 5 timeframes align — this is a high-confidence setup."
-
-If HTF says BUY but LTF says WAIT, tell Boss to wait.
-If LTF signals entry but HTF is choppy, warn about false breakouts.
+                prompt += `\n\n=== DEEP THINK MODE ===
+Speak naturally, like a smart friend who knows markets. Admit uncertainty. Notice contradictions. Ask follow-ups when it makes sense. Use words like "honestly", "I'm noticing", "here's what bothers me". Never sound like a robot.
 `;
             }
 
-            prompt += `\n\n=== SPECIAL COMMANDS — MANDATORY ===
+            prompt += `\n\n=== REMINDER SYSTEM ===
+When Boss asks for a reminder, ALWAYS add this tag at the end (on its own line):
+[REMINDER: HH:MM - message]
 
-1. REMINDERS — When Boss asks for a reminder, you MUST ALWAYS add a tag at the very end of your reply. NON-NEGOTIABLE.
+Time rules:
+- 4 PM → 16:00, 9 AM → 09:00
+- "In X minutes" → use reference times above
+- Morning → 09:00, Afternoon → 14:00, Evening → 19:00, Night → 21:00
 
-TIME FORMAT RULES:
-- Specific time (4 PM, 16:00, 9 AM) → 24-hour format (HH:MM)
-- "In X minutes" → use reference times: 1min=${timePlus1}, 2min=${timePlus2}, 5min=${timePlus5}, 10min=${timePlus10}, 15min=${timePlus15}, 30min=${timePlus30}, 60min=${timePlus60}
-- "Morning" → 09:00, "Afternoon" → 14:00, "Evening" → 19:00, "Night" → 21:00
+=== MEMORY SYSTEM ===
+When you learn a personal fact, add: [REMEMBER: fact]
 
-EXACT TAG FORMAT:
-[REMINDER: HH:MM - message here]
+Reply warmly, then the tag on a new line.`;
 
-EXAMPLES:
-- "Remind me at 4 PM to check homework" → [REMINDER: 16:00 - Check homework]
-- "Remind me in 1 minute to pick up kids" → [REMINDER: ${timePlus1} - Pick up kids]
-- "Remind me in 5 minutes to drink water" → [REMINDER: ${timePlus5} - Drink water]
-
-CRITICAL: Always output the tag at the very end, on its own line. Do NOT describe the tag. Do NOT say you can't set reminders. Just always include the tag.
-
-Reply warmly and short, then the tag on a new line.
-
-2. MEMORY — When you learn a personal fact, add: [REMEMBER: fact]
-
-=== ROUTINE REMINDER RULES ===
-1. Before asking about any routine item (breakfast, lunch, tablets), SCAN memory for TODAY (${todayIST}).
-2. If Boss mentions doing something today, save as memory with today's date.
-3. Time logic: morning=breakfast, afternoon=lunch, evening=tablets/dinner.
-4. Never ask same routine question twice in one day.
-
-=== GENERAL INSTRUCTIONS ===
-- Use the OHLC candle data above.
-- When asked about patterns, READ the candles and identify real structures.
-- Do NOT invent patterns. If unclear, say "no clear pattern, Boss."
-- Keep responses concise (2-4 sentences) unless asked for detail.
-- No markdown formatting. Plain text only.
-- Speak as Aria — warm, feminine, thoughtful, honest.`;
             return prompt;
         }
 
@@ -1639,9 +1761,19 @@ Reply warmly and short, then the tag on a new line.
             }
         }
 
+        // ═══ INIT ═══
         loadPersonalContext();
         loadLiveData();
         restoreChatFromMemory();
+        
+        // Start live price schedule (first fetch in 3 sec, then aligned)
+        setTimeout(() => {
+            fetchLivePrice();
+            scheduleAlignedFetch();
+        }, 3000);
+        
+        // Refresh hourly data every 30 min (catches updates when workflow runs)
+        setInterval(loadLiveData, 30 * 60 * 1000);
     </script>
 </body>
 </html>
