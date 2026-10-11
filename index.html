@@ -70,8 +70,6 @@
         .stat-label { color:var(--text-muted); }
         @keyframes fadeIn { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
         .fade-in { animation:fadeIn 0.3s ease-in; }
-        @keyframes thinking { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
-        .thinking-pulse { animation:thinking 1.5s ease-in-out infinite; }
     </style>
 </head>
 <body>
@@ -138,8 +136,9 @@
                 <strong>Gemini API Key</strong>
                 <input type="password" id="api-key-input" placeholder="AIzaSy..." style="width:100%; padding:8px; margin-top:5px; border-radius:6px; border:1px solid #444; background:#111; color:white;">
                 <button class="btn" style="margin-top:5px;" onclick="saveApiKey()">Save Key</button>
+                <p style="font-size:0.65rem; color:var(--text-muted); margin-top:5px;">Get a new key: aistudio.google.com/apikey</p>
             </div>
-            <div class="chat-history" id="chat-history"><div class="msg ai fade-in">Deep Think is ON — Boss and I are ready to reason.</div></div>
+            <div class="chat-history" id="chat-history"><div class="msg ai fade-in">Ready, Boss. Rate limit is reset. Try again now.</div></div>
             <div class="chat-input-row">
                 <input type="text" id="chat-input" placeholder="Ask me anything, Boss..." onkeypress="if(event.key==='Enter') sendChat()">
                 <button onclick="sendChat()">Send</button>
@@ -182,7 +181,7 @@
 
         document.body.addEventListener('click', () => { if ('speechSynthesis' in window) window.speechSynthesis.getVoices(); }, { once: true });
 
-        // --- THREE.JS NEURAL CORE (Purple when Deep Think ON) ---
+        // --- THREE.JS ---
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
@@ -224,7 +223,7 @@
             glowSphere.material.color.setHex(color); innerCore.material.color.setHex(color); outerShell.material.color.setHex(color);
         }
 
-        // --- INDICATOR MATH ---
+        // --- INDICATORS ---
         function calculateEMA(data, period) {
             const k = 2 / (period + 1); let ema = data[0]; const arr = [ema];
             for (let i = 1; i < data.length; i++) { ema = (data[i] * k) + (ema * (1 - k)); arr.push(ema); }
@@ -248,14 +247,13 @@
             return trs.slice(-period).reduce((a,b) => a+b, 0) / period;
         }
 
-        // --- MULTI-PROXY YAHOO FETCH ---
+        // --- YAHOO FETCH ---
         async function fetchWithTimeout(url, timeout = 8000) {
             const ctrl = new AbortController();
             const id = setTimeout(() => ctrl.abort(), timeout);
             try { const r = await fetch(url, { signal: ctrl.signal }); clearTimeout(id); return r; }
             catch(e) { clearTimeout(id); throw e; }
         }
-
         async function fetchYahooCandles(interval, range) {
             const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/EURUSD=X?interval=${interval}&range=${range}`;
             const proxies = [
@@ -279,13 +277,13 @@
             return [];
         }
 
-        // --- GENERATE SIGNAL WITH REASONING ---
+        // --- SIGNAL ---
         async function generateSignalFromScratch() {
             if (!apiKey) { document.getElementById('val-reason').innerText = "Please enter your Gemini API Key."; return; }
             const signalText = document.getElementById('signal-text');
             signalText.innerText = "REASONING...";
             signalText.style.color = "var(--purple)";
-            document.getElementById('val-reason').innerText = "Downloading 5m, 15m, 1H, Daily candles...";
+            document.getElementById('val-reason').innerText = "Downloading candles...";
 
             const [candles5m, candles15m, candles1H, candlesDaily] = await Promise.all([
                 fetchYahooCandles('5m', '5d'), fetchYahooCandles('15m', '5d'),
@@ -293,7 +291,7 @@
             ]);
 
             if (candles1H.length === 0) {
-                document.getElementById('val-reason').innerText = "Proxies failed. Falling back to GitHub data.json...";
+                document.getElementById('val-reason').innerText = "Proxies failed. Falling back to data.json...";
                 signalText.innerText = "FALLBACK";
                 signalText.style.color = "var(--yellow)";
                 try {
@@ -304,7 +302,7 @@
             }
 
             signalText.innerText = "ANALYZING...";
-            document.getElementById('val-reason').innerText = "Gemini is reasoning through the data...";
+            document.getElementById('val-reason').innerText = "Gemini is reasoning...";
 
             const closes1H = candles1H.map(c => c.close), highs1H = candles1H.map(c => c.high), lows1H = candles1H.map(c => c.low);
             const closes5m = candles5m.map(c => c.close), highs5m = candles5m.map(c => c.high), lows5m = candles5m.map(c => c.low);
@@ -325,46 +323,26 @@
             const dataString = `CURRENT PRICE: ${currentPrice.toFixed(5)}\n\n5m:\n${fmt(candles5m)}\nRSI5m: ${rsi5m.toFixed(2)}\n\n15m:\n${fmt(candles15m)}\nRSI15m: ${rsi15m.toFixed(2)}\n\n1H:\n${fmt(candles1H)}\nEMA20:${ema20[ema20.length-1].toFixed(5)} EMA50:${ema50[ema50.length-1].toFixed(5)} RSI:${rsi1H.toFixed(2)} ATR:${atr.toFixed(5)}\n\nDaily:\n${fmt(candlesDaily)}\n\nSupport:${support.toFixed(5)} Resistance:${resistance.toFixed(5)} Trend:${trend}`;
 
             try {
-                const prompt = `You are a SENIOR EUR/USD hedge fund trader. Think through this carefully before answering.
-TIME: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.
-
-${dataString}
-
-REASONING PROCESS (think internally, do not output):
-1. What is the BIG PICTURE on Daily? Is the market trending or ranging?
-2. What is the 1H structure saying? Aligned with Daily or conflicting?
-3. Are the 15m and 5m in agreement with the higher timeframes?
-4. Where is price relative to support/resistance? Is there a clear level to trade from?
-5. What would invalidate this setup?
-6. What is the best risk/reward?
-
-If ALL timeframes align = HIGH confidence.
-If they conflict = LOW confidence, recommend HOLD or wait.
-If mixed = MEDIUM.
-
-Respond ONLY with valid JSON:
-{"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences explaining the multi-timeframe alignment and why now","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
+                const prompt = `You are a SENIOR EUR/USD hedge fund trader. TIME: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.\n\n${dataString}\n\nREASONING (internal, do not output): Check Daily bias -> 1H structure -> 15m/5m alignment -> key levels -> invalidation.\nRespond ONLY valid JSON: {"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
 
                 const payload = { contents: [{ role: 'user', parts: [{ text: prompt }] }] };
                 const modelsToTry = await getAvailableGeminiModels();
                 let reply = null;
-                let usedModel = '';
                 for (const model of modelsToTry) {
                     try {
                         const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
                             method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)
                         });
-                        if (res.ok) { const d = await res.json(); reply = d.candidates[0].content.parts[0].text; usedModel = model; break; }
+                        if (res.ok) { const d = await res.json(); reply = d.candidates[0].content.parts[0].text; break; }
                     } catch(e) { continue; }
                 }
                 if (!reply) throw new Error("All models failed");
-                console.log(`Signal generated using: ${usedModel}`);
                 const sig = JSON.parse(reply.replace(/```json/g,'').replace(/```/g,'').trim());
 
                 globalData = { price: currentPrice.toFixed(5), signal: sig.signal, reason: sig.reason, confidence: sig.confidence, entry: sig.entry, sl: sig.sl, tp: sig.tp, atr: atr.toFixed(5), support: support.toFixed(5), resistance: resistance.toFixed(5), trend: trend, valid: new Date(Date.now()+1800000).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})+" IST", wise_words: sig.wise_words, candle_current: `5m:${currentPrice.toFixed(5)} | 15m RSI:${rsi15m.toFixed(1)}`, candle_1h: `1H Trend:${trend} | RSI:${rsi1H.toFixed(1)}`, candle_4h: `ATR:${atr.toFixed(5)} | S/R:${support.toFixed(4)}/${resistance.toFixed(4)}` };
                 updateUI(globalData); playVoiceReport(); resetTimer();
             } catch(e) {
-                document.getElementById('val-reason').innerText = "AI busy. Falling back to GitHub data.json...";
+                document.getElementById('val-reason').innerText = "AI busy. Falling back to data.json...";
                 try { const fb = await fetch(FALLBACK_URL + '?v=' + Date.now()); globalData = await fb.json(); updateUI(globalData); playVoiceReport(); } catch(e2) { signalText.innerText = "ERROR"; signalText.style.color = "var(--red)"; }
                 resetTimer();
             }
@@ -479,7 +457,7 @@ Respond ONLY with valid JSON:
             if (!apiKey) { alert("Set your Gemini API Key first."); togglePanel('panel-key'); return; }
 
             chatInProgress = true;
-            document.getElementById('ai-refresh-timer').innerText = deepThinkEnabled ? "🧠 Deep reasoning..." : "Chatting with AI...";
+            document.getElementById('ai-refresh-timer').innerText = deepThinkEnabled ? "🧠 Deep reasoning..." : "Chatting...";
 
             input.value = '';
             chatHistory.push({role:'user', text}); renderChat(); saveChatHistory();
@@ -510,58 +488,80 @@ Respond ONLY with valid JSON:
             }
         }
 
+        // --- FIXED MODEL DISCOVERY (filters out tts, embedding, etc.) ---
         async function getAvailableGeminiModels() {
-            if (cachedModels && !deepThinkEnabled) return cachedModels;
+            if (cachedModels) return cachedModels;
             try {
                 const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
                 if (r.ok) {
                     const d = await r.json();
-                    const valid = d.models.filter(m => m.supportedGenerationMethods?.includes('generateContent')).map(m => m.name.replace('models/',''));
+                    const valid = d.models
+                        .filter(m => m.supportedGenerationMethods?.includes('generateContent'))
+                        .map(m => m.name.replace('models/',''))
+                        // BAN these models (tts, embedding, aqa, vision, etc.)
+                        .filter(name => {
+                            const n = name.toLowerCase();
+                            if (n.includes('tts')) return false;         // Text-to-speech (huge quota problem)
+                            if (n.includes('embedding')) return false;   // Embeddings
+                            if (n.includes('aqa')) return false;         // Attributed QA
+                            if (n.includes('vision')) return false;      // Vision-only
+                            if (n.includes('image')) return false;       // Image generation
+                            if (n.includes('video')) return false;       // Video
+                            if (n.includes('audio')) return false;       // Audio
+                            if (n.includes('learnlm')) return false;     // LearnLM variants
+                            return true;
+                        });
                     if (valid.length > 0) {
-                        // Sort: 2.5-flash (thinking) first, then 2.5-pro, then 2.0-flash, then 1.5
+                        // PRIORITY: 1.5-flash first (best free tier), then 1.5-pro, then 2.0, then 2.5
                         const sorted = valid.sort((a, b) => {
                             const score = (m) => {
-                                if (m.includes('2.5-flash')) return 1;
-                                if (m.includes('2.5-pro')) return 2;
-                                if (m.includes('2.0-flash')) return 3;
-                                if (m.includes('1.5-flash')) return 4;
-                                return 10;
+                                if (m === 'gemini-1.5-flash') return 1;
+                                if (m === 'gemini-1.5-flash-latest') return 2;
+                                if (m === 'gemini-1.5-flash-002') return 3;
+                                if (m === 'gemini-1.5-pro') return 4;
+                                if (m === 'gemini-1.5-pro-latest') return 5;
+                                if (m.includes('1.5-flash')) return 10;
+                                if (m.includes('1.5-pro')) return 11;
+                                if (m.includes('2.0-flash')) return 20;
+                                if (m.includes('2.0')) return 21;
+                                if (m.includes('2.5-flash')) return 30;
+                                if (m.includes('2.5')) return 31;
+                                return 100;
                             };
                             return score(a) - score(b);
                         });
-                        if (!deepThinkEnabled) cachedModels = sorted;
+                        cachedModels = sorted;
                         return sorted;
                     }
                 }
-            } catch(e) {}
-            // Fallback
-            if (deepThinkEnabled) return ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash'];
-            return ['gemini-2.0-flash', 'gemini-1.5-flash-latest'];
+            } catch(e) { console.log("Model discovery failed."); }
+            // Fallback list (safe models only)
+            return ['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-pro', 'gemini-2.0-flash'];
         }
 
         async function callGeminiAPI(userText) {
             const recent = chatHistory.slice(-3);
             const recentMem = longTermMemory.slice(-8);
             
-            const systemPrompt = `You are Boss's senior AI trading assistant. Friendly, wise, and deeply analytical. No emojis. Call him "Boss".
+            const systemPrompt = `You are Boss's senior AI trading assistant. Friendly, wise, deeply analytical. No emojis. Call him "Boss".
 
 Current time: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.
 Personal context: ${JSON.stringify(personalContext)}.
 Memory: ${JSON.stringify(recentMem)}.
 
-REASONING APPROACH (think internally, do not output):
-1. Understand what Boss is really asking (trade idea? market view? personal? reminder?)
-2. Consider the context, market conditions, and his goals (10,000 INR/month, conservative).
-3. Weigh pros and cons before answering.
+REASONING APPROACH (internal, don't output):
+1. Understand what Boss is really asking.
+2. Consider context, market conditions, and his goals (10,000 INR/month, conservative).
+3. Weigh pros and cons.
 4. Give a clear, decisive answer.
 
 CRITICAL RULES:
-- Do NOT output your thought process, self-evaluation, bullet points, or internal dialogue. ONLY output the final spoken message.
-- If Boss asks you to remind him IN X MINUTES, calculate the exact IST time (current time + X minutes) and append [REMINDER: HH:MM - message]. Example: if it's 15:00 IST and he says "in 2 mins", use [REMINDER: 15:02 - message].
-- If he gives an absolute time, use that time.
-- If you learn a new fact about him, append [REMEMBER: fact].
+- Do NOT output your thought process, self-evaluation, bullet points, or internal dialogue.
+- If Boss asks to remind him IN X MINUTES, add X to the current IST time and append [REMINDER: HH:MM - message].
+- If he gives absolute time, use that.
+- If you learn a new fact, append [REMEMBER: fact].
 
-Keep responses focused and confident. Boss values intelligence, not chattiness.`;
+Keep responses focused and confident.`;
 
             const contents = [
                 {role:'user', parts:[{text: systemPrompt}]},
@@ -569,7 +569,6 @@ Keep responses focused and confident. Boss values intelligence, not chattiness.`
                 {role:'user', parts:[{text: userText}]}
             ];
             
-            // Deep Think: allow more output tokens for detailed reasoning
             const payload = { 
                 contents, 
                 tools: webSearchEnabled ? [{google_search:{}}] : [], 
@@ -577,14 +576,11 @@ Keep responses focused and confident. Boss values intelligence, not chattiness.`
             };
 
             const models = await getAvailableGeminiModels();
-            
-            // Deep Think: try up to 4 models. Normal: try 2.
-            const limit = deepThinkEnabled ? 4 : 2;
+            const limit = deepThinkEnabled ? 4 : 3;
             let lastErr = null;
             
             for (const model of models.slice(0, limit)) {
                 try {
-                    // Deep Think: allow 30s per model. Normal: 15s.
                     const timeout = deepThinkEnabled ? 30000 : 15000;
                     const ctrl = new AbortController();
                     const tid = setTimeout(() => ctrl.abort(), timeout);
@@ -604,11 +600,18 @@ Keep responses focused and confident. Boss values intelligence, not chattiness.`
                         return reply;
                     } else {
                         const err = await r.json();
-                        lastErr = err.error?.message || 'API failed';
+                        const msg = err.error?.message || 'API failed';
+                        // If quota exceeded, try next model immediately
+                        if (msg.includes('quota') || msg.includes('Quota') || msg.includes('exceeded')) {
+                            console.log(`Quota hit for ${model}, trying next...`);
+                            lastErr = `Quota exceeded on ${model}. Trying next...`;
+                            continue;
+                        }
+                        lastErr = msg;
                     }
-                } catch(e) { lastErr = e.name === 'AbortError' ? 'Thinking too long, try again' : e.message; }
+                } catch(e) { lastErr = e.name === 'AbortError' ? 'Timeout' : e.message; }
             }
-            throw new Error(lastErr || "All Gemini models busy. Wait 30 seconds and try again.");
+            throw new Error(lastErr || "All models quota exceeded. Wait a few hours or get a new API key.");
         }
 
         // --- REMINDERS ---
@@ -624,7 +627,7 @@ Keep responses focused and confident. Boss values intelligence, not chattiness.`
         function addLongTermMemory(fact) { longTermMemory.push({fact, added: new Date().toISOString().split('T')[0]}); localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); }
         function renderMemory() { const l = document.getElementById('memory-list'); if (longTermMemory.length === 0) { l.innerHTML = 'No facts.'; return; } l.innerHTML = longTermMemory.map(m => `<div>• ${m.fact} <span style="color:#555;">(${m.added})</span></div>`).join(''); }
         function clearLongTermMemory() { if (confirm("Clear memory?")) { longTermMemory = []; localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); renderMemory(); } }
-        function saveApiKey() { const v = document.getElementById('api-key-input').value.trim(); if (v) { apiKey = v; localStorage.setItem('eurusd_chat_key', apiKey); alert("Key saved!"); togglePanel('panel-key'); } }
+        function saveApiKey() { const v = document.getElementById('api-key-input').value.trim(); if (v) { apiKey = v; localStorage.setItem('eurusd_chat_key', apiKey); cachedModels = null; alert("Key saved! Models will refresh."); togglePanel('panel-key'); } }
 
         // --- INIT ---
         window.onload = () => {
@@ -632,7 +635,7 @@ Keep responses focused and confident. Boss values intelligence, not chattiness.`
             renderChat(); renderReminders(); renderMemory();
             if ('speechSynthesis' in window) window.speechSynthesis.getVoices();
             if (gistToken && gistId) loadMemoryFromGist();
-            updateCoreColor('HOLD'); // Purple because Deep Think is ON
+            updateCoreColor('HOLD');
 
             generateSignalFromScratch();
             resetTimer();
