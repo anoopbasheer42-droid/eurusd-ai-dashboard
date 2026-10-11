@@ -285,7 +285,7 @@
                     <button class="btn" id="web-toggle" onclick="toggleWeb()">Web OFF</button>
                     <button class="btn" onclick="togglePanel('panel-reminders')">Reminders</button>
                     <button class="btn" onclick="togglePanel('panel-memory')">Memory</button>
-                    <button class="btn" onclick="togglePanel('panel-gist')">Gist</button> <!-- NEW GIST BUTTON -->
+                    <button class="btn" onclick="togglePanel('panel-gist')">Gist</button>
                     <button class="btn" onclick="togglePanel('panel-key')">Key</button>
                 </div>
             </div>
@@ -310,17 +310,17 @@
                 <div id="memory-list" style="font-size:0.75rem; color:var(--text-muted); max-height:100px; overflow-y:auto;">No facts saved.</div>
             </div>
 
-            <!-- NEW GIST PANEL -->
             <div class="panel" id="panel-gist">
                 <strong>Gist Memory Sync</strong>
-                <p style="font-size:0.7rem; color:var(--text-muted); margin:5px 0;">Sync your long-term memory to the cloud so it works on any device. Requires a GitHub PAT with `gist` scope.</p>
+                <p style="font-size:0.7rem; color:var(--text-muted); margin:5px 0;">Sync your long-term memory to the cloud so it works on any device.</p>
                 <input type="password" id="gist-token-input" placeholder="GitHub Token (ghp_...)" style="width:100%; padding:8px; border-radius:6px; border:1px solid #444; background:#111; color:white; margin-bottom:5px;">
-                <input type="text" id="gist-id-input" placeholder="Gist ID (e.g., a1b2c3d4...)" style="width:100%; padding:8px; border-radius:6px; border:1px solid #444; background:#111; color:white; margin-bottom:5px;">
+                <input type="text" id="gist-id-input" placeholder="Gist ID" style="width:100%; padding:8px; border-radius:6px; border:1px solid #444; background:#111; color:white; margin-bottom:5px;">
                 <button class="btn" onclick="saveGistConfig()">Save & Sync Now</button>
                 <button class="btn" style="margin-left:5px;" onclick="loadMemoryFromGist()">Force Pull</button>
                 <div id="gist-status" style="font-size:0.7rem; margin-top:5px; color:var(--yellow);"></div>
             </div>
 
+            <!-- THE GEMINI KEY PANEL -->
             <div class="panel" id="panel-key">
                 <strong>Gemini API Key</strong>
                 <p style="font-size:0.7rem; color:var(--text-muted); margin:5px 0;">Stored locally in your browser. Never sent to GitHub.</p>
@@ -382,18 +382,14 @@
         let reminders = JSON.parse(localStorage.getItem('eurusd_reminders') || '[]');
         let apiKey = localStorage.getItem('eurusd_chat_key') || '';
 
-        // --- GIST CONFIGURATION ---
         let gistToken = localStorage.getItem('eurusd_gist_token') || '';
         let gistId = localStorage.getItem('eurusd_gist_id') || '';
 
-        // --- FIX 1: VOICE INITIALIZATION ON ANDROID ---
         document.body.addEventListener('click', () => {
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.getVoices();
-            }
+            if ('speechSynthesis' in window) { window.speechSynthesis.getVoices(); }
         }, { once: true });
 
-        // --- 1. THREE.JS NEURAL CORE ---
+        // --- THREE.JS NEURAL CORE ---
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
@@ -420,16 +416,13 @@
         scene.add(outerShell);
 
         let pulseTime = 0;
-
         function animate() {
             requestAnimationFrame(animate);
             pulseTime += 0.05;
             const scale = 1 + Math.sin(pulseTime) * 0.05;
             innerCore.scale.set(scale, scale, scale);
-            innerCore.rotation.x += 0.01;
-            innerCore.rotation.y += 0.015;
-            outerShell.rotation.x -= 0.003;
-            outerShell.rotation.y -= 0.005;
+            innerCore.rotation.x += 0.01; innerCore.rotation.y += 0.015;
+            outerShell.rotation.x -= 0.003; outerShell.rotation.y -= 0.005;
             glowSphere.material.opacity = 0.1 + Math.sin(pulseTime * 0.5) * 0.05;
             renderer.render(scene, camera);
         }
@@ -445,12 +438,10 @@
             let color = 0xf1c40f; 
             if (signal === 'BUY') color = 0x2ecc71;
             if (signal === 'SELL') color = 0xe74c3c;
-            glowSphere.material.color.setHex(color);
-            innerCore.material.color.setHex(color);
-            outerShell.material.color.setHex(color);
+            glowSphere.material.color.setHex(color); innerCore.material.color.setHex(color); outerShell.material.color.setHex(color);
         }
 
-        // --- 2. DATA FETCHING & UI UPDATE ---
+        // --- DATA FETCHING ---
         async function fetchData() {
             try {
                 const response = await fetch(DATA_URL + '?v=' + new Date().getTime());
@@ -458,7 +449,6 @@
                 globalData = await response.json();
                 updateUI(globalData);
             } catch (error) {
-                console.error('Error fetching data:', error);
                 document.getElementById('val-reason').innerText = "Failed to load data. Check workflow status.";
             }
         }
@@ -497,20 +487,16 @@
             document.getElementById('wise-words').innerText = data.wise_words || 'Stay disciplined, Boss.';
         }
 
-        // --- 3. VOICE SYSTEM ---
+        // --- VOICE SYSTEM ---
         const OPENINGS = ["Here is your market update, Boss.", "Let's look at the charts.", "Time for your hourly briefing.", "Boss, I have a new signal for you.", "Market update incoming."];
         const TRANSITIONS = ["Moving on,", "Now, looking at the details,", "Here's the breakdown:", "Next,", "Additionally,"];
         const CLOSINGS = ["Stay sharp, Boss.", "Trade safe.", "I'll keep watching the market.", "Good luck out there.", "That's all for now.", "Keep up the good work."];
-
         function getRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
         function playVoiceReport() {
             if (!globalData) return;
             if (isSpeaking) stopVoice();
-            const opening = getRandom(OPENINGS);
-            const transition = getRandom(TRANSITIONS);
-            const closing = getRandom(CLOSINGS);
-
+            const opening = getRandom(OPENINGS); const transition = getRandom(TRANSITIONS); const closing = getRandom(CLOSINGS);
             let text = `${opening} The current price is ${globalData.price}. `;
             text += `We have a ${globalData.signal} signal with ${globalData.confidence} confidence. `;
             text += `${globalData.reason} `;
@@ -527,113 +513,73 @@
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
                 const utterance = new SpeechSynthesisUtterance(text);
-                utterance.rate = 0.88 + Math.random() * 0.15;
-                utterance.pitch = 0.85 + Math.random() * 0.25;
+                utterance.rate = 0.88 + Math.random() * 0.15; utterance.pitch = 0.85 + Math.random() * 0.25;
                 const voices = window.speechSynthesis.getVoices();
                 const preferred = voices.find(v => v.name.includes('Google UK English Male') || v.name.includes('Daniel') || v.name.includes('Alex'));
                 if (preferred) utterance.voice = preferred;
-                utterance.onstart = () => { isSpeaking = true; };
-                utterance.onend = () => { isSpeaking = false; };
+                utterance.onstart = () => { isSpeaking = true; }; utterance.onend = () => { isSpeaking = false; };
                 window.speechSynthesis.speak(utterance);
             }
         }
+        function stopVoice() { if ('speechSynthesis' in window) { window.speechSynthesis.cancel(); isSpeaking = false; } }
 
-        function stopVoice() {
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-                isSpeaking = false;
-            }
-        }
-
-        // --- 4. CHAT & MEMORY SYSTEM ---
+        // --- CHAT & MEMORY SYSTEM ---
         function renderChat() {
             const historyEl = document.getElementById('chat-history');
             historyEl.innerHTML = '';
             chatHistory.forEach(msg => {
                 const div = document.createElement('div');
-                div.className = `msg ${msg.role}`;
-                div.innerText = msg.text;
-                historyEl.appendChild(div);
+                div.className = `msg ${msg.role}`; div.innerText = msg.text; historyEl.appendChild(div);
             });
             historyEl.scrollTop = historyEl.scrollHeight;
         }
-
-        function saveChatHistory() {
-            if (chatHistory.length > 40) chatHistory = chatHistory.slice(-40);
-            localStorage.setItem('eurusd_chat_history', JSON.stringify(chatHistory));
-        }
-
-        function toggleWeb() {
-            webSearchEnabled = !webSearchEnabled;
-            const btn = document.getElementById('web-toggle');
-            btn.innerText = webSearchEnabled ? 'Web ON' : 'Web OFF';
-            btn.classList.toggle('active', webSearchEnabled);
-        }
-
+        function saveChatHistory() { if (chatHistory.length > 40) chatHistory = chatHistory.slice(-40); localStorage.setItem('eurusd_chat_history', JSON.stringify(chatHistory)); }
+        function toggleWeb() { webSearchEnabled = !webSearchEnabled; const btn = document.getElementById('web-toggle'); btn.innerText = webSearchEnabled ? 'Web ON' : 'Web OFF'; btn.classList.toggle('active', webSearchEnabled); }
+        
         function togglePanel(id) {
             const el = document.getElementById(id);
             el.classList.toggle('active');
             if (id === 'panel-reminders') renderReminders();
             if (id === 'panel-memory') renderMemory();
             if (id === 'panel-key') document.getElementById('api-key-input').value = apiKey;
-            if (id === 'panel-gist') {
-                document.getElementById('gist-token-input').value = gistToken;
-                document.getElementById('gist-id-input').value = gistId;
-            }
+            if (id === 'panel-gist') { document.getElementById('gist-token-input').value = gistToken; document.getElementById('gist-id-input').value = gistId; }
         }
 
         // --- GIST LOGIC ---
         function saveGistConfig() {
             gistToken = document.getElementById('gist-token-input').value.trim();
             gistId = document.getElementById('gist-id-input').value.trim();
-            localStorage.setItem('eurusd_gist_token', gistToken);
-            localStorage.setItem('eurusd_gist_id', gistId);
+            localStorage.setItem('eurusd_gist_token', gistToken); localStorage.setItem('eurusd_gist_id', gistId);
             document.getElementById('gist-status').innerText = "Saving to Gist...";
             saveMemoryToGist();
         }
 
         async function loadMemoryFromGist() {
-            if (!gistToken || !gistId) {
-                document.getElementById('gist-status').innerText = "Please enter Token and Gist ID.";
-                return;
-            }
+            if (!gistToken || !gistId) { document.getElementById('gist-status').innerText = "Please enter Token and Gist ID."; return; }
             document.getElementById('gist-status').innerText = "Loading from Gist...";
             try {
-                const res = await fetch(`https://api.github.com/gists/${gistId}`, {
-                    headers: { 'Authorization': `token ${gistToken}` }
-                });
+                const res = await fetch(`https://api.github.com/gists/${gistId}`, { headers: { 'Authorization': `token ${gistToken}` } });
                 if (!res.ok) throw new Error('Failed to fetch gist');
                 const data = await res.json();
                 const content = data.files['memory.json']?.content;
                 if (content) {
                     longTermMemory = JSON.parse(content);
                     localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory));
-                    renderMemory();
-                    document.getElementById('gist-status').innerText = "Memory loaded from Gist!";
+                    renderMemory(); document.getElementById('gist-status').innerText = "Memory loaded from Gist!";
                 }
-            } catch (e) {
-                document.getElementById('gist-status').innerText = "Error: " + e.message;
-            }
+            } catch (e) { document.getElementById('gist-status').innerText = "Error: " + e.message; }
         }
 
         async function saveMemoryToGist() {
             if (!gistToken || !gistId) return;
             try {
                 const res = await fetch(`https://api.github.com/gists/${gistId}`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Authorization': `token ${gistToken}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        files: { 'memory.json': { content: JSON.stringify(longTermMemory, null, 2) } }
-                    })
+                    method: 'PATCH', headers: { 'Authorization': `token ${gistToken}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ files: { 'memory.json': { content: JSON.stringify(longTermMemory, null, 2) } } })
                 });
                 if (!res.ok) throw new Error('Failed to update gist');
                 document.getElementById('gist-status').innerText = "Synced to Gist successfully!";
-            } catch (e) {
-                document.getElementById('gist-status').innerText = "Error: " + e.message;
-            }
+            } catch (e) { document.getElementById('gist-status').innerText = "Error: " + e.message; }
         }
 
         async function sendChat() {
@@ -641,43 +587,21 @@
             const text = input.value.trim();
             if (!text) return;
             if (!apiKey) { alert("Please set your Gemini API Key first."); togglePanel('panel-key'); return; }
-
             input.value = '';
-            chatHistory.push({ role: 'user', text: text });
-            renderChat();
-            saveChatHistory();
-
-            const loadingDiv = document.createElement('div');
-            loadingDiv.className = 'msg ai';
-            loadingDiv.innerText = '...';
-            document.getElementById('chat-history').appendChild(loadingDiv);
-            document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight;
-
+            chatHistory.push({ role: 'user', text: text }); renderChat(); saveChatHistory();
+            const loadingDiv = document.createElement('div'); loadingDiv.className = 'msg ai'; loadingDiv.innerText = '...';
+            document.getElementById('chat-history').appendChild(loadingDiv); document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight;
             try {
                 const response = await callGeminiAPI(text);
                 document.getElementById('chat-history').removeChild(loadingDiv);
-                
                 const reminderMatch = response.match(/\[REMINDER:\s*(\d{2}:\d{2})\s*-\s*(.*?)\]/);
-                if (reminderMatch) {
-                    addReminder(reminderMatch[1], reminderMatch[2]);
-                    response = response.replace(/\[REMINDER:.*?\]/g, '').trim();
-                }
-
+                if (reminderMatch) { addReminder(reminderMatch[1], reminderMatch[2]); response = response.replace(/\[REMINDER:.*?\]/g, '').trim(); }
                 const memoryMatch = response.match(/\[REMEMBER:\s*(.*?)\]/);
-                if (memoryMatch) {
-                    addLongTermMemory(memoryMatch[1]);
-                    response = response.replace(/\[REMEMBER:.*?\]/g, '').trim();
-                }
-
-                chatHistory.push({ role: 'ai', text: response });
-                renderChat();
-                saveChatHistory();
-                speakText(response);
-
+                if (memoryMatch) { addLongTermMemory(memoryMatch[1]); response = response.replace(/\[REMEMBER:.*?\]/g, '').trim(); }
+                chatHistory.push({ role: 'ai', text: response }); renderChat(); saveChatHistory(); speakText(response);
             } catch (error) {
                 document.getElementById('chat-history').removeChild(loadingDiv);
-                chatHistory.push({ role: 'ai', text: `Error: ${error.message}` });
-                renderChat();
+                chatHistory.push({ role: 'ai', text: `Error: ${error.message}` }); renderChat();
             }
         }
 
@@ -687,156 +611,76 @@
             Here is his personal context: ${JSON.stringify(personalContext)}.
             Here is what you remember about him: ${JSON.stringify(longTermMemory)}.
             Rules: If he asks you to remind him of something, append [REMINDER: HH:MM - message] to your reply. If you learn a new fact about him, append [REMEMBER: fact] to your reply.`;
-
-            const contents = [
-                { role: 'user', parts: [{ text: systemPrompt }] },
-                ...chatHistory.map(msg => ({
-                    role: msg.role === 'ai' ? 'model' : 'user',
-                    parts: [{ text: msg.text }]
-                })),
-                { role: 'user', parts: [{ text: userText }] }
-            ];
-
+            const contents = [ { role: 'user', parts: [{ text: systemPrompt }] }, ...chatHistory.map(msg => ({ role: msg.role === 'ai' ? 'model' : 'user', parts: [{ text: msg.text }] })), { role: 'user', parts: [{ text: userText }] } ];
             const payload = { contents: contents, tools: webSearchEnabled ? [{ google_search: {} }] : [] };
-
             let model = 'gemini-2.5-flash';
-            let response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
-            });
-
+            let response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
             if (!response.ok) {
                 model = 'gemini-1.5-flash';
-                response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
-                });
+                response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
             }
-
-            if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.error?.message || 'API request failed');
-            }
-
+            if (!response.ok) { const err = await response.json(); throw new Error(err.error?.message || 'API request failed'); }
             const data = await response.json();
             let reply = data.candidates[0].content.parts[0].text;
-            
             if (webSearchEnabled && data.candidates[0].groundingMetadata) {
                 const sources = data.candidates[0].groundingMetadata.groundingChunks;
-                if (sources && sources.length > 0) {
-                    const sourceTitles = sources.map(s => `- ${s.web?.title || 'Source'}`).join('\n');
-                    reply += "\n\nSources:\n" + sourceTitles;
-                }
+                if (sources && sources.length > 0) { reply += "\n\nSources:\n" + sources.map(s => `- ${s.web?.title || 'Source'}`).join('\n'); }
             }
             return reply;
         }
 
-        // --- 5. REMINDER SYSTEM ---
+        // --- REMINDER SYSTEM ---
         function addReminder(time, message) {
             const reminder = { id: Math.random().toString(36).substr(2, 9), time: time, message: message, voice: true, fired: false, created: new Date().toISOString() };
-            reminders.push(reminder);
-            localStorage.setItem('eurusd_reminders', JSON.stringify(reminders));
-            renderReminders();
+            reminders.push(reminder); localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders();
         }
-
         function renderReminders() {
             const list = document.getElementById('reminders-list');
             const active = reminders.filter(r => !r.fired);
             if (active.length === 0) { list.innerHTML = 'No active reminders.'; return; }
             list.innerHTML = active.map(r => `<div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>${r.time} - ${r.message}</span><button class="btn danger" onclick="deleteReminder('${r.id}')">X</button></div>`).join('');
         }
-
-        function deleteReminder(id) {
-            reminders = reminders.filter(r => r.id !== id);
-            localStorage.setItem('eurusd_reminders', JSON.stringify(reminders));
-            renderReminders();
-        }
-
-        function clearReminders() {
-            reminders = [];
-            localStorage.setItem('eurusd_reminders', JSON.stringify(reminders));
-            renderReminders();
-        }
-
+        function deleteReminder(id) { reminders = reminders.filter(r => r.id !== id); localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); }
+        function clearReminders() { reminders = []; localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); }
         function testReminder() { triggerNotification("Test Reminder", "This is a test notification, Boss!"); }
-
         function triggerNotification(title, body) {
             if (!("Notification" in window)) { alert("This browser does not support desktop notification"); }
-            else if (Notification.permission === "granted") {
-                const notif = new Notification(title, { body: body });
-                notif.onclick = () => { window.focus(); };
-            } else if (Notification.permission !== "denied") {
-                Notification.requestPermission().then(function (permission) {
-                    if (permission === "granted") {
-                        const notif = new Notification(title, { body: body });
-                        notif.onclick = () => { window.focus(); };
-                    }
-                });
-            }
+            else if (Notification.permission === "granted") { const notif = new Notification(title, { body: body }); notif.onclick = () => { window.focus(); }; }
+            else if (Notification.permission !== "denied") { Notification.requestPermission().then(function (permission) { if (permission === "granted") { const notif = new Notification(title, { body: body }); notif.onclick = () => { window.focus(); }; } }); }
             speakText(`Reminder: ${body}`);
         }
-
         setInterval(() => {
-            const now = new Date();
-            const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+            const now = new Date(); const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
             let updated = false;
-            reminders.forEach(r => {
-                if (!r.fired && r.time === currentTime) {
-                    r.fired = true;
-                    updated = true;
-                    triggerNotification("Boss Reminder", r.message);
-                }
-            });
-            if (updated) {
-                localStorage.setItem('eurusd_reminders', JSON.stringify(reminders));
-                renderReminders();
-            }
+            reminders.forEach(r => { if (!r.fired && r.time === currentTime) { r.fired = true; updated = true; triggerNotification("Boss Reminder", r.message); } });
+            if (updated) { localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); }
         }, 20000);
 
-        // --- 6. LONG-TERM MEMORY ---
+        // --- LONG-TERM MEMORY ---
         function addLongTermMemory(fact) {
             longTermMemory.push({ fact: fact, added: new Date().toISOString().split('T')[0] });
             localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory));
-            saveMemoryToGist(); // Auto-save to Gist
+            saveMemoryToGist();
         }
-
         function renderMemory() {
             const list = document.getElementById('memory-list');
             if (longTermMemory.length === 0) { list.innerHTML = 'No facts saved.'; return; }
             list.innerHTML = longTermMemory.map(m => `<div style="margin-bottom:4px;">• ${m.fact} <span style="color:#555;">(${m.added})</span></div>`).join('');
         }
-
         function clearLongTermMemory() {
-            if(confirm("Clear all long-term memory?")) {
-                longTermMemory = [];
-                localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory));
-                saveMemoryToGist(); // Auto-save empty array to Gist
-                renderMemory();
-            }
+            if(confirm("Clear all long-term memory?")) { longTermMemory = []; localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); renderMemory(); }
         }
-
         function saveApiKey() {
             const val = document.getElementById('api-key-input').value.trim();
-            if (val) {
-                apiKey = val;
-                localStorage.setItem('eurusd_chat_key', apiKey);
-                alert("API Key saved locally!");
-                togglePanel('panel-key');
-            }
+            if (val) { apiKey = val; localStorage.setItem('eurusd_chat_key', apiKey); alert("API Key saved locally!"); togglePanel('panel-key'); }
         }
 
         // --- INITIALIZATION ---
         window.onload = () => {
-            fetchData();
-            fetchContext();
-            renderChat();
-            renderReminders();
-            renderMemory();
+            fetchData(); fetchContext(); renderChat(); renderReminders(); renderMemory();
             if (apiKey) document.getElementById('web-toggle').style.display = 'block';
             if ('speechSynthesis' in window) { window.speechSynthesis.getVoices(); }
-            
-            // Auto-load memory from Gist if config exists
-            if (gistToken && gistId) {
-                loadMemoryFromGist();
-            }
+            if (gistToken && gistId) { loadMemoryFromGist(); }
         };
     </script>
 </body>
