@@ -290,6 +290,7 @@
                     <button class="btn" id="web-toggle" onclick="toggleWeb()">🌐 Web OFF</button>
                     <button class="btn" onclick="togglePanel('panel-reminders')">🔔 Reminders</button>
                     <button class="btn" onclick="togglePanel('panel-memory')">💾 Memory</button>
+                    <button class="btn" onclick="togglePanel('panel-gist')">☁️ Gist</button>
                     <button class="btn" onclick="togglePanel('panel-key')">🔑 Key</button>
                 </div>
             </div>
@@ -312,6 +313,16 @@
                     <button class="btn danger" onclick="clearLongTermMemory()">Clear</button>
                 </div>
                 <div id="memory-list" style="font-size:0.75rem; color:var(--text-muted); max-height:100px; overflow-y:auto;">No facts saved.</div>
+            </div>
+
+            <div class="panel" id="panel-gist">
+                <strong>Gist Memory Sync</strong>
+                <p style="font-size:0.7rem; color:var(--text-muted); margin:5px 0;">Sync your long-term memory to the cloud so it works on any device.</p>
+                <input type="password" id="gist-token-input" placeholder="GitHub Token (ghp_...)" style="width:100%; padding:8px; border-radius:6px; border:1px solid #444; background:#111; color:white; margin-bottom:5px;">
+                <input type="text" id="gist-id-input" placeholder="Gist ID" style="width:100%; padding:8px; border-radius:6px; border:1px solid #444; background:#111; color:white; margin-bottom:5px;">
+                <button class="btn" onclick="saveGistConfig()">Save & Sync Now</button>
+                <button class="btn" style="margin-left:5px;" onclick="loadMemoryFromGist()">Force Pull</button>
+                <div id="gist-status" style="font-size:0.7rem; margin-top:5px; color:var(--yellow);"></div>
             </div>
 
             <div class="panel" id="panel-key">
@@ -379,6 +390,9 @@
         let longTermMemory = JSON.parse(localStorage.getItem('eurusd_long_term_memory') || '[]');
         let reminders = JSON.parse(localStorage.getItem('eurusd_reminders') || '[]');
         let apiKey = localStorage.getItem('eurusd_chat_key') || '';
+
+        let gistToken = localStorage.getItem('eurusd_gist_token') || '';
+        let gistId = localStorage.getItem('eurusd_gist_id') || '';
 
         // --- UI INITIALIZATION ---
         document.getElementById('browser-ai-toggle').classList.toggle('active', browserAIEnabled);
@@ -568,6 +582,48 @@
             if (id === 'panel-reminders') renderReminders();
             if (id === 'panel-memory') renderMemory();
             if (id === 'panel-key') document.getElementById('api-key-input').value = apiKey;
+            if (id === 'panel-gist') {
+                document.getElementById('gist-token-input').value = gistToken;
+                document.getElementById('gist-id-input').value = gistId;
+            }
+        }
+
+        // --- GIST LOGIC ---
+        function saveGistConfig() {
+            gistToken = document.getElementById('gist-token-input').value.trim();
+            gistId = document.getElementById('gist-id-input').value.trim();
+            localStorage.setItem('eurusd_gist_token', gistToken);
+            localStorage.setItem('eurusd_gist_id', gistId);
+            document.getElementById('gist-status').innerText = "Saving to Gist...";
+            saveMemoryToGist();
+        }
+
+        async function loadMemoryFromGist() {
+            if (!gistToken || !gistId) { document.getElementById('gist-status').innerText = "Please enter Token and Gist ID."; return; }
+            document.getElementById('gist-status').innerText = "Loading from Gist...";
+            try {
+                const res = await fetch(`https://api.github.com/gists/${gistId}`, { headers: { 'Authorization': `token ${gistToken}` } });
+                if (!res.ok) throw new Error('Failed to fetch gist');
+                const data = await res.json();
+                const content = data.files['memory.json']?.content;
+                if (content) {
+                    longTermMemory = JSON.parse(content);
+                    localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory));
+                    renderMemory(); document.getElementById('gist-status').innerText = "Memory loaded from Gist!";
+                }
+            } catch (e) { document.getElementById('gist-status').innerText = "Error: " + e.message; }
+        }
+
+        async function saveMemoryToGist() {
+            if (!gistToken || !gistId) return;
+            try {
+                const res = await fetch(`https://api.github.com/gists/${gistId}`, {
+                    method: 'PATCH', headers: { 'Authorization': `token ${gistToken}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ files: { 'memory.json': { content: JSON.stringify(longTermMemory, null, 2) } } })
+                });
+                if (!res.ok) throw new Error('Failed to update gist');
+                document.getElementById('gist-status').innerText = "Synced to Gist successfully!";
+            } catch (e) { document.getElementById('gist-status').innerText = "Error: " + e.message; }
         }
 
         async function sendChat() {
@@ -599,8 +655,6 @@
                 chatHistory.push({ role: 'ai', text: response });
                 renderChat();
                 saveChatHistory();
-                
-                // THIS IS THE VOICE! It only runs if the API call above succeeded.
                 speakText(response);
 
             } catch (error) {
@@ -620,9 +674,7 @@
             const contents = [ { role: 'user', parts: [{ text: systemPrompt }] }, ...chatHistory.map(msg => ({ role: msg.role === 'ai' ? 'model' : 'user', parts: [{ text: msg.text }] })), { role: 'user', parts: [{ text: userText }] } ];
             const payload = { contents: contents, tools: webSearchEnabled ? [{ google_search: {} }] : [] };
 
-            // --- STABLE MODEL LIST ---
-            // We removed the "-latest" tags that Google rejected. 
-            // These are the standard stable model names for v1beta.
+            // SMART MODEL FALLBACK LOOP USING STABLE V1 ENDPOINT
             const models = [
                 'gemini-1.5-flash',
                 'gemini-1.5-pro',
@@ -632,7 +684,8 @@
             let lastError = null;
             for (const model of models) {
                 try {
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+                    // Using v1 endpoint instead of v1beta for stability
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`, {
                         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
                     });
                     
@@ -645,7 +698,7 @@
                                 reply += "\n\nSources:\n" + sources.map(s => `- ${s.web?.title || 'Source'}`).join('\n');
                             }
                         }
-                        return reply; // Success! Return the reply.
+                        return reply; // Success!
                     } else {
                         const err = await response.json();
                         lastError = err.error?.message || 'API request failed';
@@ -653,7 +706,6 @@
                 } catch (e) { lastError = e.message; }
             }
             
-            // If all models fail, throw the last error
             throw new Error(lastError || 'All Gemini models failed. Check your API key.');
         }
 
@@ -688,6 +740,7 @@
         function addLongTermMemory(fact) {
             longTermMemory.push({ fact: fact, added: new Date().toISOString().split('T')[0] });
             localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory));
+            saveMemoryToGist(); // Auto-save to Gist
         }
         function renderMemory() {
             const list = document.getElementById('memory-list');
@@ -695,7 +748,7 @@
             list.innerHTML = longTermMemory.map(m => `<div style="margin-bottom:4px;">• ${m.fact} <span style="color:#555;">(${m.added})</span></div>`).join('');
         }
         function clearLongTermMemory() {
-            if(confirm("Clear all long-term memory?")) { longTermMemory = []; localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); renderMemory(); }
+            if(confirm("Clear all long-term memory?")) { longTermMemory = []; localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); renderMemory(); }
         }
         function saveApiKey() {
             const val = document.getElementById('api-key-input').value.trim();
@@ -707,6 +760,7 @@
             fetchData(); fetchContext(); renderChat(); renderReminders(); renderMemory();
             if (apiKey) document.getElementById('web-toggle').style.display = 'block';
             if ('speechSynthesis' in window) { window.speechSynthesis.getVoices(); }
+            if (gistToken && gistId) { loadMemoryFromGist(); }
         };
     </script>
 </body>
