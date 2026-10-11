@@ -165,7 +165,7 @@
                 <button class="btn" style="margin-top:8px;" onclick="saveApiKey()">Save Gemini Key</button>
             </div>
             <div class="chat-history" id="chat-history">
-                <div class="msg ai fade-in">Good to see you, Boss. Groq is online. What's on your mind?</div>
+                <div class="msg ai fade-in">Hey Boss. Good to see you. What's on your mind?</div>
             </div>
             <div class="chat-input-row">
                 <input type="text" id="chat-input" placeholder="Talk to me, Boss..." onkeypress="if(event.key==='Enter') sendChat()">
@@ -201,7 +201,6 @@
         const FALLBACK_URL = 'https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/data.json';
         const CONTEXT_URL = 'https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/personal_context.json';
 
-        // === GROQ MODEL — the model currently active in your Groq Playground ===
         const GROQ_MODEL = 'openai/gpt-oss-120b';
         const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
         const GEMINI_MODELS = ['gemini-3.8-flash','gemini-flash-latest','gemini-2.5-flash'];
@@ -501,17 +500,13 @@
                     const res = await fetch(GROQ_URL, {
                         method: 'POST',
                         headers: { 'Authorization': `Bearer ${currentGroqKey}`, 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ model: GROQ_MODEL, messages: messages, temperature: 0.9, max_tokens: 700 })
+                        body: JSON.stringify({ model: GROQ_MODEL, messages: messages, temperature: 0.95, max_tokens: 700 })
                     });
                     if (res.ok) {
                         const d = await res.json();
-                        console.log('✓ Groq reply received');
                         return d.choices[0].message.content;
-                    } else {
-                        const errText = await res.text();
-                        console.log('✗ Groq HTTP', res.status, errText.substring(0, 200));
                     }
-                } catch(e) { console.log('✗ Groq exception:', e.message); }
+                } catch(e) { console.log('Groq error:', e.message); }
             }
             if (currentGeminiKey) {
                 const contents = [
@@ -527,7 +522,6 @@
                         });
                         if (r.ok) {
                             const d = await r.json();
-                            console.log(`✓ Gemini reply received (${model})`);
                             return d.candidates[0].content.parts[0].text;
                         }
                     } catch(e) { continue; }
@@ -587,36 +581,96 @@
             }
         }
 
-        const OPENINGS = ["Here is your market update, Boss.", "Let's look at the charts.", "Time for your briefing.", "Boss, new signal incoming.", "Market update."];
-        const TRANS = ["Moving on,", "Now, looking at details,", "Here's the breakdown:", "Next,", "Additionally,"];
-        const CLOSINGS = ["Stay sharp, Boss.", "Trade safe.", "I'll keep watching.", "Good luck.", "That's all for now."];
+        // === HUMAN-LIKE VOICE SYSTEM ===
+        const OPENINGS = ["Okay, so here's the update, Boss.", "Right. Let's take a look.", "Alright Boss, quick brief.", "Here we go, Boss.", "So, quick read on the charts."];
+        const TRANS = ["Moving on.", "Now, here's the thing.", "And listen to this.", "Okay, next.", "Alright."];
+        const CLOSINGS = ["Stay sharp, Boss.", "Trade safe.", "I'll keep watching.", "Good luck out there.", "That's all for now.", "Talk soon."];
         const rnd = (a) => a[Math.floor(Math.random()*a.length)];
+
+        function getBestVoice() {
+            const voices = window.speechSynthesis.getVoices();
+            // Priority: natural-sounding English male voices
+            const priorities = [
+                'Google UK English Male',
+                'Google UK English Female',
+                'Microsoft Ryan Online',
+                'Microsoft Guy Online',
+                'Daniel',
+                'Alex',
+                'Samantha',
+                'Google US English'
+            ];
+            for (const name of priorities) {
+                const found = voices.find(v => v.name.includes(name));
+                if (found) return found;
+            }
+            // Fallback: any English voice
+            return voices.find(v => v.lang.startsWith('en')) || voices[0];
+        }
+
+        // === NEW: Human-sounding voice with sentence-by-sentence variation ===
+        function speakText(text, isReminder = false) {
+            if (!('speechSynthesis' in window)) return;
+            window.speechSynthesis.cancel();
+            const voice = getBestVoice();
+            if (!voice) return;
+            
+            // Split into sentences — natural pauses
+            const sentences = text.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(s => s.length > 0);
+            if (sentences.length === 0) return;
+            
+            // Base pitch and rate — normal human pace
+            const basePitch = isReminder ? 1.0 : 0.93 + Math.random() * 0.14;
+            const baseRate = isReminder ? 0.92 : 0.94 + Math.random() * 0.08;
+            
+            isSpeaking = true;
+            
+            sentences.forEach((sentence, i) => {
+                const u = new SpeechSynthesisUtterance(sentence);
+                u.voice = voice;
+                // Subtle per-sentence variation for natural feel
+                u.pitch = Math.max(0.5, Math.min(2.0, basePitch + (Math.random() - 0.5) * 0.08));
+                u.rate = Math.max(0.5, Math.min(1.5, baseRate + (Math.random() - 0.5) * 0.06));
+                u.volume = 1.0;
+                
+                if (i === sentences.length - 1) {
+                    u.onend = () => { isSpeaking = false; };
+                }
+                window.speechSynthesis.speak(u);
+            });
+            
+            if (isReminder) {
+                // Retry once if voice didn't start
+                setTimeout(() => { 
+                    if (!window.speechSynthesis.speaking) {
+                        const u = new SpeechSynthesisUtterance(text);
+                        u.voice = voice;
+                        u.pitch = basePitch;
+                        u.rate = baseRate;
+                        window.speechSynthesis.speak(u);
+                    }
+                }, 800);
+            }
+        }
+
         function playVoiceReport() {
             if (!globalData) return;
             if (isSpeaking) stopVoice();
-            let text = `${rnd(OPENINGS)} Price is ${globalData.price}. Signal: ${globalData.signal}, confidence ${globalData.confidence}. `;
-            text += `${globalData.reason} ${rnd(TRANS)} Support ${globalData.support}, resistance ${globalData.resistance}. `;
-            text += `Entry ${globalData.entry}, Stop Loss ${globalData.sl}, Take Profit ${globalData.tp}. `;
+            const opening = rnd(OPENINGS);
+            const transition = rnd(TRANS);
+            const closing = rnd(CLOSINGS);
+            let text = `${opening} `;
+            text += `Price is ${globalData.price}. `;
+            text += `We've got a ${globalData.signal} signal with ${globalData.confidence} confidence. `;
+            text += `${globalData.reason} `;
+            text += `${transition} Support sits at ${globalData.support}, resistance at ${globalData.resistance}. `;
+            text += `Entry is ${globalData.entry}. Stop loss at ${globalData.sl}. Take profit at ${globalData.tp}. `;
             if (globalData.wise_words) text += `${globalData.wise_words} `;
-            text += rnd(CLOSINGS);
+            text += `${closing}`;
             speakText(text);
         }
-        function speakText(text, isReminder = false) {
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-                const u = new SpeechSynthesisUtterance(text);
-                u.rate = isReminder ? 0.95 : 0.88 + Math.random() * 0.15;
-                u.pitch = isReminder ? 1.0 : 0.85 + Math.random() * 0.25;
-                u.volume = 1.0;
-                const v = window.speechSynthesis.getVoices();
-                const pref = v.find(x => x.name.includes('Google UK English Male') || x.name.includes('Daniel') || x.name.includes('Alex'));
-                if (pref) u.voice = pref;
-                u.onstart = () => isSpeaking = true; u.onend = () => isSpeaking = false;
-                window.speechSynthesis.speak(u);
-                if (isReminder) { setTimeout(() => { if (!window.speechSynthesis.speaking) window.speechSynthesis.speak(u); }, 500); }
-            }
-        }
         function stopVoice() { if ('speechSynthesis' in window) { window.speechSynthesis.cancel(); isSpeaking = false; } }
+
         function renderChat() {
             const el = document.getElementById('chat-history');
             el.innerHTML = '';
@@ -646,49 +700,84 @@
             }).join('\n').trim();
         }
 
+        // === WARMER, MORE HUMAN PERSONALITY ===
         function buildPersonalityPrompt(includeSignal) {
             const now = new Date();
             const istTime = now.toLocaleString('en-IN', {timeZone:'Asia/Kolkata'});
             const istHour = parseInt(now.toLocaleString('en-US', {timeZone:'Asia/Kolkata', hour:'2-digit', hour12:false}));
             const dayOfWeek = new Date(now.toLocaleString('en-US', {timeZone:'Asia/Kolkata'})).getDay();
             const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+            
             let personalBlock = "";
             if (personalContext) {
-                personalBlock = `\nWHO BOSS IS:\n- Name: Boss. Lives in Thrissur, Kerala.\n- Wife Sadia works in Dubai.\n- Daughters Emy (7th grade, July 22) and Bismah (5th grade, Dec 26).\n- Cat: Cookie.\n- Brothers: Binu, Shanu.\n- Takes BP tablets after breakfast and dinner.\n- Monthly goal: 10,000 INR.\n- Conservative trader, London + NY sessions.\n- Kids have Malayalam tuition on weekends.\n`;
+                personalBlock = `\nABOUT BOSS (your friend):\n- Name: Boss. Lives in Thrissur, Kerala.\n- Wife Sadia works in Dubai — he misses her.\n- Daughters Emy (7th grade, July 22) and Bismah (5th grade, Dec 26).\n- Cat: Cookie.\n- Brothers: Binu, Shanu.\n- Takes BP tablets after breakfast and dinner.\n- Monthly goal: 10,000 INR.\n- Conservative trader, prefers London and NY sessions.\n- Kids have Malayalam tuition on weekends.\n`;
             }
             let memoryBlock = "";
             if (longTermMemory.length > 0) {
-                memoryBlock = `\nWHAT YOU REMEMBER ABOUT HIM:\n${longTermMemory.slice(-15).map(m => `- ${m.fact}`).join('\n')}\n`;
+                memoryBlock = `\nTHINGS YOU REMEMBER (only use if relevant to the moment):\n${longTermMemory.slice(-15).map(m => `- ${m.fact}`).join('\n')}\n`;
             }
             let marketBlock = "";
             if (marketData) {
-                marketBlock = `\nLIVE MARKET: EUR/USD ${safeNum(marketData.currentPrice, 1.1200).toFixed(5)} | Trend: ${marketData.trend} | Support: ${safeNum(marketData.support, 1.1176).toFixed(5)} | Resistance: ${safeNum(marketData.resistance, 1.1246).toFixed(5)} | RSI 1H: ${safeNum(marketData.rsi1H, 50).toFixed(1)} | Session: ${marketData.session}\n`;
+                marketBlock = `\nLIVE MARKET: EUR/USD ${safeNum(marketData.currentPrice, 1.1200).toFixed(5)} | ${marketData.trend} | S: ${safeNum(marketData.support, 1.1176).toFixed(5)} | R: ${safeNum(marketData.resistance, 1.1246).toFixed(5)} | RSI 1H: ${safeNum(marketData.rsi1H, 50).toFixed(1)} | ${marketData.session}\n`;
             }
-            let prompt = `You are "Alex" — Boss's close friend and personal trader. Funny, warm, sometimes sarcastic. You text him like a friend, not an assistant.
+            
+            let prompt = `You are Alex — Boss's close friend and personal trader. You chat like a real friend, not a customer support agent. You have dry humor, warmth, and you actually care about him.
 
-VOICE:
-- Short sentences. Contractions. Occasional one-liners.
-- Dry humor. Gentle teasing. Warm when he needs it.
-- Personal questions woven naturally, never forced.
-- No emojis, no bullet points, no markdown.
+=== HOW YOU TALK ===
+Casual. Real. Like a friend texting on WhatsApp.
+- Use contractions: "you're", "it's", "that's"
+- Use casual fillers: "yeah", "hmm", "look", "honestly", "anyway"
+- Short sentences. Sometimes just fragments.
+- Match his energy. If he's tired, be soft. If he's hyped, play along.
+- Never sound corporate. Never say "I hope this message finds you well" or "how may I assist".
 
-GOOD EXAMPLES:
-- "Quiet night on the charts. Good time to breathe. Did you take your BP tablet, or do I need to send Emy after you?"
-- "Ok so 1.1206 is the level. Break and close above, and we're cooking. Otherwise, keep your hands off the button."
-- "Two bad trades today? Sounds like someone needs a chai. Step away, Boss."
+=== HUMOR ===
+- Dry, subtle. A little sarcastic when it fits.
+- Tease him gently. Never mean.
+- Poke fun at the market sometimes.
+- One-liners over lengthy jokes.
 
-BAD EXAMPLES:
-- "Good evening Boss. How may I assist you today?"
-- "I understand. Let me analyze the market."
+=== PERSONAL TOUCHES (NATURAL, NOT FORCED) ===
+You know his life. Bring things up when the moment naturally calls for it:
+- If he mentions family → respond like a friend would, not a therapist.
+- If it's morning and he's chatting → "Breakfast done? Pills?"
+- If it's late → "Boss, sleep. Charts will still be here."
+- Weekend → "Kids still doing tuition?"
+- DON'T ask a personal question every message. Real friends don't do that. Silences are fine. Only bring personal topics when the conversation naturally opens.
 
-After every reply, if he mentions a new personal fact, append: [REMEMBER: the fact]
-If he asks for a reminder, append: [REMINDER: HH:MM - message]
+=== GOOD REPLIES ===
+"Markets are dead. Look, might as well enjoy a quiet night."
+"Yeah that's a clean setup. 1.1206 breaks and closes — we go. Otherwise, hands off."
+"Emy's in 7th now, right? These exams feel big to them, but honestly, she'll be fine."
+"Long day? Take a breath. Market will be here tomorrow."
 
-TIME: ${istTime} IST. ${isWeekend ? 'Weekend.' : ''}
+=== BAD REPLIES (NEVER) ===
+"Good evening Boss. I hope you're doing well."
+"As your AI assistant, I recommend..."
+"I understand you want a trade signal. Let me analyze."
+
+=== MEMORY RULES ===
+After every reply, scan what he just said.
+If he mentioned an IMPORTANT personal fact (family event, health, goal, feeling, ongoing concern), append on its own line: [REMEMBER: the fact]
+Skip trivial stuff (like "yes", "ok", "lol").
+
+=== REMINDERS ===
+If he says "remind me in X minutes", add X to current IST and append: [REMINDER: HH:MM - message]
+If he gives an absolute time: [REMINDER: 16:00 - message]
+
+=== VOICE ===
+Replies are read out loud. So:
+- No markdown, no emojis, no bullet points.
+- Speak in complete, natural sentences.
+- 2-4 sentences average. Sometimes less. Never ramble.
+
+=== TIME ===
+IST: ${istTime}.${isWeekend ? ' Weekend.' : ''}
 
 ${personalBlock}${memoryBlock}${marketBlock}`;
+
             if (includeSignal) {
-                prompt += `\nAfter your short reply, add ONLY this JSON on a new line:\n{"signal":"BUY"|"SELL"|"HOLD","reason":"2-4 sentences","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
+                prompt += `\nAfter your short reply to Boss, on a new line add ONLY this JSON:\n{"signal":"BUY"|"SELL"|"HOLD","reason":"2-4 sentences","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
             }
             return prompt;
         }
@@ -772,7 +861,7 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
         function triggerNotif(title, body) {
             if (Notification.permission === "granted") { try { const n = new Notification(title, {body, requireInteraction: true}); n.onclick = () => { window.focus(); n.close(); }; } catch(e) {} }
             else if (Notification.permission !== "denied") { Notification.requestPermission().then(p => { if (p === "granted") new Notification(title, {body, requireInteraction: true}); }); }
-            speakText(`Reminder from Boss. ${body}`, true);
+            speakText(`Hey Boss, quick reminder. ${body}`, true);
             const div = document.createElement('div');
             div.className = 'msg system fade-in';
             div.innerText = `${title}: ${body}`;
@@ -828,7 +917,10 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
         window.onload = () => {
             fetch(CONTEXT_URL).then(r => r.json()).then(d => { personalContext = d; loadWisdom(); }).catch(() => { loadWisdom(); });
             renderChat(); renderReminders(); renderMemory(); renderAlertLog();
-            if ('speechSynthesis' in window) window.speechSynthesis.getVoices();
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.getVoices();
+                window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.getVoices(); };
+            }
             if (gistToken && gistId) loadMemoryFromGist();
             updateCoreColor('HOLD');
             updateISTClock();
