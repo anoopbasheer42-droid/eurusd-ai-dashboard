@@ -13,10 +13,12 @@
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 20px; background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #0a0e17 70%); }
         header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 15px; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 10px; }
         h1 { font-size: 1.5rem; font-weight: 800; }
-        .header-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-        .ist-clock { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; font-weight: 600; color: var(--accent); background: rgba(59,130,246,0.1); padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(59,130,246,0.25); font-family: monospace; letter-spacing: 0.5px; }
-        .ist-clock .time { color: #60a5fa; }
-        .ist-clock .date { color: var(--muted); font-size: 0.75rem; font-weight: 500; }
+        .header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .ist-clock { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 600; color: var(--accent); background: rgba(59,130,246,0.1); padding: 6px 12px; border-radius: 20px; border: 1px solid rgba(59,130,246,0.25); font-family: monospace; letter-spacing: 0.5px; }
+        .ist-clock .date { color: var(--muted); font-size: 0.7rem; font-weight: 500; }
+        .market-status { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 700; padding: 6px 12px; border-radius: 20px; letter-spacing: 0.5px; }
+        .market-status.open { color: var(--green); background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.3); }
+        .market-status.closed { color: var(--red); background: rgba(255,51,102,0.1); border: 1px solid rgba(255,51,102,0.3); }
         .status-badge { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; font-weight: 600; color: var(--green); background: rgba(0,255,136,0.1); padding: 6px 12px; border-radius: 20px; border: 1px solid rgba(0,255,136,0.2); }
         .pulse-dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0,255,136,0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(0,255,136,0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0,255,136,0); } }
@@ -33,6 +35,7 @@
         .signal-text.buy { color: var(--green); text-shadow: 0 0 20px rgba(0,255,136,0.4); }
         .signal-text.sell { color: var(--red); text-shadow: 0 0 20px rgba(255,51,102,0.4); }
         .signal-text.hold, .signal-text.waiting { color: var(--yellow); text-shadow: 0 0 20px rgba(255,204,0,0.4); }
+        .signal-text.closed { color: var(--muted); text-shadow: none; }
         .signal-source { font-size: 0.65rem; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
         .signal-source .live { color: var(--green); animation: pulse 2s infinite; }
         .ai-countdown { font-size: 0.7rem; color: #64748b; margin-top: 6px; font-family: monospace; letter-spacing: 0.5px; }
@@ -149,10 +152,10 @@
         <div class="header-right">
             <div class="ist-clock">
                 <span>🇮🇳</span>
-                <span class="time" id="istTime">--:--:--</span>
+                <span id="istTime">--:--:--</span>
                 <span class="date" id="istDate">---</span>
             </div>
-            <div class="status-badge"><div class="pulse-dot"></div>LIVE</div>
+            <div id="marketStatus" class="market-status open">🟢 MARKET OPEN</div>
         </div>
     </header>
 
@@ -313,6 +316,42 @@
         let browserAIData = null;
         let browserAILastRun = 0;
         let browserAIRunning = false;
+        let currentMarketStatus = { open: true, label: "🟢 MARKET OPEN" };
+
+        // ═══ MARKET STATUS ═══
+        function getMarketStatus() {
+            const now = new Date();
+            const istString = now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata', hour12: false });
+            const istDate = new Date(istString);
+            const day = istDate.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+            const hour = istDate.getHours();
+            const minute = istDate.getMinutes();
+            const timeInMinutes = hour * 60 + minute;
+            
+            // Sunday - closed
+            if (day === 0) return { open: false, label: "🔴 MARKET CLOSED (Sunday)", reason: "Weekend" };
+            
+            // Saturday - closed
+            if (day === 6) return { open: false, label: "🔴 MARKET CLOSED (Saturday)", reason: "Weekend" };
+            
+            // Monday before 2:30 AM IST - pre-market
+            if (day === 1 && timeInMinutes < 150) {
+                return { open: false, label: "🔴 MARKET CLOSED (Pre-market)", reason: "Opens 2:30 AM IST Monday" };
+            }
+            
+            // Otherwise open
+            return { open: true, label: "🟢 MARKET OPEN", reason: "" };
+        }
+        
+        function updateMarketStatus() {
+            const status = getMarketStatus();
+            currentMarketStatus = status;
+            const el = document.getElementById("marketStatus");
+            if (!el) return;
+            el.innerText = status.label;
+            el.className = "market-status " + (status.open ? "open" : "closed");
+        }
+        // ═══ END MARKET STATUS ═══
 
         // ═══ IST CLOCK ═══
         function updateISTClock() {
@@ -320,40 +359,27 @@
             const timeEl = document.getElementById("istTime");
             const dateEl = document.getElementById("istDate");
             if (!timeEl || !dateEl) return;
-            
-            const timeStr = now.toLocaleTimeString("en-IN", {
-                timeZone: "Asia/Kolkata",
-                hour: "2-digit",
-                minute: "2-digit",
-                second: "2-digit",
-                hour12: false
-            });
-            
-            const dateStr = now.toLocaleDateString("en-IN", {
-                timeZone: "Asia/Kolkata",
-                weekday: "short",
-                day: "2-digit",
-                month: "short"
-            });
-            
+            const timeStr = now.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+            const dateStr = now.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", weekday: "short", day: "2-digit", month: "short" });
             timeEl.innerText = timeStr + " IST";
             dateEl.innerText = dateStr;
         }
-        setInterval(updateISTClock, 1000);
+        setInterval(updateIstClockAndStatus, 1000);
+        function updateIstClockAndStatus() {
+            updateISTClock();
+            updateMarketStatus();
+        }
         // ═══ END IST CLOCK ═══
 
         // ═══ GIST SYNC ═══
         function getGistId() { try { return localStorage.getItem(GIST_ID_STORAGE) || ""; } catch(e) { return ""; } }
         function getGistToken() { try { return localStorage.getItem(GIST_TOKEN_STORAGE) || ""; } catch(e) { return ""; } }
-        
         function toggleSyncPanel() {
             document.getElementById("syncPanel").classList.toggle("visible");
-            const id = getGistId();
-            const token = getGistToken();
+            const id = getGistId(); const token = getGistToken();
             if (id) document.getElementById("gistIdInput").value = id;
             if (token) document.getElementById("gistTokenInput").value = token;
         }
-        
         function saveGistConfig() {
             const id = document.getElementById("gistIdInput").value.trim();
             const token = document.getElementById("gistTokenInput").value.trim();
@@ -365,10 +391,8 @@
                 setTimeout(() => { pushToGist(true); }, 500);
             } catch (e) { document.getElementById("gistStatus").innerText = "❌ Could not save"; }
         }
-        
         async function pullFromGist() {
-            const id = getGistId();
-            const token = getGistToken();
+            const id = getGistId(); const token = getGistToken();
             if (!id || !token) { document.getElementById("gistStatus").innerText = "❌ Enter Gist ID and Token first"; return; }
             try {
                 document.getElementById("gistStatus").innerText = "⏳ Pulling...";
@@ -380,16 +404,13 @@
                 const content = file.content || "[]";
                 const memories = JSON.parse(content);
                 if (Array.isArray(memories)) {
-                    saveMemory(memories);
-                    renderMemoryList();
+                    saveMemory(memories); renderMemoryList();
                     document.getElementById("gistStatus").innerText = `✅ Pulled ${memories.length} memories from cloud`;
                 }
             } catch (e) { document.getElementById("gistStatus").innerText = `❌ Pull failed: ${e.message}`; }
         }
-        
         async function pushToGist(manual = false) {
-            const id = getGistId();
-            const token = getGistToken();
+            const id = getGistId(); const token = getGistToken();
             if (!id || !token) { if (manual) document.getElementById("gistStatus").innerText = "❌ Enter Gist ID and Token first"; return; }
             const memories = loadMemory();
             try {
@@ -401,9 +422,7 @@
                 });
                 if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
                 if (manual) document.getElementById("gistStatus").innerText = `✅ Pushed ${memories.length} memories to cloud`;
-            } catch (e) {
-                if (manual) document.getElementById("gistStatus").innerText = `❌ Push failed: ${e.message}`;
-            }
+            } catch (e) { if (manual) document.getElementById("gistStatus").innerText = `❌ Push failed: ${e.message}`; }
         }
 
         // ═══ BROWSER AI TOGGLE ═══
@@ -413,7 +432,7 @@
             try { localStorage.setItem(BROWSER_AI_STORAGE_NAME, newState ? "true" : "false"); } catch (e) {}
             updateBrowserAIUI();
             updateCountdown();
-            if (newState) runBrowserAnalysis();
+            if (newState && currentMarketStatus.open) runBrowserAnalysis();
         }
         function updateBrowserAIUI() {
             const btn = document.getElementById("browserAIBtn"); if (!btn) return;
@@ -455,8 +474,7 @@
         function addReminder(timeStr, message, voice = true) {
             const reminders = loadReminders();
             reminders.push({ id: Date.now() + Math.random().toString(36).slice(2, 8), time: timeStr, message: message, voice: voice, fired: false, created: new Date().toISOString() });
-            saveReminders(reminders);
-            renderReminderList();
+            saveReminders(reminders); renderReminderList();
         }
         function deleteReminder(id) { saveReminders(loadReminders().filter(r => r.id !== id)); renderReminderList(); }
         function clearAllReminders() { if (!confirm("Delete all reminders?")) return; saveReminders([]); renderReminderList(); }
@@ -532,22 +550,15 @@
             const clean = fact.trim();
             if (memory.some(m => m.fact.toLowerCase() === clean.toLowerCase())) return;
             memory.push({ fact: clean, added: new Date().toISOString().slice(0, 10) });
-            saveMemory(memory);
-            renderMemoryList();
-            pushToGist();
+            saveMemory(memory); renderMemoryList(); pushToGist();
         }
         function deleteFact(index) {
-            const memory = loadMemory();
-            memory.splice(index, 1);
-            saveMemory(memory);
-            renderMemoryList();
-            pushToGist();
+            const memory = loadMemory(); memory.splice(index, 1);
+            saveMemory(memory); renderMemoryList(); pushToGist();
         }
         function clearAllMemory() {
             if (!confirm("Clear ALL long-term memory? This cannot be undone.")) return;
-            saveMemory([]);
-            renderMemoryList();
-            pushToGist();
+            saveMemory([]); renderMemoryList(); pushToGist();
         }
         function addMemoryManually() {
             const fact = prompt("What should I remember, Boss?");
@@ -584,7 +595,7 @@
                 const preview = key.slice(0, 8) + "..." + key.slice(-4);
                 document.getElementById("keyStatus").innerText = `✅ Saved: ${preview} (${key.length} chars)`;
                 setTimeout(() => { document.getElementById("keyPanel").classList.remove("visible"); document.getElementById("keyStatus").innerText = ""; }, 3000);
-                if (isBrowserAIEnabled()) runBrowserAnalysis();
+                if (isBrowserAIEnabled() && currentMarketStatus.open) runBrowserAnalysis();
             } catch (e) { document.getElementById("keyStatus").innerText = "❌ Could not save"; }
         }
         function showKeyPanel() {
@@ -593,12 +604,19 @@
             if (existing) document.getElementById("keyInput").value = existing;
         }
 
-        // ═══ COUNTDOWN — shows OFF when browser AI is disabled ═══
+        // ═══ COUNTDOWN (with market status) ═══
         function updateCountdown() {
             const el = document.getElementById("aiCountdown");
             if (!el) return;
             
-            // If Browser AI is OFF, show status instead of countdown
+            // Market closed → show closed message
+            if (!currentMarketStatus.open) {
+                el.innerText = "🔴 Market Closed — " + (currentMarketStatus.reason || "No trading right now");
+                el.style.color = "#ff3366";
+                return;
+            }
+            
+            // Browser AI off
             if (!isBrowserAIEnabled()) {
                 el.innerText = "⚫ Browser AI is OFF";
                 el.style.color = "#64748b";
@@ -607,10 +625,7 @@
             
             el.style.color = "";
             
-            if (browserAIRunning) {
-                el.innerText = "⏳ Analyzing now...";
-                return;
-            }
+            if (browserAIRunning) { el.innerText = "⏳ Analyzing now..."; return; }
             
             const now = new Date();
             const minutes = now.getMinutes();
@@ -626,15 +641,10 @@
 
         window.addEventListener("load", () => {
             if (!getStoredKey()) document.getElementById("keyPanel").classList.add("visible");
-            renderMemoryList();
-            renderReminderList();
-            updateWebToggleUI();
-            updateDeepThinkUI();
-            updateBrowserAIUI();
-            requestNotificationPermission();
-            checkReminders();
-            updateISTClock();
-            updateCountdown();
+            renderMemoryList(); renderReminderList();
+            updateWebToggleUI(); updateDeepThinkUI(); updateBrowserAIUI();
+            requestNotificationPermission(); checkReminders();
+            updateISTClock(); updateMarketStatus(); updateCountdown();
             if (getGistId() && getGistToken()) setTimeout(() => pullFromGist(), 2000);
         });
 
@@ -804,6 +814,8 @@
 
 CURRENT TIME (IST): ${timeIST} on ${dateIST} — Start with "${greeting}".
 
+MARKET STATUS: OPEN (normal trading hours)
+
 MARKET DATA:
 - Current Price: ${price.toFixed(4)}
 - RSI(14): ${rsi.toFixed(1)}
@@ -850,6 +862,11 @@ Respond ONLY with valid JSON: {"verdict": "BUY/SELL/HOLD", "reason": "2-4 senten
 
         async function runBrowserAnalysis() {
             if (!isBrowserAIEnabled()) return;
+            // Skip if market closed
+            if (!currentMarketStatus.open) {
+                console.log("Market closed — skipping browser AI run");
+                return;
+            }
             const key = getStoredKey();
             if (!key) return;
             if (browserAIRunning) return;
@@ -920,7 +937,7 @@ Respond ONLY with valid JSON: {"verdict": "BUY/SELL/HOLD", "reason": "2-4 senten
             let secondsToNext = (nextMinute - minutes) * 60 + (30 - seconds);
             if (secondsToNext < 0) { nextMinute += 5; secondsToNext = (nextMinute - minutes) * 60 + (30 - seconds); }
             setTimeout(async () => {
-                if (isBrowserAIEnabled()) await runBrowserAnalysis();
+                if (isBrowserAIEnabled() && currentMarketStatus.open) await runBrowserAnalysis();
                 scheduleBrowserAIAnalysis();
             }, secondsToNext * 1000);
         }
@@ -965,7 +982,7 @@ Respond ONLY with valid JSON: {"verdict": "BUY/SELL/HOLD", "reason": "2-4 senten
                 if (!price) throw new Error("No price");
                 priceHistory.push(price); if (priceHistory.length > 100) priceHistory.shift();
                 livePrice = price; ruleSignal = computeRuleSignal();
-                if (!browserAIData) {
+                if (!browserAIData && currentMarketStatus.open) {
                     const priceEl = document.getElementById("price");
                     if (priceEl) { priceEl.innerText = price.toFixed(4); priceEl.classList.add("updating"); setTimeout(() => priceEl.classList.remove("updating"), 1500); }
                 }
@@ -1052,6 +1069,32 @@ Respond ONLY with valid JSON: {"verdict": "BUY/SELL/HOLD", "reason": "2-4 senten
             try { const r = await fetch('personal_context.json?t=' + Date.now()); if (r.ok) personalContext = await r.json(); } catch (e) {}
         }
         function updateDashboard(data) {
+            // If market is closed, show closed state instead of signal
+            if (!currentMarketStatus.open) {
+                const signalEl = document.getElementById("signal");
+                signalEl.innerText = "CLOSED";
+                signalEl.className = "signal-text closed";
+                document.getElementById("signalSource").innerText = "🔴 Market closed — no trading";
+                document.getElementById("ai_reason").innerText = "Boss, the forex market is currently closed. Last trading data is from Friday. New signals will resume when the market reopens Monday 2:30 AM IST.";
+                // Still show the last known data below
+                if (data.price) document.getElementById("price").innerText = data.price + " (Friday)";
+                document.getElementById("entry").innerText = data.entry;
+                document.getElementById("sl").innerText = data.sl;
+                document.getElementById("tp").innerText = data.tp;
+                document.getElementById("valid").innerText = "Weekend";
+                document.getElementById("confidence").innerText = "—";
+                document.getElementById("trend").innerText = data.trend || "-";
+                document.getElementById("support").innerText = data.support || "-";
+                document.getElementById("resistance").innerText = data.resistance || "-";
+                document.getElementById("session").innerText = "Market Closed";
+                if (data.wise_words) {
+                    const wiseBox = document.getElementById("wise_box");
+                    const isJoke = data.wise_words.toLowerCase().startsWith("joke");
+                    wiseBox.innerHTML = `<span class="wise-label">${isJoke ? '😂 Joke of the Hour' : '💪 Motivation of the Hour'}</span>${data.wise_words.replace(/^Joke:\s*|^Motivation:\s*/i, '')}`;
+                }
+                return;
+            }
+            
             const signalEl = document.getElementById("signal");
             signalEl.innerText = data.signal;
             signalEl.className = `signal-text ${data.signal.toLowerCase()}`;
@@ -1094,6 +1137,13 @@ Respond ONLY with valid JSON: {"verdict": "BUY/SELL/HOLD", "reason": "2-4 senten
             return voices[0];
         }
         function speakSignal() {
+            if (!currentMarketStatus.open) {
+                window.speechSynthesis.cancel();
+                const u = new SpeechSynthesisUtterance("Boss, the forex market is closed right now. Last trading data is from Friday. I'll be ready when the market reopens Monday at 2:30 AM IST.");
+                const v = getBestVoice(); if (v) u.voice = v;
+                window.speechSynthesis.speak(u);
+                return;
+            }
             const source = browserAIData || latestData || {};
             const currentPrice = source.price || (livePrice ? livePrice.toFixed(4) : "-");
             const currentSignal = source.signal || "HOLD";
@@ -1170,10 +1220,27 @@ Respond ONLY with valid JSON: {"verdict": "BUY/SELL/HOLD", "reason": "2-4 senten
             const browserRecent = browserAIData && (Date.now() - browserAIData.timestamp < 6 * 60 * 1000);
             const activeSource = browserRecent ? "browser" : "python";
             const active = browserRecent ? b : d;
+            
+            // Market status section
+            let marketStatusSection = "";
+            if (!currentMarketStatus.open) {
+                marketStatusSection = `
+=== ⚠️ MARKET IS CLOSED ===
+The forex market is currently CLOSED (${currentMarketStatus.reason}).
+- EUR/USD trades Monday 2:30 AM IST to Saturday 2:30 AM IST.
+- Current data is stale — from the last trading session (Friday).
+- DO NOT give buy/sell signals based on stale data.
+- Tell Boss the market is closed, and when it will reopen.
+- If he asks about specific trades, remind him nothing can be executed right now.
+`;
+            } else {
+                marketStatusSection = `\n=== MARKET STATUS: OPEN ===\n`;
+            }
+            
             let prompt = `You are Aria — a warm, intelligent, thinking AI trading companion to Boss. 10 years of hedge fund experience. Speak like a real colleague. You are a WOMAN. No emojis. Call him "Boss".
 
 CURRENT DATE (IST): ${todayIST} | TIME: ${timeIST}
-
+${marketStatusSection}
 REFERENCE TIMES: 1min=${t1}, 5min=${t5}, 15min=${t15}, 30min=${t30}, 60min=${t60}
 
 === SIGNAL SOURCE: ${activeSource.toUpperCase()} ===
@@ -1323,8 +1390,8 @@ Reply warmly, then the tag on new line.`;
         loadPersonalContext();
         loadLiveData();
         restoreChatFromMemory();
-        setTimeout(() => { fetchLivePrice(); scheduleAlignedFetch(); }, 3000);
-        setTimeout(() => { if (isBrowserAIEnabled() && getStoredKey()) runBrowserAnalysis(); scheduleBrowserAIAnalysis(); }, 5000);
+        setTimeout(() => { if (currentMarketStatus.open) { fetchLivePrice(); scheduleAlignedFetch(); } }, 3000);
+        setTimeout(() => { if (isBrowserAIEnabled() && getStoredKey() && currentMarketStatus.open) runBrowserAnalysis(); scheduleBrowserAIAnalysis(); }, 5000);
         setInterval(loadLiveData, 30 * 60 * 1000);
     </script>
 </body>
