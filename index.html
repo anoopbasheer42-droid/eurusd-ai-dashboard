@@ -32,8 +32,8 @@
         #canvas-container { width:100%; height:180px; position:relative; z-index:1; display:flex; justify-content:center; }
         .subtitle { text-align:center; font-size:0.65rem; letter-spacing:3px; color:rgba(255,255,255,0.3); margin-top:5px; }
         .signal-card { text-align:center; padding:20px; }
-        #signal-text { font-size:3rem; font-weight:800; letter-spacing:4px; color:var(--yellow);
-            text-shadow:0 0 30px rgba(241,196,15,0.5); transition:all 0.4s; margin-bottom:5px; }
+        #signal-text { font-size:3rem; font-weight:800; letter-spacing:4px; color:var(--text-muted);
+            text-shadow:0 0 30px rgba(138,148,166,0.3); transition:all 0.4s; margin-bottom:5px; }
         .ai-refresh-timer { font-family:'JetBrains Mono'; font-size:0.85rem; color:var(--blue);
             margin-bottom:15px; background:rgba(74,144,226,0.1); display:inline-block; padding:3px 10px;
             border-radius:6px; border:1px solid rgba(74,144,226,0.3); }
@@ -50,6 +50,7 @@
         .btn.active { background:var(--blue); border-color:var(--blue); }
         .btn.active.deep { background:var(--purple); border-color:var(--purple); }
         .btn.danger { background:rgba(231,76,60,0.2); border-color:rgba(231,76,60,0.5); color:#ff9999; }
+        .btn.primary { background:linear-gradient(135deg, var(--purple), var(--blue)); border:none; font-weight:600; }
         .panel { display:none; background:rgba(0,0,0,0.3); padding:10px; border-radius:8px;
             margin-bottom:10px; font-size:0.8rem; border:1px solid rgba(255,255,255,0.05); }
         .panel.active { display:block; }
@@ -68,6 +69,7 @@
         .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:0.85rem; }
         .stat-item { background:rgba(0,0,0,0.2); padding:8px 12px; border-radius:8px; display:flex; justify-content:space-between; }
         .stat-label { color:var(--text-muted); }
+        .signal-hint { font-size:0.7rem; color:var(--text-muted); margin-top:10px; font-style:italic; }
         @keyframes fadeIn { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
         .fade-in { animation:fadeIn 0.3s ease-in; }
     </style>
@@ -83,8 +85,8 @@
 
         <div class="card signal-card">
             <div class="card-title">Current Signal</div>
-            <div id="signal-text">WAITING</div>
-            <div class="ai-refresh-timer" id="ai-refresh-timer">Next AI refresh in: 05:30</div>
+            <div id="signal-text">TAP ASK AI</div>
+            <div class="ai-refresh-timer" id="ai-refresh-timer">AI signal refreshes in: 60:00</div>
             <div class="signal-details">
                 <div><span>Confidence:</span> <span id="val-confidence">-</span></div>
                 <div><span>Valid Until:</span> <span id="val-valid">-</span></div>
@@ -93,11 +95,12 @@
                 <div><span>Take Profit:</span> <span id="val-tp">-</span></div>
                 <div><span>ATR:</span> <span id="val-atr">-</span></div>
             </div>
-            <div style="margin-top:15px; display:flex; gap:10px; justify-content:center;">
-                <button class="btn" onclick="generateSignalFromScratch()">⟳ Refresh Now</button>
+            <div style="margin-top:15px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+                <button class="btn primary" onclick="askAIForSignal()">🧠 Ask AI for Signal</button>
                 <button class="btn" onclick="playVoiceReport()">▶ Play Voice</button>
                 <button class="btn danger" onclick="stopVoice()">■ Stop</button>
             </div>
+            <div class="signal-hint">💡 Market data refreshes every 5:30 (free). AI auto-refreshes every 1 hour or when you tap "Ask AI".</div>
         </div>
 
         <div class="card">
@@ -140,7 +143,7 @@
                 <input type="password" id="api-key-input" placeholder="AIzaSy..." style="width:100%; padding:8px; margin-top:5px; border-radius:6px; border:1px solid #444; background:#111; color:white;">
                 <button class="btn" style="margin-top:5px;" onclick="saveApiKey()">Save Key</button>
             </div>
-            <div class="chat-history" id="chat-history"><div class="msg ai fade-in">Ready, Boss. Using gemini-flash-latest (permanent alias).</div></div>
+            <div class="chat-history" id="chat-history"><div class="msg ai fade-in">Ready, Boss. Engine running in background. AI fires hourly or on demand.</div></div>
             <div class="chat-input-row">
                 <input type="text" id="chat-input" placeholder="Ask me anything, Boss..." onkeypress="if(event.key==='Enter') sendChat()">
                 <button onclick="sendChat()">Send</button>
@@ -151,7 +154,7 @@
         <div class="card"><div class="card-title">Boss's Wisdom Corner</div><div class="reasoning-text" id="wise-words">Loading...</div></div>
 
         <div class="card">
-            <div class="card-title">Multi-Timeframe Analysis</div>
+            <div class="card-title">Live Market Data (No AI quota used)</div>
             <div class="stats-grid">
                 <div class="stat-item"><span class="stat-label">Trend</span><span id="val-trend">-</span></div>
                 <div class="stat-item"><span class="stat-label">Session</span><span id="val-session">-</span></div>
@@ -163,28 +166,27 @@
             </div>
         </div>
 
-        <div class="card"><div class="card-title">AI Trader's Reasoning</div><div class="reasoning-text" id="val-reason">Waiting...</div></div>
+        <div class="card"><div class="card-title">AI Trader's Reasoning</div><div class="reasoning-text" id="val-reason">Ask AI for signal to see reasoning...</div></div>
     </div>
 
     <script>
-        const FALLBACK_URL = 'https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/data.json';
         const CONTEXT_URL = 'https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/personal_context.json';
 
-        // === PERMANENT ALIAS (never 404s) + stable fallbacks ===
+        // === STABLE MODELS (using v1 endpoint, gemini-flash-latest alias first) ===
         const STABLE_CHAT_MODELS = [
             'gemini-flash-latest',
-            'gemini-2.5-flash',
             'gemini-2.0-flash',
-            'gemini-1.5-flash'
-        ];
-        const STABLE_SIGNAL_MODELS = [
-            'gemini-flash-latest',
             'gemini-2.5-flash',
-            'gemini-2.0-flash',
-            'gemini-1.5-flash'
+            'gemini-1.5-flash-002',
+            'gemini-pro'
         ];
 
-        let globalData = null, personalContext = null;
+        const MARKET_KEYWORDS = ['market', 'buy', 'sell', 'trade', 'signal', 'entry', 'sl', 'tp',
+            'stop loss', 'take profit', 'setup', 'chart', 'trend', 'support', 'resistance',
+            'eur/usd', 'eurusd', 'should i', 'analysis', 'long', 'short', 'position', 'pip',
+            'bullish', 'bearish', 'candle', 'indicator', 'rsi', 'ema', 'atr'];
+
+        let globalData = null, personalContext = null, marketData = null;
         let webSearchEnabled = false, deepThinkEnabled = true, isSpeaking = false, chatInProgress = false;
         let chatHistory = JSON.parse(localStorage.getItem('eurusd_chat_history') || '[]');
         let longTermMemory = JSON.parse(localStorage.getItem('eurusd_long_term_memory') || '[]');
@@ -192,7 +194,11 @@
         let apiKey = localStorage.getItem('eurusd_chat_key') || '';
         let gistToken = localStorage.getItem('eurusd_gist_token') || '';
         let gistId = localStorage.getItem('eurusd_gist_id') || '';
-        let timeLeft = 330;
+        
+        // === DUAL TIMERS ===
+        let marketTimeLeft = 330;     // 5:30 for market data
+        let aiTimeLeft = 3600;        // 1 hour for AI signal
+        let aiAutoRefresh = true;     // Auto AI every hour
 
         document.body.addEventListener('click', () => { if ('speechSynthesis' in window) window.speechSynthesis.getVoices(); }, { once: true });
 
@@ -231,9 +237,9 @@
             renderer.setSize(container.clientWidth, container.clientHeight);
         });
         function updateCoreColor(signal) {
-            let color = 0xf1c40f;
+            let color = 0x8a94a6;
             if (deepThinkEnabled) color = 0xa855f7;
-            else if (signal === 'BUY') color = 0x2ecc71;
+            if (signal === 'BUY') color = 0x2ecc71;
             else if (signal === 'SELL') color = 0xe74c3c;
             glowSphere.material.color.setHex(color); innerCore.material.color.setHex(color); outerShell.material.color.setHex(color);
         }
@@ -292,32 +298,19 @@
             return [];
         }
 
-        // --- SIGNAL ---
-        async function generateSignalFromScratch() {
-            if (!apiKey) { document.getElementById('val-reason').innerText = "Please enter your Gemini API Key."; return; }
-            const signalText = document.getElementById('signal-text');
-            signalText.innerText = "REASONING...";
-            signalText.style.color = "var(--purple)";
-            document.getElementById('val-reason').innerText = "Downloading candles...";
-
+        // === BACKGROUND: Refresh market data (NO AI) ===
+        async function refreshMarketData() {
+            document.getElementById('val-reason').innerText = "Background refresh (no AI used)...";
             const [candles5m, candles15m, candles1H, candlesDaily] = await Promise.all([
                 fetchYahooCandles('5m', '5d'), fetchYahooCandles('15m', '5d'),
                 fetchYahooCandles('1h', '1mo'), fetchYahooCandles('1d', '3mo')
             ]);
 
             if (candles1H.length === 0) {
-                document.getElementById('val-reason').innerText = "Proxies failed. Falling back to data.json...";
-                signalText.innerText = "FALLBACK";
-                signalText.style.color = "var(--yellow)";
-                try {
-                    const fb = await fetch(FALLBACK_URL + '?v=' + Date.now());
-                    globalData = await fb.json();
-                    updateUI(globalData); playVoiceReport(); resetTimer(); return;
-                } catch(e) { signalText.innerText = "ERROR"; signalText.style.color = "var(--red)"; resetTimer(); return; }
+                document.getElementById('val-reason').innerText = "Market data refresh failed. Will retry in 5:30.";
+                resetMarketTimer();
+                return;
             }
-
-            signalText.innerText = "ANALYZING...";
-            document.getElementById('val-reason').innerText = "Gemini is reasoning...";
 
             const closes1H = candles1H.map(c => c.close), highs1H = candles1H.map(c => c.high), lows1H = candles1H.map(c => c.low);
             const closes5m = candles5m.map(c => c.close), highs5m = candles5m.map(c => c.high), lows5m = candles5m.map(c => c.low);
@@ -334,19 +327,65 @@
             if (rh[rh.length-1] > rh[0] && rl[rl.length-1] > rl[0]) trend = "Uptrend";
             if (rh[rh.length-1] < rh[0] && rl[rl.length-1] < rl[0]) trend = "Downtrend";
 
+            const hour = new Date().getUTCHours();
+            let session = "Off-Session";
+            if (hour >= 7 && hour < 10) session = "London Open";
+            else if (hour >= 12 && hour < 15) session = "NY Open";
+            else if (hour >= 2 && hour < 5) session = "Asian Session";
+
+            marketData = {
+                candles5m, candles15m, candles1H, candlesDaily,
+                closes5m, highs5m, lows5m, closes15m, highs15m, lows15m, closes1H, highs1H, lows1H,
+                ema20: ema20[ema20.length-1], ema50: ema50[ema50.length-1],
+                rsi1H, rsi15m, rsi5m, atr, support, resistance, currentPrice, trend, session
+            };
+
+            document.getElementById('live-price').innerHTML = `${currentPrice.toFixed(5)}<div class="last-updated">Updated: ${new Date().toLocaleTimeString('en-IN',{hour12:false})}</div>`;
+            document.getElementById('val-trend').innerText = trend;
+            document.getElementById('val-session').innerText = session;
+            document.getElementById('val-support').innerText = support.toFixed(5);
+            document.getElementById('val-resistance').innerText = resistance.toFixed(5);
+            document.getElementById('val-candle-current').innerText = `5m: ${currentPrice.toFixed(5)} | RSI: ${rsi5m.toFixed(1)}`;
+            document.getElementById('val-candle-1h').innerText = `1H Trend: ${trend} | RSI: ${rsi1H.toFixed(1)} | EMA20: ${ema20[ema20.length-1].toFixed(5)}`;
+            document.getElementById('val-candle-4h').innerText = `ATR: ${atr.toFixed(5)} | Daily context loaded`;
+
+            if (!globalData) updateCoreColor(trend === "Uptrend" ? 'BUY' : trend === "Downtrend" ? 'SELL' : 'HOLD');
+            document.getElementById('val-reason').innerText = "✅ Market data refreshed (0 AI quota). AI signal refreshes in " + Math.floor(aiTimeLeft/60) + " min.";
+            resetMarketTimer();
+        }
+
+        // === AI SIGNAL (uses quota) ===
+        function isMarketQuestion(text) {
+            const lower = text.toLowerCase();
+            return MARKET_KEYWORDS.some(kw => lower.includes(kw));
+        }
+
+        async function askAIForSignal() {
+            if (!apiKey) { alert("Please set your Gemini API Key first."); return; }
+            if (!marketData) {
+                await refreshMarketData();
+                if (!marketData) { alert("Could not fetch market data. Please try again."); return; }
+            }
+
+            const signalText = document.getElementById('signal-text');
+            signalText.innerText = "ANALYZING...";
+            signalText.style.color = "var(--purple)";
+            document.getElementById('val-reason').innerText = "🧠 AI is analyzing 5m, 15m, 1H, Daily...";
+
+            const md = marketData;
             const fmt = (arr) => arr.slice(-20).map(c => `O:${c.open.toFixed(5)} H:${c.high.toFixed(5)} L:${c.low.toFixed(5)} C:${c.close.toFixed(5)}`).join('\n');
-            const dataString = `CURRENT PRICE: ${currentPrice.toFixed(5)}\n\n5m:\n${fmt(candles5m)}\nRSI5m: ${rsi5m.toFixed(2)}\n\n15m:\n${fmt(candles15m)}\nRSI15m: ${rsi15m.toFixed(2)}\n\n1H:\n${fmt(candles1H)}\nEMA20:${ema20[ema20.length-1].toFixed(5)} EMA50:${ema50[ema50.length-1].toFixed(5)} RSI:${rsi1H.toFixed(2)} ATR:${atr.toFixed(5)}\n\nDaily:\n${fmt(candlesDaily)}\n\nSupport:${support.toFixed(5)} Resistance:${resistance.toFixed(5)} Trend:${trend}`;
+            const dataString = `CURRENT PRICE: ${md.currentPrice.toFixed(5)}\n\n5m:\n${fmt(md.candles5m)}\nRSI5m: ${md.rsi5m.toFixed(2)}\n\n15m:\n${fmt(md.candles15m)}\nRSI15m: ${md.rsi15m.toFixed(2)}\n\n1H:\n${fmt(md.candles1H)}\nEMA20:${md.ema20.toFixed(5)} EMA50:${md.ema50.toFixed(5)} RSI:${md.rsi1H.toFixed(2)} ATR:${md.atr.toFixed(5)}\n\nDaily:\n${fmt(md.candlesDaily)}\n\nSupport:${md.support.toFixed(5)} Resistance:${md.resistance.toFixed(5)} Trend:${md.trend}`;
 
             try {
                 const prompt = `You are a SENIOR EUR/USD hedge fund trader. TIME: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.\n\n${dataString}\n\nAnalyze: Daily bias -> 1H structure -> 15m/5m alignment -> key levels.\nRespond ONLY valid JSON: {"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
 
                 const payload = { contents: [{ role: 'user', parts: [{ text: prompt }] }] };
-                let reply = null;
-                let lastErr = null;
+                let reply = null, lastErr = null;
 
-                for (const model of STABLE_SIGNAL_MODELS) {
+                for (const model of STABLE_CHAT_MODELS) {
                     try {
-                        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+                        // USING v1 ENDPOINT (STABLE)
+                        const res = await fetch(`https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`, {
                             method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)
                         });
                         if (res.ok) { const d = await res.json(); reply = d.candidates[0].content.parts[0].text; console.log(`Signal from: ${model}`); break; }
@@ -356,48 +395,56 @@
                 if (!reply) throw new Error(lastErr || "All signal models failed");
                 const sig = JSON.parse(reply.replace(/```json/g,'').replace(/```/g,'').trim());
 
-                globalData = { price: currentPrice.toFixed(5), signal: sig.signal, reason: sig.reason, confidence: sig.confidence, entry: sig.entry, sl: sig.sl, tp: sig.tp, atr: atr.toFixed(5), support: support.toFixed(5), resistance: resistance.toFixed(5), trend: trend, valid: new Date(Date.now()+1800000).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})+" IST", wise_words: sig.wise_words, candle_current: `5m:${currentPrice.toFixed(5)} | 15m RSI:${rsi15m.toFixed(1)}`, candle_1h: `1H Trend:${trend} | RSI:${rsi1H.toFixed(1)}`, candle_4h: `ATR:${atr.toFixed(5)} | S/R:${support.toFixed(4)}/${resistance.toFixed(4)}` };
-                updateUI(globalData); playVoiceReport(); resetTimer();
+                globalData = {
+                    price: md.currentPrice.toFixed(5), signal: sig.signal, reason: sig.reason,
+                    confidence: sig.confidence, entry: sig.entry, sl: sig.sl, tp: sig.tp,
+                    atr: md.atr.toFixed(5), support: md.support.toFixed(5), resistance: md.resistance.toFixed(5),
+                    trend: md.trend, session: md.session,
+                    valid: new Date(Date.now()+1800000).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})+" IST",
+                    wise_words: sig.wise_words,
+                    candle_current: `5m:${md.currentPrice.toFixed(5)} | 15m RSI:${md.rsi15m.toFixed(1)}`,
+                    candle_1h: `1H Trend:${md.trend} | RSI:${md.rsi1H.toFixed(1)}`,
+                    candle_4h: `ATR:${md.atr.toFixed(5)} | S/R:${md.support.toFixed(4)}/${md.resistance.toFixed(4)}`
+                };
+
+                signalText.innerText = sig.signal;
+                if (sig.signal === 'BUY') { signalText.style.color = 'var(--green)'; signalText.style.textShadow = '0 0 30px rgba(46,204,113,0.6)'; }
+                else if (sig.signal === 'SELL') { signalText.style.color = 'var(--red)'; signalText.style.textShadow = '0 0 30px rgba(231,76,60,0.6)'; }
+                else { signalText.style.color = 'var(--yellow)'; signalText.style.textShadow = '0 0 30px rgba(241,196,15,0.5)'; }
+                updateCoreColor(sig.signal);
+
+                document.getElementById('val-confidence').innerText = sig.confidence;
+                document.getElementById('val-valid').innerText = globalData.valid;
+                document.getElementById('val-entry').innerText = sig.entry;
+                document.getElementById('val-sl').innerText = sig.sl;
+                document.getElementById('val-tp').innerText = sig.tp;
+                document.getElementById('val-atr').innerText = md.atr.toFixed(5);
+                document.getElementById('val-reason').innerText = sig.reason;
+                if (sig.wise_words) document.getElementById('wise-words').innerText = sig.wise_words;
+
+                playVoiceReport();
+                resetAiTimer();
+                return globalData;
             } catch(e) {
                 console.error(e);
-                document.getElementById('val-reason').innerText = "AI busy: " + e.message + " — Falling back to data.json...";
-                try { const fb = await fetch(FALLBACK_URL + '?v=' + Date.now()); globalData = await fb.json(); updateUI(globalData); playVoiceReport(); } catch(e2) { signalText.innerText = "ERROR"; signalText.style.color = "var(--red)"; }
-                resetTimer();
+                signalText.innerText = "AI BUSY";
+                signalText.style.color = "var(--red)";
+                document.getElementById('val-reason').innerText = "AI error: " + e.message + " — Try again in 30 seconds.";
+                resetAiTimer();
+                return null;
             }
         }
 
-        function updateUI(data) {
-            document.getElementById('live-price').innerHTML = `${data.price}<div class="last-updated">Updated: ${new Date().toLocaleTimeString('en-IN',{hour12:false})}</div>`;
-            const st = document.getElementById('signal-text');
-            st.innerText = data.signal || 'WAITING';
-            if (data.signal === 'BUY') { st.style.color = 'var(--green)'; st.style.textShadow = '0 0 30px rgba(46,204,113,0.6)'; }
-            else if (data.signal === 'SELL') { st.style.color = 'var(--red)'; st.style.textShadow = '0 0 30px rgba(231,76,60,0.6)'; }
-            else { st.style.color = 'var(--yellow)'; st.style.textShadow = '0 0 30px rgba(241,196,15,0.5)'; }
-            updateCoreColor(data.signal);
-            document.getElementById('val-confidence').innerText = data.confidence || '-';
-            document.getElementById('val-valid').innerText = data.valid || '-';
-            document.getElementById('val-entry').innerText = data.entry || '-';
-            document.getElementById('val-sl').innerText = data.sl || '-';
-            document.getElementById('val-tp').innerText = data.tp || '-';
-            document.getElementById('val-atr').innerText = data.atr || '-';
-            document.getElementById('val-trend').innerText = data.trend || '-';
-            document.getElementById('val-session').innerText = "Auto";
-            document.getElementById('val-support').innerText = data.support || '-';
-            document.getElementById('val-resistance').innerText = data.resistance || '-';
-            document.getElementById('val-candle-current').innerText = data.candle_current || '-';
-            document.getElementById('val-candle-1h').innerText = data.candle_1h || '-';
-            document.getElementById('val-candle-4h').innerText = data.candle_4h || '-';
-            document.getElementById('val-reason').innerText = data.reason || 'No reasoning.';
-            document.getElementById('wise-words').innerText = data.wise_words || 'Stay disciplined, Boss.';
-        }
-
-        function updateTimerDisplay() {
-            const m = Math.floor(timeLeft/60).toString().padStart(2,'0');
-            const s = (timeLeft%60).toString().padStart(2,'0');
+        function updateTimers() {
+            const m = Math.floor(marketTimeLeft/60).toString().padStart(2,'0');
+            const s = (marketTimeLeft%60).toString().padStart(2,'0');
+            const aiM = Math.floor(aiTimeLeft/60).toString().padStart(2,'0');
+            const aiS = (aiTimeLeft%60).toString().padStart(2,'0');
             const d = document.getElementById('ai-refresh-timer');
-            if (d && !chatInProgress) d.innerText = `Next AI refresh in: ${m}:${s}`;
+            if (d && !chatInProgress) d.innerText = `AI signal in: ${aiM}:${aiS} | Market data: ${m}:${s}`;
         }
-        function resetTimer() { timeLeft = 330; updateTimerDisplay(); }
+        function resetMarketTimer() { marketTimeLeft = 330; updateTimers(); }
+        function resetAiTimer() { aiTimeLeft = 3600; updateTimers(); }
 
         // --- VOICE ---
         const OPENINGS = ["Here is your market update, Boss.", "Let's look at the charts.", "Time for your briefing.", "Boss, new signal incoming.", "Market update."];
@@ -406,7 +453,7 @@
         const rnd = (a) => a[Math.floor(Math.random()*a.length)];
 
         function playVoiceReport() {
-            if (!globalData) return;
+            if (!globalData) { alert("Ask AI for signal first!"); return; }
             if (isSpeaking) stopVoice();
             let text = `${rnd(OPENINGS)} Price is ${globalData.price}. Signal: ${globalData.signal}, confidence ${globalData.confidence}. `;
             text += `${globalData.reason} ${rnd(TRANS)} Support ${globalData.support}, resistance ${globalData.resistance}. `;
@@ -427,9 +474,7 @@
                 if (pref) u.voice = pref;
                 u.onstart = () => isSpeaking = true; u.onend = () => isSpeaking = false;
                 window.speechSynthesis.speak(u);
-                if (isReminder) {
-                    setTimeout(() => { if (!window.speechSynthesis.speaking) window.speechSynthesis.speak(u); }, 500);
-                }
+                if (isReminder) { setTimeout(() => { if (!window.speechSynthesis.speaking) window.speechSynthesis.speak(u); }, 500); }
             }
         }
         function stopVoice() { if ('speechSynthesis' in window) { window.speechSynthesis.cancel(); isSpeaking = false; } }
@@ -449,7 +494,7 @@
             b.classList.toggle('active', deepThinkEnabled);
             b.classList.toggle('deep', deepThinkEnabled);
             b.innerText = deepThinkEnabled ? '🧠 Deep ON' : '🧠 Deep OFF';
-            updateCoreColor(globalData?.signal || 'HOLD');
+            updateCoreColor(globalData?.signal);
         }
         function toggleWeb() { webSearchEnabled = !webSearchEnabled; const b = document.getElementById('web-toggle'); b.innerText = webSearchEnabled ? '🌐 Web ON' : '🌐 Web OFF'; b.classList.toggle('active', webSearchEnabled); }
         function togglePanel(id) { const el = document.getElementById(id); el.classList.toggle('active');
@@ -487,13 +532,21 @@
 
             const loading = document.createElement('div');
             loading.className = 'msg ai thinking fade-in';
-            loading.innerText = deepThinkEnabled ? '🧠 Thinking deeply...' : '...';
+            loading.innerText = deepThinkEnabled ? '🧠 Thinking...' : '...';
             document.getElementById('chat-history').appendChild(loading);
             document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight;
 
             try {
-                let response = await callGeminiAPI(text);
+                const wantsSignal = isMarketQuestion(text);
+                let response = await callGeminiAPI(text, wantsSignal);
                 response = cleanResponse(response);
+
+                let signalData = null;
+                const jsonMatch = response.match(/\{[\s\S]*?"signal"[\s\S]*?\}/);
+                if (jsonMatch) {
+                    try { signalData = JSON.parse(jsonMatch[0]); response = response.replace(jsonMatch[0], '').trim(); } catch(e) { console.log("JSON parse failed"); }
+                }
+
                 document.getElementById('chat-history').removeChild(loading);
 
                 const rm = response.match(/\[REMINDER:\s*(\d{2}:\d{2})\s*-\s*(.*?)\]/);
@@ -501,33 +554,67 @@
                 const mm = response.match(/\[REMEMBER:\s*(.*?)\]/);
                 if (mm) { addLongTermMemory(mm[1]); response = response.replace(/\[REMEMBER:.*?\]/g, '').trim(); }
 
-                chatHistory.push({role:'ai', text: response}); renderChat(); saveChatHistory(); speakText(response);
+                chatHistory.push({role:'ai', text: response}); renderChat(); saveChatHistory();
+                speakText(response);
+
+                if (signalData && marketData) {
+                    globalData = {
+                        price: marketData.currentPrice.toFixed(5), signal: signalData.signal, reason: signalData.reason,
+                        confidence: signalData.confidence, entry: signalData.entry, sl: signalData.sl, tp: signalData.tp,
+                        atr: marketData.atr.toFixed(5), support: marketData.support.toFixed(5), resistance: marketData.resistance.toFixed(5),
+                        trend: marketData.trend, session: marketData.session,
+                        valid: new Date(Date.now()+1800000).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})+" IST",
+                        wise_words: signalData.wise_words
+                    };
+                    const st = document.getElementById('signal-text');
+                    st.innerText = signalData.signal;
+                    if (signalData.signal === 'BUY') { st.style.color = 'var(--green)'; st.style.textShadow = '0 0 30px rgba(46,204,113,0.6)'; }
+                    else if (signalData.signal === 'SELL') { st.style.color = 'var(--red)'; st.style.textShadow = '0 0 30px rgba(231,76,60,0.6)'; }
+                    else { st.style.color = 'var(--yellow)'; st.style.textShadow = '0 0 30px rgba(241,196,15,0.5)'; }
+                    updateCoreColor(signalData.signal);
+                    document.getElementById('val-confidence').innerText = signalData.confidence;
+                    document.getElementById('val-valid').innerText = globalData.valid;
+                    document.getElementById('val-entry').innerText = signalData.entry;
+                    document.getElementById('val-sl').innerText = signalData.sl;
+                    document.getElementById('val-tp').innerText = signalData.tp;
+                    document.getElementById('val-atr').innerText = marketData.atr.toFixed(5);
+                    document.getElementById('val-reason').innerText = signalData.reason;
+                    if (signalData.wise_words) document.getElementById('wise-words').innerText = signalData.wise_words;
+                    resetAiTimer();
+                }
             } catch(e) {
                 if (document.getElementById('chat-history').contains(loading)) document.getElementById('chat-history').removeChild(loading);
                 chatHistory.push({role:'ai', text: `Error: ${e.message}`}); renderChat();
             } finally {
                 chatInProgress = false;
-                updateTimerDisplay();
+                updateTimers();
             }
         }
 
-        async function callGeminiAPI(userText) {
+        async function callGeminiAPI(userText, includeSignal = false) {
             const recent = chatHistory.slice(-3);
             const recentMem = longTermMemory.slice(-8);
             
-            const systemPrompt = `You are Boss's senior AI trading assistant. Friendly, wise, analytical. No emojis. Call him "Boss".
-Current time: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.
+            let marketString = "";
+            if (marketData) {
+                marketString = `\nCURRENT MARKET DATA (live):\nPrice: ${marketData.currentPrice.toFixed(5)}\nTrend: ${marketData.trend}\nSupport: ${marketData.support.toFixed(5)} | Resistance: ${marketData.resistance.toFixed(5)}\nRSI 1H: ${marketData.rsi1H.toFixed(2)} | RSI 15m: ${marketData.rsi15m.toFixed(2)}\nEMA20 1H: ${marketData.ema20.toFixed(5)} | EMA50 1H: ${marketData.ema50.toFixed(5)}\nATR 1H: ${marketData.atr.toFixed(5)}\nSession: ${marketData.session}\n`;
+            }
+
+            let systemPrompt = `You are Boss's senior AI trading assistant. Friendly, wise, analytical. No emojis. Call him "Boss".
+Current time: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.${marketString}
 
 === REMINDER INSTRUCTIONS ===
 When Boss asks you to remind him IN X MINUTES, add X minutes to current IST time and append [REMINDER: HH:MM - message].
 When given absolute time (e.g. "at 4 PM"), use [REMINDER: 16:00 - message].
 
 === MEMORY ===
-If you learn a new fact, append [REMEMBER: fact].
+If you learn a new fact, append [REMEMBER: fact].`;
 
-=== RESPONSE RULES ===
-- No thought process, self-evaluation, or bullet points.
-- Be confident and concise.`;
+            if (includeSignal) {
+                systemPrompt += `\n\n=== SIGNAL REQUESTED ===\nBoss is asking about the market. After your chat reply, add a JSON block on a new line:\n{"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
+            }
+
+            systemPrompt += `\n\n=== RESPONSE RULES ===\n- No thought process, self-evaluation, or bullet points.\n- Be confident and concise.`;
 
             const contents = [
                 {role:'user', parts:[{text: systemPrompt}]},
@@ -538,7 +625,7 @@ If you learn a new fact, append [REMEMBER: fact].
             const payload = { 
                 contents, 
                 tools: webSearchEnabled ? [{google_search:{}}] : [], 
-                generationConfig: { maxOutputTokens: deepThinkEnabled ? 800 : 400 }
+                generationConfig: { maxOutputTokens: deepThinkEnabled ? 900 : 500 }
             };
 
             const models = deepThinkEnabled ? STABLE_CHAT_MODELS.slice(0, 4) : STABLE_CHAT_MODELS.slice(0, 3);
@@ -550,7 +637,8 @@ If you learn a new fact, append [REMEMBER: fact].
                     const ctrl = new AbortController();
                     const tid = setTimeout(() => ctrl.abort(), timeout);
                     
-                    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+                    // USING v1 ENDPOINT (STABLE)
+                    const r = await fetch(`https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`, {
                         method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload), signal: ctrl.signal
                     });
                     clearTimeout(tid);
@@ -576,7 +664,7 @@ If you learn a new fact, append [REMEMBER: fact].
             throw new Error(lastErr || "All models busy. Wait 30 seconds.");
         }
 
-        // --- REMINDERS (Auto-fire with Voice) ---
+        // --- REMINDERS ---
         function addReminder(time, message) {
             const reminder = {id: Math.random().toString(36).substr(2,9), time, message, voice:true, fired:false, created: new Date().toISOString()};
             reminders.push(reminder);
@@ -657,13 +745,26 @@ If you learn a new fact, append [REMEMBER: fact].
             }
             setTimeout(checkMissedReminders, 3000);
 
-            generateSignalFromScratch();
-            resetTimer();
+            // First market refresh (no AI)
+            refreshMarketData();
+            resetMarketTimer();
+            resetAiTimer();
+
+            // Dual timer loop
             setInterval(() => {
                 if (chatInProgress) return;
-                timeLeft--;
-                if (timeLeft <= 0) { timeLeft = 330; generateSignalFromScratch(); }
-                updateTimerDisplay();
+                
+                // Market data timer (5:30)
+                marketTimeLeft--;
+                if (marketTimeLeft <= 0) { marketTimeLeft = 330; refreshMarketData(); }
+                
+                // AI signal timer (1 hour)
+                if (aiAutoRefresh) {
+                    aiTimeLeft--;
+                    if (aiTimeLeft <= 0) { aiTimeLeft = 3600; askAIForSignal(); }
+                }
+                
+                updateTimers();
             }, 1000);
         };
     </script>
