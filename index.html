@@ -59,6 +59,26 @@
         .chat-msg.system { background: rgba(148,163,184,0.1); color: var(--muted); align-self: center; font-size: 0.8rem; font-style: italic; text-align: center; }
         .chat-msg.thinking { background: rgba(255,255,255,0.05); color: var(--muted); align-self: flex-start; font-style: italic; }
         .chat-msg.error { background: rgba(255,51,102,0.1); color: var(--red); align-self: flex-start; border-left: 3px solid var(--red); font-family: monospace; font-size: 0.75rem; max-width: 100%; }
+        .chat-speak-btn {
+            display: inline-block;
+            margin-left: 10px;
+            padding: 4px 8px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            font-size: 0.85rem;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: all 0.2s;
+            vertical-align: middle;
+        }
+        .chat-speak-btn:hover {
+            opacity: 1;
+            background: rgba(0,255,136,0.15);
+            border-color: var(--green);
+            transform: scale(1.05);
+        }
         .chat-input-row { display: flex; gap: 10px; }
         .chat-input { flex: 1; padding: 14px 16px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-size: 1rem; font-family: inherit; outline: none; transition: 0.2s; }
         .chat-input:focus { border-color: var(--accent); }
@@ -352,10 +372,45 @@
         function addMessage(role, text) {
             const div = document.createElement("div");
             div.className = `chat-msg ${role}`;
-            div.innerText = text;
+            
+            const textSpan = document.createElement("span");
+            textSpan.innerText = text;
+            div.appendChild(textSpan);
+            
+            // Speaker button for AI messages only
+            if (role === "ai" && text && text.length > 5) {
+                const speaker = document.createElement("button");
+                speaker.className = "chat-speak-btn";
+                speaker.innerHTML = "🔊";
+                speaker.title = "Read this aloud";
+                speaker.onclick = (e) => {
+                    e.stopPropagation();
+                    speakChatText(text);
+                    speaker.style.opacity = "1";
+                    speaker.style.background = "var(--green)";
+                    setTimeout(() => {
+                        speaker.style.background = "";
+                        speaker.style.opacity = "";
+                    }, 800);
+                };
+                div.appendChild(speaker);
+            }
+            
             chatMessages.appendChild(div);
             chatMessages.scrollTop = chatMessages.scrollHeight;
             return div;
+        }
+
+        // Speak any text using the same voice system
+        function speakChatText(text) {
+            window.speechSynthesis.cancel();
+            const u = new SpeechSynthesisUtterance(text);
+            const v = getBestVoice();
+            if (v) u.voice = v;
+            u.rate = 0.92 + Math.random() * 0.08;
+            u.pitch = 0.90 + Math.random() * 0.15;
+            u.volume = 1.0;
+            window.speechSynthesis.speak(u);
         }
 
         function buildSystemPrompt() {
@@ -426,7 +481,7 @@ CURRENT MARKET STATE:
                     generationConfig: { temperature: 0.7, maxOutputTokens: 800 }
                 };
 
-                // Step 1: Ask Google which models this key can use
+                // Discover available models
                 let availableModels = [];
                 try {
                     const listResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
@@ -435,14 +490,9 @@ CURRENT MARKET STATE:
                         availableModels = (listJson.models || [])
                             .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent"))
                             .map(m => m.name.replace("models/", ""));
-                        console.log("Available models:", availableModels);
-                    } else {
-                        const errText = await listResp.text();
-                        console.log("ListModels failed:", errText);
                     }
                 } catch (e) { console.log("ListModels exception:", e); }
 
-                // Step 2: Build priority list
                 const priorityKeywords = ["2.0-flash", "2.5-flash", "1.5-flash", "flash"];
                 let modelsToTry = [];
                 if (availableModels.length > 0) {
@@ -496,9 +546,11 @@ CURRENT MARKET STATE:
                     addMessage("ai", answer.trim());
                     chatHistory.push({ role: "model", parts: [{ text: answer.trim() }] });
                     if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
+                    // Auto-speak the AI reply
+                    speakChatText(answer.trim());
                 } else {
                     const debugInfo = availableModels.length > 0
-                        ? `Available models on your key: ${availableModels.slice(0, 10).join(", ")}\n\nErrors: ${allErrors.join("; ")}`
+                        ? `Available models: ${availableModels.slice(0, 10).join(", ")}\n\nErrors: ${allErrors.join("; ")}`
                         : `Could not list models.\n\nErrors: ${allErrors.join("; ")}\n\nLast: ${lastError}`;
                     addMessage("error", `Boss, connection failed.\n\nDebug:\n${debugInfo}`);
                 }
