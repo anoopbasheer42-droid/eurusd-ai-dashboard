@@ -136,9 +136,8 @@
                 <strong>Gemini API Key</strong>
                 <input type="password" id="api-key-input" placeholder="AIzaSy..." style="width:100%; padding:8px; margin-top:5px; border-radius:6px; border:1px solid #444; background:#111; color:white;">
                 <button class="btn" style="margin-top:5px;" onclick="saveApiKey()">Save Key</button>
-                <p style="font-size:0.65rem; color:var(--text-muted); margin-top:5px;">Get a new key: aistudio.google.com/apikey</p>
             </div>
-            <div class="chat-history" id="chat-history"><div class="msg ai fade-in">Ready, Boss. Rate limit is reset. Try again now.</div></div>
+            <div class="chat-history" id="chat-history"><div class="msg ai fade-in">Ready, Boss. Using stable model list now.</div></div>
             <div class="chat-input-row">
                 <input type="text" id="chat-input" placeholder="Ask me anything, Boss..." onkeypress="if(event.key==='Enter') sendChat()">
                 <button onclick="sendChat()">Send</button>
@@ -168,6 +167,21 @@
         const FALLBACK_URL = 'https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/data.json';
         const CONTEXT_URL = 'https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/personal_context.json';
 
+        // === HARDCODED STABLE MODEL LIST (NO DISCOVERY) ===
+        // Only these 4 models are tried, in this order.
+        // All are STABLE, not preview, not experimental.
+        const STABLE_CHAT_MODELS = [
+            'gemini-1.5-flash',
+            'gemini-1.5-flash-latest',
+            'gemini-1.5-flash-002',
+            'gemini-2.0-flash'
+        ];
+        const STABLE_SIGNAL_MODELS = [
+            'gemini-1.5-flash',
+            'gemini-1.5-flash-latest',
+            'gemini-2.0-flash'
+        ];
+
         let globalData = null, personalContext = null;
         let webSearchEnabled = false, deepThinkEnabled = true, isSpeaking = false, chatInProgress = false;
         let chatHistory = JSON.parse(localStorage.getItem('eurusd_chat_history') || '[]');
@@ -176,7 +190,6 @@
         let apiKey = localStorage.getItem('eurusd_chat_key') || '';
         let gistToken = localStorage.getItem('eurusd_gist_token') || '';
         let gistId = localStorage.getItem('eurusd_gist_id') || '';
-        let cachedModels = null;
         let timeLeft = 330;
 
         document.body.addEventListener('click', () => { if ('speechSynthesis' in window) window.speechSynthesis.getVoices(); }, { once: true });
@@ -323,26 +336,29 @@
             const dataString = `CURRENT PRICE: ${currentPrice.toFixed(5)}\n\n5m:\n${fmt(candles5m)}\nRSI5m: ${rsi5m.toFixed(2)}\n\n15m:\n${fmt(candles15m)}\nRSI15m: ${rsi15m.toFixed(2)}\n\n1H:\n${fmt(candles1H)}\nEMA20:${ema20[ema20.length-1].toFixed(5)} EMA50:${ema50[ema50.length-1].toFixed(5)} RSI:${rsi1H.toFixed(2)} ATR:${atr.toFixed(5)}\n\nDaily:\n${fmt(candlesDaily)}\n\nSupport:${support.toFixed(5)} Resistance:${resistance.toFixed(5)} Trend:${trend}`;
 
             try {
-                const prompt = `You are a SENIOR EUR/USD hedge fund trader. TIME: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.\n\n${dataString}\n\nREASONING (internal, do not output): Check Daily bias -> 1H structure -> 15m/5m alignment -> key levels -> invalidation.\nRespond ONLY valid JSON: {"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
+                const prompt = `You are a SENIOR EUR/USD hedge fund trader. TIME: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.\n\n${dataString}\n\nAnalyze: Daily bias -> 1H structure -> 15m/5m alignment -> key levels.\nRespond ONLY valid JSON: {"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
 
                 const payload = { contents: [{ role: 'user', parts: [{ text: prompt }] }] };
-                const modelsToTry = await getAvailableGeminiModels();
                 let reply = null;
-                for (const model of modelsToTry) {
+                let lastErr = null;
+
+                for (const model of STABLE_SIGNAL_MODELS) {
                     try {
                         const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
                             method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)
                         });
-                        if (res.ok) { const d = await res.json(); reply = d.candidates[0].content.parts[0].text; break; }
-                    } catch(e) { continue; }
+                        if (res.ok) { const d = await res.json(); reply = d.candidates[0].content.parts[0].text; console.log(`Signal from: ${model}`); break; }
+                        else { const err = await res.json(); lastErr = err.error?.message; }
+                    } catch(e) { lastErr = e.message; }
                 }
-                if (!reply) throw new Error("All models failed");
+                if (!reply) throw new Error(lastErr || "All signal models failed");
                 const sig = JSON.parse(reply.replace(/```json/g,'').replace(/```/g,'').trim());
 
                 globalData = { price: currentPrice.toFixed(5), signal: sig.signal, reason: sig.reason, confidence: sig.confidence, entry: sig.entry, sl: sig.sl, tp: sig.tp, atr: atr.toFixed(5), support: support.toFixed(5), resistance: resistance.toFixed(5), trend: trend, valid: new Date(Date.now()+1800000).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})+" IST", wise_words: sig.wise_words, candle_current: `5m:${currentPrice.toFixed(5)} | 15m RSI:${rsi15m.toFixed(1)}`, candle_1h: `1H Trend:${trend} | RSI:${rsi1H.toFixed(1)}`, candle_4h: `ATR:${atr.toFixed(5)} | S/R:${support.toFixed(4)}/${resistance.toFixed(4)}` };
                 updateUI(globalData); playVoiceReport(); resetTimer();
             } catch(e) {
-                document.getElementById('val-reason').innerText = "AI busy. Falling back to data.json...";
+                console.error(e);
+                document.getElementById('val-reason').innerText = "AI busy: " + e.message + " — Falling back to data.json...";
                 try { const fb = await fetch(FALLBACK_URL + '?v=' + Date.now()); globalData = await fb.json(); updateUI(globalData); playVoiceReport(); } catch(e2) { signalText.innerText = "ERROR"; signalText.style.color = "var(--red)"; }
                 resetTimer();
             }
@@ -488,77 +504,19 @@
             }
         }
 
-        // --- FIXED MODEL DISCOVERY (filters out tts, embedding, etc.) ---
-        async function getAvailableGeminiModels() {
-            if (cachedModels) return cachedModels;
-            try {
-                const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-                if (r.ok) {
-                    const d = await r.json();
-                    const valid = d.models
-                        .filter(m => m.supportedGenerationMethods?.includes('generateContent'))
-                        .map(m => m.name.replace('models/',''))
-                        // BAN these models (tts, embedding, aqa, vision, etc.)
-                        .filter(name => {
-                            const n = name.toLowerCase();
-                            if (n.includes('tts')) return false;         // Text-to-speech (huge quota problem)
-                            if (n.includes('embedding')) return false;   // Embeddings
-                            if (n.includes('aqa')) return false;         // Attributed QA
-                            if (n.includes('vision')) return false;      // Vision-only
-                            if (n.includes('image')) return false;       // Image generation
-                            if (n.includes('video')) return false;       // Video
-                            if (n.includes('audio')) return false;       // Audio
-                            if (n.includes('learnlm')) return false;     // LearnLM variants
-                            return true;
-                        });
-                    if (valid.length > 0) {
-                        // PRIORITY: 1.5-flash first (best free tier), then 1.5-pro, then 2.0, then 2.5
-                        const sorted = valid.sort((a, b) => {
-                            const score = (m) => {
-                                if (m === 'gemini-1.5-flash') return 1;
-                                if (m === 'gemini-1.5-flash-latest') return 2;
-                                if (m === 'gemini-1.5-flash-002') return 3;
-                                if (m === 'gemini-1.5-pro') return 4;
-                                if (m === 'gemini-1.5-pro-latest') return 5;
-                                if (m.includes('1.5-flash')) return 10;
-                                if (m.includes('1.5-pro')) return 11;
-                                if (m.includes('2.0-flash')) return 20;
-                                if (m.includes('2.0')) return 21;
-                                if (m.includes('2.5-flash')) return 30;
-                                if (m.includes('2.5')) return 31;
-                                return 100;
-                            };
-                            return score(a) - score(b);
-                        });
-                        cachedModels = sorted;
-                        return sorted;
-                    }
-                }
-            } catch(e) { console.log("Model discovery failed."); }
-            // Fallback list (safe models only)
-            return ['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-pro', 'gemini-2.0-flash'];
-        }
-
         async function callGeminiAPI(userText) {
             const recent = chatHistory.slice(-3);
             const recentMem = longTermMemory.slice(-8);
             
-            const systemPrompt = `You are Boss's senior AI trading assistant. Friendly, wise, deeply analytical. No emojis. Call him "Boss".
-
+            const systemPrompt = `You are Boss's senior AI trading assistant. Friendly, wise, analytical. No emojis. Call him "Boss".
 Current time: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.
 Personal context: ${JSON.stringify(personalContext)}.
 Memory: ${JSON.stringify(recentMem)}.
 
-REASONING APPROACH (internal, don't output):
-1. Understand what Boss is really asking.
-2. Consider context, market conditions, and his goals (10,000 INR/month, conservative).
-3. Weigh pros and cons.
-4. Give a clear, decisive answer.
-
 CRITICAL RULES:
-- Do NOT output your thought process, self-evaluation, bullet points, or internal dialogue.
-- If Boss asks to remind him IN X MINUTES, add X to the current IST time and append [REMINDER: HH:MM - message].
-- If he gives absolute time, use that.
+- Do NOT output thought process, self-evaluation, or bullet points.
+- If Boss asks to remind him IN X MINUTES, add X to current IST time and append [REMINDER: HH:MM - message].
+- If he gives absolute time, use that time.
 - If you learn a new fact, append [REMEMBER: fact].
 
 Keep responses focused and confident.`;
@@ -575,11 +533,11 @@ Keep responses focused and confident.`;
                 generationConfig: { maxOutputTokens: deepThinkEnabled ? 800 : 400 }
             };
 
-            const models = await getAvailableGeminiModels();
-            const limit = deepThinkEnabled ? 4 : 3;
+            // USE HARDCODED STABLE MODELS ONLY
+            const models = deepThinkEnabled ? STABLE_CHAT_MODELS.slice(0, 4) : STABLE_CHAT_MODELS.slice(0, 3);
             let lastErr = null;
             
-            for (const model of models.slice(0, limit)) {
+            for (const model of models) {
                 try {
                     const timeout = deepThinkEnabled ? 30000 : 15000;
                     const ctrl = new AbortController();
@@ -596,22 +554,25 @@ Keep responses focused and confident.`;
                         if (webSearchEnabled && d.candidates[0].groundingMetadata?.groundingChunks) {
                             reply += "\n\nSources:\n" + d.candidates[0].groundingMetadata.groundingChunks.map(s => `- ${s.web?.title || 'Source'}`).join('\n');
                         }
-                        console.log(`Chat reply from: ${model}`);
+                        console.log(`✓ Chat reply from: ${model}`);
                         return reply;
                     } else {
                         const err = await r.json();
                         const msg = err.error?.message || 'API failed';
-                        // If quota exceeded, try next model immediately
-                        if (msg.includes('quota') || msg.includes('Quota') || msg.includes('exceeded')) {
-                            console.log(`Quota hit for ${model}, trying next...`);
-                            lastErr = `Quota exceeded on ${model}. Trying next...`;
+                        console.log(`✗ ${model}: ${msg.substring(0,80)}`);
+                        lastErr = msg;
+                        // If it's a quota error, try next model immediately
+                        if (msg.includes('quota') || msg.includes('Quota') || msg.includes('exceeded') || msg.includes('not found')) {
                             continue;
                         }
-                        lastErr = msg;
+                        // Other error (like safety block), stop
+                        if (msg.includes('SAFETY')) throw new Error("Message blocked by safety filter.");
                     }
-                } catch(e) { lastErr = e.name === 'AbortError' ? 'Timeout' : e.message; }
+                } catch(e) { 
+                    lastErr = e.name === 'AbortError' ? 'Request timed out' : e.message; 
+                }
             }
-            throw new Error(lastErr || "All models quota exceeded. Wait a few hours or get a new API key.");
+            throw new Error(lastErr || "All stable models busy. Wait 30 seconds.");
         }
 
         // --- REMINDERS ---
@@ -627,7 +588,7 @@ Keep responses focused and confident.`;
         function addLongTermMemory(fact) { longTermMemory.push({fact, added: new Date().toISOString().split('T')[0]}); localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); }
         function renderMemory() { const l = document.getElementById('memory-list'); if (longTermMemory.length === 0) { l.innerHTML = 'No facts.'; return; } l.innerHTML = longTermMemory.map(m => `<div>• ${m.fact} <span style="color:#555;">(${m.added})</span></div>`).join(''); }
         function clearLongTermMemory() { if (confirm("Clear memory?")) { longTermMemory = []; localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); renderMemory(); } }
-        function saveApiKey() { const v = document.getElementById('api-key-input').value.trim(); if (v) { apiKey = v; localStorage.setItem('eurusd_chat_key', apiKey); cachedModels = null; alert("Key saved! Models will refresh."); togglePanel('panel-key'); } }
+        function saveApiKey() { const v = document.getElementById('api-key-input').value.trim(); if (v) { apiKey = v; localStorage.setItem('eurusd_chat_key', apiKey); alert("Key saved!"); togglePanel('panel-key'); } }
 
         // --- INIT ---
         window.onload = () => {
