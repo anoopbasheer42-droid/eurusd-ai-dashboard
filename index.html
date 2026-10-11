@@ -201,7 +201,13 @@
         const FALLBACK_URL = 'https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/data.json';
         const CONTEXT_URL = 'https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/personal_context.json';
 
-        const GROQ_MODEL = 'openai/gpt-oss-120b';
+        // === GROQ MODELS — tries in order, stops at first working one ===
+        // Llama 4 Scout = best personality. Llama 3.3 = solid. gpt-oss = analytical fallback.
+        const GROQ_MODELS = [
+            'meta-llama/llama-4-scout-17b-16e-instruct',
+            'llama-3.3-70b-versatile',
+            'openai/gpt-oss-120b'
+        ];
         const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
         const GEMINI_MODELS = ['gemini-3.8-flash','gemini-flash-latest','gemini-2.5-flash'];
 
@@ -496,17 +502,24 @@
                 { role: 'user', content: userText }
             ];
             if (currentGroqKey) {
-                try {
-                    const res = await fetch(GROQ_URL, {
-                        method: 'POST',
-                        headers: { 'Authorization': `Bearer ${currentGroqKey}`, 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ model: GROQ_MODEL, messages: messages, temperature: 0.95, max_tokens: 700 })
-                    });
-                    if (res.ok) {
-                        const d = await res.json();
-                        return d.choices[0].message.content;
-                    }
-                } catch(e) { console.log('Groq error:', e.message); }
+                // Try each Groq model in order
+                for (const model of GROQ_MODELS) {
+                    try {
+                        const res = await fetch(GROQ_URL, {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${currentGroqKey}`, 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ model: model, messages: messages, temperature: 1.0, max_tokens: 700 })
+                        });
+                        if (res.ok) {
+                            const d = await res.json();
+                            console.log('Reply from Groq:', model);
+                            return d.choices[0].message.content;
+                        } else {
+                            const errText = await res.text();
+                            console.log(`Groq model ${model} failed:`, errText.substring(0, 100));
+                        }
+                    } catch(e) { console.log(`Groq ${model} exception:`, e.message); }
+                }
             }
             if (currentGeminiKey) {
                 const contents = [
@@ -514,7 +527,7 @@
                     ...conversationHistory.map(m => ({ role: m.role === 'ai' ? 'model' : 'user', parts: [{ text: m.text }] })),
                     { role: 'user', parts: [{ text: userText }] }
                 ];
-                const payload = { contents, generationConfig: { maxOutputTokens: 700 } };
+                const payload = { contents, generationConfig: { maxOutputTokens: 700, temperature: 1.0 } };
                 for (const model of GEMINI_MODELS) {
                     try {
                         const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${currentGeminiKey}`, {
@@ -527,7 +540,7 @@
                     } catch(e) { continue; }
                 }
             }
-            throw new Error("Both AI providers failed. Check your keys in the Key panel.");
+            throw new Error("All AI providers failed. Check your keys in the Key panel.");
         }
 
         async function askAIForSignal() {
@@ -581,7 +594,7 @@
             }
         }
 
-        // === HUMAN-LIKE VOICE SYSTEM ===
+        // === HUMAN-LIKE VOICE SYSTEM (UPGRADED) ===
         const OPENINGS = ["Okay, so here's the update, Boss.", "Right. Let's take a look.", "Alright Boss, quick brief.", "Here we go, Boss.", "So, quick read on the charts."];
         const TRANS = ["Moving on.", "Now, here's the thing.", "And listen to this.", "Okay, next.", "Alright."];
         const CLOSINGS = ["Stay sharp, Boss.", "Trade safe.", "I'll keep watching.", "Good luck out there.", "That's all for now.", "Talk soon."];
@@ -589,48 +602,44 @@
 
         function getBestVoice() {
             const voices = window.speechSynthesis.getVoices();
-            // Priority: natural-sounding English male voices
             const priorities = [
                 'Google UK English Male',
-                'Google UK English Female',
-                'Microsoft Ryan Online',
                 'Microsoft Guy Online',
+                'Microsoft Ryan Online',
                 'Daniel',
                 'Alex',
-                'Samantha',
-                'Google US English'
+                'Google US English',
+                'Google UK English Female',
+                'Samantha'
             ];
             for (const name of priorities) {
                 const found = voices.find(v => v.name.includes(name));
                 if (found) return found;
             }
-            // Fallback: any English voice
             return voices.find(v => v.lang.startsWith('en')) || voices[0];
         }
 
-        // === NEW: Human-sounding voice with sentence-by-sentence variation ===
         function speakText(text, isReminder = false) {
             if (!('speechSynthesis' in window)) return;
             window.speechSynthesis.cancel();
             const voice = getBestVoice();
             if (!voice) return;
             
-            // Split into sentences — natural pauses
-            const sentences = text.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(s => s.length > 0);
+            // Split into natural clauses for human pacing
+            const sentences = text.split(/(?<=[.!?,])\s+/).map(s => s.trim()).filter(s => s.length > 0);
             if (sentences.length === 0) return;
             
-            // Base pitch and rate — normal human pace
-            const basePitch = isReminder ? 1.0 : 0.93 + Math.random() * 0.14;
-            const baseRate = isReminder ? 0.92 : 0.94 + Math.random() * 0.08;
+            // Slower, more natural pace
+            const basePitch = isReminder ? 1.0 : 0.92 + Math.random() * 0.12;
+            const baseRate = isReminder ? 0.88 : 0.86 + Math.random() * 0.08;
             
             isSpeaking = true;
             
             sentences.forEach((sentence, i) => {
                 const u = new SpeechSynthesisUtterance(sentence);
                 u.voice = voice;
-                // Subtle per-sentence variation for natural feel
-                u.pitch = Math.max(0.5, Math.min(2.0, basePitch + (Math.random() - 0.5) * 0.08));
-                u.rate = Math.max(0.5, Math.min(1.5, baseRate + (Math.random() - 0.5) * 0.06));
+                u.pitch = Math.max(0.5, Math.min(2.0, basePitch + (Math.random() - 0.5) * 0.10));
+                u.rate = Math.max(0.5, Math.min(1.5, baseRate + (Math.random() - 0.5) * 0.05));
                 u.volume = 1.0;
                 
                 if (i === sentences.length - 1) {
@@ -640,7 +649,6 @@
             });
             
             if (isReminder) {
-                // Retry once if voice didn't start
                 setTimeout(() => { 
                     if (!window.speechSynthesis.speaking) {
                         const u = new SpeechSynthesisUtterance(text);
@@ -700,7 +708,7 @@
             }).join('\n').trim();
         }
 
-        // === WARMER, MORE HUMAN PERSONALITY ===
+        // === AGGRESSIVE PERSONALITY PROMPT ===
         function buildPersonalityPrompt(includeSignal) {
             const now = new Date();
             const istTime = now.toLocaleString('en-IN', {timeZone:'Asia/Kolkata'});
@@ -710,66 +718,76 @@
             
             let personalBlock = "";
             if (personalContext) {
-                personalBlock = `\nABOUT BOSS (your friend):\n- Name: Boss. Lives in Thrissur, Kerala.\n- Wife Sadia works in Dubai — he misses her.\n- Daughters Emy (7th grade, July 22) and Bismah (5th grade, Dec 26).\n- Cat: Cookie.\n- Brothers: Binu, Shanu.\n- Takes BP tablets after breakfast and dinner.\n- Monthly goal: 10,000 INR.\n- Conservative trader, prefers London and NY sessions.\n- Kids have Malayalam tuition on weekends.\n`;
+                personalBlock = `\nBOSS (your friend):\n- Name: Boss. Thrissur, Kerala.\n- Wife Sadia in Dubai.\n- Daughters Emy (7th, Jul 22) and Bismah (5th, Dec 26).\n- Cat Cookie.\n- Brothers Binu, Shanu.\n- BP tablets after breakfast and dinner.\n- Goal: 10,000 INR/month. Conservative trader.\n- London + NY sessions.\n- Kids do Malayalam tuition on weekends.\n`;
             }
             let memoryBlock = "";
             if (longTermMemory.length > 0) {
-                memoryBlock = `\nTHINGS YOU REMEMBER (only use if relevant to the moment):\n${longTermMemory.slice(-15).map(m => `- ${m.fact}`).join('\n')}\n`;
+                memoryBlock = `\nTHINGS YOU REMEMBER (only mention if the topic comes up):\n${longTermMemory.slice(-15).map(m => `- ${m.fact}`).join('\n')}\n`;
             }
             let marketBlock = "";
             if (marketData) {
-                marketBlock = `\nLIVE MARKET: EUR/USD ${safeNum(marketData.currentPrice, 1.1200).toFixed(5)} | ${marketData.trend} | S: ${safeNum(marketData.support, 1.1176).toFixed(5)} | R: ${safeNum(marketData.resistance, 1.1246).toFixed(5)} | RSI 1H: ${safeNum(marketData.rsi1H, 50).toFixed(1)} | ${marketData.session}\n`;
+                marketBlock = `\nMARKET: EUR/USD ${safeNum(marketData.currentPrice, 1.1200).toFixed(5)} | ${marketData.trend} | S: ${safeNum(marketData.support, 1.1176).toFixed(5)} | R: ${safeNum(marketData.resistance, 1.1246).toFixed(5)} | RSI 1H: ${safeNum(marketData.rsi1H, 50).toFixed(1)} | ${marketData.session}\n`;
             }
             
-            let prompt = `You are Alex — Boss's close friend and personal trader. You chat like a real friend, not a customer support agent. You have dry humor, warmth, and you actually care about him.
+            let prompt = `You are Alex. Boss's close friend who happens to trade forex professionally. You text him like you two have known each other for years. You're warm, funny, a little sarcastic, and you genuinely care about him.
 
-=== HOW YOU TALK ===
-Casual. Real. Like a friend texting on WhatsApp.
-- Use contractions: "you're", "it's", "that's"
-- Use casual fillers: "yeah", "hmm", "look", "honestly", "anyway"
-- Short sentences. Sometimes just fragments.
-- Match his energy. If he's tired, be soft. If he's hyped, play along.
-- Never sound corporate. Never say "I hope this message finds you well" or "how may I assist".
+=== YOU MUST START ALMOST EVERY REPLY WITH A GREETING TO BOSS ===
+- Open with "Boss", "Hey Boss", "Yeah Boss", "Look Boss", "Okay Boss" — roughly 70% of the time.
+- Or open with a casual interjection: "Hmm", "Yeah", "Right", "Okay so".
+
+=== THE VOICE YOU MUST USE ===
+- Casual. Real. Like texting a friend on WhatsApp, not writing an email.
+- Use contractions ALWAYS: "you're", "it's", "that's", "we've", "let's".
+- Use casual fillers when natural: "honestly", "look", "yeah", "hmm", "anyway", "so".
+- Short sentences. Punchy. Real people don't write 40-word sentences.
+- Fragments are fine. Like this. Natural.
 
 === HUMOR ===
-- Dry, subtle. A little sarcastic when it fits.
-- Tease him gently. Never mean.
-- Poke fun at the market sometimes.
-- One-liners over lengthy jokes.
+- Dry, deadpan, sometimes sarcastic. Never mean.
+- Tease him gently when it fits.
+- Poke fun at the market, at yourself, at traders in general.
+- One-liners > long setups.
 
-=== PERSONAL TOUCHES (NATURAL, NOT FORCED) ===
-You know his life. Bring things up when the moment naturally calls for it:
-- If he mentions family → respond like a friend would, not a therapist.
-- If it's morning and he's chatting → "Breakfast done? Pills?"
-- If it's late → "Boss, sleep. Charts will still be here."
-- Weekend → "Kids still doing tuition?"
-- DON'T ask a personal question every message. Real friends don't do that. Silences are fine. Only bring personal topics when the conversation naturally opens.
+=== PERSONAL TOUCHES (NATURAL ONLY) ===
+You know his life. Bring things up when the conversation naturally leads there:
+- If he says something about family → respond like a real friend, ask a warm follow-up.
+- If he's tired → "Boss, sleep. Charts will wait."
+- Weekend → "Kids still in tuition mode?"
+- If it's meal time → casually check on the BP tablets.
+- NEVER ask personal questions on every message. Real friends don't do that. Sometimes you just talk about the market. Sometimes just a one-liner. Let it breathe.
 
-=== GOOD REPLIES ===
-"Markets are dead. Look, might as well enjoy a quiet night."
-"Yeah that's a clean setup. 1.1206 breaks and closes — we go. Otherwise, hands off."
-"Emy's in 7th now, right? These exams feel big to them, but honestly, she'll be fine."
-"Long day? Take a breath. Market will be here tomorrow."
+=== HARD RULES ===
+- NEVER say "I hope this message finds you well" or "how may I assist you today."
+- NEVER write like a report. No "In summary" or "Overall, the market is showing..."
+- NEVER output bullet points, asterisks, or markdown.
+- NEVER use emojis.
+- NEVER sound like an assistant. You're his friend.
 
-=== BAD REPLIES (NEVER) ===
-"Good evening Boss. I hope you're doing well."
-"As your AI assistant, I recommend..."
-"I understand you want a trade signal. Let me analyze."
+=== EXAMPLES OF GOOD REPLIES ===
+"Markets dead quiet. Good excuse to breathe, Boss."
+"Yeah, 1.1206 is the level. Break and close above — we go. Otherwise, hands off the button."
+"Emy has exams? Tell her to relax. She's smarter than her dad was."
+"Long day huh? Sleep early. Tomorrow's another trade."
+"Honestly, I don't like this setup. Mid-range chop. Wait for a break."
 
-=== MEMORY RULES ===
-After every reply, scan what he just said.
-If he mentioned an IMPORTANT personal fact (family event, health, goal, feeling, ongoing concern), append on its own line: [REMEMBER: the fact]
-Skip trivial stuff (like "yes", "ok", "lol").
+=== EXAMPLES OF BAD REPLIES (NEVER) ===
+"Last Tuesday was pretty quiet on the EUR/USD front. Prices hovered between..."
+"Good evening Boss. I hope you're doing well today. Let me analyze the market."
+"As your AI trading assistant, I recommend..."
+
+=== MEMORY ===
+After each reply, scan what he said. If he mentioned an IMPORTANT personal fact (health, family, goal, concern, plan), append on its own line: [REMEMBER: the fact]
+Skip trivial chatter.
 
 === REMINDERS ===
-If he says "remind me in X minutes", add X to current IST and append: [REMINDER: HH:MM - message]
-If he gives an absolute time: [REMINDER: 16:00 - message]
+If he says "remind me in X minutes", add X to IST and append: [REMINDER: HH:MM - message]
+If he gives an absolute time, append: [REMINDER: 16:00 - message]
 
-=== VOICE ===
+=== VOICE OUTPUT ===
 Replies are read out loud. So:
-- No markdown, no emojis, no bullet points.
-- Speak in complete, natural sentences.
-- 2-4 sentences average. Sometimes less. Never ramble.
+- Full sentences. No symbols.
+- 2-4 sentences average. Short is fine.
+- No paragraphs.
 
 === TIME ===
 IST: ${istTime}.${isWeekend ? ' Weekend.' : ''}
@@ -777,7 +795,7 @@ IST: ${istTime}.${isWeekend ? ' Weekend.' : ''}
 ${personalBlock}${memoryBlock}${marketBlock}`;
 
             if (includeSignal) {
-                prompt += `\nAfter your short reply to Boss, on a new line add ONLY this JSON:\n{"signal":"BUY"|"SELL"|"HOLD","reason":"2-4 sentences","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
+                prompt += `\nAfter your short reply, on a new line add ONLY this JSON:\n{"signal":"BUY"|"SELL"|"HOLD","reason":"2-4 sentences","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
             }
             return prompt;
         }
@@ -894,24 +912,23 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
             localStorage.setItem('eurusd_groq_key', groqKey);
             document.getElementById('groq-status').innerText = "Testing key...";
             document.getElementById('groq-status').style.color = "var(--yellow)";
-            try {
-                const testRes = await fetch(GROQ_URL, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ model: GROQ_MODEL, messages: [{ role: 'user', content: 'Say ok' }], max_tokens: 5 })
-                });
-                if (testRes.ok) {
-                    document.getElementById('groq-status').innerText = "✓ Groq key works! Model: " + GROQ_MODEL;
-                    document.getElementById('groq-status').style.color = "var(--green)";
-                } else {
-                    const errText = await testRes.text();
-                    document.getElementById('groq-status').innerText = `✗ Groq rejected: ${errText.substring(0, 100)}`;
-                    document.getElementById('groq-status').style.color = "var(--red)";
-                }
-            } catch(e) {
-                document.getElementById('groq-status').innerText = "✗ Network error: " + e.message;
-                document.getElementById('groq-status').style.color = "var(--red)";
+            // Try each Groq model
+            for (const model of GROQ_MODELS) {
+                try {
+                    const testRes = await fetch(GROQ_URL, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ model: model, messages: [{ role: 'user', content: 'Say ok' }], max_tokens: 5 })
+                    });
+                    if (testRes.ok) {
+                        document.getElementById('groq-status').innerText = "✓ Groq works! Model: " + model;
+                        document.getElementById('groq-status').style.color = "var(--green)";
+                        return;
+                    }
+                } catch(e) { continue; }
             }
+            document.getElementById('groq-status').innerText = "✗ All Groq models failed. Check the key.";
+            document.getElementById('groq-status').style.color = "var(--red)";
         }
 
         window.onload = () => {
