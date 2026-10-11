@@ -54,11 +54,12 @@
         .chat-messages { max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 10px; min-height: 120px; }
         .chat-messages::-webkit-scrollbar { width: 6px; }
         .chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-        .chat-msg { padding: 12px 16px; border-radius: 12px; font-size: 0.9rem; line-height: 1.6; max-width: 85%; word-wrap: break-word; }
+        .chat-msg { padding: 12px 16px; border-radius: 12px; font-size: 0.9rem; line-height: 1.6; max-width: 85%; word-wrap: break-word; white-space: pre-wrap; }
         .chat-msg.user { background: linear-gradient(135deg, var(--accent), var(--purple)); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
         .chat-msg.ai { background: rgba(255,255,255,0.05); color: var(--text); align-self: flex-start; border-bottom-left-radius: 4px; border-left: 3px solid var(--green); }
         .chat-msg.system { background: rgba(148,163,184,0.1); color: var(--muted); align-self: center; font-size: 0.8rem; font-style: italic; text-align: center; }
         .chat-msg.thinking { background: rgba(255,255,255,0.05); color: var(--muted); align-self: flex-start; font-style: italic; }
+        .chat-msg.error { background: rgba(255,51,102,0.1); color: var(--red); align-self: flex-start; border-left: 3px solid var(--red); font-family: monospace; font-size: 0.8rem; }
         .chat-input-row { display: flex; gap: 10px; }
         .chat-input { flex: 1; padding: 14px 16px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-size: 1rem; font-family: inherit; outline: none; transition: 0.2s; }
         .chat-input:focus { border-color: var(--accent); }
@@ -79,7 +80,7 @@
         .key-input:focus { border-color: #fbbf24; }
         .key-save-btn { padding: 12px 18px; background: linear-gradient(135deg, #fbbf24, #f59e0b); border: none; border-radius: 10px; color: #0a0e17; font-weight: 700; cursor: pointer; }
         .key-save-btn:hover { opacity: 0.9; }
-        .key-status { font-size: 0.8rem; margin-top: 8px; color: var(--green); }
+        .key-status { font-size: 0.8rem; margin-top: 8px; color: var(--green); word-break: break-all; }
         .change-key-btn { background: none; border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-size: 0.75rem; padding: 6px 12px; cursor: pointer; margin-left: auto; }
         .change-key-btn:hover { color: var(--text); border-color: var(--accent); }
     </style>
@@ -152,13 +153,11 @@
             </div>
         </div>
 
-        <!-- ========== CHAT BOX ========== -->
         <div class="card" style="grid-column: 1 / -1;">
             <h2 style="display:flex; align-items:center;">💬 Ask Your AI Trader
                 <button class="change-key-btn" onclick="showKeyPanel()">🔑 Change Key</button>
             </h2>
 
-            <!-- Key setup panel -->
             <div id="keyPanel" class="key-panel">
                 <h3>🔑 One-Time Setup</h3>
                 <p>Paste your Gemini API key below. It will be stored <strong>only in this browser</strong> — never sent to GitHub or anyone else.</p>
@@ -200,24 +199,25 @@
         }
 
         function saveKey() {
-            const key = document.getElementById("keyInput").value.trim();
-            if (!key) {
-                document.getElementById("keyStatus").innerText = "❌ Please paste a valid key";
+            // Remove ALL whitespace, newlines, tabs
+            const key = document.getElementById("keyInput").value.replace(/\s/g, "");
+            if (!key || key.length < 20) {
+                document.getElementById("keyStatus").innerText = "❌ Key looks too short. Try copying again.";
                 return;
             }
             try {
                 localStorage.setItem(KEY_STORAGE_NAME, key);
-                document.getElementById("keyStatus").innerText = "✅ Key saved in this browser only";
+                const preview = key.slice(0, 8) + "..." + key.slice(-4);
+                document.getElementById("keyStatus").innerText = `✅ Saved: ${preview} (${key.length} characters)`;
                 setTimeout(() => {
                     document.getElementById("keyPanel").classList.remove("visible");
                     document.getElementById("keyStatus").innerText = "";
-                }, 1500);
+                }, 3000);
             } catch (e) {
                 document.getElementById("keyStatus").innerText = "❌ Could not save key";
             }
         }
 
-        // Show key panel automatically on first load if no key
         window.addEventListener("load", () => {
             if (!getStoredKey()) {
                 document.getElementById("keyPanel").classList.add("visible");
@@ -434,12 +434,20 @@ CURRENT MARKET STATE:
                     generationConfig: { temperature: 0.7, maxOutputTokens: 800 }
                 };
 
-                const modelNames = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash-latest"];
+                const endpoints = [
+                    { ver: "v1beta", model: "gemini-2.0-flash" },
+                    { ver: "v1beta", model: "gemini-2.5-flash" },
+                    { ver: "v1beta", model: "gemini-1.5-flash-latest" },
+                    { ver: "v1beta", model: "gemini-1.5-flash" },
+                    { ver: "v1", model: "gemini-1.5-flash" },
+                    { ver: "v1beta", model: "gemini-pro" }
+                ];
                 let answer = null;
+                let lastError = "";
 
-                for (const model of modelNames) {
+                for (const ep of endpoints) {
                     try {
-                        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
+                        const url = `https://generativelanguage.googleapis.com/${ep.ver}/models/${ep.model}:generateContent?key=${key}`;
                         const resp = await fetch(url, {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
@@ -447,13 +455,20 @@ CURRENT MARKET STATE:
                         });
                         if (!resp.ok) {
                             const errText = await resp.text();
-                            console.log(`Model ${model} failed:`, errText);
+                            lastError = `${ep.ver}/${ep.model} → ${resp.status}: ${errText.slice(0, 200)}`;
+                            console.log(lastError);
                             continue;
                         }
                         const json = await resp.json();
                         answer = json.candidates?.[0]?.content?.parts?.[0]?.text;
-                        if (answer) break;
-                    } catch (e) { console.log(`Model ${model} exception:`, e); }
+                        if (answer) {
+                            console.log(`✅ Working model: ${ep.ver}/${ep.model}`);
+                            break;
+                        }
+                    } catch (e) {
+                        lastError = `${ep.ver}/${ep.model} → ${e.message}`;
+                        console.log(lastError);
+                    }
                 }
 
                 thinkingEl.remove();
@@ -463,11 +478,11 @@ CURRENT MARKET STATE:
                     chatHistory.push({ role: "model", parts: [{ text: answer.trim() }] });
                     if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
                 } else {
-                    addMessage("ai", "Boss, I couldn't reach the AI right now. Please check your API key.");
+                    addMessage("error", `Boss, connection failed.\n\nDebug:\n${lastError}\n\nTry tapping 🔑 Change Key and re-pasting the key.`);
                 }
             } catch (error) {
                 thinkingEl.remove();
-                addMessage("ai", "Boss, something went wrong. Please try again.");
+                addMessage("error", `Boss, unexpected error: ${error.message}`);
             }
 
             chatSendBtn.disabled = false;
