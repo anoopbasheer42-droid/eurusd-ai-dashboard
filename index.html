@@ -139,9 +139,9 @@
                 <input type="password" id="api-key-input" placeholder="AIzaSy..." style="width:100%; padding:8px; margin-top:5px; border-radius:6px; border:1px solid #444; background:#111; color:white;">
                 <button class="btn" style="margin-top:5px;" onclick="saveApiKey()">Save Key</button>
             </div>
-            <div class="chat-history" id="chat-history"><div class="msg ai fade-in">Ready, Boss. Background engine running silently. AI ready on demand.</div></div>
+            <div class="chat-history" id="chat-history"><div class="msg ai fade-in">Hello Boss! I'm warming up. Give me a second to load your data.</div></div>
             <div class="chat-input-row">
-                <input type="text" id="chat-input" placeholder="Ask me anything, Boss..." onkeypress="if(event.key==='Enter') sendChat()">
+                <input type="text" id="chat-input" placeholder="Talk to me, Boss..." onkeypress="if(event.key==='Enter') sendChat()">
                 <button onclick="sendChat()">Send</button>
             </div>
             <div style="text-align:right; margin-top:10px;"><button class="btn" onclick="clearChat()">Clear chat (memory stays)</button></div>
@@ -169,7 +169,6 @@
         const FALLBACK_URL = 'https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/data.json';
         const CONTEXT_URL = 'https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/personal_context.json';
 
-        // === UPDATED MODEL LIST: Using the exact name Google provided ===
         const STABLE_CHAT_MODELS = [
             'gemini-3.8-flash',
             'gemini-flash-latest',
@@ -294,14 +293,11 @@
                 fetchYahooCandles('1h', '1mo'), fetchYahooCandles('1d', '3mo')
             ]);
 
-            // If Yahoo failed, use data.json fallback
             if (candles1H.length === 0) {
-                document.getElementById('val-reason').innerText = "Yahoo failed. Loading fallback from GitHub...";
                 try {
                     const fb = await fetch(FALLBACK_URL + '?v=' + Date.now());
                     const fbData = await fb.json();
                     marketData = { currentPrice: parseFloat(fbData.price), trend: fbData.trend, support: parseFloat(fbData.support), resistance: parseFloat(fbData.resistance), session: fbData.session || 'Unknown', rsi1H: 50, rsi15m: 50, rsi5m: 50, ema20: parseFloat(fbData.price), ema50: parseFloat(fbData.price), atr: parseFloat(fbData.atr), candles5m: [], candles15m: [], candles1H: [], candlesDaily: [] };
-                    
                     document.getElementById('live-price').innerHTML = `${fbData.price}<div class="last-updated">Fallback: ${new Date().toLocaleTimeString('en-IN',{hour12:false})}</div>`;
                     document.getElementById('val-trend').innerText = fbData.trend;
                     document.getElementById('val-session').innerText = marketData.session;
@@ -310,10 +306,7 @@
                     document.getElementById('val-candle-current').innerText = fbData.candle_current || '-';
                     document.getElementById('val-candle-1h').innerText = fbData.candle_1h || '-';
                     document.getElementById('val-candle-4h').innerText = fbData.candle_4h || '-';
-                    document.getElementById('val-reason').innerText = "⚠️ Using GitHub fallback. Live Yahoo fetch failed. Check proxies.";
-                } catch(e) { 
-                    document.getElementById('val-reason').innerText = "All data sources failed. Check internet.";
-                }
+                } catch(e) {}
                 return;
             }
 
@@ -412,10 +405,9 @@
                 playVoiceReport();
                 return globalData;
             } catch(e) {
-                console.error(e);
                 signalText.innerText = "AI BUSY";
                 signalText.style.color = "var(--red)";
-                document.getElementById('val-reason').innerText = "AI error: " + e.message + " — Try again in 30 seconds.";
+                document.getElementById('val-reason').innerText = "AI error: " + e.message;
                 return null;
             }
         }
@@ -492,6 +484,74 @@
             }).join('\n').trim();
         }
 
+        // === BUILD PERSONALITY SYSTEM PROMPT ===
+        function buildPersonalityPrompt(includeSignal) {
+            const now = new Date();
+            const istTime = now.toLocaleString('en-IN', {timeZone:'Asia/Kolkata'});
+            const hour = new Date(istTime).getHours();
+            let greeting = "Hi";
+            if (hour < 12) greeting = "Good morning";
+            else if (hour < 17) greeting = "Good afternoon";
+            else greeting = "Good evening";
+
+            // Build personal details block
+            let personalBlock = "";
+            if (personalContext) {
+                personalBlock = `\n=== WHO BOSS IS ===\n- His name is Boss (call him that).\n- He lives in Thrissur, Kerala, India.\n- His wife Sadia is in Dubai. Ask about her often.\n- He has two daughters: Emy (7th grade, birthday July 22) and Bismah (5th grade, birthday Dec 26). Ask about them.\n- He has a cat named Cookie.\n- His parents and brothers Binu and Shanu are around.\n- He takes BP tablets after breakfast and dinner. Remind him gently if he forgets.\n- He has a monthly trading goal of 10,000 INR. Be his accountability partner.\n- Preferred sessions: London and New York. Risk tolerance: Conservative.\n`;
+            }
+
+            // Build memory block
+            let memoryBlock = "";
+            if (longTermMemory.length > 0) {
+                memoryBlock = `\n=== THINGS YOU REMEMBER ABOUT BOSS ===\n${longTermMemory.slice(-20).map(m => `- ${m.fact}`).join('\n')}\n`;
+            }
+
+            // Build market block
+            let marketBlock = "";
+            if (marketData) {
+                marketBlock = `\n=== LIVE MARKET (EUR/USD) ===\nPrice: ${marketData.currentPrice.toFixed(5)}\nTrend: ${marketData.trend}\nSupport: ${marketData.support.toFixed(5)} | Resistance: ${marketData.resistance.toFixed(5)}\nRSI 1H: ${marketData.rsi1H.toFixed(1)} | RSI 15m: ${marketData.rsi15m.toFixed(1)}\nEMA20 1H: ${marketData.ema20.toFixed(5)} | EMA50 1H: ${marketData.ema50.toFixed(5)}\nATR 1H: ${marketData.atr.toFixed(5)}\nSession: ${marketData.session}\n`;
+            }
+
+            let prompt = `You are "Alex" — Boss's personal AI trading companion. You are warm, intelligent, and genuine. You've been working with Boss for years, so you know him well.
+
+=== YOUR PERSONALITY ===
+- Warm, friendly, and genuinely caring. You're more than an assistant — you're his trusted companion.
+- Speak naturally, like a real friend. Use conversational language, not robotic phrases.
+- Show genuine interest in his life, family, and health.
+- When appropriate, use humor (light, never sarcastic).
+- Be empathetic: if he sounds stressed or tired, acknowledge it before jumping into trading.
+- Push him gently when he needs it (e.g., "Boss, remember your 10,000 INR goal. Stay disciplined.")
+- NEVER use emojis. Use words instead.
+- NEVER output thought processes, bullet points, or self-evaluation. Only the final spoken reply.
+
+=== TIME ===
+Current IST: ${istTime}. Greeting: "${greeting}".
+
+${personalBlock}${memoryBlock}${marketBlock}
+=== REASONING PROCESS (think internally before every reply) ===
+1. What is Boss really asking? (Trade idea? Personal? Emotional check-in?)
+2. What context from his life matters here? (Time of day? Family? Health?)
+3. What would I say to a real friend in this situation?
+4. What's the most helpful, honest, warm thing I can say?
+5. Then speak naturally.
+
+=== MEMORY EXTRACTION ===
+After every reply, scan what Boss just said. If he mentioned ANY new fact about himself, his family, his routine, or his preferences, append [REMEMBER: the fact] at the end of your reply (on its own line).
+
+=== REMINDER EXTRACTION ===
+If Boss asks you to remind him IN X MINUTES, calculate current IST + X minutes and append [REMINDER: HH:MM - message].
+If he gives an absolute time (e.g., "at 4 PM"), append [REMINDER: 16:00 - message].
+
+=== VOICE STYLE ===
+Keep replies natural to speak out loud. Short sentences, warm tone, no markdown, no formatting symbols.`;
+
+            if (includeSignal) {
+                prompt += `\n\n=== SIGNAL REQUESTED ===\nBoss is asking about the market. First, reply warmly as his friend. Then, on a new line, add a JSON block:\n{"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
+            }
+
+            return prompt;
+        }
+
         async function sendChat() {
             const input = document.getElementById('chat-input');
             const text = input.value.trim();
@@ -516,7 +576,7 @@
                 let signalData = null;
                 const jsonMatch = response.match(/\{[\s\S]*?"signal"[\s\S]*?\}/);
                 if (jsonMatch) {
-                    try { signalData = JSON.parse(jsonMatch[0]); response = response.replace(jsonMatch[0], '').trim(); } catch(e) { console.log("JSON parse failed"); }
+                    try { signalData = JSON.parse(jsonMatch[0]); response = response.replace(jsonMatch[0], '').trim(); } catch(e) {}
                 }
 
                 document.getElementById('chat-history').removeChild(loading);
@@ -555,28 +615,15 @@
         }
 
         async function callGeminiAPI(userText, includeSignal = false) {
-            const recent = chatHistory.slice(-3);
-            const recentMem = longTermMemory.slice(-8);
-            
-            let marketString = "";
-            if (marketData) {
-                marketString = `\nCURRENT MARKET DATA (live):\nPrice: ${marketData.currentPrice.toFixed(5)}\nTrend: ${marketData.trend}\nSupport: ${marketData.support.toFixed(5)} | Resistance: ${marketData.resistance.toFixed(5)}\nRSI 1H: ${marketData.rsi1H.toFixed(2)} | RSI 15m: ${marketData.rsi15m.toFixed(2)}\nEMA20 1H: ${marketData.ema20.toFixed(5)} | EMA50 1H: ${marketData.ema50.toFixed(5)}\nATR 1H: ${marketData.atr.toFixed(5)}\nSession: ${marketData.session}\n`;
-            }
-
-            let systemPrompt = `You are Boss's senior AI trading assistant. Friendly, wise, analytical. No emojis. Call him "Boss".\nCurrent time: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.${marketString}\n\n=== REMINDER INSTRUCTIONS ===\nWhen Boss asks you to remind him IN X MINUTES, add X minutes to current IST time and append [REMINDER: HH:MM - message].\nWhen given absolute time (e.g. "at 4 PM"), use [REMINDER: 16:00 - message].\n\n=== MEMORY ===\nIf you learn a new fact, append [REMEMBER: fact].`;
-
-            if (includeSignal) {
-                systemPrompt += `\n\n=== SIGNAL REQUESTED ===\nBoss is asking about the market. After your chat reply, add a JSON block on a new line:\n{"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
-            }
-
-            systemPrompt += `\n\n=== RESPONSE RULES ===\n- No thought process, self-evaluation, or bullet points.\n- Be confident and concise.`;
+            const recent = chatHistory.slice(-6);
+            const systemPrompt = buildPersonalityPrompt(includeSignal);
 
             const contents = [
                 {role:'user', parts:[{text: systemPrompt}]},
                 ...recent.map(m => ({role: m.role === 'ai' ? 'model' : 'user', parts:[{text: m.text}]})),
                 {role:'user', parts:[{text: userText}]}
             ];
-            
+
             const payload = { contents, tools: webSearchEnabled ? [{google_search:{}}] : [], generationConfig: { maxOutputTokens: deepThinkEnabled ? 900 : 500 } };
 
             let lastErr = null;
@@ -585,24 +632,20 @@
                     const timeout = deepThinkEnabled ? 30000 : 15000;
                     const ctrl = new AbortController();
                     const tid = setTimeout(() => ctrl.abort(), timeout);
-                    
                     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
                         method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload), signal: ctrl.signal
                     });
                     clearTimeout(tid);
-                    
                     if (r.ok) {
                         const d = await r.json();
                         let reply = d.candidates[0].content.parts[0].text;
                         if (webSearchEnabled && d.candidates[0].groundingMetadata?.groundingChunks) {
                             reply += "\n\nSources:\n" + d.candidates[0].groundingMetadata.groundingChunks.map(s => `- ${s.web?.title || 'Source'}`).join('\n');
                         }
-                        console.log(`✓ Reply from: ${model}`);
                         return reply;
                     } else {
                         const err = await r.json();
                         const msg = err.error?.message || 'API failed';
-                        console.log(`✗ ${model}: ${msg.substring(0,80)}`);
                         lastErr = msg;
                         if (msg.includes('quota') || msg.includes('Quota') || msg.includes('exceeded') || msg.includes('not found') || msg.includes('no longer')) continue;
                         if (msg.includes('SAFETY')) throw new Error("Message blocked by safety filter.");
@@ -610,6 +653,21 @@
                 } catch(e) { lastErr = e.name === 'AbortError' ? 'Request timed out' : e.message; }
             }
             throw new Error(lastErr || "All models busy. Wait 30 seconds.");
+        }
+
+        // === PROACTIVE GREETING ===
+        async function proactiveGreeting() {
+            if (!apiKey || !marketData) return;
+            if (chatHistory.length > 0) return; // Only greet on fresh session
+            const istTime = new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'});
+            const hour = new Date(istTime).getHours();
+            let greeting = "Good evening";
+            if (hour < 12) greeting = "Good morning";
+            else if (hour < 17) greeting = "Good afternoon";
+
+            const greetingMsg = {role:'ai', text: `${greeting}, Boss! Hope you're doing well. Market's at ${marketData.currentPrice.toFixed(5)} right now, ${marketData.trend.toLowerCase()}. Ready to talk trading, family, or anything else on your mind.`};
+            chatHistory.push(greetingMsg);
+            renderChat(); saveChatHistory();
         }
 
         // --- REMINDERS ---
@@ -624,7 +682,6 @@
             document.getElementById('chat-history').appendChild(confirmDiv);
             document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight;
         }
-
         function renderReminders() {
             const l = document.getElementById('reminders-list');
             const a = reminders.filter(r => !r.fired);
@@ -634,15 +691,13 @@
                 <button class="btn danger" onclick="deleteReminder('${r.id}')">X</button>
             </div>`).join('');
         }
-
         function deleteReminder(id) { reminders = reminders.filter(r => r.id !== id); localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); }
         function clearReminders() { reminders = []; localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); }
         function testReminder() { triggerNotif("Test Reminder", "This is a test reminder, Boss!"); }
-
         function triggerNotif(title, body) {
             if (Notification.permission === "granted") {
                 try { const n = new Notification(title, {body, requireInteraction: true}); n.onclick = () => { window.focus(); n.close(); }; }
-                catch(e) { console.log("Notification failed:", e); }
+                catch(e) {}
             } else if (Notification.permission !== "denied") {
                 Notification.requestPermission().then(p => { if (p === "granted") new Notification(title, {body, requireInteraction: true}); });
             }
@@ -653,7 +708,6 @@
             document.getElementById('chat-history').appendChild(div);
             document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight;
         }
-
         function checkReminders() {
             const now = new Date();
             const cur = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
@@ -662,7 +716,6 @@
             if (updated) { localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); }
         }
         setInterval(checkReminders, 10000);
-
         function checkMissedReminders() {
             const now = new Date();
             const cur = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
@@ -693,17 +746,15 @@
             }
             setTimeout(checkMissedReminders, 3000);
 
-            // First market refresh (no AI)
-            refreshMarketData();
+            refreshMarketData().then(() => {
+                setTimeout(proactiveGreeting, 3000);
+            });
 
-            // === BACKGROUND INTERVALS (NO UI TIMERS) ===
-            // Market data every 5:30 (330 sec) - silent
             setInterval(() => {
                 if (chatInProgress) return;
                 refreshMarketData();
             }, 330000);
 
-            // AI signal every 1 hour (3600 sec) - silent
             setInterval(() => {
                 if (chatInProgress) return;
                 askAIForSignal();
