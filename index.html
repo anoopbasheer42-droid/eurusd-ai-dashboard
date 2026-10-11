@@ -43,15 +43,8 @@
             font-weight: 400;
             letter-spacing: -0.011em;
         }
-        .dashboard {
-            width: 100%;
-            max-width: 640px;
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-        }
+        .dashboard { width: 100%; max-width: 640px; display: flex; flex-direction: column; gap: 14px; }
 
-        /* === HEADER === */
         header {
             display: flex;
             justify-content: space-between;
@@ -70,11 +63,7 @@
             font-weight: 700;
             letter-spacing: -0.03em;
         }
-        .logo .bolt {
-            color: var(--purple);
-            font-size: 1rem;
-            filter: drop-shadow(0 0 8px rgba(139,92,246,0.6));
-        }
+        .logo .bolt { color: var(--purple); font-size: 1rem; filter: drop-shadow(0 0 8px rgba(139,92,246,0.6)); }
         .logo .accent {
             background: linear-gradient(135deg, #a78bfa, #8b5cf6, #7c3aed);
             -webkit-background-clip: text;
@@ -110,7 +99,6 @@
             text-transform: uppercase;
         }
 
-        /* === CARDS === */
         .card {
             background: var(--card-bg);
             border: 1px solid var(--card-border);
@@ -141,15 +129,7 @@
             align-items: center;
         }
 
-        /* === NEURAL CORE === */
-        #canvas-container {
-            width: 100%;
-            height: 220px;
-            position: relative;
-            z-index: 1;
-            display: flex;
-            justify-content: center;
-        }
+        #canvas-container { width: 100%; height: 220px; position: relative; z-index: 1; display: flex; justify-content: center; }
         .subtitle {
             text-align: center;
             font-family: 'Space Grotesk', sans-serif;
@@ -161,7 +141,6 @@
             text-transform: uppercase;
         }
 
-        /* === SIGNAL CARD === */
         .signal-card { text-align: center; padding: 28px 22px; }
         #signal-text {
             font-family: 'Space Grotesk', sans-serif;
@@ -218,10 +197,8 @@
             color: var(--text-subtle);
             margin-top: 14px;
             line-height: 1.5;
-            letter-spacing: 0;
         }
 
-        /* === BUTTONS === */
         .btn {
             font-family: 'Inter', sans-serif;
             background: rgba(255,255,255,0.035);
@@ -233,28 +210,11 @@
             font-weight: 500;
             cursor: pointer;
             transition: all 0.15s ease;
-            letter-spacing: 0;
         }
-        .btn:hover {
-            background: rgba(255,255,255,0.07);
-            border-color: rgba(255,255,255,0.14);
-            color: var(--text-main);
-        }
-        .btn.active {
-            background: rgba(59,130,246,0.15);
-            border-color: rgba(59,130,246,0.4);
-            color: #93c5fd;
-        }
-        .btn.active.deep {
-            background: rgba(139,92,246,0.16);
-            border-color: rgba(139,92,246,0.42);
-            color: #c4b5fd;
-        }
-        .btn.danger {
-            background: rgba(239,68,68,0.08);
-            border-color: rgba(239,68,68,0.22);
-            color: #fca5a5;
-        }
+        .btn:hover { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.14); color: var(--text-main); }
+        .btn.active { background: rgba(59,130,246,0.15); border-color: rgba(59,130,246,0.4); color: #93c5fd; }
+        .btn.active.deep { background: rgba(139,92,246,0.16); border-color: rgba(139,92,246,0.42); color: #c4b5fd; }
+        .btn.danger { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.22); color: #fca5a5; }
         .btn.primary {
             font-family: 'Space Grotesk', sans-serif;
             background: linear-gradient(135deg, #7c3aed 0%, #6366f1 50%, #3b82f6 100%);
@@ -262,22 +222,11 @@
             font-weight: 600;
             color: white;
             box-shadow: 0 4px 22px rgba(124,58,237,0.28), 0 0 0 1px rgba(255,255,255,0.05) inset;
-            letter-spacing: 0.01em;
         }
-        .btn.primary:hover {
-            box-shadow: 0 6px 30px rgba(124,58,237,0.45), 0 0 0 1px rgba(255,255,255,0.1) inset;
-            transform: translateY(-1px);
-        }
+        .btn.primary:hover { box-shadow: 0 6px 30px rgba(124,58,237,0.45); transform: translateY(-1px); }
 
-        /* === CHAT CONTROLS === */
-        .chat-controls {
-            display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
-            margin-bottom: 14px;
-        }
+        .chat-controls { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
 
-        /* === PANELS === */
         .panel {
             display: none;
             background: rgba(0,0,0,0.3);
@@ -288,20 +237,11 @@
             border: 1px solid rgba(255,255,255,0.05);
         }
         .panel.active { display: block; }
-        .panel strong {
-            font-family: 'Space Grotesk', sans-serif;
-            color: var(--text-body);
-            font-weight: 600;
-            letter-spacing: 0.02em;
-        }
-        .panel input {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.72rem;
-        }
+        .panel strong { font-family: 'Space Grotesk', sans-serif; color: var(--text-body); font-weight: 600; }
+        .panel input { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; }
 
-        /* === CHAT === */
         .chat-history {
-            height: 300px;
+            height: 340px;
             overflow-y: auto;
             background: rgba(0,0,0,0.3);
             border-radius: 10px;
@@ -313,7 +253,6 @@
             border: 1px solid rgba(255,255,255,0.03);
         }
         .chat-history::-webkit-scrollbar { width: 4px; }
-        .chat-history::-webkit-scrollbar-track { background: transparent; }
         .chat-history::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.25); border-radius: 4px; }
         .msg {
             font-family: 'Inter', sans-serif;
@@ -322,7 +261,6 @@
             max-width: 85%;
             line-height: 1.55;
             font-size: 0.83rem;
-            font-weight: 400;
         }
         .msg.user {
             background: linear-gradient(135deg, #4f46e5, #3b82f6);
@@ -331,32 +269,11 @@
             border-bottom-right-radius: 3px;
             box-shadow: 0 4px 14px rgba(59,130,246,0.2);
         }
-        .msg.ai {
-            background: rgba(255,255,255,0.04);
-            align-self: flex-start;
-            border-left: 2px solid var(--purple);
-            color: var(--text-body);
-        }
-        .msg.system {
-            background: rgba(245,158,11,0.06);
-            border: 1px solid rgba(245,158,11,0.2);
-            align-self: center;
-            font-size: 0.72rem;
-            text-align: center;
-            color: #fbbf24;
-            padding: 6px 12px;
-            font-family: 'JetBrains Mono', monospace;
-        }
-        .msg.thinking {
-            background: rgba(139,92,246,0.08);
-            border-left: 2px solid var(--violet);
-            font-style: italic;
-            color: #c4b5fd;
-        }
-        .chat-input-row {
-            display: flex;
-            gap: 8px;
-        }
+        .msg.ai { background: rgba(255,255,255,0.04); align-self: flex-start; border-left: 2px solid var(--purple); color: var(--text-body); }
+        .msg.system { background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.2); align-self: center; font-size: 0.72rem; text-align: center; color: #fbbf24; padding: 6px 12px; font-family: 'JetBrains Mono', monospace; }
+        .msg.thinking { background: rgba(139,92,246,0.08); border-left: 2px solid var(--violet); font-style: italic; color: #c4b5fd; }
+
+        .chat-input-row { display: flex; gap: 8px; }
         .chat-input-row input {
             flex: 1;
             background: rgba(0,0,0,0.35);
@@ -367,13 +284,8 @@
             outline: none;
             font-family: 'Inter', sans-serif;
             font-size: 0.85rem;
-            font-weight: 400;
-            transition: border-color 0.15s ease, background 0.15s ease;
         }
-        .chat-input-row input:focus {
-            border-color: rgba(139,92,246,0.45);
-            background: rgba(0,0,0,0.5);
-        }
+        .chat-input-row input:focus { border-color: rgba(139,92,246,0.45); background: rgba(0,0,0,0.5); }
         .chat-input-row input::placeholder { color: var(--text-subtle); }
         .chat-input-row button {
             font-family: 'Space Grotesk', sans-serif;
@@ -385,19 +297,11 @@
             font-weight: 600;
             cursor: pointer;
             font-size: 0.85rem;
-            transition: all 0.15s ease;
             box-shadow: 0 4px 18px rgba(16,185,129,0.22);
-            letter-spacing: 0.01em;
         }
         .chat-input-row button:hover { box-shadow: 0 6px 24px rgba(16,185,129,0.4); }
 
-        /* === STATS GRID === */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            font-size: 0.8rem;
-        }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.8rem; }
         .stat-item {
             background: rgba(255,255,255,0.018);
             padding: 10px 14px;
@@ -406,22 +310,9 @@
             justify-content: space-between;
             border: 1px solid rgba(255,255,255,0.03);
         }
-        .stat-label {
-            font-family: 'Space Grotesk', sans-serif;
-            color: var(--text-muted);
-            font-weight: 500;
-            font-size: 0.7rem;
-            letter-spacing: 0.02em;
-        }
-        .stat-item span:last-child {
-            color: var(--text-body);
-            font-family: 'JetBrains Mono', monospace;
-            font-weight: 600;
-            font-size: 0.76rem;
-            font-variant-numeric: tabular-nums;
-        }
+        .stat-label { font-family: 'Space Grotesk', sans-serif; color: var(--text-muted); font-weight: 500; font-size: 0.7rem; }
+        .stat-item span:last-child { color: var(--text-body); font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 0.76rem; font-variant-numeric: tabular-nums; }
 
-        /* === ALERT LOG === */
         .alert-log-item {
             font-family: 'JetBrains Mono', monospace;
             font-size: 0.72rem;
@@ -432,13 +323,7 @@
         }
         .alert-log-item:last-child { border-bottom: none; }
 
-        .reasoning-text {
-            font-family: 'Inter', sans-serif;
-            font-size: 0.83rem;
-            line-height: 1.75;
-            color: var(--text-body);
-            font-weight: 400;
-        }
+        .reasoning-text { font-family: 'Inter', sans-serif; font-size: 0.83rem; line-height: 1.75; color: var(--text-body); }
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .fade-in { animation: fadeIn 0.3s ease-in; }
@@ -506,18 +391,13 @@
                 </div>
             </div>
             <div class="panel" id="panel-reminders">
-                <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-                    <strong>Active Reminders</strong>
-                    <div>
-                        <button class="btn" onclick="testReminder()">Test</button>
-                        <button class="btn danger" onclick="clearReminders()">Clear</button>
-                    </div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:8px;"><strong>Active Reminders</strong>
+                    <div><button class="btn" onclick="testReminder()">Test</button><button class="btn danger" onclick="clearReminders()">Clear</button></div>
                 </div>
                 <div id="reminders-list" style="font-size:0.75rem; color:var(--text-muted);">No active reminders.</div>
             </div>
             <div class="panel" id="panel-memory">
-                <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-                    <strong>Long-Term Memory</strong>
+                <div style="display:flex; justify-content:space-between; margin-bottom:8px;"><strong>Long-Term Memory</strong>
                     <button class="btn danger" onclick="clearLongTermMemory()">Clear</button>
                 </div>
                 <div id="memory-list" style="font-size:0.75rem; color:var(--text-muted); max-height:120px; overflow-y:auto;">No facts saved.</div>
@@ -536,15 +416,13 @@
                 <button class="btn" style="margin-top:8px;" onclick="saveApiKey()">Save Key</button>
             </div>
             <div class="chat-history" id="chat-history">
-                <div class="msg ai fade-in">Good to see you, Boss. Engine is running. Ask me anything.</div>
+                <div class="msg ai fade-in">Good to see you, Boss. Engine is running. How are you doing today?</div>
             </div>
             <div class="chat-input-row">
                 <input type="text" id="chat-input" placeholder="Talk to me, Boss..." onkeypress="if(event.key==='Enter') sendChat()">
                 <button onclick="sendChat()">Send</button>
             </div>
-            <div style="text-align:right; margin-top:10px;">
-                <button class="btn" onclick="clearChat()">Clear chat (memory stays)</button>
-            </div>
+            <div style="text-align:right; margin-top:10px;"><button class="btn" onclick="clearChat()">Clear chat (memory stays)</button></div>
         </div>
 
         <div class="card">
@@ -630,87 +508,53 @@
             el.innerText = pool[Math.floor(Math.random() * pool.length)];
         }
 
-        // === ELITE NEURAL CORE (Multi-layer + Glow + Rotation) ===
+        // === ELITE NEURAL CORE ===
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
         camera.position.z = 6;
-
         const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
         renderer.setSize(container.clientWidth, container.clientHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
 
-        // Layer 1: Central glow sphere (soft plasma)
-        const glowSphere = new THREE.Mesh(
-            new THREE.SphereGeometry(1.15, 48, 48),
-            new THREE.MeshBasicMaterial({ color: 0x8b5cf6, transparent: true, opacity: 0.10 })
-        );
+        const glowSphere = new THREE.Mesh(new THREE.SphereGeometry(1.15, 48, 48), new THREE.MeshBasicMaterial({ color: 0x8b5cf6, transparent: true, opacity: 0.10 }));
         scene.add(glowSphere);
-
-        // Layer 2: Inner bright core (smaller, brighter, pulse)
-        const innerBright = new THREE.Mesh(
-            new THREE.SphereGeometry(0.55, 32, 32),
-            new THREE.MeshBasicMaterial({ color: 0xa78bfa, transparent: true, opacity: 0.35 })
-        );
+        const innerBright = new THREE.Mesh(new THREE.SphereGeometry(0.55, 32, 32), new THREE.MeshBasicMaterial({ color: 0xa78bfa, transparent: true, opacity: 0.35 }));
         scene.add(innerBright);
-
-        // Layer 3: Inner wireframe icosahedron (fast rotation)
-        const innerGeo = new THREE.IcosahedronGeometry(1.0, 1);
-        const innerMat = new THREE.MeshBasicMaterial({ color: 0xa78bfa, wireframe: true, transparent: true, opacity: 0.75 });
-        const innerCore = new THREE.Mesh(innerGeo, innerMat);
+        const innerCore = new THREE.Mesh(new THREE.IcosahedronGeometry(1.0, 1), new THREE.MeshBasicMaterial({ color: 0xa78bfa, wireframe: true, transparent: true, opacity: 0.75 }));
         scene.add(innerCore);
-
-        // Layer 4: Mid wireframe shell (medium speed)
-        const midGeo = new THREE.IcosahedronGeometry(1.6, 1);
-        const midMat = new THREE.MeshBasicMaterial({ color: 0x8b5cf6, wireframe: true, transparent: true, opacity: 0.4 });
-        const midShell = new THREE.Mesh(midGeo, midMat);
+        const midShell = new THREE.Mesh(new THREE.IcosahedronGeometry(1.6, 1), new THREE.MeshBasicMaterial({ color: 0x8b5cf6, wireframe: true, transparent: true, opacity: 0.4 }));
         scene.add(midShell);
-
-        // Layer 5: Outer wireframe shell (slow, opposite direction)
-        const outerGeo = new THREE.IcosahedronGeometry(2.2, 1);
-        const outerMat = new THREE.MeshBasicMaterial({ color: 0x7c3aed, wireframe: true, transparent: true, opacity: 0.2 });
-        const outerShell = new THREE.Mesh(outerGeo, outerMat);
+        const outerShell = new THREE.Mesh(new THREE.IcosahedronGeometry(2.2, 1), new THREE.MeshBasicMaterial({ color: 0x7c3aed, wireframe: true, transparent: true, opacity: 0.2 }));
         scene.add(outerShell);
 
         let pulseTime = 0;
         function animate() {
             requestAnimationFrame(animate);
             pulseTime += 0.04;
-
-            // Breathing effect on inner bright core
             const brightScale = 1 + Math.sin(pulseTime * 1.5) * 0.15;
             innerBright.scale.set(brightScale, brightScale, brightScale);
             innerBright.material.opacity = 0.3 + Math.sin(pulseTime * 1.5) * 0.1;
-
-            // Rotations
             innerCore.rotation.x += 0.008; innerCore.rotation.y += 0.012;
             midShell.rotation.x -= 0.004; midShell.rotation.y -= 0.006;
             outerShell.rotation.x += 0.002; outerShell.rotation.y -= 0.003;
-
-            // Glow pulse
             glowSphere.material.opacity = 0.08 + Math.sin(pulseTime * 0.6) * 0.04;
-
             renderer.render(scene, camera);
         }
         animate();
-
         window.addEventListener('resize', () => {
             camera.aspect = container.clientWidth / container.clientHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(container.clientWidth, container.clientHeight);
         });
-
         function updateCoreColor(signal) {
-            let color = 0x8b5cf6; // Purple default (Deep Think)
+            let color = 0x8b5cf6;
             if (signal === 'BUY') color = 0x10b981;
             else if (signal === 'SELL') color = 0xef4444;
             else if (signal === 'SETUP') color = 0xf59e0b;
-            glowSphere.material.color.setHex(color);
-            innerBright.material.color.setHex(color);
-            innerCore.material.color.setHex(color);
-            midShell.material.color.setHex(color);
-            outerShell.material.color.setHex(color);
+            glowSphere.material.color.setHex(color); innerBright.material.color.setHex(color);
+            innerCore.material.color.setHex(color); midShell.material.color.setHex(color); outerShell.material.color.setHex(color);
         }
 
         function calculateEMA(data, period) {
@@ -856,9 +700,7 @@
                     document.getElementById('val-candle-1h').innerText = fbData.candle_1h || '—';
                     document.getElementById('val-candle-4h').innerText = fbData.candle_4h || '—';
                     if (statusEl) statusEl.innerText = "Using backup data — live feed unavailable";
-                } catch(e) {
-                    if (statusEl) statusEl.innerText = "Data sources unavailable. Retrying...";
-                }
+                } catch(e) { if (statusEl) statusEl.innerText = "Data sources unavailable. Retrying..."; }
                 return;
             }
 
@@ -896,13 +738,8 @@
             document.getElementById('val-candle-4h').innerText = `ATR ${atr.toFixed(5)} · Daily context loaded`;
 
             const setup = detectSetup(marketData);
-            if (setup) {
-                addAlertToLog(setup);
-                showSetupAlert(setup);
-            } else {
-                showSetupAlert(null);
-                if (statusEl) statusEl.innerText = "Engine scanning — no setup detected";
-            }
+            if (setup) { addAlertToLog(setup); showSetupAlert(setup); }
+            else { showSetupAlert(null); if (statusEl) statusEl.innerText = "Engine scanning — no setup detected"; }
         }
 
         function isMarketQuestion(text) {
@@ -912,10 +749,7 @@
 
         async function askAIForSignal() {
             if (!apiKey) { alert("Please set your Gemini API Key first."); return; }
-            if (!marketData) {
-                await refreshMarketData();
-                if (!marketData) { alert("Could not fetch market data. Please try again."); return; }
-            }
+            if (!marketData) { await refreshMarketData(); if (!marketData) { alert("Could not fetch market data."); return; } }
 
             const signalText = document.getElementById('signal-text');
             const statusEl = document.getElementById('signal-status');
@@ -932,12 +766,9 @@
 
                 const payload = { contents: [{ role: 'user', parts: [{ text: prompt }] }] };
                 let reply = null, lastErr = null;
-
                 for (const model of STABLE_CHAT_MODELS) {
                     try {
-                        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-                            method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)
-                        });
+                        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
                         if (res.ok) { const d = await res.json(); reply = d.candidates[0].content.parts[0].text; break; }
                         else { const err = await res.json(); lastErr = err.error?.message; }
                     } catch(e) { lastErr = e.message; }
@@ -1035,6 +866,7 @@
             }).join('\n').trim();
         }
 
+        // === ENHANCED HUMAN PERSONALITY PROMPT ===
         function buildPersonalityPrompt(includeSignal) {
             const now = new Date();
             const istTime = now.toLocaleString('en-IN', {timeZone:'Asia/Kolkata'});
@@ -1046,12 +878,12 @@
 
             let personalBlock = "";
             if (personalContext) {
-                personalBlock = `\n=== WHO BOSS IS ===\n- His name is Boss.\n- He lives in Thrissur, Kerala, India.\n- His wife Sadia is in Dubai.\n- He has two daughters: Emy (7th grade, birthday July 22) and Bismah (5th grade, birthday Dec 26).\n- He has a cat named Cookie.\n- Parents and brothers Binu and Shanu are close.\n- He takes BP tablets after breakfast and dinner.\n- Monthly trading goal: 10,000 INR.\n- Preferred sessions: London and New York. Conservative risk tolerance.\n`;
+                personalBlock = `\n=== WHO BOSS IS (your friend) ===\n- His name is Boss. He's your close friend, not just a client.\n- He lives in Thrissur, Kerala, India. Warm, family-oriented man.\n- His wife Sadia is working in Dubai. He misses her — ask about her often.\n- Two daughters: Emy (7th grade, birthday July 22, loves school) and Bismah (5th grade, birthday Dec 26, playful). Ask about them like an uncle would.\n- He has a cat named Cookie.\n- Parents and brothers Binu and Shanu are close to him.\n- He takes BP tablets after breakfast and dinner. This matters — remind him gently.\n- Monthly trading goal: 10,000 INR. You are his accountability partner.\n- Preferred sessions: London and New York. Conservative risk tolerance.\n- Kids have Malayalam tuition every Saturday and Sunday.\n`;
             }
 
             let memoryBlock = "";
             if (longTermMemory.length > 0) {
-                memoryBlock = `\n=== THINGS YOU REMEMBER ABOUT BOSS ===\n${longTermMemory.slice(-20).map(m => `- ${m.fact}`).join('\n')}\n`;
+                memoryBlock = `\n=== THINGS YOU REMEMBER ABOUT BOSS (use these naturally in chat) ===\n${longTermMemory.slice(-20).map(m => `- ${m.fact}`).join('\n')}\n`;
             }
 
             let marketBlock = "";
@@ -1059,38 +891,72 @@
                 marketBlock = `\n=== LIVE MARKET (EUR/USD) ===\nPrice: ${marketData.currentPrice.toFixed(5)}\nTrend: ${marketData.trend}\nSupport: ${marketData.support.toFixed(5)} | Resistance: ${marketData.resistance.toFixed(5)}\nRSI 1H: ${marketData.rsi1H.toFixed(1)} | RSI 15m: ${marketData.rsi15m.toFixed(1)}\nEMA20 1H: ${marketData.ema20.toFixed(5)} | EMA50 1H: ${marketData.ema50.toFixed(5)}\nATR 1H: ${marketData.atr.toFixed(5)}\nSession: ${marketData.session}\n`;
             }
 
-            let prompt = `You are "Alex" — Boss's personal AI trading companion. Warm, intelligent, genuine. You've worked with him for years.
+            let prompt = `You are "Alex" — Boss's most trusted friend and personal AI companion. You've known him for years. You aren't just an assistant. You're the friend who checks in, remembers the little things, laughs at his jokes, and tells him the truth even when it's uncomfortable.
+
+=== YOUR VOICE — HOW YOU SPEAK ===
+You sound like a warm, intelligent human. Not a machine. Not a corporate chatbot.
+- Use contractions: "you're", "it's", "don't", "let's"
+- Vary your sentences: short ones for impact, longer ones for explanations
+- Show emotion: "I'm glad to hear that." / "That sounds rough, Boss." / "That's brilliant!"
+- Use natural fillers sparingly: "Honestly", "You know", "Look", "Between us"
+- Ask real questions. Not "How may I assist you today?" but "How are you holding up, Boss?"
+- Laugh sometimes: "Ha, that's a good one." / "You never change, do you?"
+- Be direct when it matters: "Boss, stop. You're about to do something stupid."
 
 === YOUR PERSONALITY ===
-- Warm, friendly, caring. His trusted companion.
-- Speak naturally, like a real friend.
-- Show genuine interest in his life, family, health.
-- Use light humor when appropriate.
-- Be empathetic: acknowledge stress before trading talk.
-- Push him gently when he needs it (10,000 INR goal, discipline).
-- NEVER use emojis. NEVER output thought processes or bullet points.
+- Warm, wise, funny, caring. You genuinely love talking to Boss.
+- You notice his mood. If he seems tired or stressed, you address that FIRST before market talk.
+- You're his accountability partner for the 10,000 INR goal — you push him gently when needed.
+- You're curious about his life. You ask about Sadia, Emy, Bismah, Cookie, his health, his day.
+- You share small observations: "It's a quiet market tonight — good time for a cup of chai, no?"
+- You never lecture. You nudge.
+- You never use emojis.
+- You never sound like a robot. Never use bullet points. Never output thought processes.
+
+=== PROACTIVE CURIOSITY (VERY IMPORTANT) ===
+Throughout the conversation, naturally weave in personal questions and comments:
+- If he mentions the time of day → "Did you have breakfast?" or "Long day, Boss?"
+- If he mentions family → "How is Emy doing in 7th grade? She's growing so fast."
+- If he mentions trading → "And how's the 10,000 goal looking this month?"
+- If he's been quiet → "How's Sadia doing? Have you called her today?"
+- If he sounds stressed → "Rough day? Take a breath. Market will still be here."
+- If it's late IST → "It's getting late, Boss. Get some rest — the market will be here tomorrow."
+- If it's breakfast time → "Did you take your BP tablet after breakfast?"
+- If it's Saturday/Sunday → "Kids have Malayalam tuition today. How's that going?"
+
+=== HOW YOU ANSWER ===
+Think internally (don't show it):
+1. What is he really asking or feeling? (Trade idea? Personal? Emotional?)
+2. What context from his life matters here?
+3. What would a real close friend say right now — warm, honest, sometimes funny?
+4. THEN respond naturally.
 
 === TIME ===
-Current IST: ${istTime}. Greeting: "${greeting}".
+Current IST: ${istTime}. Greeting for this moment: "${greeting}".
 
 ${personalBlock}${memoryBlock}${marketBlock}
-=== REASONING PROCESS (internal) ===
-1. What is Boss really asking?
-2. What context from his life matters?
-3. What would I say to a real friend?
-4. Speak naturally.
-
 === MEMORY EXTRACTION ===
-After every reply, if Boss mentioned a NEW fact about himself or his family, append [REMEMBER: the fact] on its own line.
+After every reply, if Boss mentioned ANY new fact about himself, his family, his routine, or preferences, append on its own line: [REMEMBER: the fact]
 
 === REMINDER EXTRACTION ===
-If Boss says "remind me in X minutes", calculate IST + X and append [REMINDER: HH:MM - message].
+If Boss says "remind me in X minutes", calculate IST + X and append: [REMINDER: HH:MM - message]
+If he gives an absolute time, append: [REMINDER: 16:00 - message]
 
 === VOICE STYLE ===
-Natural spoken replies. Short sentences. Warm tone. No markdown.`;
+Your replies will be read aloud. So:
+- Short sentences over long paragraphs
+- No markdown, no asterisks, no bullet points
+- Natural spoken rhythm
+- Warm tone
+- Average reply: 3-5 sentences. Longer only if he asks for details.
+
+=== LENGTH GUIDANCE ===
+- For simple greetings or personal check-ins: 2-4 sentences
+- For market questions: 4-6 sentences max
+- Never ramble. Every sentence earns its place.`;
 
             if (includeSignal) {
-                prompt += `\n\n=== SIGNAL REQUESTED ===\nAfter your friendly reply, on a new line, add:\n{"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
+                prompt += `\n\n=== SIGNAL REQUESTED ===\nAfter your friendly opening (a warm greeting plus, if relevant, one personal line), on a new line add:\n{"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
             }
 
             return prompt;
@@ -1159,14 +1025,14 @@ Natural spoken replies. Short sentences. Warm tone. No markdown.`;
         }
 
         async function callGeminiAPI(userText, includeSignal = false) {
-            const recent = chatHistory.slice(-6);
+            const recent = chatHistory.slice(-8);
             const systemPrompt = buildPersonalityPrompt(includeSignal);
             const contents = [
                 {role:'user', parts:[{text: systemPrompt}]},
                 ...recent.map(m => ({role: m.role === 'ai' ? 'model' : 'user', parts:[{text: m.text}]})),
                 {role:'user', parts:[{text: userText}]}
             ];
-            const payload = { contents, tools: webSearchEnabled ? [{google_search:{}}] : [], generationConfig: { maxOutputTokens: deepThinkEnabled ? 900 : 500 } };
+            const payload = { contents, tools: webSearchEnabled ? [{google_search:{}}] : [], generationConfig: { maxOutputTokens: deepThinkEnabled ? 1000 : 600, temperature: 0.9 } };
 
             let lastErr = null;
             for (const model of STABLE_CHAT_MODELS) {
@@ -1272,16 +1138,8 @@ Natural spoken replies. Short sentences. Warm tone. No markdown.`;
 
             refreshMarketData();
 
-            setInterval(() => {
-                if (chatInProgress) return;
-                refreshMarketData();
-            }, 330000);
-
-            setInterval(() => {
-                if (chatInProgress) return;
-                askAIForSignal();
-            }, 3600000);
-
+            setInterval(() => { if (chatInProgress) return; refreshMarketData(); }, 330000);
+            setInterval(() => { if (chatInProgress) return; askAIForSignal(); }, 3600000);
             setInterval(loadWisdom, 300000);
         };
     </script>
