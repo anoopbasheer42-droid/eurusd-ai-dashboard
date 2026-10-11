@@ -59,25 +59,12 @@
         .chat-msg.error { background: rgba(255,51,102,0.1); color: var(--red); align-self: flex-start; border-left: 3px solid var(--red); font-family: monospace; font-size: 0.75rem; max-width: 100%; }
         
         .chat-speak-btn {
-            display: inline-block;
-            margin-left: 10px;
-            padding: 4px 10px;
-            background: rgba(0,255,136,0.15);
-            border: 1px solid var(--green);
-            border-radius: 6px;
-            color: var(--text);
-            font-size: 0.85rem;
-            cursor: pointer;
-            opacity: 0.9;
-            transition: all 0.2s;
-            vertical-align: middle;
+            display: inline-block; margin-left: 10px; padding: 4px 10px;
+            background: rgba(0,255,136,0.15); border: 1px solid var(--green);
+            border-radius: 6px; color: var(--text); font-size: 0.85rem;
+            cursor: pointer; opacity: 0.9; transition: all 0.2s; vertical-align: middle;
         }
-        .chat-speak-btn:hover {
-            opacity: 1;
-            background: var(--green);
-            color: #0a0e17;
-            transform: scale(1.05);
-        }
+        .chat-speak-btn:hover { opacity: 1; background: var(--green); color: #0a0e17; transform: scale(1.05); }
         
         .chat-input-row { display: flex; gap: 10px; }
         .chat-input { flex: 1; padding: 14px 16px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-size: 1rem; font-family: inherit; outline: none; transition: 0.2s; }
@@ -89,6 +76,12 @@
         .chat-clear { padding: 10px 16px; background: rgba(148,163,184,0.15); border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-size: 0.8rem; cursor: pointer; align-self: flex-end; margin-top: 4px; }
         .chat-clear:hover { color: var(--text); border-color: var(--accent); }
         
+        .chat-header-buttons { display: flex; gap: 8px; margin-left: auto; }
+        .header-btn { background: none; border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-size: 0.75rem; padding: 6px 12px; cursor: pointer; transition: 0.2s; }
+        .header-btn:hover { color: var(--text); border-color: var(--accent); }
+        .header-btn.memory-btn { border-color: var(--purple); color: var(--purple); }
+        .header-btn.memory-btn:hover { background: rgba(139,92,246,0.15); }
+        
         .key-panel { background: linear-gradient(135deg, rgba(234,179,8,0.15), rgba(249,115,22,0.15)); border: 1px solid rgba(234,179,8,0.4); border-radius: 12px; padding: 16px; margin-bottom: 16px; display: none; }
         .key-panel.visible { display: block; }
         .key-panel h3 { color: #fbbf24; font-size: 0.9rem; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
@@ -99,8 +92,24 @@
         .key-save-btn { padding: 12px 18px; background: linear-gradient(135deg, #fbbf24, #f59e0b); border: none; border-radius: 10px; color: #0a0e17; font-weight: 700; cursor: pointer; }
         .key-save-btn:hover { opacity: 0.9; }
         .key-status { font-size: 0.8rem; margin-top: 8px; color: var(--green); word-break: break-all; }
-        .change-key-btn { background: none; border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-size: 0.75rem; padding: 6px 12px; cursor: pointer; margin-left: auto; }
-        .change-key-btn:hover { color: var(--text); border-color: var(--accent); }
+        
+        .memory-panel { background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(59,130,246,0.15)); border: 1px solid rgba(139,92,246,0.4); border-radius: 12px; padding: 16px; margin-bottom: 16px; display: none; }
+        .memory-panel.visible { display: block; }
+        .memory-panel h3 { color: var(--purple); font-size: 0.9rem; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+        .memory-panel p { font-size: 0.85rem; color: var(--muted); margin-bottom: 12px; line-height: 1.5; }
+        .memory-list { display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; margin-bottom: 12px; }
+        .memory-item { display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.3); padding: 10px 12px; border-radius: 8px; font-size: 0.85rem; line-height: 1.5; }
+        .memory-item span { flex: 1; }
+        .memory-item .mem-date { font-size: 0.7rem; color: var(--muted); white-space: nowrap; }
+        .memory-item .mem-del { background: rgba(255,51,102,0.15); border: 1px solid rgba(255,51,102,0.3); color: var(--red); border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 0.75rem; }
+        .memory-item .mem-del:hover { background: rgba(255,51,102,0.3); }
+        .memory-empty { color: var(--muted); font-style: italic; font-size: 0.85rem; padding: 8px 0; }
+        .memory-actions { display: flex; gap: 8px; }
+        .memory-action { padding: 8px 14px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; font-weight: 600; }
+        .memory-action.add { background: rgba(139,92,246,0.2); border: 1px solid var(--purple); color: var(--purple); }
+        .memory-action.add:hover { background: rgba(139,92,246,0.35); }
+        .memory-action.clear { background: rgba(255,51,102,0.15); border: 1px solid rgba(255,51,102,0.4); color: var(--red); }
+        .memory-action.clear:hover { background: rgba(255,51,102,0.3); }
     </style>
 </head>
 <body>
@@ -135,7 +144,10 @@
 
         <div class="card" style="grid-column: 1 / -1;">
             <h2 style="display:flex; align-items:center;">💬 Ask Your AI Trader
-                <button class="change-key-btn" onclick="showKeyPanel()">🔑 Change Key</button>
+                <div class="chat-header-buttons">
+                    <button class="header-btn memory-btn" onclick="toggleMemoryPanel()">🧠 Memory</button>
+                    <button class="header-btn" onclick="showKeyPanel()">🔑 Key</button>
+                </div>
             </h2>
 
             <div id="keyPanel" class="key-panel">
@@ -148,6 +160,16 @@
                 <div id="keyStatus" class="key-status"></div>
             </div>
 
+            <div id="memoryPanel" class="memory-panel">
+                <h3>🧠 Long-Term Memory</h3>
+                <p>These facts stay with you forever — even when you clear the chat. The AI remembers them and uses them to personalize every reply.</p>
+                <div id="memoryList" class="memory-list"></div>
+                <div class="memory-actions">
+                    <button class="memory-action add" onclick="addMemoryManually()">+ Add Fact</button>
+                    <button class="memory-action clear" onclick="clearAllMemory()">🗑 Clear All</button>
+                </div>
+            </div>
+
             <div class="chat-container">
                 <div id="chatMessages" class="chat-messages">
                     <div class="chat-msg system">Ask me anything, Boss. I know the current price, signal, and your routine.</div>
@@ -156,7 +178,7 @@
                     <input id="chatInput" class="chat-input" type="text" placeholder="e.g. Should I enter now? Or: Remind me of my routine" onkeydown="if(event.key === 'Enter') sendChat()" />
                     <button id="chatSendBtn" class="chat-send" onclick="sendChat()">Send</button>
                 </div>
-                <button class="chat-clear" onclick="clearChat()">Clear chat & memory</button>
+                <button class="chat-clear" onclick="clearChat()">Clear chat (memory stays)</button>
             </div>
         </div>
 
@@ -194,13 +216,124 @@
     <script>
         const KEY_STORAGE_NAME = "eurusd_chat_key";
         const HISTORY_STORAGE_NAME = "eurusd_chat_history";
+        const MEMORY_STORAGE_NAME = "eurusd_long_term_memory";
         const MAX_HISTORY_ENTRIES = 40;
 
+        // ---------- STORAGE HELPERS ----------
         function getStoredKey() {
             try { return localStorage.getItem(KEY_STORAGE_NAME) || ""; }
             catch (e) { return ""; }
         }
 
+        function loadStoredHistory() {
+            try {
+                const raw = localStorage.getItem(HISTORY_STORAGE_NAME);
+                if (!raw) return [];
+                const parsed = JSON.parse(raw);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (e) { return []; }
+        }
+
+        function saveStoredHistory(history) {
+            try {
+                const trimmed = history.length > MAX_HISTORY_ENTRIES ? history.slice(-MAX_HISTORY_ENTRIES) : history;
+                localStorage.setItem(HISTORY_STORAGE_NAME, JSON.stringify(trimmed));
+            } catch (e) {}
+        }
+
+        function clearStoredHistory() {
+            try { localStorage.removeItem(HISTORY_STORAGE_NAME); } catch (e) {}
+        }
+
+        // ---------- LONG-TERM MEMORY ----------
+        function loadMemory() {
+            try {
+                const raw = localStorage.getItem(MEMORY_STORAGE_NAME);
+                if (!raw) return [];
+                const parsed = JSON.parse(raw);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (e) { return []; }
+        }
+
+        function saveMemory(memory) {
+            try { localStorage.setItem(MEMORY_STORAGE_NAME, JSON.stringify(memory)); }
+            catch (e) {}
+        }
+
+        function addFact(fact) {
+            if (!fact || !fact.trim()) return;
+            const memory = loadMemory();
+            const clean = fact.trim();
+            // Avoid duplicates (case-insensitive)
+            if (memory.some(m => m.fact.toLowerCase() === clean.toLowerCase())) return;
+            memory.push({
+                fact: clean,
+                added: new Date().toISOString().slice(0, 10)
+            });
+            saveMemory(memory);
+            renderMemoryList();
+        }
+
+        function deleteFact(index) {
+            const memory = loadMemory();
+            memory.splice(index, 1);
+            saveMemory(memory);
+            renderMemoryList();
+        }
+
+        function clearAllMemory() {
+            if (!confirm("Clear ALL long-term memory? This cannot be undone.")) return;
+            saveMemory([]);
+            renderMemoryList();
+        }
+
+        function addMemoryManually() {
+            const fact = prompt("What should I remember, Boss?");
+            if (fact && fact.trim()) addFact(fact);
+        }
+
+        function toggleMemoryPanel() {
+            document.getElementById("memoryPanel").classList.toggle("visible");
+            renderMemoryList();
+        }
+
+        function renderMemoryList() {
+            const list = document.getElementById("memoryList");
+            const memory = loadMemory();
+            if (!memory.length) {
+                list.innerHTML = '<div class="memory-empty">No memories yet, Boss. Talk to me and I will remember important things automatically.</div>';
+                return;
+            }
+            list.innerHTML = memory.map((item, i) => `
+                <div class="memory-item">
+                    <span>${escapeHtml(item.fact)}</span>
+                    <span class="mem-date">${item.added || ''}</span>
+                    <button class="mem-del" onclick="deleteFact(${i})">✕</button>
+                </div>
+            `).join("");
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement("div");
+            div.innerText = text;
+            return div.innerHTML;
+        }
+
+        // ---------- EXTRACT MEMORIES FROM AI REPLY ----------
+        function extractAndStripMemories(text) {
+            // Match [REMEMBER: something] anywhere in the text
+            const regex = /\[REMEMBER:\s*([^\]]+)\]/gi;
+            const facts = [];
+            let match;
+            while ((match = regex.exec(text)) !== null) {
+                facts.push(match[1].trim());
+            }
+            // Strip those markers from the display text
+            const clean = text.replace(regex, "").replace(/\n\s*\n\s*\n/g, "\n\n").trim();
+            return { clean, facts };
+        }
+
+        // ---------- KEY ----------
         function saveKey() {
             const key = document.getElementById("keyInput").value.replace(/\s/g, "");
             if (!key || key.length < 20) {
@@ -226,41 +359,12 @@
             if (existing) document.getElementById("keyInput").value = existing;
         }
 
-        // --- MEMORY ---
-        function loadStoredHistory() {
-            try {
-                const raw = localStorage.getItem(HISTORY_STORAGE_NAME);
-                if (!raw) return [];
-                const parsed = JSON.parse(raw);
-                return Array.isArray(parsed) ? parsed : [];
-            } catch (e) {
-                console.log("Could not load history:", e);
-                return [];
-            }
-        }
-
-        function saveStoredHistory(history) {
-            try {
-                // Trim oldest if too many
-                const trimmed = history.length > MAX_HISTORY_ENTRIES 
-                    ? history.slice(-MAX_HISTORY_ENTRIES) 
-                    : history;
-                localStorage.setItem(HISTORY_STORAGE_NAME, JSON.stringify(trimmed));
-            } catch (e) {
-                console.log("Could not save history:", e);
-            }
-        }
-
-        function clearStoredHistory() {
-            try { localStorage.removeItem(HISTORY_STORAGE_NAME); }
-            catch (e) { console.log("Could not clear history:", e); }
-        }
-
         window.addEventListener("load", () => {
             if (!getStoredKey()) document.getElementById("keyPanel").classList.add("visible");
+            renderMemoryList();
         });
 
-        // --- 3D MODEL ---
+        // ---------- 3D MODEL ----------
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
@@ -285,7 +389,7 @@
         }
         animate();
 
-        // --- DATA ---
+        // ---------- DATA ----------
         let latestData = null;
         let personalContext = null;
 
@@ -338,7 +442,7 @@
             else material.color.setHex(0xffcc00);
         }
 
-        // --- VOICE ---
+        // ---------- VOICE ----------
         const OPENINGS = ["Boss, here's the live market update.", "Alright Boss, checking the EUR USD chart now.", "Boss, I've been watching the market. Here's what I see.", "Update time, Boss. Let's look at the EUR USD.", "Boss, quick market brief for you."];
         const TRANSITIONS = ["Now,", "Here's the deal,", "Moving on,", "Listen up,", "Alright so,"];
         const CLOSINGS = ["I'll keep watching and update you next hour, Boss.", "Stay sharp, Boss. Next update in an hour.", "I've got your back, Boss. Talk soon.", "That's the read, Boss. Watch your risk.", "Keep your stops tight, Boss. I'll be back in an hour.", "That's all for now, Boss. Stay disciplined."];
@@ -386,20 +490,19 @@
         function stopVoice() { window.speechSynthesis.cancel(); }
         window.speechSynthesis.onvoiceschanged = () => { getBestVoice(); };
 
-        // --- CHAT ---
+        // ---------- CHAT ----------
         const chatMessages = document.getElementById("chatMessages");
         const chatInput = document.getElementById("chatInput");
         const chatSendBtn = document.getElementById("chatSendBtn");
         let chatHistory = [];
 
-        function addMessage(role, text, skipSave) {
+        function addMessage(role, text) {
             const div = document.createElement("div");
             div.className = `chat-msg ${role}`;
-            
             const textSpan = document.createElement("span");
             textSpan.innerText = text;
             div.appendChild(textSpan);
-            
+
             if (role === "ai" && text && text.length > 5) {
                 const speaker = document.createElement("button");
                 speaker.className = "chat-speak-btn";
@@ -417,7 +520,7 @@
                 };
                 div.appendChild(speaker);
             }
-            
+
             chatMessages.appendChild(div);
             chatMessages.scrollTop = chatMessages.scrollHeight;
             return div;
@@ -437,6 +540,8 @@
         function buildSystemPrompt() {
             const d = latestData || {};
             const p = personalContext || {};
+            const memory = loadMemory();
+            
             let prompt = `You are a professional EUR/USD trader AND personal assistant to a client named Boss. You have 10 years of hedge fund experience. Be friendly, funny, and motivational. Always call him "Boss".
 
 CURRENT MARKET STATE:
@@ -464,15 +569,37 @@ CURRENT MARKET STATE:
             if (p.trading_style) {
                 prompt += `\nTRADING STYLE:\n- Monthly Goal: ${p.trading_style.monthly_goal}\n- Preferred Sessions: ${p.trading_style.preferred_sessions.join(", ")}\n- Risk: ${p.trading_style.risk_tolerance}\n`;
             }
+
+            if (memory.length > 0) {
+                prompt += `\nLONG-TERM MEMORY (things you remember about Boss from past conversations):\n`;
+                memory.forEach(m => prompt += `- ${m.fact}\n`);
+            }
+
             prompt += `\nINSTRUCTIONS:
 - Answer Boss's question clearly and directly.
 - Be warm, personal, and helpful.
-- You remember previous messages in this conversation. Reference them naturally when relevant.
+- You remember previous messages in this conversation AND the long-term memory above.
+- Reference memories naturally when relevant.
 - If he asks about market/trades, use the current market data above.
 - If he asks about routine/family, reference the personal context above.
 - If you don't know something, say so honestly.
 - Keep responses concise (2-4 sentences usually).
-- Do NOT use markdown formatting. Just plain text.`;
+
+IMPORTANT — MEMORY EXTRACTION:
+At the very end of your reply, if you learned any NEW important facts about Boss worth remembering long-term (family members, preferences, plans, goals, habits, important dates, personal details), add them as separate lines in this EXACT format:
+[REMEMBER: fact to remember]
+[REMEMBER: another fact if any]
+
+Only add facts that are genuinely personal and important. Do NOT remember:
+- Market observations or trade ideas
+- Casual greetings
+- Things already in the long-term memory above
+- Anything trivial
+
+If nothing new is worth remembering, do NOT add any [REMEMBER: ...] lines at all.
+
+Do NOT use markdown formatting. Just plain text.`;
+
             return prompt;
         }
 
@@ -482,7 +609,7 @@ CURRENT MARKET STATE:
 
             const key = getStoredKey();
             if (!key) {
-                addMessage("ai", "Boss, please enter your API key first using the 🔑 Change Key button above.");
+                addMessage("ai", "Boss, please enter your API key first using the 🔑 Key button above.");
                 showKeyPanel();
                 return;
             }
@@ -565,13 +692,19 @@ CURRENT MARKET STATE:
                 thinkingEl.remove();
 
                 if (answer) {
-                    addMessage("ai", answer.trim());
-                    chatHistory.push({ role: "model", parts: [{ text: answer.trim() }] });
+                    // Extract any [REMEMBER: ...] markers
+                    const { clean, facts } = extractAndStripMemories(answer);
+                    facts.forEach(f => addFact(f));
+                    if (facts.length > 0) {
+                        addMessage("system", `🧠 Remembered ${facts.length} new fact${facts.length > 1 ? 's' : ''}.`);
+                    }
+                    
+                    addMessage("ai", clean);
+                    chatHistory.push({ role: "model", parts: [{ text: clean }] });
                     if (chatHistory.length > MAX_HISTORY_ENTRIES) chatHistory = chatHistory.slice(-MAX_HISTORY_ENTRIES);
                     saveStoredHistory(chatHistory);
-                    speakChatText(answer.trim());
+                    speakChatText(clean);
                 } else {
-                    // Roll back the last user message from memory since it failed
                     chatHistory.pop();
                     saveStoredHistory(chatHistory);
                     const debugInfo = availableModels.length > 0
@@ -589,19 +722,17 @@ CURRENT MARKET STATE:
         }
 
         function clearChat() {
-            chatMessages.innerHTML = '<div class="chat-msg system">Ask me anything, Boss. I know the current price, signal, and your routine.</div>';
+            chatMessages.innerHTML = '<div class="chat-msg system">Chat cleared, Boss. But I still remember everything in my memory 🧠</div>';
             chatHistory = [];
             clearStoredHistory();
         }
 
-        // --- RESTORE PREVIOUS CHAT ON LOAD ---
+        // ---------- RESTORE HISTORY ON LOAD ----------
         function restoreChatFromMemory() {
             const saved = loadStoredHistory();
             if (!saved.length) return;
             
-            // Remove the default system message
             chatMessages.innerHTML = '<div class="chat-msg system">Memory restored — Boss and I are back in the flow.</div>';
-            
             chatHistory = saved;
             
             for (const entry of saved) {
@@ -613,11 +744,9 @@ CURRENT MARKET STATE:
                     addMessage("ai", text);
                 }
             }
-            
-            console.log(`Restored ${saved.length} messages from memory`);
         }
 
-        // --- INIT ---
+        // ---------- INIT ----------
         loadPersonalContext();
         loadLiveData();
         restoreChatFromMemory();
