@@ -133,21 +133,7 @@
             transition: all 0.4s ease-in-out;
             z-index: 2;
             position: relative;
-            margin-bottom: 5px;
-        }
-
-        /* NEW: 5 Minute Timer */
-        .timer-container {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--blue);
             margin-bottom: 15px;
-            background: rgba(74, 144, 226, 0.1);
-            display: inline-block;
-            padding: 5px 15px;
-            border-radius: 8px;
-            border: 1px solid rgba(74, 144, 226, 0.3);
         }
 
         .signal-details {
@@ -277,10 +263,6 @@
         <div class="card signal-card">
             <div class="card-title">Current Signal</div>
             <div id="signal-text">WAITING</div>
-            
-            <!-- NEW: 5 Minute Timer -->
-            <div class="timer-container" id="timer-display">05:00</div>
-
             <div class="signal-details" id="signal-details">
                 <div><span>Confidence:</span> <span id="val-confidence">-</span></div>
                 <div><span>Valid Until:</span> <span id="val-valid">-</span></div>
@@ -388,53 +370,26 @@
         let reminders = JSON.parse(localStorage.getItem('eurusd_reminders') || '[]');
         let apiKey = localStorage.getItem('eurusd_chat_key') || '';
 
-        // --- NEW: 5 MINUTE COUNTDOWN TIMER LOGIC ---
-        let timeLeft = 300; // 5 minutes in seconds
-        let timerInterval = null;
-
-        function startTimer() {
-            if (timerInterval) clearInterval(timerInterval);
-            timeLeft = 300; // Reset to 5 minutes
-            updateTimerDisplay();
-            
-            timerInterval = setInterval(() => {
-                timeLeft--;
-                updateTimerDisplay();
-                
-                if (timeLeft <= 0) {
-                    // Timer hit zero: Trigger a fresh data fetch and reset
-                    clearInterval(timerInterval);
-                    document.getElementById('timer-display').innerText = "00:00";
-                    fetchData(); 
-                    startTimer(); 
-                }
-            }, 1000);
-        }
-
-        function updateTimerDisplay() {
-            const minutes = Math.floor(timeLeft / 60).toString().padStart(2, '0');
-            const seconds = (timeLeft % 60).toString().padStart(2, '0');
-            const display = document.getElementById('timer-display');
-            display.innerText = `${minutes}:${seconds}`;
-            
-            // Change color to red when under 1 minute
-            if (timeLeft < 60) {
-                display.style.color = 'var(--red)';
-                display.style.borderColor = 'rgba(231, 76, 60, 0.5)';
-                display.style.background = 'rgba(231, 76, 60, 0.1)';
-            } else {
-                display.style.color = 'var(--blue)';
-                display.style.borderColor = 'rgba(74, 144, 226, 0.3)';
-                display.style.background = 'rgba(74, 144, 226, 0.1)';
-            }
-        }
-
         // --- FIX 1: VOICE INITIALIZATION ON ANDROID ---
         document.body.addEventListener('click', () => {
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.getVoices();
             }
         }, { once: true });
+
+        // --- NEW: MARKET CLOSED WEEKEND LOGIC ---
+        function isMarketClosed() {
+            const now = new Date();
+            const day = now.getUTCDay(); // 0 = Sunday, 6 = Saturday
+            const hour = now.getUTCHours();
+            
+            // Forex closes Friday 5 PM EST (22:00 UTC) and opens Sunday 5 PM EST (22:00 UTC)
+            if (day === 6) return true; // Saturday
+            if (day === 0 && hour < 22) return true; // Sunday before 22:00 UTC
+            if (day === 5 && hour >= 22) return true; // Friday after 22:00 UTC
+            
+            return false;
+        }
 
         // --- 1. THREE.JS NEURAL CORE ---
         const container = document.getElementById('canvas-container');
@@ -485,9 +440,11 @@
         });
 
         function updateCoreColor(signal) {
-            let color = 0xf1c40f; 
+            let color = 0xf1c40f; // Yellow HOLD
             if (signal === 'BUY') color = 0x2ecc71;
             if (signal === 'SELL') color = 0xe74c3c;
+            if (signal === 'CLOSED') color = 0x555555; // Gray for closed
+            
             glowSphere.material.color.setHex(color);
             innerCore.material.color.setHex(color);
             outerShell.material.color.setHex(color);
@@ -515,7 +472,29 @@
 
         function updateUI(data) {
             document.getElementById('live-price').innerText = data.price || '1.00000';
+            
             const signalText = document.getElementById('signal-text');
+            const detailsDiv = document.getElementById('signal-details');
+
+            // CHECK IF MARKET IS CLOSED
+            if (isMarketClosed()) {
+                signalText.innerText = "MARKET CLOSED";
+                signalText.style.color = 'var(--text-muted)';
+                signalText.style.textShadow = 'none';
+                signalText.style.fontSize = '2rem'; // Smaller text to fit
+                updateCoreColor('CLOSED');
+                
+                // Hide trading details
+                detailsDiv.style.display = 'none';
+                document.getElementById('val-reason').innerText = "Forex market is closed for the weekend. Enjoy your time with the family, Boss!";
+                document.getElementById('wise-words').innerText = "Rest is part of the process. The market will be back on Monday.";
+                return; // Stop here, don't update the rest
+            } else {
+                // Market is open, ensure details are shown
+                detailsDiv.style.display = 'grid';
+                signalText.style.fontSize = '3rem';
+            }
+
             signalText.innerText = data.signal || 'WAITING';
             if (data.signal === 'BUY') { signalText.style.color = 'var(--green)'; signalText.style.textShadow = '0 0 30px rgba(46, 204, 113, 0.6)'; }
             else if (data.signal === 'SELL') { signalText.style.color = 'var(--red)'; signalText.style.textShadow = '0 0 30px rgba(231, 76, 60, 0.6)'; }
@@ -538,9 +517,6 @@
             document.getElementById('val-candle-4h').innerText = data.candle_4h || '-';
             document.getElementById('val-reason').innerText = data.reason || 'No reasoning provided.';
             document.getElementById('wise-words').innerText = data.wise_words || 'Stay disciplined, Boss.';
-            
-            // Restart timer whenever new data arrives
-            startTimer();
         }
 
         // --- 3. VOICE SYSTEM ---
@@ -551,6 +527,10 @@
         function getRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
         function playVoiceReport() {
+            if (isMarketClosed()) {
+                speakText("The market is closed for the weekend, Boss. Rest well and spend time with your family. I will be back on Monday.");
+                return;
+            }
             if (!globalData) return;
             if (isSpeaking) stopVoice();
             const opening = getRandom(OPENINGS);
@@ -811,16 +791,13 @@
 
         // --- INITIALIZATION ---
         window.onload = () => {
-            fetchData(); // This will trigger startTimer() inside updateUI
+            fetchData();
             fetchContext();
             renderChat();
             renderReminders();
             renderMemory();
             if (apiKey) document.getElementById('web-toggle').style.display = 'block';
             if ('speechSynthesis' in window) { window.speechSynthesis.getVoices(); }
-            
-            // Fallback: Start timer immediately in case fetch takes a moment
-            startTimer(); 
         };
     </script>
 </body>
