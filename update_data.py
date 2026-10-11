@@ -57,6 +57,20 @@ def load_personal_context():
         return None
 
 
+def get_wise_words(personal):
+    quotes = []
+    if personal and isinstance(personal.get("quotes"), list):
+        quotes = [q for q in personal["quotes"] if q and isinstance(q, str)]
+    
+    roll = random.random()
+    if quotes and roll < 0.4:
+        return f"Quote: \"{random.choice(quotes)}\""
+    elif roll < 0.7:
+        return f"Joke: {random.choice(JOKES)}"
+    else:
+        return f"Motivation: {random.choice(MOTIVATIONS)}"
+
+
 def build_personal_section(personal):
     if not personal:
         return "No personal context provided."
@@ -78,6 +92,8 @@ def build_personal_section(personal):
             lines.append(f"- Parents: {', '.join(family['parents'])}")
         if "brothers" in family:
             lines.append(f"- Brothers: {', '.join(family['brothers'])}")
+        if "location" in family:
+            lines.append(f"- Family lives in {family['location']}")
     routine = personal.get("daily_routine", [])
     if routine:
         lines.append("\nDAILY ROUTINE REMINDERS:")
@@ -98,20 +114,14 @@ def build_personal_section(personal):
 
 
 def resample_to_4h(df_1h):
-    """Resample hourly data to 4-hour candles."""
     df = df_1h.copy()
     df_4h = df.resample('4h').agg({
-        'Open': 'first',
-        'High': 'max',
-        'Low': 'min',
-        'Close': 'last',
-        'Volume': 'sum'
+        'Open': 'first', 'High': 'max', 'Low': 'min', 'Close': 'last', 'Volume': 'sum'
     }).dropna()
     return df_4h
 
 
 def find_swing_points(df, lookback=60, window=3):
-    """Find recent swing highs and lows using a window."""
     recent = df.tail(lookback)
     highs = []
     lows = []
@@ -126,7 +136,6 @@ def find_swing_points(df, lookback=60, window=3):
 
 
 def determine_trend(df):
-    """Simple trend detection using swing highs and lows."""
     highs, lows = find_swing_points(df)
     if len(highs) >= 2 and len(lows) >= 2:
         hh = highs[-1] > highs[-2]
@@ -143,9 +152,8 @@ def determine_trend(df):
 
 
 def candles_to_text(df, count, label):
-    """Format last N candles as text for the AI prompt."""
     recent = df.tail(count)
-    lines = [f"{label} (oldest → newest):"]
+    lines = [f"{label} (oldest -> newest):"]
     for idx, row in recent.iterrows():
         try:
             time_str = idx.strftime("%m-%d %H:%M")
@@ -159,7 +167,6 @@ def candles_to_text(df, count, label):
 
 
 def candles_to_json(df, count):
-    """Convert last N candles to JSON-serializable list."""
     recent = df.tail(count)
     result = []
     for idx, row in recent.iterrows():
@@ -206,14 +213,27 @@ def get_analysis():
         try:
             ticker = yf.Ticker("EURUSD=X")
 
-            # Fetch 1H data (30 days for good history)
+            # Fetch 1H data (30 days)
             df_1h = ticker.history(period="30d", interval="1h")
             if df_1h.empty:
                 time.sleep(5)
                 continue
             df_1h = df_1h.dropna()
 
-            # Fetch Daily data
+            # Fetch 15m data (5 days)
+            df_15m = ticker.history(period="5d", interval="15m")
+            if df_15m.empty:
+                # Try longer period
+                df_15m = ticker.history(period="30d", interval="15m")
+            df_15m = df_15m.dropna() if not df_15m.empty else df_1h.tail(20)
+
+            # Fetch 5m data (2 days)
+            df_5m = ticker.history(period="2d", interval="5m")
+            if df_5m.empty:
+                df_5m = ticker.history(period="5d", interval="5m")
+            df_5m = df_5m.dropna() if not df_5m.empty else df_1h.tail(30)
+
+            # Fetch Daily (90 days)
             df_daily = ticker.history(period="90d", interval="1d")
             if df_daily.empty:
                 df_daily = df_1h.resample('1D').agg({
@@ -223,7 +243,7 @@ def get_analysis():
             else:
                 df_daily = df_daily.dropna()
 
-            # Resample 1H → 4H
+            # Resample 1H -> 4H
             df_4h = resample_to_4h(df_1h)
 
             # Indicators on 1H
@@ -267,15 +287,18 @@ def get_analysis():
             else:
                 location = "middle of the recent range"
 
-            # Trend + swings
             swing_highs, swing_lows = find_swing_points(df_1h)
             trend = determine_trend(df_1h)
 
-            # Candle data (text + JSON)
+            # Candle text blocks
+            candles_5m_text = candles_to_text(df_5m, 30, "5-MINUTE CANDLES")
+            candles_15m_text = candles_to_text(df_15m, 20, "15-MINUTE CANDLES")
             candles_1h_text = candles_to_text(df_1h, 30, "1-HOUR CANDLES")
             candles_4h_text = candles_to_text(df_4h, 10, "4-HOUR CANDLES")
             candles_daily_text = candles_to_text(df_daily, 5, "DAILY CANDLES")
 
+            candles_5m_json = candles_to_json(df_5m, 30)
+            candles_15m_json = candles_to_json(df_15m, 20)
             candles_1h_json = candles_to_json(df_1h, 30)
             candles_4h_json = candles_to_json(df_4h, 10)
             candles_daily_json = candles_to_json(df_daily, 5)
@@ -323,7 +346,7 @@ def get_analysis():
             else:
                 session, volatility = "Off-Session", "low"
 
-            # Technical signal
+            # Tech signal
             if latest['Close'] > latest['EMA_20'] and rsi > 50:
                 tech_signal = "BUY"
             elif latest['Close'] < latest['EMA_20'] and rsi < 50:
@@ -331,7 +354,7 @@ def get_analysis():
             else:
                 tech_signal = "HOLD"
 
-            # Personal
+            # Personal context
             personal = load_personal_context()
             personal_section = build_personal_section(personal)
 
@@ -344,8 +367,8 @@ def get_analysis():
             else:
                 time_greeting = "Good evening"
 
-            # === BUILD THE ENHANCED PROMPT ===
-            prompt = f"""You are a professional EUR/USD trader AND personal assistant to a client named Boss. You have 10 years of hedge fund experience.
+            # === BUILD PROMPT ===
+            prompt = f"""You are a professional EUR/USD trader AND personal assistant to a client named Boss. You have 10 years of hedge fund experience. Think like a real trader, not a rulebook.
 
 TIME: {ist_now.strftime('%H:%M IST, %A')} — Start with "{time_greeting}".
 
@@ -381,6 +404,10 @@ NEWS BIAS: {news_bias} (score: {news_score})
 SESSION: {session} ({volatility} volatility)
 TECHNICAL SIGNAL: {tech_signal}
 
+{candles_5m_text}
+
+{candles_15m_text}
+
 {candles_1h_text}
 
 {candles_4h_text}
@@ -389,21 +416,27 @@ TECHNICAL SIGNAL: {tech_signal}
 
 === YOUR TASK ===
 
+You have FIVE timeframes now: 5m, 15m, 1H, 4H, Daily. Use them like a real intraday trader:
+
+- 5m -> ENTRY TIMING. Is the current moment right to enter? Any engulfing/rejection candles?
+- 15m -> SHORT-TERM STRUCTURE. Is price making higher lows? Any micro resistance?
+- 1H -> MAIN TREND. This is the anchor.
+- 4H -> MEDIUM TREND. Confirms or conflicts with 1H.
+- Daily -> BIG PICTURE. Weekly context.
+
 Return TWO things:
 
-1) TRADING VERDICT: BUY / SELL / HOLD with reason (3-4 sentences). Explain:
-   - What the overall trend and structure says
-   - What you actually see in the candles above (support/resistance touches, higher highs/lows, engulfing, breakouts, false breakouts, consolidation, etc.)
-   - What would confirm entry and what would invalidate it
-   - Speak directly to Boss
+1) TRADING VERDICT: BUY / SELL / HOLD with reason (3-5 sentences). Explain:
+   - What the higher timeframes (1H, 4H, Daily) say about the trend
+   - What the lower timeframes (5m, 15m) say about the ENTRY moment
+   - If HTF says BUY but LTF says WAIT, tell Boss to wait for confirmation
+   - If all 5 align, that's a high-confidence setup
+   - What would invalidate this idea
 
-2) PERSONAL MESSAGE: Short, friendly check-in (2-3 sentences) with:
-   - Time-appropriate greeting
-   - ONE relevant reminder from Boss's routine
-   - Warm/funny/motivational line
+2) PERSONAL MESSAGE: Short, friendly check-in (2-3 sentences) with a greeting, one reminder from Boss's routine, and a warm/funny line.
 
 Respond ONLY with valid JSON:
-{{"verdict": "BUY/SELL/HOLD", "reason": "3-4 sentences", "confidence": "LOW/MEDIUM/HIGH", "personal_message": "2-3 sentences"}}"""
+{{"verdict": "BUY/SELL/HOLD", "reason": "3-5 sentences", "confidence": "LOW/MEDIUM/HIGH", "personal_message": "2-3 sentences"}}"""
 
             raw_response = call_gemini(prompt)
 
@@ -429,7 +462,6 @@ Respond ONLY with valid JSON:
                     print(f"JSON parse error: {e}")
                     print(f"Raw: {raw_response[:300]}")
 
-            # Candle summary text
             if latest['Close'] > latest['Open']:
                 candle_current = f"Bullish candle. Open: {latest['Open']:.4f}, Now: {price}. Buyers in control."
             else:
@@ -438,7 +470,6 @@ Respond ONLY with valid JSON:
             c1h = f"1H candle at {price}. " + ("Above 20 EMA - uptrend." if latest['Close'] > latest['EMA_20'] else "Below 20 EMA - downtrend.")
             c4h = f"4H trend: " + ("bullish above moving averages." if latest['Close'] > latest['EMA_50'] else "bearish below moving averages.")
 
-            # SL/TP
             entry = price
             if verdict == "BUY":
                 sl = round(price - (atr * 1.5), 4)
@@ -452,10 +483,7 @@ Respond ONLY with valid JSON:
 
             valid_until = (ist_now + timedelta(hours=1)).strftime("%H:%M IST")
 
-            if random.random() < 0.5:
-                wise_words = f"Joke: {random.choice(JOKES)}"
-            else:
-                wise_words = f"Motivation: {random.choice(MOTIVATIONS)}"
+            wise_words = get_wise_words(personal)
 
             return {
                 "signal": verdict,
@@ -477,6 +505,8 @@ Respond ONLY with valid JSON:
                 "candle_current": candle_current,
                 "candle_1h": c1h,
                 "candle_4h": c4h,
+                "candles_5m": candles_5m_json,
+                "candles_15m": candles_15m_json,
                 "candles_h1": candles_1h_json,
                 "candles_h4": candles_4h_json,
                 "candles_daily": candles_daily_json,
