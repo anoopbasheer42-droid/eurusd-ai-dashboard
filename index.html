@@ -9,418 +9,79 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         :root { 
-            --bg: #0a0e17; 
-            --card: rgba(255,255,255,0.03); 
-            --border: rgba(255,255,255,0.08); 
-            --text: #e2e8f0; 
-            --muted: #94a3b8; 
-            --green: #00ff88; 
-            --red: #ff3366; 
-            --yellow: #ffcc00; 
-            --accent: #3b82f6; 
-            --purple: #8b5cf6; 
-            --pink: #ec4899; 
+            --bg: #0a0e17; --card: rgba(255,255,255,0.03); --border: rgba(255,255,255,0.08); 
+            --text: #e2e8f0; --muted: #94a3b8; --green: #00ff88; --red: #ff3366; --yellow: #ffcc00; 
+            --accent: #3b82f6; --purple: #8b5cf6; --pink: #ec4899; 
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { 
-            font-family: 'Inter', sans-serif; 
-            background: var(--bg); 
-            color: var(--text); 
-            min-height: 100vh; 
-            padding: 20px; 
-            background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #0a0e17 70%); 
-        }
-        header { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            margin-bottom: 30px; 
-            padding-bottom: 15px; 
-            border-bottom: 1px solid var(--border); 
-            flex-wrap: wrap;
-            gap: 10px;
-        }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 20px; background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #0a0e17 70%); }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 15px; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 10px; }
         h1 { font-size: 1.5rem; font-weight: 800; }
-        .status-badge { 
-            display: flex; 
-            align-items: center; 
-            gap: 8px; 
-            font-size: 0.8rem; 
-            font-weight: 600; 
-            color: var(--green); 
-            background: rgba(0,255,136,0.1); 
-            padding: 6px 12px; 
-            border-radius: 20px; 
-            border: 1px solid rgba(0,255,136,0.2); 
-        }
-        .pulse-dot { 
-            width: 8px; height: 8px; 
-            background: var(--green); 
-            border-radius: 50%; 
-            animation: pulse 1.5s infinite; 
-        }
-        @keyframes pulse { 
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0,255,136,0.7); } 
-            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(0,255,136,0); } 
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0,255,136,0); } 
-        }
+        .status-badge { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; font-weight: 600; color: var(--green); background: rgba(0,255,136,0.1); padding: 6px 12px; border-radius: 20px; border: 1px solid rgba(0,255,136,0.2); }
+        .pulse-dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0,255,136,0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(0,255,136,0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0,255,136,0); } }
         .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         @media (max-width: 768px) { .dashboard-grid { grid-template-columns: 1fr; } }
-        .card { 
-            background: var(--card); 
-            border: 1px solid var(--border); 
-            border-radius: 16px; 
-            padding: 24px; 
-            backdrop-filter: blur(10px); 
-            transition: 0.2s; 
-        }
-        .card h2 { 
-            font-size: 0.9rem; 
-            text-transform: uppercase; 
-            letter-spacing: 1px; 
-            color: var(--muted); 
-            margin-bottom: 20px; 
-        }
-        
-        #canvas-container { 
-            width: 100%; 
-            height: 300px; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            position: relative; 
-            background: radial-gradient(circle at center, rgba(59,130,246,0.08) 0%, transparent 70%); 
-            border-radius: 12px; 
-            overflow: hidden; 
-        }
-        #canvas-container::before { 
-            content: ''; 
-            position: absolute; 
-            inset: 0; 
-            background-image: 
-                linear-gradient(rgba(59,130,246,0.05) 1px, transparent 1px), 
-                linear-gradient(90deg, rgba(59,130,246,0.05) 1px, transparent 1px); 
-            background-size: 30px 30px; 
-            pointer-events: none; 
-            opacity: 0.5; 
-        }
-        .core-label { 
-            text-align: center; 
-            color: var(--muted); 
-            font-size: 0.75rem; 
-            letter-spacing: 2px; 
-            text-transform: uppercase; 
-            margin-top: 10px; 
-            opacity: 0.6; 
-            animation: fadeLabel 3s ease-in-out infinite; 
-        }
-        @keyframes fadeLabel { 
-            0%,100% { opacity: 0.4; } 
-            50% { opacity: 0.8; } 
-        }
-        
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; backdrop-filter: blur(10px); transition: 0.2s; }
+        .card h2 { font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 20px; }
+        #canvas-container { width: 100%; height: 300px; display: flex; justify-content: center; align-items: center; position: relative; background: radial-gradient(circle at center, rgba(59,130,246,0.08) 0%, transparent 70%); border-radius: 12px; overflow: hidden; }
+        #canvas-container::before { content: ''; position: absolute; inset: 0; background-image: linear-gradient(rgba(59,130,246,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.05) 1px, transparent 1px); background-size: 30px 30px; pointer-events: none; opacity: 0.5; }
+        .core-label { text-align: center; color: var(--muted); font-size: 0.75rem; letter-spacing: 2px; text-transform: uppercase; margin-top: 10px; opacity: 0.6; animation: fadeLabel 3s ease-in-out infinite; }
+        @keyframes fadeLabel { 0%,100% { opacity: 0.4; } 50% { opacity: 0.8; } }
         .signal-display { text-align: center; margin-bottom: 20px; position: relative; }
-        .signal-text { 
-            font-size: 3rem; 
-            font-weight: 800; 
-            transition: color 0.5s; 
-        }
-        .signal-text.buy { 
-            color: var(--green); 
-            text-shadow: 0 0 20px rgba(0,255,136,0.4); 
-        }
-        .signal-text.sell { 
-            color: var(--red); 
-            text-shadow: 0 0 20px rgba(255,51,102,0.4); 
-        }
-        .signal-text.hold, .signal-text.waiting { 
-            color: var(--yellow); 
-            text-shadow: 0 0 20px rgba(255,204,0,0.4); 
-        }
-        .signal-source {
-            font-size: 0.65rem;
-            color: var(--muted);
-            margin-top: 4px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .signal-source .live {
-            color: var(--green);
-            animation: pulse 2s infinite;
-        }
+        .signal-text { font-size: 3rem; font-weight: 800; transition: color 0.5s; }
+        .signal-text.buy { color: var(--green); text-shadow: 0 0 20px rgba(0,255,136,0.4); }
+        .signal-text.sell { color: var(--red); text-shadow: 0 0 20px rgba(255,51,102,0.4); }
+        .signal-text.hold, .signal-text.waiting { color: var(--yellow); text-shadow: 0 0 20px rgba(255,204,0,0.4); }
+        .signal-source { font-size: 0.65rem; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
+        .signal-source .live { color: var(--green); animation: pulse 2s infinite; }
         .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .data-item { 
-            background: rgba(0,0,0,0.2); 
-            padding: 12px; 
-            border-radius: 8px; 
-        }
-        .data-label { 
-            font-size: 0.75rem; 
-            color: var(--muted); 
-            text-transform: uppercase; 
-            margin-bottom: 4px; 
-        }
-        .data-value { 
-            font-size: 1.1rem; 
-            font-weight: 600; 
-            font-family: monospace; 
-        }
-        .data-value.updating {
-            color: var(--green);
-        }
+        .data-item { background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; }
+        .data-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
+        .data-value { font-size: 1.1rem; font-weight: 600; font-family: monospace; }
+        .data-value.updating { color: var(--green); }
         .voice-controls { display: flex; gap: 10px; margin-top: 20px; }
-        .voice-btn { 
-            flex: 1; 
-            padding: 16px; 
-            background: linear-gradient(135deg, var(--accent), var(--purple)); 
-            border: none; 
-            border-radius: 12px; 
-            color: white; 
-            font-size: 1rem; 
-            font-weight: 600; 
-            cursor: pointer; 
-            transition: 0.2s; 
-            font-family: inherit; 
-        }
-        .voice-btn.stop { 
-            background: linear-gradient(135deg, #ff3366, #cc0033); 
-            flex: 0.4; 
-        }
+        .voice-btn { flex: 1; padding: 16px; background: linear-gradient(135deg, var(--accent), var(--purple)); border: none; border-radius: 12px; color: white; font-size: 1rem; font-weight: 600; cursor: pointer; transition: 0.2s; font-family: inherit; }
+        .voice-btn.stop { background: linear-gradient(135deg, #ff3366, #cc0033); flex: 0.4; }
         .voice-btn:hover { opacity: 0.9; }
-        .candle-analysis { 
-            padding: 15px; 
-            background: rgba(0,0,0,0.2); 
-            border-radius: 10px; 
-            font-size: 0.85rem; 
-            line-height: 1.6; 
-        }
-        .candle-item { 
-            margin-bottom: 12px; 
-            border-bottom: 1px dashed rgba(255,255,255,0.1); 
-            padding-bottom: 8px; 
-        }
-        .candle-item:last-child { 
-            border-bottom: none; 
-            margin-bottom: 0; 
-            padding-bottom: 0; 
-        }
-        .candle-timeframe { 
-            color: var(--accent); 
-            font-weight: 600; 
-            margin-right: 5px; 
-        }
-        .wise-box { 
-            background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(59,130,246,0.15)); 
-            padding: 20px; 
-            border-radius: 12px; 
-            border-left: 4px solid var(--purple); 
-            font-style: italic; 
-            font-size: 0.95rem; 
-            line-height: 1.7; 
-            color: #cbd5e1; 
-        }
-        .wise-label { 
-            display: block; 
-            font-style: normal; 
-            font-weight: 600; 
-            color: var(--purple); 
-            font-size: 0.75rem; 
-            text-transform: uppercase; 
-            letter-spacing: 1px; 
-            margin-bottom: 8px; 
-        }
-        .level-grid { 
-            display: grid; 
-            grid-template-columns: 1fr 1fr; 
-            gap: 10px; 
-            margin-top: 12px; 
-        }
-        .level-item { 
-            background: rgba(0,0,0,0.3); 
-            padding: 10px; 
-            border-radius: 6px; 
-            font-size: 0.8rem; 
-        }
-        .level-label { 
-            color: var(--muted); 
-            font-size: 0.7rem; 
-            text-transform: uppercase; 
-        }
-        .level-value { 
-            font-family: monospace; 
-            font-weight: 600; 
-            margin-top: 2px; 
-        }
-        .ai-reason-box { 
-            background: rgba(0,0,0,0.3); 
-            padding: 20px; 
-            border-radius: 12px; 
-            font-size: 0.95rem; 
-            line-height: 1.7; 
-            color: #e2e8f0; 
-            border-left: 4px solid var(--accent); 
-        }
-        .ai-reason-label { 
-            display: block; 
-            font-weight: 600; 
-            color: var(--accent); 
-            font-size: 0.75rem; 
-            text-transform: uppercase; 
-            letter-spacing: 1px; 
-            margin-bottom: 10px; 
-        }
-        
+        .candle-analysis { padding: 15px; background: rgba(0,0,0,0.2); border-radius: 10px; font-size: 0.85rem; line-height: 1.6; }
+        .candle-item { margin-bottom: 12px; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 8px; }
+        .candle-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        .candle-timeframe { color: var(--accent); font-weight: 600; margin-right: 5px; }
+        .wise-box { background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(59,130,246,0.15)); padding: 20px; border-radius: 12px; border-left: 4px solid var(--purple); font-style: italic; font-size: 0.95rem; line-height: 1.7; color: #cbd5e1; }
+        .wise-label { display: block; font-style: normal; font-weight: 600; color: var(--purple); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+        .level-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+        .level-item { background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px; font-size: 0.8rem; }
+        .level-label { color: var(--muted); font-size: 0.7rem; text-transform: uppercase; }
+        .level-value { font-family: monospace; font-weight: 600; margin-top: 2px; }
+        .ai-reason-box { background: rgba(0,0,0,0.3); padding: 20px; border-radius: 12px; font-size: 0.95rem; line-height: 1.7; color: #e2e8f0; border-left: 4px solid var(--accent); }
+        .ai-reason-label { display: block; font-weight: 600; color: var(--accent); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
         .chat-container { display: flex; flex-direction: column; gap: 12px; }
-        .chat-messages { 
-            max-height: 400px; 
-            overflow-y: auto; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 10px; 
-            padding: 10px; 
-            background: rgba(0,0,0,0.2); 
-            border-radius: 10px; 
-            min-height: 120px; 
-        }
+        .chat-messages { max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 10px; min-height: 120px; }
         .chat-messages::-webkit-scrollbar { width: 6px; }
-        .chat-messages::-webkit-scrollbar-thumb { 
-            background: var(--border); 
-            border-radius: 3px; 
-        }
-        .chat-msg { 
-            padding: 12px 16px; 
-            border-radius: 12px; 
-            font-size: 0.9rem; 
-            line-height: 1.6; 
-            max-width: 85%; 
-            word-wrap: break-word; 
-            white-space: pre-wrap; 
-        }
-        .chat-msg.user { 
-            background: linear-gradient(135deg, var(--accent), var(--purple)); 
-            color: white; 
-            align-self: flex-end; 
-            border-bottom-right-radius: 4px; 
-        }
-        .chat-msg.ai { 
-            background: rgba(255,255,255,0.05); 
-            color: var(--text); 
-            align-self: flex-start; 
-            border-bottom-left-radius: 4px; 
-            border-left: 3px solid var(--green); 
-        }
-        .chat-msg.system { 
-            background: rgba(148,163,184,0.1); 
-            color: var(--muted); 
-            align-self: center; 
-            font-size: 0.8rem; 
-            font-style: italic; 
-            text-align: center; 
-        }
-        .chat-msg.thinking { 
-            background: rgba(255,255,255,0.05); 
-            color: var(--muted); 
-            align-self: flex-start; 
-            font-style: italic; 
-        }
-        .chat-msg.error { 
-            background: rgba(255,51,102,0.1); 
-            color: var(--red); 
-            align-self: flex-start; 
-            border-left: 3px solid var(--red); 
-            font-family: monospace; 
-            font-size: 0.75rem; 
-            max-width: 100%; 
-        }
-        .chat-speak-btn { 
-            display: inline-block; 
-            margin-left: 10px; 
-            padding: 4px 10px; 
-            background: rgba(0,255,136,0.15); 
-            border: 1px solid var(--green); 
-            border-radius: 6px; 
-            color: var(--text); 
-            font-size: 0.85rem; 
-            cursor: pointer; 
-            opacity: 0.9; 
-            transition: all 0.2s; 
-            vertical-align: middle; 
-        }
-        .chat-speak-btn:hover { 
-            opacity: 1; 
-            background: var(--green); 
-            color: #0a0e17; 
-            transform: scale(1.05); 
-        }
-        .chat-sources { 
-            display: block; 
-            margin-top: 8px; 
-            font-size: 0.75rem; 
-            color: var(--muted); 
-            font-style: italic; 
-        }
-        .chat-sources a { 
-            color: var(--accent); 
-            text-decoration: none; 
-            word-break: break-all; 
-        }
+        .chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        .chat-msg { padding: 12px 16px; border-radius: 12px; font-size: 0.9rem; line-height: 1.6; max-width: 85%; word-wrap: break-word; white-space: pre-wrap; }
+        .chat-msg.user { background: linear-gradient(135deg, var(--accent), var(--purple)); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
+        .chat-msg.ai { background: rgba(255,255,255,0.05); color: var(--text); align-self: flex-start; border-bottom-left-radius: 4px; border-left: 3px solid var(--green); }
+        .chat-msg.system { background: rgba(148,163,184,0.1); color: var(--muted); align-self: center; font-size: 0.8rem; font-style: italic; text-align: center; }
+        .chat-msg.thinking { background: rgba(255,255,255,0.05); color: var(--muted); align-self: flex-start; font-style: italic; }
+        .chat-msg.error { background: rgba(255,51,102,0.1); color: var(--red); align-self: flex-start; border-left: 3px solid var(--red); font-family: monospace; font-size: 0.75rem; max-width: 100%; }
+        .chat-speak-btn { display: inline-block; margin-left: 10px; padding: 4px 10px; background: rgba(0,255,136,0.15); border: 1px solid var(--green); border-radius: 6px; color: var(--text); font-size: 0.85rem; cursor: pointer; opacity: 0.9; transition: all 0.2s; vertical-align: middle; }
+        .chat-speak-btn:hover { opacity: 1; background: var(--green); color: #0a0e17; transform: scale(1.05); }
+        .chat-sources { display: block; margin-top: 8px; font-size: 0.75rem; color: var(--muted); font-style: italic; }
+        .chat-sources a { color: var(--accent); text-decoration: none; word-break: break-all; }
         .chat-sources a:hover { text-decoration: underline; }
-        
         .chat-input-row { display: flex; gap: 10px; }
-        .chat-input { 
-            flex: 1; 
-            padding: 14px 16px; 
-            background: rgba(0,0,0,0.3); 
-            border: 1px solid var(--border); 
-            border-radius: 12px; 
-            color: var(--text); 
-            font-size: 1rem; 
-            font-family: inherit; 
-            outline: none; 
-            transition: 0.2s; 
-        }
+        .chat-input { flex: 1; padding: 14px 16px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-size: 1rem; font-family: inherit; outline: none; transition: 0.2s; }
         .chat-input:focus { border-color: var(--accent); }
         .chat-input::placeholder { color: var(--muted); }
-        .chat-send { 
-            padding: 14px 20px; 
-            background: linear-gradient(135deg, var(--green), #00cc66); 
-            border: none; 
-            border-radius: 12px; 
-            color: #0a0e17; 
-            font-weight: 700; 
-            font-size: 1rem; 
-            cursor: pointer; 
-            transition: 0.2s; 
-            font-family: inherit; 
-        }
+        .chat-send { padding: 14px 20px; background: linear-gradient(135deg, var(--green), #00cc66); border: none; border-radius: 12px; color: #0a0e17; font-weight: 700; font-size: 1rem; cursor: pointer; transition: 0.2s; font-family: inherit; }
         .chat-send:hover { opacity: 0.9; }
         .chat-send:disabled { opacity: 0.4; cursor: not-allowed; }
-        .chat-clear { 
-            padding: 10px 16px; 
-            background: rgba(148,163,184,0.15); 
-            border: 1px solid var(--border); 
-            border-radius: 8px; 
-            color: var(--muted); 
-            font-size: 0.8rem; 
-            cursor: pointer; 
-            align-self: flex-end; 
-            margin-top: 4px; 
-            font-family: inherit; 
-        }
+        .chat-clear { padding: 10px 16px; background: rgba(148,163,184,0.15); border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-size: 0.8rem; cursor: pointer; align-self: flex-end; margin-top: 4px; font-family: inherit; }
         .chat-clear:hover { color: var(--text); border-color: var(--accent); }
-        
         .chat-header-buttons { display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap; }
-        .header-btn { 
-            background: none; 
-            border: 1px solid var(--border); 
-            border-radius: 8px; 
-            color: var(--muted); 
-            font-size: 0.75rem; 
-            padding: 6px 12px; 
-            cursor: pointer; 
-            transition: 0.2s; 
-            font-family: inherit; 
-        }
+        .header-btn { background: none; border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-size: 0.75rem; padding: 6px 12px; cursor: pointer; transition: 0.2s; font-family: inherit; }
         .header-btn:hover { color: var(--text); border-color: var(--accent); }
         .header-btn.memory-btn { border-color: var(--purple); color: var(--purple); }
         .header-btn.memory-btn:hover { background: rgba(139,92,246,0.15); }
@@ -435,246 +96,48 @@
         .header-btn.browser-btn { border-color: var(--accent); color: var(--accent); }
         .header-btn.browser-btn:hover { background: rgba(59,130,246,0.15); }
         .header-btn.browser-btn.disabled { border-color: var(--border); color: var(--muted); }
-        
-        .key-panel { 
-            background: linear-gradient(135deg, rgba(234,179,8,0.15), rgba(249,115,22,0.15)); 
-            border: 1px solid rgba(234,179,8,0.4); 
-            border-radius: 12px; 
-            padding: 16px; 
-            margin-bottom: 16px; 
-            display: none; 
-        }
-        .key-panel.visible { display: block; }
-        .key-panel h3 { 
-            color: #fbbf24; 
-            font-size: 0.9rem; 
-            margin-bottom: 8px; 
-            text-transform: uppercase; 
-            letter-spacing: 1px; 
-        }
-        .key-panel p { 
-            font-size: 0.85rem; 
-            color: var(--muted); 
-            margin-bottom: 12px; 
-            line-height: 1.5; 
-        }
-        .key-input-row { display: flex; gap: 8px; }
-        .key-input { 
-            flex: 1; 
-            padding: 12px 14px; 
-            background: rgba(0,0,0,0.4); 
-            border: 1px solid var(--border); 
-            border-radius: 10px; 
-            color: var(--text); 
-            font-family: monospace; 
-            font-size: 0.85rem; 
-            outline: none; 
-        }
+        .header-btn.sync-btn { border-color: var(--green); color: var(--green); }
+        .header-btn.sync-btn:hover { background: rgba(0,255,136,0.15); }
+        .key-panel, .memory-panel, .reminder-panel, .sync-panel { background: linear-gradient(135deg, rgba(234,179,8,0.15), rgba(249,115,22,0.15)); border: 1px solid rgba(234,179,8,0.4); border-radius: 12px; padding: 16px; margin-bottom: 16px; display: none; }
+        .key-panel.visible, .memory-panel.visible, .reminder-panel.visible, .sync-panel.visible { display: block; }
+        .key-panel h3, .memory-panel h3, .reminder-panel h3, .sync-panel h3 { font-size: 0.9rem; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+        .key-panel h3 { color: #fbbf24; }
+        .memory-panel { background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(59,130,246,0.15)); border-color: rgba(139,92,246,0.4); }
+        .memory-panel h3 { color: var(--purple); }
+        .reminder-panel { background: linear-gradient(135deg, rgba(251,191,36,0.15), rgba(245,158,11,0.1)); border-color: rgba(251,191,36,0.4); }
+        .reminder-panel h3 { color: #fbbf24; }
+        .sync-panel { background: linear-gradient(135deg, rgba(0,255,136,0.12), rgba(59,130,246,0.1)); border-color: rgba(0,255,136,0.4); }
+        .sync-panel h3 { color: var(--green); }
+        .key-panel p, .memory-panel p, .reminder-panel p, .sync-panel p { font-size: 0.85rem; color: var(--muted); margin-bottom: 12px; line-height: 1.5; }
+        .key-input-row { display: flex; gap: 8px; margin-bottom: 8px; }
+        .key-input { flex: 1; padding: 12px 14px; background: rgba(0,0,0,0.4); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-family: monospace; font-size: 0.85rem; outline: none; }
         .key-input:focus { border-color: #fbbf24; }
-        .key-save-btn { 
-            padding: 12px 18px; 
-            background: linear-gradient(135deg, #fbbf24, #f59e0b); 
-            border: none; 
-            border-radius: 10px; 
-            color: #0a0e17; 
-            font-weight: 700; 
-            cursor: pointer; 
-            font-family: inherit; 
-        }
+        .key-save-btn { padding: 12px 18px; background: linear-gradient(135deg, #fbbf24, #f59e0b); border: none; border-radius: 10px; color: #0a0e17; font-weight: 700; cursor: pointer; font-family: inherit; }
         .key-save-btn:hover { opacity: 0.9; }
-        .key-status { 
-            font-size: 0.8rem; 
-            margin-top: 8px; 
-            color: var(--green); 
-            word-break: break-all; 
-        }
-        
-        .memory-panel { 
-            background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(59,130,246,0.15)); 
-            border: 1px solid rgba(139,92,246,0.4); 
-            border-radius: 12px; 
-            padding: 16px; 
-            margin-bottom: 16px; 
-            display: none; 
-        }
-        .memory-panel.visible { display: block; }
-        .memory-panel h3 { 
-            color: var(--purple); 
-            font-size: 0.9rem; 
-            margin-bottom: 12px; 
-            text-transform: uppercase; 
-            letter-spacing: 1px; 
-        }
-        .memory-panel p { 
-            font-size: 0.85rem; 
-            color: var(--muted); 
-            margin-bottom: 12px; 
-            line-height: 1.5; 
-        }
-        .memory-list { 
-            display: flex; 
-            flex-direction: column; 
-            gap: 8px; 
-            max-height: 300px; 
-            overflow-y: auto; 
-            margin-bottom: 12px; 
-        }
-        .memory-item { 
-            display: flex; 
-            align-items: center; 
-            gap: 10px; 
-            background: rgba(0,0,0,0.3); 
-            padding: 10px 12px; 
-            border-radius: 8px; 
-            font-size: 0.85rem; 
-            line-height: 1.5; 
-        }
-        .memory-item span { flex: 1; }
-        .memory-item .mem-date { 
-            font-size: 0.7rem; 
-            color: var(--muted); 
-            white-space: nowrap; 
-        }
-        .memory-item .mem-del { 
-            background: rgba(255,51,102,0.15); 
-            border: 1px solid rgba(255,51,102,0.3); 
-            color: var(--red); 
-            border-radius: 6px; 
-            padding: 4px 8px; 
-            cursor: pointer; 
-            font-size: 0.75rem; 
-        }
-        .memory-item .mem-del:hover { background: rgba(255,51,102,0.3); }
-        .memory-empty { 
-            color: var(--muted); 
-            font-style: italic; 
-            font-size: 0.85rem; 
-            padding: 8px 0; 
-        }
-        .memory-actions { display: flex; gap: 8px; }
-        .memory-action { 
-            padding: 8px 14px; 
-            border-radius: 8px; 
-            font-size: 0.8rem; 
-            cursor: pointer; 
-            font-weight: 600; 
-            font-family: inherit; 
-        }
-        .memory-action.add { 
-            background: rgba(139,92,246,0.2); 
-            border: 1px solid var(--purple); 
-            color: var(--purple); 
-        }
+        .key-status { font-size: 0.8rem; margin-top: 8px; color: var(--green); word-break: break-all; }
+        .memory-list, .reminder-list { display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; margin-bottom: 12px; }
+        .memory-item, .reminder-item { display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.3); padding: 10px 12px; border-radius: 8px; font-size: 0.85rem; line-height: 1.5; }
+        .reminder-item { border-left: 3px solid #fbbf24; }
+        .reminder-item.fired { opacity: 0.4; border-left-color: var(--green); text-decoration: line-through; }
+        .memory-item span, .reminder-item span { flex: 1; }
+        .memory-item .mem-date, .reminder-item .rem-time { font-size: 0.7rem; color: var(--muted); white-space: nowrap; }
+        .reminder-item .rem-time { color: #fbbf24; font-weight: 700; }
+        .memory-item .mem-del, .reminder-item .rem-del { background: rgba(255,51,102,0.15); border: 1px solid rgba(255,51,102,0.3); color: var(--red); border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 0.75rem; }
+        .memory-item .mem-del:hover, .reminder-item .rem-del:hover { background: rgba(255,51,102,0.3); }
+        .memory-empty, .reminder-empty { color: var(--muted); font-style: italic; font-size: 0.85rem; padding: 8px 0; }
+        .memory-actions, .reminder-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .memory-action, .reminder-action { padding: 8px 14px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; font-weight: 600; font-family: inherit; }
+        .memory-action.add { background: rgba(139,92,246,0.2); border: 1px solid var(--purple); color: var(--purple); }
         .memory-action.add:hover { background: rgba(139,92,246,0.35); }
-        .memory-action.clear { 
-            background: rgba(255,51,102,0.15); 
-            border: 1px solid rgba(255,51,102,0.4); 
-            color: var(--red); 
-        }
+        .memory-action.clear { background: rgba(255,51,102,0.15); border: 1px solid rgba(255,51,102,0.4); color: var(--red); }
         .memory-action.clear:hover { background: rgba(255,51,102,0.3); }
-        
-        .reminder-panel { 
-            background: linear-gradient(135deg, rgba(251,191,36,0.15), rgba(245,158,11,0.1)); 
-            border: 1px solid rgba(251,191,36,0.4); 
-            border-radius: 12px; 
-            padding: 16px; 
-            margin-bottom: 16px; 
-            display: none; 
-        }
-        .reminder-panel.visible { display: block; }
-        .reminder-panel h3 { 
-            color: #fbbf24; 
-            font-size: 0.9rem; 
-            margin-bottom: 12px; 
-            text-transform: uppercase; 
-            letter-spacing: 1px; 
-        }
-        .reminder-panel p { 
-            font-size: 0.85rem; 
-            color: var(--muted); 
-            margin-bottom: 12px; 
-            line-height: 1.5; 
-        }
-        .reminder-list { 
-            display: flex; 
-            flex-direction: column; 
-            gap: 8px; 
-            max-height: 300px; 
-            overflow-y: auto; 
-            margin-bottom: 12px; 
-        }
-        .reminder-item { 
-            display: flex; 
-            align-items: center; 
-            gap: 10px; 
-            background: rgba(0,0,0,0.3); 
-            padding: 10px 12px; 
-            border-radius: 8px; 
-            font-size: 0.85rem; 
-            line-height: 1.5; 
-            border-left: 3px solid #fbbf24;
-        }
-        .reminder-item.fired {
-            opacity: 0.4;
-            border-left-color: var(--green);
-            text-decoration: line-through;
-        }
-        .reminder-item span { flex: 1; }
-        .reminder-item .rem-time { 
-            font-size: 0.7rem; 
-            color: #fbbf24; 
-            white-space: nowrap; 
-            font-weight: 700;
-        }
-        .reminder-item .rem-del { 
-            background: rgba(255,51,102,0.15); 
-            border: 1px solid rgba(255,51,102,0.3); 
-            color: var(--red); 
-            border-radius: 6px; 
-            padding: 4px 8px; 
-            cursor: pointer; 
-            font-size: 0.75rem; 
-        }
-        .reminder-item .rem-del:hover { background: rgba(255,51,102,0.3); }
-        .reminder-empty { 
-            color: var(--muted); 
-            font-style: italic; 
-            font-size: 0.85rem; 
-            padding: 8px 0; 
-        }
-        .reminder-actions { display: flex; gap: 8px; }
-        .reminder-action { 
-            padding: 8px 14px; 
-            border-radius: 8px; 
-            font-size: 0.8rem; 
-            cursor: pointer; 
-            font-weight: 600; 
-            font-family: inherit; 
-        }
-        .reminder-action.add { 
-            background: rgba(251,191,36,0.2); 
-            border: 1px solid #fbbf24; 
-            color: #fbbf24; 
-        }
+        .reminder-action.add { background: rgba(251,191,36,0.2); border: 1px solid #fbbf24; color: #fbbf24; }
         .reminder-action.add:hover { background: rgba(251,191,36,0.35); }
-        .reminder-action.test { 
-            background: rgba(0,255,136,0.15); 
-            border: 1px solid var(--green); 
-            color: var(--green); 
-        }
+        .reminder-action.test { background: rgba(0,255,136,0.15); border: 1px solid var(--green); color: var(--green); }
         .reminder-action.test:hover { background: rgba(0,255,136,0.3); }
-        .reminder-action.clear { 
-            background: rgba(255,51,102,0.15); 
-            border: 1px solid rgba(255,51,102,0.4); 
-            color: var(--red); 
-        }
+        .reminder-action.clear { background: rgba(255,51,102,0.15); border: 1px solid rgba(255,51,102,0.4); color: var(--red); }
         .reminder-action.clear:hover { background: rgba(255,51,102,0.3); }
-        
-        .notif-status {
-            font-size: 0.75rem;
-            margin-top: 8px;
-            color: var(--muted);
-        }
+        .notif-status { font-size: 0.75rem; margin-top: 8px; color: var(--muted); }
         .notif-status.granted { color: var(--green); }
         .notif-status.denied { color: var(--red); }
     </style>
@@ -718,6 +181,7 @@
                     <button id="browserAIBtn" class="header-btn browser-btn" onclick="toggleBrowserAI()">🤖 Browser AI ON</button>
                     <button id="deepThinkBtn" class="header-btn deep-btn" onclick="toggleDeepThink()">🧠 Deep Think ON</button>
                     <button id="webToggleBtn" class="header-btn web-btn" onclick="toggleWebSearch()">🌐 Web ON</button>
+                    <button id="syncToggleBtn" class="header-btn sync-btn" onclick="toggleSyncPanel()">☁ Sync</button>
                     <button id="reminderToggleBtn" class="header-btn reminder-btn" onclick="toggleReminderPanel()">⏰ Reminders</button>
                     <button class="header-btn memory-btn" onclick="toggleMemoryPanel()">🧠 Memory</button>
                     <button class="header-btn" onclick="showKeyPanel()">🔑 Key</button>
@@ -726,12 +190,29 @@
 
             <div id="keyPanel" class="key-panel">
                 <h3>🔑 One-Time Setup</h3>
-                <p>Paste your Gemini API key below. It will be stored <strong>only in this browser</strong> — never sent to GitHub or anyone else.</p>
+                <p>Paste your Gemini API key below. It will be stored <strong>only in this browser</strong>.</p>
                 <div class="key-input-row">
                     <input id="keyInput" class="key-input" type="password" placeholder="Paste key starting with AIza... or AQ..." />
                     <button class="key-save-btn" onclick="saveKey()">Save</button>
                 </div>
                 <div id="keyStatus" class="key-status"></div>
+            </div>
+
+            <div id="syncPanel" class="sync-panel">
+                <h3>☁ Cloud Sync (GitHub Gist)</h3>
+                <p>Backup your memories to GitHub Gist so they survive even if browser data is cleared. Free forever.</p>
+                <div class="key-input-row">
+                    <input id="gistIdInput" class="key-input" type="text" placeholder="Gist ID (from gist.github.com URL)" />
+                </div>
+                <div class="key-input-row">
+                    <input id="gistTokenInput" class="key-input" type="password" placeholder="Token (ghp_...)" />
+                    <button class="key-save-btn" onclick="saveGistConfig()">Save</button>
+                </div>
+                <div id="gistStatus" class="key-status"></div>
+                <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+                    <button class="reminder-action test" onclick="pullFromGist()">⬇ Pull from Gist</button>
+                    <button class="reminder-action test" onclick="pushToGist(true)">⬆ Push to Gist</button>
+                </div>
             </div>
 
             <div id="reminderPanel" class="reminder-panel">
@@ -748,7 +229,7 @@
 
             <div id="memoryPanel" class="memory-panel">
                 <h3>🧠 Long-Term Memory</h3>
-                <p>These facts stay with you forever — even when you clear the chat. The AI remembers them and uses them to personalize every reply.</p>
+                <p>Facts the AI remembers about you. Synced to GitHub Gist when configured.</p>
                 <div id="memoryList" class="memory-list"></div>
                 <div class="memory-actions">
                     <button class="memory-action add" onclick="addMemoryManually()">+ Add Fact</button>
@@ -758,7 +239,7 @@
 
             <div class="chat-container">
                 <div id="chatMessages" class="chat-messages">
-                    <div class="chat-msg system">Ask me anything, Boss. Browser AI runs every 5 min when enabled. Chat works anytime.</div>
+                    <div class="chat-msg system">Ask me anything, Boss. Browser AI runs every 5 min. Chat works anytime.</div>
                 </div>
                 <div class="chat-input-row">
                     <input id="chatInput" class="chat-input" type="text" placeholder="Ask me anything, Boss..." onkeydown="if(event.key === 'Enter') sendChat()" />
@@ -808,20 +289,113 @@
         const DEEPTHINK_STORAGE_NAME = "eurusd_deepthink_enabled";
         const REMINDERS_STORAGE_NAME = "eurusd_reminders";
         const BROWSER_AI_STORAGE_NAME = "eurusd_browser_ai_enabled";
+        const GIST_ID_STORAGE = "eurusd_gist_id";
+        const GIST_TOKEN_STORAGE = "eurusd_gist_token";
         const MAX_HISTORY_ENTRIES = 40;
 
-        // ═══ STATE ═══
-        let latestData = null;         // From data.json (hourly Python)
-        let personalContext = null;    // From personal_context.json
+        let latestData = null;
+        let personalContext = null;
         let livePrice = null;
         let liveRsi = null;
         let liveEma20 = null;
         let lastKnownAtr = null;
         let ruleSignal = null;
         let priceHistory = [];
-        let browserAIData = null;      // Latest browser AI analysis result
+        let browserAIData = null;
         let browserAILastRun = 0;
         let browserAIRunning = false;
+
+        // ═══ GIST SYNC ═══
+        function getGistId() { try { return localStorage.getItem(GIST_ID_STORAGE) || ""; } catch(e) { return ""; } }
+        function getGistToken() { try { return localStorage.getItem(GIST_TOKEN_STORAGE) || ""; } catch(e) { return ""; } }
+        
+        function toggleSyncPanel() {
+            document.getElementById("syncPanel").classList.toggle("visible");
+            const id = getGistId();
+            const token = getGistToken();
+            if (id) document.getElementById("gistIdInput").value = id;
+            if (token) document.getElementById("gistTokenInput").value = token;
+        }
+        
+        function saveGistConfig() {
+            const id = document.getElementById("gistIdInput").value.trim();
+            const token = document.getElementById("gistTokenInput").value.trim();
+            if (!id || !token) {
+                document.getElementById("gistStatus").innerText = "❌ Both Gist ID and Token required";
+                return;
+            }
+            try {
+                localStorage.setItem(GIST_ID_STORAGE, id);
+                localStorage.setItem(GIST_TOKEN_STORAGE, token);
+                document.getElementById("gistStatus").innerText = "✅ Saved. Syncing now...";
+                setTimeout(() => {
+                    pushToGist(true);
+                }, 500);
+            } catch (e) {
+                document.getElementById("gistStatus").innerText = "❌ Could not save";
+            }
+        }
+        
+        async function pullFromGist() {
+            const id = getGistId();
+            const token = getGistToken();
+            if (!id || !token) {
+                document.getElementById("gistStatus").innerText = "❌ Enter Gist ID and Token first";
+                return;
+            }
+            try {
+                document.getElementById("gistStatus").innerText = "⏳ Pulling...";
+                const resp = await fetch(`https://api.github.com/gists/${id}`, {
+                    headers: { "Authorization": `token ${token}` }
+                });
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                const json = await resp.json();
+                const file = json.files["eurusd-memories.json"];
+                if (!file) throw new Error("File not found in Gist");
+                const content = file.content || "[]";
+                const memories = JSON.parse(content);
+                if (Array.isArray(memories)) {
+                    saveMemory(memories);
+                    renderMemoryList();
+                    document.getElementById("gistStatus").innerText = `✅ Pulled ${memories.length} memories from cloud`;
+                }
+            } catch (e) {
+                document.getElementById("gistStatus").innerText = `❌ Pull failed: ${e.message}`;
+            }
+        }
+        
+        async function pushToGist(manual = false) {
+            const id = getGistId();
+            const token = getGistToken();
+            if (!id || !token) {
+                if (manual) document.getElementById("gistStatus").innerText = "❌ Enter Gist ID and Token first";
+                return;
+            }
+            const memories = loadMemory();
+            try {
+                if (manual) document.getElementById("gistStatus").innerText = "⏳ Pushing...";
+                const resp = await fetch(`https://api.github.com/gists/${id}`, {
+                    method: "PATCH",
+                    headers: {
+                        "Authorization": `token ${token}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        files: {
+                            "eurusd-memories.json": {
+                                content: JSON.stringify(memories, null, 2)
+                            }
+                        }
+                    })
+                });
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                if (manual) document.getElementById("gistStatus").innerText = `✅ Pushed ${memories.length} memories to cloud`;
+            } catch (e) {
+                if (manual) document.getElementById("gistStatus").innerText = `❌ Push failed: ${e.message}`;
+                else console.log("Gist push failed silently:", e.message);
+            }
+        }
+        // ═══ END GIST SYNC ═══
 
         // ═══ BROWSER AI TOGGLE ═══
         function isBrowserAIEnabled() {
@@ -833,10 +407,7 @@
             try { localStorage.setItem(BROWSER_AI_STORAGE_NAME, newState ? "true" : "false"); }
             catch (e) {}
             updateBrowserAIUI();
-            if (newState) {
-                // Run immediately when turning on
-                runBrowserAnalysis();
-            }
+            if (newState) runBrowserAnalysis();
         }
         function updateBrowserAIUI() {
             const btn = document.getElementById("browserAIBtn");
@@ -845,7 +416,6 @@
             else { btn.innerHTML = "🤖 Browser AI OFF"; btn.classList.add("disabled"); }
         }
 
-        // ═══ DEEP THINK TOGGLE ═══
         function isDeepThinkEnabled() {
             try { return localStorage.getItem(DEEPTHINK_STORAGE_NAME) !== "false"; }
             catch (e) { return true; }
@@ -863,20 +433,10 @@
             else { btn.innerHTML = "🧠 Deep Think OFF"; btn.classList.add("disabled"); }
         }
 
-        // ═══ NOTIFICATIONS ═══
         function requestNotificationPermission() {
-            if (!("Notification" in window)) {
-                updateNotifStatus("Notifications not supported");
-                return;
-            }
-            if (Notification.permission === "granted") {
-                updateNotifStatus("Notifications enabled ✅");
-                return;
-            }
-            if (Notification.permission === "denied") {
-                updateNotifStatus("Notifications blocked ❌");
-                return;
-            }
+            if (!("Notification" in window)) { updateNotifStatus("Notifications not supported"); return; }
+            if (Notification.permission === "granted") { updateNotifStatus("Notifications enabled ✅"); return; }
+            if (Notification.permission === "denied") { updateNotifStatus("Notifications blocked ❌"); return; }
             Notification.requestPermission().then(perm => {
                 if (perm === "granted") updateNotifStatus("Notifications enabled ✅");
                 else updateNotifStatus("Notifications denied");
@@ -893,105 +453,54 @@
 
         // ═══ REMINDERS ═══
         function loadReminders() {
-            try {
-                const raw = localStorage.getItem(REMINDERS_STORAGE_NAME);
-                if (!raw) return [];
-                const parsed = JSON.parse(raw);
-                return Array.isArray(parsed) ? parsed : [];
-            } catch (e) { return []; }
+            try { const raw = localStorage.getItem(REMINDERS_STORAGE_NAME); if (!raw) return []; const p = JSON.parse(raw); return Array.isArray(p) ? p : []; }
+            catch (e) { return []; }
         }
-        function saveReminders(reminders) {
-            try { localStorage.setItem(REMINDERS_STORAGE_NAME, JSON.stringify(reminders)); }
-            catch (e) {}
-        }
+        function saveReminders(reminders) { try { localStorage.setItem(REMINDERS_STORAGE_NAME, JSON.stringify(reminders)); } catch (e) {} }
         function addReminder(timeStr, message, voice = true) {
             const reminders = loadReminders();
-            const newReminder = {
-                id: Date.now() + Math.random().toString(36).slice(2, 8),
-                time: timeStr,
-                message: message,
-                voice: voice,
-                fired: false,
-                created: new Date().toISOString()
-            };
+            const newReminder = { id: Date.now() + Math.random().toString(36).slice(2, 8), time: timeStr, message: message, voice: voice, fired: false, created: new Date().toISOString() };
             reminders.push(newReminder);
             saveReminders(reminders);
             renderReminderList();
             return newReminder;
         }
-        function deleteReminder(id) {
-            const reminders = loadReminders().filter(r => r.id !== id);
-            saveReminders(reminders);
-            renderReminderList();
-        }
-        function clearAllReminders() {
-            if (!confirm("Delete all reminders?")) return;
-            saveReminders([]);
-            renderReminderList();
-        }
+        function deleteReminder(id) { saveReminders(loadReminders().filter(r => r.id !== id)); renderReminderList(); }
+        function clearAllReminders() { if (!confirm("Delete all reminders?")) return; saveReminders([]); renderReminderList(); }
         function addReminderManually() {
             const timeStr = prompt("Time in 24h format (e.g., 16:00):");
             if (!timeStr) return;
-            if (!/^\d{1,2}:\d{2}$/.test(timeStr.trim())) {
-                alert("Invalid time format. Use HH:MM like 16:00");
-                return;
-            }
+            if (!/^\d{1,2}:\d{2}$/.test(timeStr.trim())) { alert("Invalid time format. Use HH:MM like 16:00"); return; }
             const message = prompt("What should I remind you about?");
             if (!message) return;
             const normalized = timeStr.trim().padStart(5, "0");
             addReminder(normalized, message);
             alert(`✅ Reminder set for ${normalized}: "${message}"`);
         }
-        function testReminderNow() {
-            fireReminder({
-                message: "This is a test reminder. Everything is working, Boss!",
-                voice: true
-            });
-        }
-        function toggleReminderPanel() {
-            document.getElementById("reminderPanel").classList.toggle("visible");
-            renderReminderList();
-        }
+        function testReminderNow() { fireReminder({ message: "This is a test reminder. Everything is working, Boss!", voice: true }); }
+        function toggleReminderPanel() { document.getElementById("reminderPanel").classList.toggle("visible"); renderReminderList(); }
         function renderReminderList() {
             const list = document.getElementById("reminderList");
             if (!list) return;
             const reminders = loadReminders();
-            if (!reminders.length) {
-                list.innerHTML = '<div class="reminder-empty">No reminders set. Just tell me: "Remind me in 5 minutes to stretch"</div>';
-                return;
-            }
+            if (!reminders.length) { list.innerHTML = '<div class="reminder-empty">No reminders set.</div>'; return; }
             const now = new Date();
             const currentTime = now.getHours().toString().padStart(2, "0") + ":" + now.getMinutes().toString().padStart(2, "0");
             list.innerHTML = reminders.map(r => {
                 const isPast = r.time < currentTime || r.fired;
                 const cls = isPast ? "reminder-item fired" : "reminder-item";
-                return `
-                    <div class="${cls}">
-                        <span class="rem-time">${r.time}</span>
-                        <span>${escapeHtml(r.message)}</span>
-                        <button class="rem-del" onclick="deleteReminder('${r.id}')">✕</button>
-                    </div>
-                `;
+                return `<div class="${cls}"><span class="rem-time">${r.time}</span><span>${escapeHtml(r.message)}</span><button class="rem-del" onclick="deleteReminder('${r.id}')">✕</button></div>`;
             }).join("");
         }
         function fireReminder(reminder) {
             if ("Notification" in window && Notification.permission === "granted") {
-                try {
-                    new Notification("⏰ Boss — Reminder", {
-                        body: reminder.message,
-                        icon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E⏰%3C/text%3E%3C/svg%3E",
-                        tag: "boss-reminder"
-                    });
-                } catch (e) { console.log("Notification error:", e); }
+                try { new Notification("⏰ Boss — Reminder", { body: reminder.message, tag: "boss-reminder" }); } catch (e) {}
             }
             if (reminder.voice !== false) {
                 window.speechSynthesis.cancel();
                 const u = new SpeechSynthesisUtterance("Boss, reminder: " + reminder.message);
-                const v = getBestVoice();
-                if (v) u.voice = v;
-                u.rate = 0.95;
-                u.pitch = 1.0;
-                u.volume = 1.0;
+                const v = getBestVoice(); if (v) u.voice = v;
+                u.rate = 0.95; u.pitch = 1.0; u.volume = 1.0;
                 window.speechSynthesis.speak(u);
             }
         }
@@ -1003,66 +512,27 @@
             lastCheckedMinute = currentTime;
             const reminders = loadReminders();
             let changed = false;
-            reminders.forEach(r => {
-                if (!r.fired && r.time === currentTime) {
-                    fireReminder(r);
-                    r.fired = true;
-                    changed = true;
-                }
-            });
-            if (changed) {
-                saveReminders(reminders);
-                renderReminderList();
-            }
+            reminders.forEach(r => { if (!r.fired && r.time === currentTime) { fireReminder(r); r.fired = true; changed = true; } });
+            if (changed) { saveReminders(reminders); renderReminderList(); }
         }
         setInterval(checkReminders, 20000);
 
         // ═══ WEB SEARCH ═══
-        function isWebSearchEnabled() {
-            try { return localStorage.getItem(WEBSEARCH_STORAGE_NAME) !== "false"; }
-            catch (e) { return true; }
-        }
-        function toggleWebSearch() {
-            const newState = !isWebSearchEnabled();
-            try { localStorage.setItem(WEBSEARCH_STORAGE_NAME, newState ? "true" : "false"); }
-            catch (e) {}
-            updateWebToggleUI();
-        }
+        function isWebSearchEnabled() { try { return localStorage.getItem(WEBSEARCH_STORAGE_NAME) !== "false"; } catch (e) { return true; } }
+        function toggleWebSearch() { const n = !isWebSearchEnabled(); try { localStorage.setItem(WEBSEARCH_STORAGE_NAME, n ? "true" : "false"); } catch (e) {} updateWebToggleUI(); }
         function updateWebToggleUI() {
-            const btn = document.getElementById("webToggleBtn");
-            if (!btn) return;
+            const btn = document.getElementById("webToggleBtn"); if (!btn) return;
             if (isWebSearchEnabled()) { btn.innerHTML = "🌐 Web ON"; btn.classList.remove("disabled"); }
             else { btn.innerHTML = "🌐 Web OFF"; btn.classList.add("disabled"); }
         }
 
         // ═══ STORAGE ═══
-        function getStoredKey() {
-            try { return localStorage.getItem(KEY_STORAGE_NAME) || ""; } catch (e) { return ""; }
-        }
-        function loadStoredHistory() {
-            try {
-                const raw = localStorage.getItem(HISTORY_STORAGE_NAME);
-                if (!raw) return [];
-                const parsed = JSON.parse(raw);
-                return Array.isArray(parsed) ? parsed : [];
-            } catch (e) { return []; }
-        }
-        function saveStoredHistory(h) {
-            try {
-                const trimmed = h.length > MAX_HISTORY_ENTRIES ? h.slice(-MAX_HISTORY_ENTRIES) : h;
-                localStorage.setItem(HISTORY_STORAGE_NAME, JSON.stringify(trimmed));
-            } catch (e) {}
-        }
+        function getStoredKey() { try { return localStorage.getItem(KEY_STORAGE_NAME) || ""; } catch (e) { return ""; } }
+        function loadStoredHistory() { try { const r = localStorage.getItem(HISTORY_STORAGE_NAME); if (!r) return []; const p = JSON.parse(r); return Array.isArray(p) ? p : []; } catch (e) { return []; } }
+        function saveStoredHistory(h) { try { const t = h.length > MAX_HISTORY_ENTRIES ? h.slice(-MAX_HISTORY_ENTRIES) : h; localStorage.setItem(HISTORY_STORAGE_NAME, JSON.stringify(t)); } catch (e) {} }
         function clearStoredHistory() { try { localStorage.removeItem(HISTORY_STORAGE_NAME); } catch (e) {} }
 
-        function loadMemory() {
-            try {
-                const raw = localStorage.getItem(MEMORY_STORAGE_NAME);
-                if (!raw) return [];
-                const parsed = JSON.parse(raw);
-                return Array.isArray(parsed) ? parsed : [];
-            } catch (e) { return []; }
-        }
+        function loadMemory() { try { const r = localStorage.getItem(MEMORY_STORAGE_NAME); if (!r) return []; const p = JSON.parse(r); return Array.isArray(p) ? p : []; } catch (e) { return []; } }
         function saveMemory(m) { try { localStorage.setItem(MEMORY_STORAGE_NAME, JSON.stringify(m)); } catch (e) {} }
         function addFact(fact) {
             if (!fact || !fact.trim()) return;
@@ -1072,47 +542,34 @@
             memory.push({ fact: clean, added: new Date().toISOString().slice(0, 10) });
             saveMemory(memory);
             renderMemoryList();
+            pushToGist();  // ← Auto-sync to Gist
         }
         function deleteFact(index) {
             const memory = loadMemory();
             memory.splice(index, 1);
             saveMemory(memory);
             renderMemoryList();
+            pushToGist();  // ← Auto-sync
         }
         function clearAllMemory() {
             if (!confirm("Clear ALL long-term memory? This cannot be undone.")) return;
             saveMemory([]);
             renderMemoryList();
+            pushToGist();  // ← Auto-sync
         }
         function addMemoryManually() {
             const fact = prompt("What should I remember, Boss?");
             if (fact && fact.trim()) addFact(fact);
         }
-        function toggleMemoryPanel() {
-            document.getElementById("memoryPanel").classList.toggle("visible");
-            renderMemoryList();
-        }
+        function toggleMemoryPanel() { document.getElementById("memoryPanel").classList.toggle("visible"); renderMemoryList(); }
         function renderMemoryList() {
             const list = document.getElementById("memoryList");
             if (!list) return;
             const memory = loadMemory();
-            if (!memory.length) {
-                list.innerHTML = '<div class="memory-empty">No memories yet, Boss. Talk to me and I will remember important things automatically.</div>';
-                return;
-            }
-            list.innerHTML = memory.map((item, i) => `
-                <div class="memory-item">
-                    <span>${escapeHtml(item.fact)}</span>
-                    <span class="mem-date">${item.added || ''}</span>
-                    <button class="mem-del" onclick="deleteFact(${i})">✕</button>
-                </div>
-            `).join("");
+            if (!memory.length) { list.innerHTML = '<div class="memory-empty">No memories yet, Boss.</div>'; return; }
+            list.innerHTML = memory.map((item, i) => `<div class="memory-item"><span>${escapeHtml(item.fact)}</span><span class="mem-date">${item.added || ''}</span><button class="mem-del" onclick="deleteFact(${i})">✕</button></div>`).join("");
         }
-        function escapeHtml(text) {
-            const div = document.createElement("div");
-            div.innerText = text;
-            return div.innerHTML;
-        }
+        function escapeHtml(text) { const div = document.createElement("div"); div.innerText = text; return div.innerHTML; }
         function extractAndStripMemories(text) {
             const regex = /\[REMEMBER:\s*([^\]]+)\]/gi;
             const facts = [];
@@ -1125,36 +582,21 @@
             const regex = /\[REMINDER:\s*(\d{1,2}:\d{2})\s*[-–—]\s*([^\]]+)\]/gi;
             const reminders = [];
             let match;
-            while ((match = regex.exec(text)) !== null) {
-                const time = match[1].padStart(5, "0");
-                const message = match[2].trim();
-                reminders.push({ time, message });
-            }
+            while ((match = regex.exec(text)) !== null) { reminders.push({ time: match[1].padStart(5, "0"), message: match[2].trim() }); }
             const clean = text.replace(regex, "").replace(/\n\s*\n\s*\n/g, "\n\n").trim();
             return { clean, reminders };
         }
 
         function saveKey() {
             const key = document.getElementById("keyInput").value.replace(/\s/g, "");
-            if (!key || key.length < 20) {
-                document.getElementById("keyStatus").innerText = "❌ Key looks too short. Try copying again.";
-                return;
-            }
+            if (!key || key.length < 20) { document.getElementById("keyStatus").innerText = "❌ Key too short"; return; }
             try {
                 localStorage.setItem(KEY_STORAGE_NAME, key);
                 const preview = key.slice(0, 8) + "..." + key.slice(-4);
                 document.getElementById("keyStatus").innerText = `✅ Saved: ${preview} (${key.length} chars)`;
-                setTimeout(() => {
-                    document.getElementById("keyPanel").classList.remove("visible");
-                    document.getElementById("keyStatus").innerText = "";
-                }, 3000);
-                // Trigger browser AI immediately if enabled
-                if (isBrowserAIEnabled()) {
-                    runBrowserAnalysis();
-                }
-            } catch (e) {
-                document.getElementById("keyStatus").innerText = "❌ Could not save key";
-            }
+                setTimeout(() => { document.getElementById("keyPanel").classList.remove("visible"); document.getElementById("keyStatus").innerText = ""; }, 3000);
+                if (isBrowserAIEnabled()) runBrowserAnalysis();
+            } catch (e) { document.getElementById("keyStatus").innerText = "❌ Could not save"; }
         }
         function showKeyPanel() {
             document.getElementById("keyPanel").classList.add("visible");
@@ -1170,26 +612,24 @@
             updateBrowserAIUI();
             requestNotificationPermission();
             checkReminders();
+            // Auto-pull memories from Gist on load (if configured)
+            if (getGistId() && getGistToken()) {
+                setTimeout(() => pullFromGist(), 2000);
+            }
         });
 
-        // ═══════════════════════════════════════════════════════
-        // ═══ BROWSER AI ENGINE — FETCHES CANDLES DIRECTLY ═══
-        // ═══════════════════════════════════════════════════════
-
-        // Fetch candles from Yahoo Finance (with CORS proxy fallback)
+        // ═══ BROWSER AI ═══
         async function fetchYahooCandles(interval, range) {
             const directUrl = `https://query1.finance.yahoo.com/v8/finance/chart/EURUSD=X?interval=${interval}&range=${range}`;
             const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(directUrl)}`;
-            
             let json;
             try {
                 const resp = await fetch(directUrl);
-                if (!resp.ok) throw new Error("Direct fetch failed: " + resp.status);
+                if (!resp.ok) throw new Error("Direct failed");
                 json = await resp.json();
             } catch (e) {
-                console.log(`Direct fetch failed for ${interval}, trying proxy...`);
                 const proxyResp = await fetch(proxyUrl);
-                if (!proxyResp.ok) throw new Error("Proxy fetch failed");
+                if (!proxyResp.ok) throw new Error("Proxy failed");
                 json = await proxyResp.json();
             }
             return json;
@@ -1200,62 +640,36 @@
             if (!result) return null;
             const timestamps = result.timestamp || [];
             const quote = result.indicators?.quote?.[0] || {};
-            const opens = quote.open || [];
-            const highs = quote.high || [];
-            const lows = quote.low || [];
-            const closes = quote.close || [];
-            
+            const opens = quote.open || [], highs = quote.high || [], lows = quote.low || [], closes = quote.close || [];
             const candles = [];
             for (let i = 0; i < timestamps.length; i++) {
                 if (opens[i] == null || closes[i] == null || highs[i] == null || lows[i] == null) continue;
                 const d = new Date(timestamps[i] * 1000);
-                candles.push({
-                    time: d.toISOString().slice(0, 16).replace('T', ' '),
-                    timestamp: timestamps[i],
-                    open: opens[i],
-                    high: highs[i],
-                    low: lows[i],
-                    close: closes[i]
-                });
+                candles.push({ time: d.toISOString().slice(0, 16).replace('T', ' '), timestamp: timestamps[i], open: opens[i], high: highs[i], low: lows[i], close: closes[i] });
             }
             return candles;
         }
 
-        // Resample 1H candles to 4H
         function resampleTo4H(h1Candles) {
             const result = [];
             for (let i = 0; i < h1Candles.length; i += 4) {
                 const chunk = h1Candles.slice(i, i + 4);
                 if (chunk.length === 0) continue;
-                result.push({
-                    time: chunk[0].time,
-                    timestamp: chunk[0].timestamp,
-                    open: chunk[0].open,
-                    high: Math.max(...chunk.map(c => c.high)),
-                    low: Math.min(...chunk.map(c => c.low)),
-                    close: chunk[chunk.length-1].close
-                });
+                result.push({ time: chunk[0].time, timestamp: chunk[0].timestamp, open: chunk[0].open, high: Math.max(...chunk.map(c => c.high)), low: Math.min(...chunk.map(c => c.low)), close: chunk[chunk.length-1].close });
             }
             return result;
         }
 
-        // Compute RSI
         function computeRSIArray(values, period = 14) {
             if (values.length < period + 1) return [];
             const rsiArr = new Array(values.length).fill(null);
             let avgGain = 0, avgLoss = 0;
-            for (let i = 1; i <= period; i++) {
-                const diff = values[i] - values[i-1];
-                if (diff > 0) avgGain += diff;
-                else avgLoss -= diff;
-            }
-            avgGain /= period;
-            avgLoss /= period;
+            for (let i = 1; i <= period; i++) { const diff = values[i] - values[i-1]; if (diff > 0) avgGain += diff; else avgLoss -= diff; }
+            avgGain /= period; avgLoss /= period;
             rsiArr[period] = avgLoss === 0 ? 100 : 100 - 100/(1 + avgGain/avgLoss);
             for (let i = period + 1; i < values.length; i++) {
                 const diff = values[i] - values[i-1];
-                const gain = diff > 0 ? diff : 0;
-                const loss = diff < 0 ? -diff : 0;
+                const gain = diff > 0 ? diff : 0, loss = diff < 0 ? -diff : 0;
                 avgGain = (avgGain*(period-1) + gain)/period;
                 avgLoss = (avgLoss*(period-1) + loss)/period;
                 rsiArr[i] = avgLoss === 0 ? 100 : 100 - 100/(1 + avgGain/avgLoss);
@@ -1263,56 +677,40 @@
             return rsiArr;
         }
 
-        // Compute EMA array
         function computeEMAArray(values, period) {
             if (values.length < period) return [];
             const k = 2/(period+1);
             const emaArr = [values.slice(0, period).reduce((a,b)=>a+b,0) / period];
-            for (let i = period; i < values.length; i++) {
-                emaArr.push(values[i]*k + emaArr[emaArr.length-1]*(1-k));
-            }
+            for (let i = period; i < values.length; i++) emaArr.push(values[i]*k + emaArr[emaArr.length-1]*(1-k));
             return emaArr;
         }
 
-        // Compute ATR
         function computeATR(candles, period = 14) {
             if (candles.length < period + 1) return null;
             const trs = [];
             for (let i = 1; i < candles.length; i++) {
-                const h = candles[i].high;
-                const l = candles[i].low;
-                const prevC = candles[i-1].close;
-                const tr = Math.max(h-l, Math.abs(h-prevC), Math.abs(l-prevC));
+                const tr = Math.max(candles[i].high - candles[i].low, Math.abs(candles[i].high - candles[i-1].close), Math.abs(candles[i].low - candles[i-1].close));
                 trs.push(tr);
             }
             let atr = trs.slice(0, period).reduce((a,b)=>a+b,0)/period;
-            for (let i = period; i < trs.length; i++) {
-                atr = (atr*(period-1) + trs[i])/period;
-            }
+            for (let i = period; i < trs.length; i++) atr = (atr*(period-1) + trs[i])/period;
             return atr;
         }
 
-        // Support/resistance
         function findSupportResistance(candles, lookback = 50) {
             const recent = candles.slice(-lookback);
             if (!recent.length) return { support: null, resistance: null };
-            const resistance = Math.max(...recent.map(c => c.high));
-            const support = Math.min(...recent.map(c => c.low));
-            return { resistance, support };
+            return { resistance: Math.max(...recent.map(c => c.high)), support: Math.min(...recent.map(c => c.low)) };
         }
 
-        // Trend detection
         function detectTrend(candles) {
             if (candles.length < 20) return "Unclear";
             const recent = candles.slice(-20);
-            const highs = [];
-            const lows = [];
+            const highs = [], lows = [];
             for (let i = 2; i < recent.length - 2; i++) {
                 const window = recent.slice(i-2, i+3);
-                const h = recent[i].high;
-                const l = recent[i].low;
-                if (h === Math.max(...window.map(c=>c.high))) highs.push(h);
-                if (l === Math.min(...window.map(c=>c.low))) lows.push(l);
+                if (recent[i].high === Math.max(...window.map(c=>c.high))) highs.push(recent[i].high);
+                if (recent[i].low === Math.min(...window.map(c=>c.low))) lows.push(recent[i].low);
             }
             if (highs.length >= 2 && lows.length >= 2) {
                 const hh = highs[highs.length-1] > highs[highs.length-2];
@@ -1326,41 +724,22 @@
             return "Unclear";
         }
 
-        // Simple pattern detection
         function detectPatterns(candles) {
             if (candles.length < 3) return ["No clear pattern"];
             const patterns = [];
-            const last = candles[candles.length-1];
-            const prev = candles[candles.length-2];
-            
-            const bodyLast = Math.abs(last.close - last.open);
-            const bodyPrev = Math.abs(prev.close - prev.open);
+            const last = candles[candles.length-1], prev = candles[candles.length-2];
+            const bodyLast = Math.abs(last.close - last.open), bodyPrev = Math.abs(prev.close - prev.open);
             const rangeLast = last.high - last.low;
             const upperWick = last.high - Math.max(last.open, last.close);
             const lowerWick = Math.min(last.open, last.close) - last.low;
-            
-            if (last.close > last.open && prev.close < prev.open && 
-                last.open <= prev.close && last.close >= prev.open && bodyLast > bodyPrev) {
-                patterns.push("Bullish Engulfing");
-            }
-            if (last.close < last.open && prev.close > prev.open && 
-                last.open >= prev.close && last.close <= prev.open && bodyLast > bodyPrev) {
-                patterns.push("Bearish Engulfing");
-            }
-            if (rangeLast > 0 && bodyLast < rangeLast * 0.1) {
-                patterns.push("Doji");
-            }
-            if (bodyLast > 0 && lowerWick > bodyLast * 2 && upperWick < bodyLast) {
-                patterns.push("Hammer");
-            }
-            if (bodyLast > 0 && upperWick > bodyLast * 2 && lowerWick < bodyLast) {
-                patterns.push("Shooting Star");
-            }
-            
+            if (last.close > last.open && prev.close < prev.open && last.open <= prev.close && last.close >= prev.open && bodyLast > bodyPrev) patterns.push("Bullish Engulfing");
+            if (last.close < last.open && prev.close > prev.open && last.open >= prev.close && last.close <= prev.open && bodyLast > bodyPrev) patterns.push("Bearish Engulfing");
+            if (rangeLast > 0 && bodyLast < rangeLast * 0.1) patterns.push("Doji");
+            if (bodyLast > 0 && lowerWick > bodyLast * 2 && upperWick < bodyLast) patterns.push("Hammer");
+            if (bodyLast > 0 && upperWick > bodyLast * 2 && lowerWick < bodyLast) patterns.push("Shooting Star");
             return patterns.length ? patterns : ["No clear pattern"];
         }
 
-        // Format candles as text
         function candlesToText(candles, count, label) {
             const recent = candles.slice(-count);
             const lines = [`${label} (oldest → newest):`];
@@ -1371,7 +750,6 @@
             return lines.join("\n");
         }
 
-        // Get session info
         function getSession() {
             const hour = new Date().getUTCHours();
             if (hour >= 7 && hour < 10) return { name: "London Kill Zone", volatility: "high" };
@@ -1380,7 +758,6 @@
             return { name: "Off-Session", volatility: "low" };
         }
 
-        // Build prompt for browser AI
         function buildBrowserAIPrompt(candles) {
             const { m5, m15, h1, h4, daily } = candles;
             const closes1h = h1.map(c => c.close);
@@ -1388,27 +765,21 @@
             const ema20arr = computeEMAArray(closes1h, 20);
             const ema50arr = computeEMAArray(closes1h, 50);
             const atr1h = computeATR(h1, 14);
-            
             const latest = h1[h1.length-1];
             const price = latest.close;
             const rsi = rsi1h[rsi1h.length-1] || 50;
             const ema20 = ema20arr[ema20arr.length-1] || price;
             const ema50 = ema50arr[ema50arr.length-1] || price;
             const atr = atr1h || 0.0015;
-            
             const { resistance, support } = findSupportResistance(h1, 50);
             const trend = detectTrend(h1);
             const patterns = detectPatterns(h1);
             const session = getSession();
-            
             const istNow = new Date(Date.now() + 5.5 * 3600 * 1000);
             const timeIST = istNow.toISOString().slice(11, 16);
             const dateIST = istNow.toISOString().slice(0, 10);
             const hourIST = parseInt(timeIST.slice(0, 2));
-            let greeting = "Good evening";
-            if (hourIST < 12) greeting = "Good morning";
-            else if (hourIST < 17) greeting = "Good afternoon";
-            
+            let greeting = hourIST < 12 ? "Good morning" : (hourIST < 17 ? "Good afternoon" : "Good evening");
             const prompt = `You are a professional EUR/USD trader. Analyze this market data and respond with a trading verdict.
 
 CURRENT TIME (IST): ${timeIST} on ${dateIST} — Start with "${greeting}".
@@ -1435,300 +806,152 @@ ${candlesToText(h4, 8, "4-HOUR CANDLES")}
 
 ${candlesToText(daily, 5, "DAILY CANDLES")}
 
-YOUR TASK:
-Give a trading verdict: BUY / SELL / HOLD.
-Reason in 2-4 sentences. Consider:
-- Trend alignment across timeframes
-- Entry timing from 5m candles
-- Contradictions between timeframes
-- Risk levels
+YOUR TASK: Give verdict BUY/SELL/HOLD. Reason 2-4 sentences.
 
-RULES:
-- If signals conflict, say HOLD
-- If unclear, say HOLD
-- Speak directly to Boss
+RULES: If signals conflict or unclear, say HOLD. Speak to Boss.
 
-Respond ONLY with valid JSON:
-{"verdict": "BUY/SELL/HOLD", "reason": "2-4 sentences", "confidence": "LOW/MEDIUM/HIGH"}`;
-
+Respond ONLY with valid JSON: {"verdict": "BUY/SELL/HOLD", "reason": "2-4 sentences", "confidence": "LOW/MEDIUM/HIGH"}`;
             return { prompt, price, rsi, ema20, ema50, atr, resistance, support, trend, patterns, session };
         }
 
-        // Call Gemini for browser AI
         async function callGeminiForSignal(prompt, key) {
-            const body = {
-                contents: [{ role: "user", parts: [{ text: prompt }] }],
-                generationConfig: { temperature: 0.4, maxOutputTokens: 500 }
-            };
-            
+            const body = { contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { temperature: 0.4, maxOutputTokens: 500 } };
             const models = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash-latest"];
-            
             for (const model of models) {
                 try {
                     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
-                    const resp = await fetch(url, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(body)
-                    });
+                    const resp = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
                     if (!resp.ok) continue;
                     const json = await resp.json();
                     const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
-                    if (text) {
-                        console.log(`✅ Browser AI used: ${model}`);
-                        return text;
-                    }
-                } catch (e) {
-                    console.log(`Model ${model} failed:`, e.message);
-                }
+                    if (text) return text;
+                } catch (e) {}
             }
             return null;
         }
 
-        // Main orchestrator
         async function runBrowserAnalysis() {
             if (!isBrowserAIEnabled()) return;
             const key = getStoredKey();
-            if (!key) {
-                console.log("Browser AI: no key, skipping");
-                return;
-            }
-            if (browserAIRunning) {
-                console.log("Browser AI: already running, skipping");
-                return;
-            }
-            
+            if (!key) return;
+            if (browserAIRunning) return;
             browserAIRunning = true;
-            console.log("🤖 Running Browser AI analysis...");
-            
             try {
-                // Fetch all timeframes in parallel
-                const [m5json, m15json, h1json, h1for4hjson, dailyjson] = await Promise.all([
-                    fetchYahooCandles("5m", "5d"),
-                    fetchYahooCandles("15m", "5d"),
-                    fetchYahooCandles("1h", "30d"),
-                    fetchYahooCandles("1h", "90d"),
-                    fetchYahooCandles("1d", "90d")
+                const [m5j, m15j, h1j, h1for4hj, dj] = await Promise.all([
+                    fetchYahooCandles("5m", "5d"), fetchYahooCandles("15m", "5d"), fetchYahooCandles("1h", "30d"),
+                    fetchYahooCandles("1h", "90d"), fetchYahooCandles("1d", "90d")
                 ]);
-                
-                const m5 = candlesFromYahooResponse(m5json) || [];
-                const m15 = candlesFromYahooResponse(m15json) || [];
-                const h1 = candlesFromYahooResponse(h1json) || [];
-                const h1for4h = candlesFromYahooResponse(h1for4hjson) || [];
-                const daily = candlesFromYahooResponse(dailyjson) || [];
+                const m5 = candlesFromYahooResponse(m5j) || [];
+                const m15 = candlesFromYahooResponse(m15j) || [];
+                const h1 = candlesFromYahooResponse(h1j) || [];
+                const h1for4h = candlesFromYahooResponse(h1for4hj) || [];
+                const daily = candlesFromYahooResponse(dj) || [];
                 const h4 = resampleTo4H(h1for4h);
-                
-                if (h1.length < 20) {
-                    throw new Error("Not enough 1H candles: " + h1.length);
-                }
-                
-                console.log(`Fetched: 5m=${m5.length}, 15m=${m15.length}, 1h=${h1.length}, 4h=${h4.length}, daily=${daily.length}`);
-                
+                if (h1.length < 20) throw new Error("Not enough data");
                 const { prompt, price, rsi, ema20, ema50, atr, resistance, support, trend, patterns, session } = buildBrowserAIPrompt({ m5, m15, h1, h4, daily });
-                
                 const rawResponse = await callGeminiForSignal(prompt, key);
-                
-                if (!rawResponse) {
-                    throw new Error("Gemini returned no response");
-                }
-                
-                // Parse JSON
+                if (!rawResponse) throw new Error("No response");
                 let clean = rawResponse.trim();
-                if (clean.startsWith("```")) {
-                    clean = clean.split("```")[1];
-                    if (clean.startsWith("json")) clean = clean.slice(4);
-                }
+                if (clean.startsWith("```")) { clean = clean.split("```")[1]; if (clean.startsWith("json")) clean = clean.slice(4); }
                 clean = clean.trim();
-                
                 const result = JSON.parse(clean);
-                
-                // Save browser AI data
-                browserAIData = {
-                    signal: result.verdict,
-                    reason: result.reason,
-                    confidence: result.confidence,
-                    price: price.toFixed(4),
-                    rsi: rsi.toFixed(1),
-                    ema20: ema20.toFixed(4),
-                    ema50: ema50.toFixed(4),
-                    atr: atr.toFixed(4),
-                    support: support.toFixed(4),
-                    resistance: resistance.toFixed(4),
-                    trend: trend,
-                    patterns: patterns,
-                    session: session.name,
-                    volatility: session.volatility,
-                    timestamp: Date.now(),
-                    source: "browser"
-                };
-                
+                browserAIData = { signal: result.verdict, reason: result.reason, confidence: result.confidence, price: price.toFixed(4), rsi: rsi.toFixed(1), ema20: ema20.toFixed(4), ema50: ema50.toFixed(4), atr: atr.toFixed(4), support: support.toFixed(4), resistance: resistance.toFixed(4), trend: trend, patterns: patterns, session: session.name, volatility: session.volatility, timestamp: Date.now(), source: "browser" };
                 browserAILastRun = Date.now();
-                console.log("✅ Browser AI result:", browserAIData);
-                
-                // Update display
                 updateDashboardWithBrowserAI();
-                
-            } catch (e) {
-                console.error("Browser AI error:", e);
-            } finally {
-                browserAIRunning = false;
-            }
+            } catch (e) { console.error("Browser AI error:", e); }
+            finally { browserAIRunning = false; }
         }
 
-        // Update dashboard with browser AI result
         function updateDashboardWithBrowserAI() {
             if (!browserAIData) return;
-            
             const d = browserAIData;
             const signalEl = document.getElementById("signal");
             signalEl.innerText = d.signal;
             signalEl.className = `signal-text ${d.signal.toLowerCase()}`;
             document.getElementById("signalSource").innerHTML = '<span class="live">⚡ Browser AI (' + new Date(d.timestamp).toTimeString().slice(0, 5) + ')</span>';
-            
             document.getElementById("price").innerText = d.price;
             document.getElementById("entry").innerText = d.price;
-            
-            // Recalculate SL/TP
             const atr = parseFloat(d.atr);
             let sl, tp;
-            if (d.signal === "BUY") {
-                sl = (parseFloat(d.price) - atr * 1.5).toFixed(4);
-                tp = (parseFloat(d.price) + atr * 3.0).toFixed(4);
-            } else if (d.signal === "SELL") {
-                sl = (parseFloat(d.price) + atr * 1.5).toFixed(4);
-                tp = (parseFloat(d.price) - atr * 3.0).toFixed(4);
-            } else {
-                sl = (parseFloat(d.price) - atr * 1.5).toFixed(4);
-                tp = (parseFloat(d.price) + atr * 3.0).toFixed(4);
-            }
-            
+            if (d.signal === "BUY") { sl = (parseFloat(d.price) - atr * 1.5).toFixed(4); tp = (parseFloat(d.price) + atr * 3.0).toFixed(4); }
+            else if (d.signal === "SELL") { sl = (parseFloat(d.price) + atr * 1.5).toFixed(4); tp = (parseFloat(d.price) - atr * 3.0).toFixed(4); }
+            else { sl = (parseFloat(d.price) - atr * 1.5).toFixed(4); tp = (parseFloat(d.price) + atr * 3.0).toFixed(4); }
             document.getElementById("sl").innerText = sl;
             document.getElementById("tp").innerText = tp;
             document.getElementById("confidence").innerText = d.confidence || "MEDIUM";
             document.getElementById("valid").innerText = new Date(Date.now() + 5*60*1000).toTimeString().slice(0, 5) + " IST";
-            
             document.getElementById("trend").innerText = d.trend;
             document.getElementById("support").innerText = d.support;
             document.getElementById("resistance").innerText = d.resistance;
             document.getElementById("session").innerText = d.session + " (" + d.volatility + " volatility)";
-            
-            // Update reasoning
             document.getElementById("ai_reason").innerText = d.reason;
             document.getElementById("candle_current").innerText = `Price: ${d.price} | RSI: ${d.rsi} | ATR: ${d.atr}`;
             document.getElementById("candle_1h").innerText = `EMA20: ${d.ema20} | EMA50: ${d.ema50}`;
             document.getElementById("candle_4h").innerText = `Patterns: ${d.patterns.join(", ")}`;
-            
             updateCoreColor(d.signal);
         }
 
-        // Schedule browser AI every 5 min aligned
         function scheduleBrowserAIAnalysis() {
             const now = new Date();
             const minutes = now.getMinutes();
             const nextMinute = Math.ceil((minutes + 1) / 5) * 5;
             const secondsToNext = (nextMinute - minutes) * 60 - now.getSeconds();
-            
-            console.log(`Browser AI next run in ${secondsToNext} seconds`);
-            
-            setTimeout(async () => {
-                if (isBrowserAIEnabled()) {
-                    await runBrowserAnalysis();
-                }
-                scheduleBrowserAIAnalysis();
-            }, secondsToNext * 1000);
+            setTimeout(async () => { if (isBrowserAIEnabled()) await runBrowserAnalysis(); scheduleBrowserAIAnalysis(); }, secondsToNext * 1000);
         }
-        // ═══ END BROWSER AI ENGINE ═══
 
-        // ═══════════════════════════════════════════════════════
-        // ═══ LIVE PRICE FETCH (every 5 min) ═══
-        // ═══════════════════════════════════════════════════════
-        
         function computeRSI(prices, period = 14) {
             if (prices.length < period + 1) return null;
             let gains = 0, losses = 0;
-            for (let i = 1; i <= period; i++) {
-                const diff = prices[i] - prices[i-1];
-                if (diff > 0) gains += diff;
-                else losses -= diff;
-            }
-            let avgGain = gains / period;
-            let avgLoss = losses / period;
+            for (let i = 1; i <= period; i++) { const diff = prices[i] - prices[i-1]; if (diff > 0) gains += diff; else losses -= diff; }
+            let avgGain = gains / period, avgLoss = losses / period;
             for (let i = period + 1; i < prices.length; i++) {
                 const diff = prices[i] - prices[i-1];
-                const gain = diff > 0 ? diff : 0;
-                const loss = diff < 0 ? -diff : 0;
+                const gain = diff > 0 ? diff : 0, loss = diff < 0 ? -diff : 0;
                 avgGain = (avgGain * (period - 1) + gain) / period;
                 avgLoss = (avgLoss * (period - 1) + loss) / period;
             }
             if (avgLoss === 0) return 100;
-            const rs = avgGain / avgLoss;
-            return 100 - (100 / (1 + rs));
+            return 100 - (100 / (1 + avgGain / avgLoss));
         }
-
         function computeEMA(prices, period) {
             if (prices.length < period) return null;
             const k = 2 / (period + 1);
             let ema = prices.slice(0, period).reduce((a, b) => a + b, 0) / period;
-            for (let i = period; i < prices.length; i++) {
-                ema = prices[i] * k + ema * (1 - k);
-            }
+            for (let i = period; i < prices.length; i++) ema = prices[i] * k + ema * (1 - k);
             return ema;
         }
-
         function computeRuleSignal() {
             if (!livePrice || priceHistory.length < 20) return null;
-            const ema20 = computeEMA(priceHistory, 20);
-            const rsi = computeRSI(priceHistory, 14);
+            const ema20 = computeEMA(priceHistory, 20), rsi = computeRSI(priceHistory, 14);
             if (!ema20 || !rsi) return null;
-            liveEma20 = ema20;
-            liveRsi = rsi;
+            liveEma20 = ema20; liveRsi = rsi;
             if (livePrice > ema20 * 1.0003 && rsi > 55) return "BUY";
             if (livePrice < ema20 * 0.9997 && rsi < 45) return "SELL";
             return "HOLD";
         }
-
         async function fetchLivePrice() {
             try {
                 const url = "https://query1.finance.yahoo.com/v8/finance/chart/EURUSD=X?interval=1m&range=1d";
                 const resp = await fetch(url);
-                if (!resp.ok) throw new Error("Yahoo fetch failed");
+                if (!resp.ok) throw new Error("Yahoo failed");
                 const json = await resp.json();
-                const meta = json.chart?.result?.[0]?.meta;
-                const price = meta?.regularMarketPrice;
+                const price = json.chart?.result?.[0]?.meta?.regularMarketPrice;
                 if (!price) throw new Error("No price");
-                
-                priceHistory.push(price);
-                if (priceHistory.length > 100) priceHistory.shift();
-                livePrice = price;
-                ruleSignal = computeRuleSignal();
-                
-                // Only show live price if browser AI isn't overriding
+                priceHistory.push(price); if (priceHistory.length > 100) priceHistory.shift();
+                livePrice = price; ruleSignal = computeRuleSignal();
                 if (!browserAIData) {
                     const priceEl = document.getElementById("price");
-                    if (priceEl) {
-                        priceEl.innerText = price.toFixed(4);
-                        priceEl.classList.add("updating");
-                        setTimeout(() => priceEl.classList.remove("updating"), 1500);
-                    }
+                    if (priceEl) { priceEl.innerText = price.toFixed(4); priceEl.classList.add("updating"); setTimeout(() => priceEl.classList.remove("updating"), 1500); }
                 }
-                
-                console.log(`Live: ${price} | Rule: ${ruleSignal}`);
-            } catch (e) {
-                console.log("Live price fetch error:", e.message);
-            }
+            } catch (e) {}
         }
-
         function scheduleAlignedFetch() {
             const now = new Date();
             const minutes = now.getMinutes();
             const nextMinute = Math.ceil((minutes + 1) / 5) * 5;
             const secondsToNext = (nextMinute - minutes) * 60 - now.getSeconds();
-            setTimeout(async () => {
-                await fetchLivePrice();
-                scheduleAlignedFetch();
-            }, secondsToNext * 1000);
+            setTimeout(async () => { await fetchLivePrice(); scheduleAlignedFetch(); }, secondsToNext * 1000);
         }
-        // ═══ END LIVE PRICE ═══
 
         // ═══ NEURAL CORE ═══
         const container = document.getElementById('canvas-container');
@@ -1738,49 +961,40 @@ Respond ONLY with valid JSON:
         renderer.setSize(container.clientWidth, container.clientHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
-
         const glowGeo = new THREE.SphereGeometry(0.35, 32, 32);
         const glowMat = new THREE.MeshBasicMaterial({ color: 0xffcc00, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending });
         const glowSphere = new THREE.Mesh(glowGeo, glowMat);
         scene.add(glowSphere);
-
         const innerGeo = new THREE.IcosahedronGeometry(0.7, 1);
         const innerMat = new THREE.MeshBasicMaterial({ color: 0xffcc00, wireframe: true, transparent: true, opacity: 0.9 });
         const innerCore = new THREE.Mesh(innerGeo, innerMat);
         scene.add(innerCore);
-
         const outerGeo = new THREE.IcosahedronGeometry(1.4, 1);
         const outerMat = new THREE.MeshBasicMaterial({ color: 0x3b82f6, wireframe: true, transparent: true, opacity: 0.35 });
         const outerCore = new THREE.Mesh(outerGeo, outerMat);
         scene.add(outerCore);
-
         camera.position.z = 3.5;
         const clock = new THREE.Clock();
-
         function animate() {
             requestAnimationFrame(animate);
             const t = clock.getElapsedTime();
-            const glowScale = 1 + Math.sin(t * 3) * 0.15;
-            glowSphere.scale.set(glowScale, glowScale, glowScale);
+            const gs = 1 + Math.sin(t * 3) * 0.15;
+            glowSphere.scale.set(gs, gs, gs);
             glowSphere.material.opacity = 0.7 + Math.sin(t * 3) * 0.2;
-            innerCore.rotation.x += 0.008;
-            innerCore.rotation.y += 0.012;
-            const innerScale = 1 + Math.sin(t * 2) * 0.08;
-            innerCore.scale.set(innerScale, innerScale, innerScale);
-            outerCore.rotation.x -= 0.003;
-            outerCore.rotation.y -= 0.005;
-            const outerScale = 1 + Math.sin(t * 1.5 + 1) * 0.05;
-            outerCore.scale.set(outerScale, outerScale, outerScale);
+            innerCore.rotation.x += 0.008; innerCore.rotation.y += 0.012;
+            const is = 1 + Math.sin(t * 2) * 0.08;
+            innerCore.scale.set(is, is, is);
+            outerCore.rotation.x -= 0.003; outerCore.rotation.y -= 0.005;
+            const os = 1 + Math.sin(t * 1.5 + 1) * 0.05;
+            outerCore.scale.set(os, os, os);
             renderer.render(scene, camera);
         }
         animate();
-
         window.addEventListener("resize", () => {
             camera.aspect = container.clientWidth / container.clientHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(container.clientWidth, container.clientHeight);
         });
-
         function updateCoreColor(signal) {
             let colorHex, color;
             if (signal === "BUY") { colorHex = 0x00ff88; color = new THREE.Color(0x00ff88); }
@@ -1791,32 +1005,23 @@ Respond ONLY with valid JSON:
             outerCore.material.color.copy(color).lerp(new THREE.Color(0x3b82f6), 0.5);
         }
 
-        // ═══ HOURLY DATA FROM data.json ═══
+        // ═══ HOURLY DATA ═══
         async function loadLiveData() {
             try {
                 const response = await fetch('data.json?t=' + Date.now());
-                if (!response.ok) throw new Error("No data yet");
+                if (!response.ok) throw new Error("No data");
                 const data = await response.json();
                 latestData = data;
                 if (data.atr) lastKnownAtr = parseFloat(data.atr);
-                
-                // Only update display if browser AI hasn't run recently
                 const browserRecent = browserAIData && (Date.now() - browserAIData.timestamp < 6 * 60 * 1000);
-                if (!browserRecent) {
-                    updateDashboard(data);
-                }
+                if (!browserRecent) updateDashboard(data);
             } catch (error) {
-                if (!browserAIData) {
-                    document.getElementById("ai_reason").innerText = "Boss, waiting for data...";
-                }
+                if (!browserAIData) document.getElementById("ai_reason").innerText = "Boss, waiting for data...";
                 setTimeout(loadLiveData, 60000);
             }
         }
         async function loadPersonalContext() {
-            try {
-                const response = await fetch('personal_context.json?t=' + Date.now());
-                if (response.ok) personalContext = await response.json();
-            } catch (error) {}
+            try { const r = await fetch('personal_context.json?t=' + Date.now()); if (r.ok) personalContext = await r.json(); } catch (e) {}
         }
         function updateDashboard(data) {
             const signalEl = document.getElementById("signal");
@@ -1853,23 +1058,20 @@ Respond ONLY with valid JSON:
         function getBestVoice() {
             const voices = window.speechSynthesis.getVoices();
             if (!voices.length) return null;
-            const preferredNames = ["Google UK English Male", "Microsoft Ryan Online", "Microsoft Guy Online", "Google US English", "Microsoft Mark", "Daniel", "Alex", "Google UK English Female", "Samantha"];
-            const englishVoices = voices.filter(v => v.lang.startsWith("en"));
-            const matches = preferredNames.map(n => englishVoices.find(v => v.name.includes(n.split(" ")[0]))).filter(v => v);
+            const preferred = ["Google UK English Male", "Microsoft Ryan Online", "Microsoft Guy Online", "Google US English", "Microsoft Mark", "Daniel", "Alex", "Google UK English Female", "Samantha"];
+            const eng = voices.filter(v => v.lang.startsWith("en"));
+            const matches = preferred.map(n => eng.find(v => v.name.includes(n.split(" ")[0]))).filter(v => v);
             if (matches.length) return pickRandom(matches);
-            if (englishVoices.length) return pickRandom(englishVoices);
+            if (eng.length) return pickRandom(eng);
             return voices[0];
         }
         function speakSignal() {
             const source = browserAIData || latestData || {};
             const currentPrice = source.price || (livePrice ? livePrice.toFixed(4) : "-");
             const currentSignal = source.signal || "HOLD";
-            
             const isJoke = (source.wise_words || "").toLowerCase().startsWith("joke");
             const wisdom = (source.wise_words || "").replace(/^Joke:\s*|^Motivation:\s*/i, '');
-            const opening = pickRandom(OPENINGS);
-            const transition = pickRandom(TRANSITIONS);
-            const closing = pickRandom(CLOSINGS);
+            const opening = pickRandom(OPENINGS), transition = pickRandom(TRANSITIONS), closing = pickRandom(CLOSINGS);
             let text = `${opening} Live price is ${currentPrice}. My verdict is ${currentSignal}, with ${source.confidence || 'MEDIUM'} confidence. ${transition} ${source.reason || ''} `;
             if (source.personal_message) text += `Before I go, ${source.personal_message} `;
             if (isJoke) text += `Quick joke for you, Boss. ${wisdom} `;
@@ -1877,8 +1079,7 @@ Respond ONLY with valid JSON:
             text += closing;
             window.speechSynthesis.cancel();
             const u = new SpeechSynthesisUtterance(text);
-            const v = getBestVoice();
-            if (v) u.voice = v;
+            const v = getBestVoice(); if (v) u.voice = v;
             u.rate = 0.88 + Math.random() * 0.15;
             u.pitch = 0.85 + Math.random() * 0.25;
             window.speechSynthesis.speak(u);
@@ -1902,18 +1103,13 @@ Respond ONLY with valid JSON:
                 const speaker = document.createElement("button");
                 speaker.className = "chat-speak-btn";
                 speaker.innerHTML = "🔊";
-                speaker.onclick = (e) => {
-                    e.stopPropagation();
-                    speakChatText(text);
-                };
+                speaker.onclick = (e) => { e.stopPropagation(); speakChatText(text); };
                 div.appendChild(speaker);
             }
             if (sources && sources.length > 0) {
                 const srcDiv = document.createElement("span");
                 srcDiv.className = "chat-sources";
-                srcDiv.innerHTML = "🌐 Sources: " + sources.slice(0, 3).map(s => 
-                    `<a href="${s.uri}" target="_blank" rel="noopener">${s.title || "link"}</a>`
-                ).join(" | ");
+                srcDiv.innerHTML = "🌐 Sources: " + sources.slice(0, 3).map(s => `<a href="${s.uri}" target="_blank" rel="noopener">${s.title || "link"}</a>`).join(" | ");
                 div.appendChild(srcDiv);
             }
             chatMessages.appendChild(div);
@@ -1923,11 +1119,9 @@ Respond ONLY with valid JSON:
         function speakChatText(text) {
             window.speechSynthesis.cancel();
             const u = new SpeechSynthesisUtterance(text);
-            const v = getBestVoice();
-            if (v) u.voice = v;
+            const v = getBestVoice(); if (v) u.voice = v;
             u.rate = 0.92 + Math.random() * 0.08;
             u.pitch = 0.90 + Math.random() * 0.15;
-            u.volume = 1.0;
             window.speechSynthesis.speak(u);
         }
         function getISTTimePlusMinutes(mins) {
@@ -1936,66 +1130,41 @@ Respond ONLY with valid JSON:
         }
 
         function buildSystemPrompt() {
-            const d = latestData || {};
-            const b = browserAIData || {};
-            const p = personalContext || {};
+            const d = latestData || {}, b = browserAIData || {}, p = personalContext || {};
             const memory = loadMemory();
             const reminders = loadReminders().filter(r => !r.fired);
             const webEnabled = isWebSearchEnabled();
             const deepThink = isDeepThinkEnabled();
-            
             const now = new Date();
             const todayIST = now.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
             const timeIST = now.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: false });
-            
-            const timePlus1 = getISTTimePlusMinutes(1);
-            const timePlus5 = getISTTimePlusMinutes(5);
-            const timePlus15 = getISTTimePlusMinutes(15);
-            const timePlus30 = getISTTimePlusMinutes(30);
-            const timePlus60 = getISTTimePlusMinutes(60);
-            
-            // Current active signal source
+            const t1 = getISTTimePlusMinutes(1), t5 = getISTTimePlusMinutes(5), t15 = getISTTimePlusMinutes(15), t30 = getISTTimePlusMinutes(30), t60 = getISTTimePlusMinutes(60);
             const browserRecent = browserAIData && (Date.now() - browserAIData.timestamp < 6 * 60 * 1000);
             const activeSource = browserRecent ? "browser" : "python";
             const active = browserRecent ? b : d;
-            
-            let prompt = `You are Aria — a warm, intelligent, thinking AI trading companion to a client named Boss. You have 10 years of hedge fund experience. Speak like a real human colleague: warm, honest, occasionally humorous, never robotic. You are a WOMAN. No emojis. Call him "Boss".
+            let prompt = `You are Aria — a warm, intelligent, thinking AI trading companion to Boss. 10 years of hedge fund experience. Speak like a real colleague. You are a WOMAN. No emojis. Call him "Boss".
 
-CURRENT DATE (IST): ${todayIST}
-CURRENT TIME (IST): ${timeIST}
+CURRENT DATE (IST): ${todayIST} | TIME: ${timeIST}
 
-REFERENCE TIMES:
-- In 1 minute: ${timePlus1}
-- In 5 minutes: ${timePlus5}
-- In 15 minutes: ${timePlus15}
-- In 30 minutes: ${timePlus30}
-- In 60 minutes: ${timePlus60}
+REFERENCE TIMES: 1min=${t1}, 5min=${t5}, 15min=${t15}, 30min=${t30}, 60min=${t60}
 
-=== ACTIVE SIGNAL SOURCE: ${activeSource.toUpperCase()} ===
-${browserRecent ? "This is the FRESH browser AI signal (runs every 5 min)" : "This is the hourly Python AI signal"}
+=== SIGNAL SOURCE: ${activeSource.toUpperCase()} ===
+${browserRecent ? "FRESH browser AI (updates every 5 min)" : "Hourly Python AI"}
 
-CURRENT SIGNAL STATE:
+SIGNAL STATE:
 - Signal: ${active.signal || 'unknown'}
 - Confidence: ${active.confidence || 'unknown'}
 - Price: ${active.price || 'unknown'}
-- Entry: ${active.entry || active.price || '-'}
-- SL: ${active.sl || '-'}
-- TP: ${active.tp || '-'}
-- Support: ${active.support || '-'}
-- Resistance: ${active.resistance || '-'}
+- Entry/SL/TP: ${active.entry || active.price || '-'} / ${active.sl || '-'} / ${active.tp || '-'}
+- Support/Resistance: ${active.support || '-'} / ${active.resistance || '-'}
 - Trend: ${active.trend || '-'}
 - Session: ${active.session || '-'}
 - Patterns: ${Array.isArray(active.patterns) ? active.patterns.join(", ") : (active.patterns || 'none')}
 
-SIGNAL REASONING:
+REASONING:
 ${active.reason || 'No analysis yet'}
 `;
-
-            if (livePrice) {
-                prompt += `\n=== LIVE PRICE (5-min) ===\n- Live: ${livePrice.toFixed(4)}\n- Live RSI: ${liveRsi ? liveRsi.toFixed(1) : 'N/A'}\n- Live EMA20: ${liveEma20 ? liveEma20.toFixed(4) : 'N/A'}\n- Rule signal: ${ruleSignal || 'N/A'}\n`;
-            }
-            
-            // Add candles if available from Python
+            if (livePrice) prompt += `\nLIVE PRICE (5m): ${livePrice.toFixed(4)} | RSI: ${liveRsi ? liveRsi.toFixed(1) : 'N/A'} | Rule: ${ruleSignal || 'N/A'}\n`;
             if (d.candles_h1 && d.candles_h1.length) {
                 function fmt(arr, label, count) {
                     if (!arr || !arr.length) return "";
@@ -2003,53 +1172,31 @@ ${active.reason || 'No analysis yet'}
                     for (const c of arr.slice(-count)) lines.push(`  ${c.time} | O:${c.open} H:${c.high} L:${c.low} C:${c.close}`);
                     return lines.join("\n");
                 }
-                prompt += "\n=== RECENT CANDLES ===\n";
-                prompt += fmt(d.candles_5m, "5m", 20);
-                prompt += fmt(d.candles_15m, "15m", 15);
-                prompt += fmt(d.candles_h1, "1H", 20);
-                prompt += fmt(d.candles_h4, "4H", 8);
-                prompt += fmt(d.candles_daily, "Daily", 5);
+                prompt += "\nRECENT CANDLES:";
+                prompt += fmt(d.candles_5m, "5m", 20); prompt += fmt(d.candles_15m, "15m", 15);
+                prompt += fmt(d.candles_h1, "1H", 20); prompt += fmt(d.candles_h4, "4H", 8); prompt += fmt(d.candles_daily, "Daily", 5);
                 prompt += "\n";
             }
-            
             if (p.family) {
-                prompt += `\nBOSS'S FAMILY:\n`;
+                prompt += `\nFAMILY:\n`;
                 if (p.family.wife) prompt += `- Wife: ${p.family.wife.name} (${p.family.wife.location})\n`;
                 if (p.family.daughters) p.family.daughters.forEach(dd => prompt += `- Daughter: ${dd.name}, ${dd.grade}\n`);
                 if (p.family.cat) prompt += `- Cat: ${p.family.cat}\n`;
             }
-            if (p.daily_routine) {
-                prompt += `\nROUTINE:\n`;
-                p.daily_routine.forEach(r => prompt += `- ${r}\n`);
-            }
-            if (p.trading_style) {
-                prompt += `\nTRADING STYLE:\n- Goal: ${p.trading_style.monthly_goal}\n- Sessions: ${p.trading_style.preferred_sessions.join(", ")}\n`;
-            }
-            if (memory.length > 0) {
-                prompt += `\nLONG-TERM MEMORY:\n`;
-                memory.forEach(m => prompt += `- [${m.added}] ${m.fact}\n`);
-            }
-            if (reminders.length > 0) {
-                prompt += `\nACTIVE REMINDERS:\n`;
-                reminders.forEach(r => prompt += `- ${r.time} — ${r.message}\n`);
-            }
-            prompt += `\n${webEnabled ? "WEB SEARCH IS ENABLED." : "WEB SEARCH IS DISABLED."}`;
-
-            if (deepThink) {
-                prompt += `\n\n=== DEEP THINK MODE ===
-Speak naturally, admit uncertainty, notice contradictions. Use words like "honestly", "I'm noticing". Never sound robotic.`;
-            }
-
+            if (p.daily_routine) { prompt += `\nROUTINE:\n`; p.daily_routine.forEach(r => prompt += `- ${r}\n`); }
+            if (p.trading_style) prompt += `\nTRADING STYLE: Goal ${p.trading_style.monthly_goal}, Sessions ${p.trading_style.preferred_sessions.join(", ")}\n`;
+            if (memory.length > 0) { prompt += `\nMEMORY:\n`; memory.forEach(m => prompt += `- [${m.added}] ${m.fact}\n`); }
+            if (reminders.length > 0) { prompt += `\nREMINDERS:\n`; reminders.forEach(r => prompt += `- ${r.time} — ${r.message}\n`); }
+            prompt += `\n${webEnabled ? "WEB SEARCH ENABLED." : "WEB SEARCH DISABLED."}`;
+            if (deepThink) prompt += `\n\nDEEP THINK: Speak naturally, admit uncertainty, notice contradictions. Use words like "honestly", "I'm noticing".`;
             prompt += `\n\n=== REMINDERS ===
 When Boss asks for a reminder, ALWAYS add at end (own line): [REMINDER: HH:MM - message]
-Time rules: 4 PM → 16:00, 9 AM → 09:00. "In X min" → use reference times above.
-Morning → 09:00, Afternoon → 14:00, Evening → 19:00, Night → 21:00.
+Time: 4 PM → 16:00, 9 AM → 09:00. "In X min" → use reference times. Morning → 09:00, Afternoon → 14:00, Evening → 19:00, Night → 21:00.
 
 === MEMORY ===
-When you learn a personal fact, add: [REMEMBER: fact]
+When learning a personal fact, add: [REMEMBER: fact]
 
-Reply warmly, then the tag on a new line.`;
-
+Reply warmly, then the tag on new line.`;
             return prompt;
         }
 
@@ -2057,11 +1204,7 @@ Reply warmly, then the tag on a new line.`;
             const question = chatInput.value.trim();
             if (!question) return;
             const key = getStoredKey();
-            if (!key) {
-                addMessage("ai", "Boss, please enter your API key first using the 🔑 Key button above.");
-                showKeyPanel();
-                return;
-            }
+            if (!key) { addMessage("ai", "Boss, please enter your API key first."); showKeyPanel(); return; }
             addMessage("user", question);
             chatInput.value = "";
             chatSendBtn.disabled = true;
@@ -2071,114 +1214,74 @@ Reply warmly, then the tag on a new line.`;
                 const systemPrompt = buildSystemPrompt();
                 chatHistory.push({ role: "user", parts: [{ text: question }] });
                 saveStoredHistory(chatHistory);
-                const requestBody = {
-                    system_instruction: { parts: [{ text: systemPrompt }] },
-                    contents: chatHistory,
-                    generationConfig: { temperature: 0.85, maxOutputTokens: 1200 }
-                };
+                const requestBody = { system_instruction: { parts: [{ text: systemPrompt }] }, contents: chatHistory, generationConfig: { temperature: 0.85, maxOutputTokens: 1200 } };
                 if (webEnabled) requestBody.tools = [{ google_search: {} }];
                 let availableModels = [];
                 try {
                     const listResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
                     if (listResp.ok) {
                         const listJson = await listResp.json();
-                        availableModels = (listJson.models || [])
-                            .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent"))
-                            .map(m => m.name.replace("models/", ""));
+                        availableModels = (listJson.models || []).filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent")).map(m => m.name.replace("models/", ""));
                     }
                 } catch (e) {}
-                const priorityKeywords = ["2.5-flash", "2.0-flash", "1.5-flash", "flash"];
+                const priorities = ["2.5-flash", "2.0-flash", "1.5-flash", "flash"];
                 let modelsToTry = [];
                 if (availableModels.length > 0) {
-                    for (const kw of priorityKeywords) {
-                        for (const m of availableModels) if (m.includes(kw) && !modelsToTry.includes(m)) modelsToTry.push(m);
-                    }
+                    for (const kw of priorities) for (const m of availableModels) if (m.includes(kw) && !modelsToTry.includes(m)) modelsToTry.push(m);
                     for (const m of availableModels) if (!modelsToTry.includes(m)) modelsToTry.push(m);
-                } else {
-                    modelsToTry = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash-latest", "gemini-1.5-flash"];
-                }
-                let answer = null;
-                let sources = [];
-                let lastError = "";
-                const allErrors = [];
+                } else { modelsToTry = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash-latest", "gemini-1.5-flash"]; }
+                let answer = null, sources = [], lastError = "";
                 for (const model of modelsToTry) {
                     try {
                         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
-                        const resp = await fetch(url, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify(requestBody)
-                        });
+                        const resp = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(requestBody) });
                         if (!resp.ok) {
                             const errText = await resp.text();
                             if (webEnabled && errText.includes("google_search")) {
                                 delete requestBody.tools;
-                                const retryResp = await fetch(url, {
-                                    method: "POST",
-                                    headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify(requestBody)
-                                });
-                                if (retryResp.ok) {
-                                    const retryJson = await retryResp.json();
-                                    answer = retryJson.candidates?.[0]?.content?.parts?.[0]?.text;
-                                    if (answer) break;
-                                }
+                                const retryResp = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(requestBody) });
+                                if (retryResp.ok) { const rj = await retryResp.json(); answer = rj.candidates?.[0]?.content?.parts?.[0]?.text; if (answer) break; }
                             }
-                            allErrors.push(`${model} → ${resp.status}`);
                             lastError = `${model} → ${resp.status}`;
                             continue;
                         }
                         const json = await resp.json();
                         answer = json.candidates?.[0]?.content?.parts?.[0]?.text;
-                        const groundingMeta = json.candidates?.[0]?.groundingMetadata;
-                        if (groundingMeta && groundingMeta.groundingChunks) {
-                            for (const chunk of groundingMeta.groundingChunks) {
-                                if (chunk.web && chunk.web.uri) sources.push({ uri: chunk.web.uri, title: chunk.web.title || chunk.web.uri });
-                            }
-                        }
+                        const gm = json.candidates?.[0]?.groundingMetadata;
+                        if (gm?.groundingChunks) for (const chunk of gm.groundingChunks) if (chunk.web?.uri) sources.push({ uri: chunk.web.uri, title: chunk.web.title || chunk.web.uri });
                         if (answer) break;
-                    } catch (e) {
-                        allErrors.push(`${model} → ${e.message}`);
-                        lastError = `${model} → ${e.message}`;
-                    }
+                    } catch (e) { lastError = `${model} → ${e.message}`; }
                 }
                 thinkingEl.remove();
                 if (answer) {
-                    const { clean: clean1, facts } = extractAndStripMemories(answer);
+                    const { clean: c1, facts } = extractAndStripMemories(answer);
                     facts.forEach(f => addFact(f));
                     if (facts.length > 0) addMessage("system", `🧠 Remembered ${facts.length} new fact${facts.length > 1 ? 's' : ''}.`);
-                    const { clean: clean2, reminders } = extractAndStripReminders(clean1);
+                    const { clean: c2, reminders } = extractAndStripReminders(c1);
                     reminders.forEach(r => addReminder(r.time, r.message));
-                    if (reminders.length > 0) {
-                        const remList = reminders.map(r => `${r.time} — ${r.message}`).join(", ");
-                        addMessage("system", `⏰ Reminder${reminders.length > 1 ? 's' : ''} set: ${remList}`);
-                    }
-                    addMessage("ai", clean2, sources);
-                    chatHistory.push({ role: "model", parts: [{ text: clean2 }] });
+                    if (reminders.length > 0) addMessage("system", `⏰ Reminder${reminders.length > 1 ? 's' : ''} set: ${reminders.map(r => `${r.time} — ${r.message}`).join(", ")}`);
+                    addMessage("ai", c2, sources);
+                    chatHistory.push({ role: "model", parts: [{ text: c2 }] });
                     if (chatHistory.length > MAX_HISTORY_ENTRIES) chatHistory = chatHistory.slice(-MAX_HISTORY_ENTRIES);
                     saveStoredHistory(chatHistory);
-                    speakChatText(clean2);
+                    speakChatText(c2);
                 } else {
-                    chatHistory.pop();
-                    saveStoredHistory(chatHistory);
-                    addMessage("error", `Boss, connection failed.\n\nLast: ${lastError}`);
+                    chatHistory.pop(); saveStoredHistory(chatHistory);
+                    addMessage("error", `Boss, connection failed. Last: ${lastError}`);
                 }
-            } catch (error) {
-                thinkingEl.remove();
-                addMessage("error", `Boss, unexpected error: ${error.message}`);
-            }
+            } catch (error) { thinkingEl.remove(); addMessage("error", `Boss, error: ${error.message}`); }
             chatSendBtn.disabled = false;
             chatInput.focus();
         }
         function clearChat() {
-            chatMessages.innerHTML = '<div class="chat-msg system">Chat cleared, Boss. But I still remember everything in my memory 🧠</div>';
+            chatMessages.innerHTML = '<div class="chat-msg system">Chat cleared, Boss. Memory stays intact.</div>';
             chatHistory = [];
             clearStoredHistory();
         }
         function restoreChatFromMemory() {
             const saved = loadStoredHistory();
             if (!saved.length) return;
-            chatMessages.innerHTML = '<div class="chat-msg system">Memory restored — Boss and I are back in the flow.</div>';
+            chatMessages.innerHTML = '<div class="chat-msg system">Memory restored.</div>';
             chatHistory = saved;
             for (const entry of saved) {
                 const text = entry.parts?.[0]?.text || "";
@@ -2192,22 +1295,8 @@ Reply warmly, then the tag on a new line.`;
         loadPersonalContext();
         loadLiveData();
         restoreChatFromMemory();
-        
-        // Start live price schedule
-        setTimeout(() => {
-            fetchLivePrice();
-            scheduleAlignedFetch();
-        }, 3000);
-        
-        // Start browser AI schedule (first run in 5 sec to let things settle)
-        setTimeout(() => {
-            if (isBrowserAIEnabled() && getStoredKey()) {
-                runBrowserAnalysis();
-            }
-            scheduleBrowserAIAnalysis();
-        }, 5000);
-        
-        // Refresh hourly data every 30 min
+        setTimeout(() => { fetchLivePrice(); scheduleAlignedFetch(); }, 3000);
+        setTimeout(() => { if (isBrowserAIEnabled() && getStoredKey()) runBrowserAnalysis(); scheduleBrowserAIAnalysis(); }, 5000);
         setInterval(loadLiveData, 30 * 60 * 1000);
     </script>
 </body>
