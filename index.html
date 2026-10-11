@@ -394,7 +394,6 @@
         let gistToken = localStorage.getItem('eurusd_gist_token') || '';
         let gistId = localStorage.getItem('eurusd_gist_id') || '';
         
-        // Cache for dynamically fetched models
         let cachedModels = null;
 
         // --- UI INITIALIZATION ---
@@ -631,7 +630,6 @@
 
         // --- CLEAN RESPONSE FUNCTION ---
         function cleanResponse(text) {
-            // Remove bullet points and self-analysis lines that the AI sometimes outputs
             let lines = text.split('\n');
             let cleanLines = lines.filter(line => {
                 let l = line.trim().toLowerCase();
@@ -643,6 +641,16 @@
                 return true;
             });
             return cleanLines.join('\n').trim();
+        }
+
+        // --- FETCH WITH TIMEOUT ---
+        async function fetchWithTimeout(resource, options = {}) {
+            const { timeout = 10000 } = options; // 10 seconds timeout
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), timeout);
+            const response = await fetch(resource, { ...options, signal: controller.signal });
+            clearTimeout(id);
+            return response;
         }
 
         async function sendChat() {
@@ -664,7 +672,6 @@
             try {
                 let response = await callGeminiAPI(text);
                 
-                // Clean up the response before displaying or speaking
                 response = cleanResponse(response);
 
                 document.getElementById('chat-history').removeChild(loadingDiv);
@@ -681,7 +688,10 @@
                 speakText(response);
 
             } catch (error) {
-                document.getElementById('chat-history').removeChild(loadingDiv);
+                // Ensure loading is removed even on failure
+                if (document.getElementById('chat-history').contains(loadingDiv)) {
+                    document.getElementById('chat-history').removeChild(loadingDiv);
+                }
                 chatHistory.push({ role: 'ai', text: `Error: ${error.message}` });
                 renderChat();
             }
@@ -700,6 +710,7 @@
                             .map(m => m.name.replace('models/', ''));
                         
                         if (valid.length > 0) {
+                            // Prioritize flash for speed, then pro
                             valid.sort((a, b) => {
                                 if (a.includes('1.5-flash')) return -1;
                                 if (b.includes('1.5-flash')) return 1;
@@ -712,12 +723,15 @@
                         }
                     }
                 }
-            } catch(e) { console.log("Model discovery failed, using hardcoded fallback.", e); }
+            } catch(e) { console.log("Model discovery failed, using hardcoded fallback."); }
             
-            return ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro'];
+            return ['gemini-1.5-flash', 'gemini-1.5-pro'];
         }
 
         async function callGeminiAPI(userText) {
+            // Trim context to last 10 messages to speed up processing
+            const recentHistory = chatHistory.slice(-10);
+            
             let systemPrompt = `You are an AI trading assistant for Boss. You are friendly, funny, and motivational. Do not use emojis. Call him "Boss". 
             Current time: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST.
             Here is his personal context: ${JSON.stringify(personalContext)}.
@@ -725,16 +739,31 @@
             CRITICAL RULE: Do NOT output your thought process, self-evaluation, bullet points, or any internal dialogue. ONLY output the final spoken message to Boss.
             If he asks you to remind him of something, append [REMINDER: HH:MM - message] to your reply. If you learn a new fact about him, append [REMEMBER: fact] to your reply.`;
             
-            const contents = [ { role: 'user', parts: [{ text: systemPrompt }] }, ...chatHistory.map(msg => ({ role: msg.role === 'ai' ? 'model' : 'user', parts: [{ text: msg.text }] })), { role: 'user', parts: [{ text: userText }] } ];
+            const contents = [ 
+                { role: 'user', parts: [{ text: systemPrompt }] }, 
+                ...recentHistory.map(msg => ({ role: msg.role === 'ai' ? 'model' : 'user', parts: [{ text: msg.text }] })), 
+                { role: 'user', parts: [{ text: userText }] } 
+            ];
+            
             const payload = { contents: contents, tools: webSearchEnabled ? [{ google_search: {} }] : [] };
 
-            const modelsToTry = await getAvailableGeminiModels();
+            // Get the list of models
+            let modelsToTry = await getAvailableGeminiModels();
             
+            // If Deep Think is OFF, prioritize the fastest model
+            if (!deepThinkEnabled) {
+                modelsToTry = ['gemini-1.5-flash', ...modelsToTry.filter(m => m !== 'gemini-1.5-flash')];
+            }
+
             let lastError = null;
             for (const model of modelsToTry) {
                 try {
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+                    // Use the timeout fetch wrapper to prevent hanging
+                    const response = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+                        method: 'POST', 
+                        headers: { 'Content-Type': 'application/json' }, 
+                        body: JSON.stringify(payload),
+                        timeout: 12000 // 12 seconds max per model
                     });
                     
                     if (response.ok) {
@@ -751,7 +780,9 @@
                         const err = await response.json();
                         lastError = err.error?.message || 'API request failed';
                     }
-                } catch (e) { lastError = e.message; }
+                } catch (e) { 
+                    lastError = e.name === 'AbortError' ? 'Request timed out' : e.message; 
+                }
             }
             
             throw new Error(lastError || 'All available Gemini models failed. Check your API key.');
