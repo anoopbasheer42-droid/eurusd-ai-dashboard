@@ -80,7 +80,6 @@
             margin-bottom: 20px; 
         }
         
-        /* AI Neural Core — clean 3D, no rings, no particles */
         #canvas-container { 
             width: 100%; 
             height: 300px; 
@@ -412,6 +411,8 @@
         .header-btn.web-btn { border-color: var(--green); color: var(--green); }
         .header-btn.web-btn:hover { background: rgba(0,255,136,0.15); }
         .header-btn.web-btn.disabled { border-color: var(--border); color: var(--muted); }
+        .header-btn.reminder-btn { border-color: #fbbf24; color: #fbbf24; }
+        .header-btn.reminder-btn:hover { background: rgba(251,191,36,0.15); }
         
         .key-panel { 
             background: linear-gradient(135deg, rgba(234,179,8,0.15), rgba(249,115,22,0.15)); 
@@ -549,6 +550,112 @@
             color: var(--red); 
         }
         .memory-action.clear:hover { background: rgba(255,51,102,0.3); }
+        
+        /* Reminder panel */
+        .reminder-panel { 
+            background: linear-gradient(135deg, rgba(251,191,36,0.15), rgba(245,158,11,0.1)); 
+            border: 1px solid rgba(251,191,36,0.4); 
+            border-radius: 12px; 
+            padding: 16px; 
+            margin-bottom: 16px; 
+            display: none; 
+        }
+        .reminder-panel.visible { display: block; }
+        .reminder-panel h3 { 
+            color: #fbbf24; 
+            font-size: 0.9rem; 
+            margin-bottom: 12px; 
+            text-transform: uppercase; 
+            letter-spacing: 1px; 
+        }
+        .reminder-panel p { 
+            font-size: 0.85rem; 
+            color: var(--muted); 
+            margin-bottom: 12px; 
+            line-height: 1.5; 
+        }
+        .reminder-list { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 8px; 
+            max-height: 300px; 
+            overflow-y: auto; 
+            margin-bottom: 12px; 
+        }
+        .reminder-item { 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+            background: rgba(0,0,0,0.3); 
+            padding: 10px 12px; 
+            border-radius: 8px; 
+            font-size: 0.85rem; 
+            line-height: 1.5; 
+            border-left: 3px solid #fbbf24;
+        }
+        .reminder-item.fired {
+            opacity: 0.4;
+            border-left-color: var(--green);
+            text-decoration: line-through;
+        }
+        .reminder-item span { flex: 1; }
+        .reminder-item .rem-time { 
+            font-size: 0.7rem; 
+            color: #fbbf24; 
+            white-space: nowrap; 
+            font-weight: 700;
+        }
+        .reminder-item .rem-del { 
+            background: rgba(255,51,102,0.15); 
+            border: 1px solid rgba(255,51,102,0.3); 
+            color: var(--red); 
+            border-radius: 6px; 
+            padding: 4px 8px; 
+            cursor: pointer; 
+            font-size: 0.75rem; 
+        }
+        .reminder-item .rem-del:hover { background: rgba(255,51,102,0.3); }
+        .reminder-empty { 
+            color: var(--muted); 
+            font-style: italic; 
+            font-size: 0.85rem; 
+            padding: 8px 0; 
+        }
+        .reminder-actions { display: flex; gap: 8px; }
+        .reminder-action { 
+            padding: 8px 14px; 
+            border-radius: 8px; 
+            font-size: 0.8rem; 
+            cursor: pointer; 
+            font-weight: 600; 
+            font-family: inherit; 
+        }
+        .reminder-action.add { 
+            background: rgba(251,191,36,0.2); 
+            border: 1px solid #fbbf24; 
+            color: #fbbf24; 
+        }
+        .reminder-action.add:hover { background: rgba(251,191,36,0.35); }
+        .reminder-action.test { 
+            background: rgba(0,255,136,0.15); 
+            border: 1px solid var(--green); 
+            color: var(--green); 
+        }
+        .reminder-action.test:hover { background: rgba(0,255,136,0.3); }
+        .reminder-action.clear { 
+            background: rgba(255,51,102,0.15); 
+            border: 1px solid rgba(255,51,102,0.4); 
+            color: var(--red); 
+        }
+        .reminder-action.clear:hover { background: rgba(255,51,102,0.3); }
+        
+        .notif-status {
+            font-size: 0.75rem;
+            margin-top: 8px;
+            color: var(--muted);
+        }
+        .notif-status.granted { color: var(--green); }
+        .notif-status.denied { color: var(--red); }
     </style>
 </head>
 <body>
@@ -585,6 +692,7 @@
             <h2 style="display:flex; align-items:center;">💬 Ask Your AI Trader
                 <div class="chat-header-buttons">
                     <button id="webToggleBtn" class="header-btn web-btn" onclick="toggleWebSearch()">🌐 Web ON</button>
+                    <button id="reminderToggleBtn" class="header-btn reminder-btn" onclick="toggleReminderPanel()">⏰ Reminders</button>
                     <button class="header-btn memory-btn" onclick="toggleMemoryPanel()">🧠 Memory</button>
                     <button class="header-btn" onclick="showKeyPanel()">🔑 Key</button>
                 </div>
@@ -600,6 +708,18 @@
                 <div id="keyStatus" class="key-status"></div>
             </div>
 
+            <div id="reminderPanel" class="reminder-panel">
+                <h3>⏰ Active Reminders</h3>
+                <p>Reminders fire automatically at their set time. You'll get a system notification + spoken reminder.</p>
+                <div id="notifStatus" class="notif-status"></div>
+                <div id="reminderList" class="reminder-list"></div>
+                <div class="reminder-actions">
+                    <button class="reminder-action add" onclick="addReminderManually()">+ Add Reminder</button>
+                    <button class="reminder-action test" onclick="testReminderNow()">🔔 Test Now</button>
+                    <button class="reminder-action clear" onclick="clearAllReminders()">🗑 Clear All</button>
+                </div>
+            </div>
+
             <div id="memoryPanel" class="memory-panel">
                 <h3>🧠 Long-Term Memory</h3>
                 <p>These facts stay with you forever — even when you clear the chat. The AI remembers them and uses them to personalize every reply.</p>
@@ -612,10 +732,10 @@
 
             <div class="chat-container">
                 <div id="chatMessages" class="chat-messages">
-                    <div class="chat-msg system">Ask me anything, Boss. I know the current price, signal, and your routine. Toggle 🌐 Web ON to let me search the internet.</div>
+                    <div class="chat-msg system">Ask me anything, Boss. Try: "Remind me at 4 PM to check Emy's homework"</div>
                 </div>
                 <div class="chat-input-row">
-                    <input id="chatInput" class="chat-input" type="text" placeholder="e.g. Should I enter now? Or: What is the latest news on EUR/USD?" onkeydown="if(event.key === 'Enter') sendChat()" />
+                    <input id="chatInput" class="chat-input" type="text" placeholder="e.g. Remind me at 4 PM to check homework" onkeydown="if(event.key === 'Enter') sendChat()" />
                     <button id="chatSendBtn" class="chat-send" onclick="sendChat()">Send</button>
                 </div>
                 <button class="chat-clear" onclick="clearChat()">Clear chat (memory stays)</button>
@@ -659,8 +779,198 @@
         const HISTORY_STORAGE_NAME = "eurusd_chat_history";
         const MEMORY_STORAGE_NAME = "eurusd_long_term_memory";
         const WEBSEARCH_STORAGE_NAME = "eurusd_websearch_enabled";
+        const REMINDERS_STORAGE_NAME = "eurusd_reminders";
         const MAX_HISTORY_ENTRIES = 40;
 
+        // ═══════════════════════════════════════════════════════
+        // NOTIFICATION PERMISSION
+        // ═══════════════════════════════════════════════════════
+        function requestNotificationPermission() {
+            if (!("Notification" in window)) {
+                updateNotifStatus("Notifications not supported in this browser");
+                return;
+            }
+            if (Notification.permission === "granted") {
+                updateNotifStatus("Notifications enabled ✅");
+                return;
+            }
+            if (Notification.permission === "denied") {
+                updateNotifStatus("Notifications blocked ❌ — enable in browser settings");
+                return;
+            }
+            Notification.requestPermission().then(perm => {
+                if (perm === "granted") updateNotifStatus("Notifications enabled ✅");
+                else updateNotifStatus("Notifications denied — reminders will show silently");
+            });
+        }
+
+        function updateNotifStatus(text) {
+            const el = document.getElementById("notifStatus");
+            if (!el) return;
+            el.innerText = text;
+            el.className = "notif-status";
+            if (text.includes("enabled")) el.classList.add("granted");
+            if (text.includes("blocked") || text.includes("denied")) el.classList.add("denied");
+        }
+
+        // ═══════════════════════════════════════════════════════
+        // REMINDERS SYSTEM
+        // ═══════════════════════════════════════════════════════
+        function loadReminders() {
+            try {
+                const raw = localStorage.getItem(REMINDERS_STORAGE_NAME);
+                if (!raw) return [];
+                const parsed = JSON.parse(raw);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (e) { return []; }
+        }
+
+        function saveReminders(reminders) {
+            try {
+                localStorage.setItem(REMINDERS_STORAGE_NAME, JSON.stringify(reminders));
+            } catch (e) {}
+        }
+
+        function addReminder(timeStr, message, voice = true) {
+            const reminders = loadReminders();
+            const newReminder = {
+                id: Date.now() + Math.random().toString(36).slice(2, 8),
+                time: timeStr,          // e.g. "16:00"
+                message: message,
+                voice: voice,
+                fired: false,
+                created: new Date().toISOString()
+            };
+            reminders.push(newReminder);
+            saveReminders(reminders);
+            renderReminderList();
+            return newReminder;
+        }
+
+        function deleteReminder(id) {
+            const reminders = loadReminders().filter(r => r.id !== id);
+            saveReminders(reminders);
+            renderReminderList();
+        }
+
+        function clearAllReminders() {
+            if (!confirm("Delete all reminders?")) return;
+            saveReminders([]);
+            renderReminderList();
+        }
+
+        function addReminderManually() {
+            const timeStr = prompt("Time in 24h format (e.g., 16:00):");
+            if (!timeStr) return;
+            if (!/^\d{1,2}:\d{2}$/.test(timeStr.trim())) {
+                alert("Invalid time format. Use HH:MM like 16:00");
+                return;
+            }
+            const message = prompt("What should I remind you about?");
+            if (!message) return;
+            const normalized = timeStr.trim().padStart(5, "0");
+            addReminder(normalized, message);
+            alert(`✅ Reminder set for ${normalized}: "${message}"`);
+        }
+
+        function testReminderNow() {
+            fireReminder({
+                message: "This is a test reminder. Everything is working, Boss!",
+                voice: true
+            });
+        }
+
+        function toggleReminderPanel() {
+            document.getElementById("reminderPanel").classList.toggle("visible");
+            renderReminderList();
+        }
+
+        function renderReminderList() {
+            const list = document.getElementById("reminderList");
+            if (!list) return;
+            const reminders = loadReminders();
+            if (!reminders.length) {
+                list.innerHTML = '<div class="reminder-empty">No reminders set. Just tell me: "Remind me at 4 PM to check homework"</div>';
+                return;
+            }
+            const now = new Date();
+            const currentTime = now.getHours().toString().padStart(2, "0") + ":" + now.getMinutes().toString().padStart(2, "0");
+            
+            list.innerHTML = reminders.map(r => {
+                const isPast = r.time < currentTime || r.fired;
+                const cls = isPast ? "reminder-item fired" : "reminder-item";
+                return `
+                    <div class="${cls}">
+                        <span class="rem-time">${r.time}</span>
+                        <span>${escapeHtml(r.message)}</span>
+                        <button class="rem-del" onclick="deleteReminder('${r.id}')">✕</button>
+                    </div>
+                `;
+            }).join("");
+        }
+
+        // Fire a reminder — notification + voice
+        function fireReminder(reminder) {
+            // Browser notification
+            if ("Notification" in window && Notification.permission === "granted") {
+                try {
+                    new Notification("⏰ Boss — Reminder", {
+                        body: reminder.message,
+                        icon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E⏰%3C/text%3E%3C/svg%3E",
+                        tag: "boss-reminder",
+                        requireInteraction: false
+                    });
+                } catch (e) {
+                    console.log("Notification error:", e);
+                }
+            }
+            
+            // Spoken reminder
+            if (reminder.voice !== false) {
+                window.speechSynthesis.cancel();
+                const u = new SpeechSynthesisUtterance("Boss, reminder: " + reminder.message);
+                const v = getBestVoice();
+                if (v) u.voice = v;
+                u.rate = 0.95;
+                u.pitch = 1.0;
+                u.volume = 1.0;
+                window.speechSynthesis.speak(u);
+            }
+        }
+
+        // Background timer — checks every 20 seconds for due reminders
+        let lastCheckedMinute = "";
+        function checkReminders() {
+            const now = new Date();
+            const currentTime = now.getHours().toString().padStart(2, "0") + ":" + now.getMinutes().toString().padStart(2, "0");
+            
+            // Only run once per minute
+            if (currentTime === lastCheckedMinute) return;
+            lastCheckedMinute = currentTime;
+            
+            const reminders = loadReminders();
+            let changed = false;
+            
+            reminders.forEach(r => {
+                if (!r.fired && r.time === currentTime) {
+                    fireReminder(r);
+                    r.fired = true;
+                    changed = true;
+                }
+            });
+            
+            if (changed) {
+                saveReminders(reminders);
+                renderReminderList();
+            }
+        }
+        
+        // Start background timer
+        setInterval(checkReminders, 20000);
+
+        // ═══════════════════════════════════════════════════════
+        // SHORT-TERM CHAT HISTORY
+        // ═══════════════════════════════════════════════════════
         function isWebSearchEnabled() {
             try { return localStorage.getItem(WEBSEARCH_STORAGE_NAME) !== "false"; }
             catch (e) { return true; }
@@ -736,6 +1046,7 @@
         }
         function renderMemoryList() {
             const list = document.getElementById("memoryList");
+            if (!list) return;
             const memory = loadMemory();
             if (!memory.length) {
                 list.innerHTML = '<div class="memory-empty">No memories yet, Boss. Talk to me and I will remember important things automatically.</div>';
@@ -762,6 +1073,20 @@
             const clean = text.replace(regex, "").replace(/\n\s*\n\s*\n/g, "\n\n").trim();
             return { clean, facts };
         }
+        function extractAndStripReminders(text) {
+            // Pattern: [REMINDER: HH:MM - message]
+            const regex = /\[REMINDER:\s*(\d{1,2}:\d{2})\s*[-–—]\s*([^\]]+)\]/gi;
+            const reminders = [];
+            let match;
+            while ((match = regex.exec(text)) !== null) {
+                const time = match[1].padStart(5, "0");
+                const message = match[2].trim();
+                reminders.push({ time, message });
+            }
+            const clean = text.replace(regex, "").replace(/\n\s*\n\s*\n/g, "\n\n").trim();
+            return { clean, reminders };
+        }
+
         function saveKey() {
             const key = document.getElementById("keyInput").value.replace(/\s/g, "");
             if (!key || key.length < 20) {
@@ -788,10 +1113,13 @@
         window.addEventListener("load", () => {
             if (!getStoredKey()) document.getElementById("keyPanel").classList.add("visible");
             renderMemoryList();
+            renderReminderList();
             updateWebToggleUI();
+            requestNotificationPermission();
+            checkReminders();
         });
 
-        // ═══ NEURAL CORE — Clean: glow sphere + inner/outer wireframes only ═══
+        // ═══ NEURAL CORE ═══
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
@@ -800,59 +1128,37 @@
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
 
-        // Central glowing sphere
         const glowGeo = new THREE.SphereGeometry(0.35, 32, 32);
-        const glowMat = new THREE.MeshBasicMaterial({ 
-            color: 0xffcc00, 
-            transparent: true, 
-            opacity: 0.9, 
-            blending: THREE.AdditiveBlending 
-        });
+        const glowMat = new THREE.MeshBasicMaterial({ color: 0xffcc00, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending });
         const glowSphere = new THREE.Mesh(glowGeo, glowMat);
         scene.add(glowSphere);
 
-        // Inner wireframe icosahedron
         const innerGeo = new THREE.IcosahedronGeometry(0.7, 1);
-        const innerMat = new THREE.MeshBasicMaterial({ 
-            color: 0xffcc00, 
-            wireframe: true, 
-            transparent: true, 
-            opacity: 0.9 
-        });
+        const innerMat = new THREE.MeshBasicMaterial({ color: 0xffcc00, wireframe: true, transparent: true, opacity: 0.9 });
         const innerCore = new THREE.Mesh(innerGeo, innerMat);
         scene.add(innerCore);
 
-        // Outer wireframe shell
         const outerGeo = new THREE.IcosahedronGeometry(1.4, 1);
-        const outerMat = new THREE.MeshBasicMaterial({ 
-            color: 0x3b82f6, 
-            wireframe: true, 
-            transparent: true, 
-            opacity: 0.35 
-        });
+        const outerMat = new THREE.MeshBasicMaterial({ color: 0x3b82f6, wireframe: true, transparent: true, opacity: 0.35 });
         const outerCore = new THREE.Mesh(outerGeo, outerMat);
         scene.add(outerCore);
 
         camera.position.z = 3.5;
-
         const clock = new THREE.Clock();
 
         function animate() {
             requestAnimationFrame(animate);
             const t = clock.getElapsedTime();
 
-            // Central glow pulse
             const glowScale = 1 + Math.sin(t * 3) * 0.15;
             glowSphere.scale.set(glowScale, glowScale, glowScale);
             glowSphere.material.opacity = 0.7 + Math.sin(t * 3) * 0.2;
 
-            // Inner core rotation + breathing
             innerCore.rotation.x += 0.008;
             innerCore.rotation.y += 0.012;
             const innerScale = 1 + Math.sin(t * 2) * 0.08;
             innerCore.scale.set(innerScale, innerScale, innerScale);
 
-            // Outer shell slow opposite rotation
             outerCore.rotation.x -= 0.003;
             outerCore.rotation.y -= 0.005;
             const outerScale = 1 + Math.sin(t * 1.5 + 1) * 0.05;
@@ -1020,19 +1326,24 @@
             const d = latestData || {};
             const p = personalContext || {};
             const memory = loadMemory();
+            const reminders = loadReminders().filter(r => !r.fired);
             const webEnabled = isWebSearchEnabled();
+            
             function formatCandles(candleArr, label) {
                 if (!candleArr || !candleArr.length) return `${label}: No data available.`;
                 const lines = [`${label} (oldest → newest):`];
                 for (const c of candleArr) lines.push(`  ${c.time} | O:${c.open} H:${c.high} L:${c.low} C:${c.close}`);
                 return lines.join("\n");
             }
-            const todayIST = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
-            const timeIST = new Date().toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit" });
+            
+            const now = new Date();
+            const todayIST = now.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+            const timeIST = now.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: false });
+            
             let prompt = `You are a professional EUR/USD trader AND personal assistant to a client named Boss. You have 10 years of hedge fund experience. Be friendly, funny, and motivational. Always call him "Boss".
 
 CURRENT DATE (IST): ${todayIST}
-CURRENT TIME (IST): ${timeIST}
+CURRENT TIME (IST): ${timeIST} (24-hour format)
 
 CURRENT MARKET STATE:
 - Live Price: ${d.price || 'unknown'}
@@ -1058,6 +1369,7 @@ ${d.reason || 'No analysis yet'}
             prompt += formatCandles(d.candles_h1, "1-HOUR CANDLES (30 most recent)") + "\n\n";
             prompt += formatCandles(d.candles_h4, "4-HOUR CANDLES (10 most recent)") + "\n\n";
             prompt += formatCandles(d.candles_daily, "DAILY CANDLES (5 most recent)") + "\n";
+            
             if (p.family) {
                 prompt += `\n\nBOSS'S FAMILY:\n`;
                 if (p.family.wife) prompt += `- Wife: ${p.family.wife.name} (in ${p.family.wife.location})\n`;
@@ -1065,6 +1377,7 @@ ${d.reason || 'No analysis yet'}
                 if (p.family.cat) prompt += `- Cat: ${p.family.cat}\n`;
                 if (p.family.parents) prompt += `- Parents: ${p.family.parents.join(", ")}\n`;
                 if (p.family.brothers) prompt += `- Brothers: ${p.family.brothers.join(", ")}\n`;
+                if (p.family.location) prompt += `- Family lives in ${p.family.location}\n`;
             }
             if (p.daily_routine) {
                 prompt += `\nDAILY ROUTINE:\n`;
@@ -1076,25 +1389,37 @@ ${d.reason || 'No analysis yet'}
             if (memory.length > 0) {
                 prompt += `\n\nLONG-TERM MEMORY:\n`;
                 memory.forEach(m => prompt += `- [${m.added}] ${m.fact}\n`);
-            } else {
-                prompt += `\n\nLONG-TERM MEMORY: Empty.\n`;
+            }
+            if (reminders.length > 0) {
+                prompt += `\n\nACTIVE REMINDERS (pending, not yet fired):\n`;
+                reminders.forEach(r => prompt += `- ${r.time} — ${r.message}\n`);
             }
             prompt += `\n\n${webEnabled ? "🌐 WEB SEARCH IS ENABLED." : "🌐 WEB SEARCH IS DISABLED."}
 
+=== SPECIAL COMMANDS YOU CAN USE ===
+
+1. **REMINDERS** — When Boss says "Remind me at HH:MM to ..." or "Remind me at 4 PM to ...", you MUST:
+   - Convert any 12-hour time to 24-hour format (4 PM → 16:00)
+   - Add this at the end of your reply: [REMINDER: HH:MM - message]
+   - Examples:
+     * Boss: "Remind me at 4 PM to check Emy's homework" → [REMINDER: 16:00 - Check Emy's homework]
+     * Boss: "Remind me at 9:30 AM to take BP tablets" → [REMINDER: 09:30 - Take BP tablets]
+     * Boss: "Remind me in the evening at 7 to call Sadia" → [REMINDER: 19:00 - Call Sadia]
+   - Include the time of day in your spoken reply: "Got it, Boss. I'll remind you at 4 PM."
+
+2. **MEMORY** — When you learn a personal fact, add: [REMEMBER: fact]
+
 === ROUTINE REMINDER RULES ===
 1. Before asking about any routine item (breakfast, lunch, tablets), SCAN memory for TODAY (${todayIST}).
-2. If Boss mentions doing something today: [REMEMBER: Boss had breakfast on ${todayIST}]
-3. Time logic: morning=breakfast, afternoon=lunch, evening=tablets/dinner.
-4. Never ask same routine question twice in one day.
+2. Time logic: morning=breakfast, afternoon=lunch, evening=tablets/dinner.
+3. Never ask same routine question twice in one day.
 
 === INSTRUCTIONS ===
 - Use the OHLC candle data.
 - When asked about patterns, read the candles and identify real structures.
 - Do NOT invent patterns.
 - Call him "Boss". Concise (2-4 sentences). No markdown.
-
-=== MEMORY EXTRACTION ===
-If new personal fact, add: [REMEMBER: fact]`;
+- If Boss asks to set a reminder, respond warmly AND add the [REMINDER] marker.`;
             return prompt;
         }
         async function sendChat() {
@@ -1188,14 +1513,24 @@ If new personal fact, add: [REMEMBER: fact]`;
                 }
                 thinkingEl.remove();
                 if (answer) {
-                    const { clean, facts } = extractAndStripMemories(answer);
+                    // Extract memories
+                    const { clean: clean1, facts } = extractAndStripMemories(answer);
                     facts.forEach(f => addFact(f));
                     if (facts.length > 0) addMessage("system", `🧠 Remembered ${facts.length} new fact${facts.length > 1 ? 's' : ''}.`);
-                    addMessage("ai", clean, sources);
-                    chatHistory.push({ role: "model", parts: [{ text: clean }] });
+                    
+                    // Extract reminders
+                    const { clean: clean2, reminders } = extractAndStripReminders(clean1);
+                    reminders.forEach(r => addReminder(r.time, r.message));
+                    if (reminders.length > 0) {
+                        const remList = reminders.map(r => `${r.time} — ${r.message}`).join(", ");
+                        addMessage("system", `⏰ Reminder${reminders.length > 1 ? 's' : ''} set: ${remList}`);
+                    }
+                    
+                    addMessage("ai", clean2, sources);
+                    chatHistory.push({ role: "model", parts: [{ text: clean2 }] });
                     if (chatHistory.length > MAX_HISTORY_ENTRIES) chatHistory = chatHistory.slice(-MAX_HISTORY_ENTRIES);
                     saveStoredHistory(chatHistory);
-                    speakChatText(clean);
+                    speakChatText(clean2);
                 } else {
                     chatHistory.pop();
                     saveStoredHistory(chatHistory);
