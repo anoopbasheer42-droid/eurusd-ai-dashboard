@@ -49,7 +49,6 @@
         .personal-box { background: linear-gradient(135deg, rgba(236,72,153,0.15), rgba(139,92,246,0.15)); padding: 20px; border-radius: 12px; border-left: 4px solid var(--pink); font-size: 0.95rem; line-height: 1.7; color: #f1f5f9; }
         .personal-label { display: block; font-weight: 600; color: var(--pink); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
         
-        /* Chat styles */
         .chat-container { display: flex; flex-direction: column; gap: 12px; }
         .chat-messages { max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 10px; min-height: 120px; }
         .chat-messages::-webkit-scrollbar { width: 6px; }
@@ -59,7 +58,7 @@
         .chat-msg.ai { background: rgba(255,255,255,0.05); color: var(--text); align-self: flex-start; border-bottom-left-radius: 4px; border-left: 3px solid var(--green); }
         .chat-msg.system { background: rgba(148,163,184,0.1); color: var(--muted); align-self: center; font-size: 0.8rem; font-style: italic; text-align: center; }
         .chat-msg.thinking { background: rgba(255,255,255,0.05); color: var(--muted); align-self: flex-start; font-style: italic; }
-        .chat-msg.error { background: rgba(255,51,102,0.1); color: var(--red); align-self: flex-start; border-left: 3px solid var(--red); font-family: monospace; font-size: 0.8rem; }
+        .chat-msg.error { background: rgba(255,51,102,0.1); color: var(--red); align-self: flex-start; border-left: 3px solid var(--red); font-family: monospace; font-size: 0.75rem; max-width: 100%; }
         .chat-input-row { display: flex; gap: 10px; }
         .chat-input { flex: 1; padding: 14px 16px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-size: 1rem; font-family: inherit; outline: none; transition: 0.2s; }
         .chat-input:focus { border-color: var(--accent); }
@@ -70,7 +69,6 @@
         .chat-clear { padding: 10px 16px; background: rgba(148,163,184,0.15); border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-size: 0.8rem; cursor: pointer; align-self: flex-end; }
         .chat-clear:hover { color: var(--text); border-color: var(--accent); }
         
-        /* Key setup panel */
         .key-panel { background: linear-gradient(135deg, rgba(234,179,8,0.15), rgba(249,115,22,0.15)); border: 1px solid rgba(234,179,8,0.4); border-radius: 12px; padding: 16px; margin-bottom: 16px; display: none; }
         .key-panel.visible { display: block; }
         .key-panel h3 { color: #fbbf24; font-size: 0.9rem; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
@@ -182,7 +180,6 @@
     </div>
 
     <script>
-        // --- KEY STORAGE ---
         const KEY_STORAGE_NAME = "eurusd_chat_key";
 
         function getStoredKey() {
@@ -193,13 +190,10 @@
         function showKeyPanel() {
             document.getElementById("keyPanel").classList.add("visible");
             const existing = getStoredKey();
-            if (existing) {
-                document.getElementById("keyInput").value = existing;
-            }
+            if (existing) document.getElementById("keyInput").value = existing;
         }
 
         function saveKey() {
-            // Remove ALL whitespace, newlines, tabs
             const key = document.getElementById("keyInput").value.replace(/\s/g, "");
             if (!key || key.length < 20) {
                 document.getElementById("keyStatus").innerText = "❌ Key looks too short. Try copying again.";
@@ -208,7 +202,7 @@
             try {
                 localStorage.setItem(KEY_STORAGE_NAME, key);
                 const preview = key.slice(0, 8) + "..." + key.slice(-4);
-                document.getElementById("keyStatus").innerText = `✅ Saved: ${preview} (${key.length} characters)`;
+                document.getElementById("keyStatus").innerText = `✅ Saved: ${preview} (${key.length} chars)`;
                 setTimeout(() => {
                     document.getElementById("keyPanel").classList.remove("visible");
                     document.getElementById("keyStatus").innerText = "";
@@ -219,9 +213,7 @@
         }
 
         window.addEventListener("load", () => {
-            if (!getStoredKey()) {
-                document.getElementById("keyPanel").classList.add("visible");
-            }
+            if (!getStoredKey()) document.getElementById("keyPanel").classList.add("visible");
         });
 
         // --- 3D MODEL ---
@@ -402,7 +394,7 @@ CURRENT MARKET STATE:
 - If he asks about market/trades, use the current market data above.
 - If he asks about routine/family, reference the personal context above.
 - If you don't know something, say so honestly.
-- Keep responses concise (2-4 sentences usually, unless more detail is needed).
+- Keep responses concise (2-4 sentences usually).
 - Do NOT use markdown formatting. Just plain text.`;
             return prompt;
         }
@@ -434,20 +426,45 @@ CURRENT MARKET STATE:
                     generationConfig: { temperature: 0.7, maxOutputTokens: 800 }
                 };
 
-                const endpoints = [
-                    { ver: "v1beta", model: "gemini-2.0-flash" },
-                    { ver: "v1beta", model: "gemini-2.5-flash" },
-                    { ver: "v1beta", model: "gemini-1.5-flash-latest" },
-                    { ver: "v1beta", model: "gemini-1.5-flash" },
-                    { ver: "v1", model: "gemini-1.5-flash" },
-                    { ver: "v1beta", model: "gemini-pro" }
-                ];
+                // Step 1: Ask Google which models this key can use
+                let availableModels = [];
+                try {
+                    const listResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
+                    if (listResp.ok) {
+                        const listJson = await listResp.json();
+                        availableModels = (listJson.models || [])
+                            .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent"))
+                            .map(m => m.name.replace("models/", ""));
+                        console.log("Available models:", availableModels);
+                    } else {
+                        const errText = await listResp.text();
+                        console.log("ListModels failed:", errText);
+                    }
+                } catch (e) { console.log("ListModels exception:", e); }
+
+                // Step 2: Build priority list
+                const priorityKeywords = ["2.0-flash", "2.5-flash", "1.5-flash", "flash"];
+                let modelsToTry = [];
+                if (availableModels.length > 0) {
+                    for (const kw of priorityKeywords) {
+                        for (const m of availableModels) {
+                            if (m.includes(kw) && !modelsToTry.includes(m)) modelsToTry.push(m);
+                        }
+                    }
+                    for (const m of availableModels) {
+                        if (!modelsToTry.includes(m)) modelsToTry.push(m);
+                    }
+                } else {
+                    modelsToTry = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash-latest", "gemini-1.5-flash"];
+                }
+
                 let answer = null;
                 let lastError = "";
+                const allErrors = [];
 
-                for (const ep of endpoints) {
+                for (const model of modelsToTry) {
                     try {
-                        const url = `https://generativelanguage.googleapis.com/${ep.ver}/models/${ep.model}:generateContent?key=${key}`;
+                        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
                         const resp = await fetch(url, {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
@@ -455,19 +472,21 @@ CURRENT MARKET STATE:
                         });
                         if (!resp.ok) {
                             const errText = await resp.text();
-                            lastError = `${ep.ver}/${ep.model} → ${resp.status}: ${errText.slice(0, 200)}`;
-                            console.log(lastError);
+                            allErrors.push(`${model} → ${resp.status}`);
+                            lastError = `${model} → ${resp.status}: ${errText.slice(0, 150)}`;
                             continue;
                         }
                         const json = await resp.json();
                         answer = json.candidates?.[0]?.content?.parts?.[0]?.text;
                         if (answer) {
-                            console.log(`✅ Working model: ${ep.ver}/${ep.model}`);
+                            console.log(`✅ Working model: ${model}`);
                             break;
+                        } else {
+                            allErrors.push(`${model} → empty response`);
                         }
                     } catch (e) {
-                        lastError = `${ep.ver}/${ep.model} → ${e.message}`;
-                        console.log(lastError);
+                        allErrors.push(`${model} → ${e.message}`);
+                        lastError = `${model} → ${e.message}`;
                     }
                 }
 
@@ -478,7 +497,10 @@ CURRENT MARKET STATE:
                     chatHistory.push({ role: "model", parts: [{ text: answer.trim() }] });
                     if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
                 } else {
-                    addMessage("error", `Boss, connection failed.\n\nDebug:\n${lastError}\n\nTry tapping 🔑 Change Key and re-pasting the key.`);
+                    const debugInfo = availableModels.length > 0
+                        ? `Available models on your key: ${availableModels.slice(0, 10).join(", ")}\n\nErrors: ${allErrors.join("; ")}`
+                        : `Could not list models.\n\nErrors: ${allErrors.join("; ")}\n\nLast: ${lastError}`;
+                    addMessage("error", `Boss, connection failed.\n\nDebug:\n${debugInfo}`);
                 }
             } catch (error) {
                 thinkingEl.remove();
@@ -494,7 +516,6 @@ CURRENT MARKET STATE:
             chatHistory = [];
         }
 
-        // --- INIT ---
         loadPersonalContext();
         loadLiveData();
     </script>
