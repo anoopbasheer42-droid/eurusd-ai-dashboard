@@ -201,7 +201,8 @@
         const FALLBACK_URL = 'https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/data.json';
         const CONTEXT_URL = 'https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/personal_context.json';
 
-        const GROQ_MODEL = 'llama-3.3-70b-versatile';
+        // === GROQ MODEL — updated to a currently supported free-tier model ===
+        const GROQ_MODEL = 'llama-3.1-8b-instant';
         const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
         const GEMINI_MODELS = ['gemini-3.8-flash','gemini-flash-latest','gemini-2.5-flash'];
 
@@ -487,21 +488,14 @@
             return MARKET_KEYWORDS.some(kw => lower.includes(kw));
         }
 
-        // === FIXED AI CALL: Groq primary + Gemini fallback ===
-        // Fix 1: system prompt trimmed to 500 chars if too long
-        // Fix 2: max_tokens reduced to safe value
-        // Fix 3: uses latest key from localStorage directly
         async function callAI(systemPrompt, userText, conversationHistory) {
             const currentGroqKey = localStorage.getItem('eurusd_groq_key') || groqKey;
             const currentGeminiKey = localStorage.getItem('eurusd_chat_key') || apiKey;
-
             const messages = [
                 { role: 'system', content: systemPrompt },
                 ...conversationHistory.map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text })),
                 { role: 'user', content: userText }
             ];
-
-            // === PRIMARY: GROQ ===
             if (currentGroqKey) {
                 try {
                     const res = await fetch(GROQ_URL, {
@@ -518,11 +512,7 @@
                         console.log('✗ Groq HTTP', res.status, errText.substring(0, 200));
                     }
                 } catch(e) { console.log('✗ Groq exception:', e.message); }
-            } else {
-                console.log('✗ No Groq key stored');
             }
-
-            // === FALLBACK: GEMINI ===
             if (currentGeminiKey) {
                 const contents = [
                     { role: 'user', parts: [{ text: systemPrompt }] },
@@ -539,15 +529,10 @@
                             const d = await r.json();
                             console.log(`✓ Gemini reply received (${model})`);
                             return d.candidates[0].content.parts[0].text;
-                        } else {
-                            console.log(`✗ Gemini ${model} HTTP ${r.status}`);
                         }
                     } catch(e) { continue; }
                 }
-            } else {
-                console.log('✗ No Gemini key stored');
             }
-
             throw new Error("Both AI providers failed. Check your keys in the Key panel.");
         }
 
@@ -819,6 +804,7 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
             groqKey = v;
             localStorage.setItem('eurusd_groq_key', groqKey);
             document.getElementById('groq-status').innerText = "Testing key...";
+            document.getElementById('groq-status').style.color = "var(--yellow)";
             try {
                 const testRes = await fetch(GROQ_URL, {
                     method: 'POST',
@@ -826,11 +812,11 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
                     body: JSON.stringify({ model: GROQ_MODEL, messages: [{ role: 'user', content: 'Say ok' }], max_tokens: 5 })
                 });
                 if (testRes.ok) {
-                    document.getElementById('groq-status').innerText = "✓ Groq key works! Saved.";
+                    document.getElementById('groq-status').innerText = "✓ Groq key works! Model: " + GROQ_MODEL;
                     document.getElementById('groq-status').style.color = "var(--green)";
                 } else {
                     const errText = await testRes.text();
-                    document.getElementById('groq-status').innerText = `✗ Groq rejected: ${errText.substring(0, 80)}`;
+                    document.getElementById('groq-status').innerText = `✗ Groq rejected: ${errText.substring(0, 100)}`;
                     document.getElementById('groq-status').style.color = "var(--red)";
                 }
             } catch(e) {
