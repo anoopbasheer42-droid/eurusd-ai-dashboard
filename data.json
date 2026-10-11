@@ -1,12 +1,12 @@
 {
-    "signal": "SELL",
-    "reason": "Technical signal: Price below 20 EMA, RSI at 28.3.",
-    "personal_message": "Good morning, Boss. Stay disciplined today.",
-    "confidence": "MEDIUM",
+    "signal": "HOLD",
+    "reason": "Higher timeframes (Daily, 4H, and 1H) show EUR/USD stuck in a consolidation range, with 1H moving averages leaning slightly soft while RSI sits oversold at 28.3. Lower timeframes (5m and 15m) are completely flatlined with nonexistent volume during this off-session dead zone. For a conservative account, taking a position right now just burns money on spread and overnight chop without any directional momentum. We remain safely on the sidelines until London liquidity arrives, which would only invalidate our wait-and-see stance if price decisively breaks beyond 1.1246 resistance or 1.1176 support.",
+    "personal_message": "Good morning, Boss! You're up at an ungodly hour, so make sure you rest up, get a hearty breakfast going later, and take your morning BP tablet right after. Don't worry about the charts right now\u2014even Cookie wouldn't bother chasing this flatlined market, so let's save our energy for the London session!",
+    "confidence": "HIGH",
     "price": "1.1206",
     "entry": "1.1206",
-    "sl": "1.122",
-    "tp": "1.1179",
+    "sl": "1.1193",
+    "tp": "1.1233",
     "atr": "0.0009",
     "support": "1.1176",
     "resistance": "1.1246",
@@ -24,7 +24,7 @@
         "1.1176",
         "1.1192"
     ],
-    "valid": "01:42 IST",
+    "valid": "02:42 IST",
     "candle_current": "Bearish candle. Open: 1.1206, Now: 1.1206. Sellers pushing down.",
     "candle_1h": "1H candle at 1.1206. Below 20 EMA - downtrend.",
     "candle_4h": "4H trend: bearish below moving averages.",
@@ -710,5 +710,5 @@
     ],
     "session": "Off-Session",
     "volatility": "low",
-    "wise_words": "Joke: My stop loss is like my ex - always triggering at the worst possible moment."
+    "wise_words": "Joke: I told my wife I was a forex trader. She said, 'So you're unemployed with extra steps?'"
 }
