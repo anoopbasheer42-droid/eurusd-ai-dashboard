@@ -21,7 +21,7 @@
         .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; backdrop-filter: blur(10px); transition: 0.2s; }
         .card h2 { font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 20px; }
         
-        #canvas-container { width: 100%; height: 320px; display: flex; justify-content: center; align-items: center; position: relative; background: radial-gradient(circle at center, rgba(59,130,246,0.08) 0%, transparent 70%); border-radius: 12px; overflow: hidden; }
+        #canvas-container { width: 100%; height: 380px; display: flex; justify-content: center; align-items: center; position: relative; background: radial-gradient(circle at center, rgba(59,130,246,0.1) 0%, transparent 70%); border-radius: 12px; overflow: hidden; }
         #canvas-container::before { content: ''; position: absolute; inset: 0; background-image: linear-gradient(rgba(59,130,246,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.05) 1px, transparent 1px); background-size: 30px 30px; pointer-events: none; opacity: 0.5; }
         .core-label { text-align: center; color: var(--muted); font-size: 0.75rem; letter-spacing: 2px; text-transform: uppercase; margin-top: 10px; opacity: 0.6; animation: fadeLabel 3s ease-in-out infinite; }
         @keyframes fadeLabel { 0%,100% { opacity: 0.4; } 50% { opacity: 0.8; } }
@@ -129,7 +129,7 @@
         <div class="card">
             <h2>AI Assistant</h2>
             <div id="canvas-container"></div>
-            <div class="core-label">Your Personal Trading Companion</div>
+            <div class="core-label">Aria — Your Personal Trading Companion</div>
         </div>
 
         <div class="card">
@@ -229,7 +229,6 @@
         const WEBSEARCH_STORAGE_NAME = "eurusd_websearch_enabled";
         const MAX_HISTORY_ENTRIES = 40;
 
-        // ---------- WEB SEARCH TOGGLE ----------
         function isWebSearchEnabled() {
             try { return localStorage.getItem(WEBSEARCH_STORAGE_NAME) !== "false"; }
             catch (e) { return true; }
@@ -252,7 +251,6 @@
             }
         }
 
-        // ---------- STORAGE ----------
         function getStoredKey() {
             try { return localStorage.getItem(KEY_STORAGE_NAME) || ""; } catch (e) { return ""; }
         }
@@ -370,284 +368,488 @@
         });
 
         // ═══════════════════════════════════════════════════════════════
-        // ═══ HOLOGRAPHIC 3D HUMAN HEAD — AI ASSISTANT ═══
+        // ═══ FEMALE HOLOGRAPHIC AI ASSISTANT — "ARIA" ═══
         // ═══════════════════════════════════════════════════════════════
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 1000);
+        const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
         const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
         renderer.setSize(container.clientWidth, container.clientHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
 
-        // ─── State ───
-        let currentSignal = "HOLD";
-        let currentColorHex = 0xffcc00;       // default yellow
-        const baseColor = new THREE.Color(0xffcc00);
-        const eyeColor = new THREE.Color(0xffcc00);
+        // Signal color state
+        let headColor = new THREE.Color(0xffcc00);
+        const hairColor = new THREE.Color(0x8b5cf6); // purple holographic hair
+        const skinColor = new THREE.Color(0x3b82f6); // blue-cyan holographic skin
 
-        // ─── Root group (everything bobs as one) ───
-        const headGroup = new THREE.Group();
-        scene.add(headGroup);
+        // ─── ROOT GROUP ───
+        const girlGroup = new THREE.Group();
+        scene.add(girlGroup);
 
-        // ─── 1. HEAD (sphere with skin-like wireframe) ───
-        const headGeo = new THREE.SphereGeometry(1.0, 48, 48);
-        // Deform to make it head-like: slightly narrower at bottom
+        // ─── 1. HEAD SHAPE (feminine) ───
+        const headGeo = new THREE.SphereGeometry(0.85, 48, 48);
         const posAttr = headGeo.attributes.position;
         for (let i = 0; i < posAttr.count; i++) {
-            const y = posAttr.getY(i);
             const x = posAttr.getX(i);
+            const y = posAttr.getY(i);
             const z = posAttr.getZ(i);
-            // Taper the bottom (chin)
-            const taper = 1.0 - Math.max(0, -y) * 0.25;
-            // Slight elongation front to back
-            const newX = x * taper * 0.92;
-            const newY = y * 1.05;
-            const newZ = z * taper * 0.95;
-            posAttr.setXYZ(i, newX, newY, newZ);
+            // Taper chin (narrower at bottom)
+            const taper = y < 0 ? 1.0 - Math.abs(y) * 0.35 : 1.0;
+            // Slightly narrower top (forehead)
+            const topTaper = y > 0.5 ? 1.0 - (y - 0.5) * 0.2 : 1.0;
+            const finalTaper = taper * topTaper;
+            // Widen cheeks slightly
+            const cheekBoost = (Math.abs(y) < 0.3 && z > 0) ? 1.05 : 1.0;
+            posAttr.setXYZ(
+                i,
+                x * finalTaper * cheekBoost * 0.92,
+                y * 1.1,
+                z * finalTaper * 0.95
+            );
         }
         headGeo.computeVertexNormals();
 
+        // Skin material — holographic translucent
         const headMat = new THREE.MeshPhongMaterial({
             color: 0x1a2540,
             emissive: 0x0a1428,
-            specular: 0x3b82f6,
-            shininess: 30,
+            specular: 0x6ec6ff,
+            shininess: 60,
             transparent: true,
-            opacity: 0.55,
+            opacity: 0.7,
             flatShading: false
         });
         const head = new THREE.Mesh(headGeo, headMat);
-        headGroup.add(head);
+        girlGroup.add(head);
 
-        // ─── Wireframe overlay ───
+        // Holographic wireframe overlay on face
         const wireMat = new THREE.MeshBasicMaterial({
-            color: 0x3b82f6,
+            color: 0x6ec6ff,
             wireframe: true,
             transparent: true,
-            opacity: 0.25
+            opacity: 0.15
         });
         const headWire = new THREE.Mesh(headGeo.clone(), wireMat);
-        headGroup.add(headWire);
+        girlGroup.add(headWire);
 
-        // ─── 2. EYES ───
-        const eyeGroupL = new THREE.Group();
-        const eyeGroupR = new THREE.Group();
+        // ─── 2. HAIR (long, flowing, feminine) ───
+        // Top hair cap
+        const hairCapGeo = new THREE.SphereGeometry(0.92, 32, 32, 0, Math.PI * 2, 0, Math.PI * 0.65);
+        const hairMat = new THREE.MeshPhongMaterial({
+            color: 0x6b21a8,
+            emissive: 0x8b5cf6,
+            emissiveIntensity: 0.4,
+            shininess: 100,
+            specular: 0xd8b4fe,
+            transparent: true,
+            opacity: 0.85,
+            side: THREE.DoubleSide
+        });
+        const hairCap = new THREE.Mesh(hairCapGeo, hairMat);
+        hairCap.position.y = 0.05;
+        hairCap.scale.set(1.02, 1.05, 1.02);
+        girlGroup.add(hairCap);
 
-        // Eye white (socket)
-        const eyeSocketGeo = new THREE.SphereGeometry(0.11, 24, 24);
-        const eyeSocketMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 });
+        // Long flowing hair — multiple tapered strands at back
+        function makeHairStrand(xOffset, zOffset, length, taper) {
+            const curve = new THREE.CatmullRomCurve3([
+                new THREE.Vector3(xOffset * 0.9, 0.4, -0.2 + zOffset),
+                new THREE.Vector3(xOffset * 1.1, 0.1, -0.4 + zOffset),
+                new THREE.Vector3(xOffset * 1.15, -0.5, -0.5 + zOffset),
+                new THREE.Vector3(xOffset * 1.2, -1.0 * length, -0.4 + zOffset),
+                new THREE.Vector3(xOffset * 1.1, -1.5 * length, -0.3 + zOffset)
+            ]);
+            const tubeGeo = new THREE.TubeGeometry(curve, 30, 0.08 * taper, 12, false);
+            const strand = new THREE.Mesh(tubeGeo, hairMat);
+            return strand;
+        }
 
-        // Eye pupil (glowing)
-        const pupilGeo = new THREE.SphereGeometry(0.065, 20, 20);
-        const pupilMat = new THREE.MeshBasicMaterial({ color: 0xffcc00, transparent: true, opacity: 1.0, blending: THREE.AdditiveBlending });
-        const pupilL = new THREE.Mesh(pupilGeo, pupilMat);
-        const pupilR = new THREE.Mesh(pupilGeo, pupilMat.clone());
+        // Side strands
+        const strandPositions = [
+            { x: -0.7, z: 0, l: 1.0, t: 1.2 },
+            { x: -0.6, z: -0.15, l: 1.2, t: 1.0 },
+            { x: -0.45, z: -0.3, l: 1.35, t: 0.9 },
+            { x: -0.3, z: -0.4, l: 1.4, t: 0.85 },
+            { x: -0.1, z: -0.45, l: 1.45, t: 0.8 },
+            { x: 0.1, z: -0.45, l: 1.45, t: 0.8 },
+            { x: 0.3, z: -0.4, l: 1.4, t: 0.85 },
+            { x: 0.45, z: -0.3, l: 1.35, t: 0.9 },
+            { x: 0.6, z: -0.15, l: 1.2, t: 1.0 },
+            { x: 0.7, z: 0, l: 1.0, t: 1.2 }
+        ];
+        strandPositions.forEach(s => {
+            girlGroup.add(makeHairStrand(s.x, s.z, s.l, s.t));
+        });
 
-        // Socket left
+        // Long back layer
+        const backHairCurve = new THREE.CatmullRomCurve3([
+            new THREE.Vector3(0, 0.5, -0.7),
+            new THREE.Vector3(0, 0.0, -1.0),
+            new THREE.Vector3(0, -0.7, -1.1),
+            new THREE.Vector3(0, -1.5, -0.9),
+            new THREE.Vector3(0, -2.2, -0.5)
+        ]);
+        const backHairGeo = new THREE.TubeGeometry(backHairCurve, 40, 0.55, 20, false);
+        const backHair = new THREE.Mesh(backHairGeo, hairMat);
+        girlGroup.add(backHair);
+
+        // Front bangs / fringe
+        const fringeGeo = new THREE.SphereGeometry(0.35, 24, 16, 0, Math.PI * 2, 0, Math.PI * 0.6);
+        const fringe = new THREE.Mesh(fringeGeo, hairMat);
+        fringe.position.set(0, 0.6, 0.55);
+        fringe.scale.set(1.6, 0.5, 0.4);
+        girlGroup.add(fringe);
+
+        // ─── 3. EYES ───
+        // Eye sockets (white)
+        const eyeSocketGeo = new THREE.SphereGeometry(0.14, 24, 24);
+        const eyeSocketMat = new THREE.MeshBasicMaterial({ color: 0xf5f5ff, transparent: true, opacity: 0.95 });
+
         const socketL = new THREE.Mesh(eyeSocketGeo, eyeSocketMat);
-        socketL.scale.set(1.15, 0.85, 0.6);
-        socketL.position.set(-0.32, 0.12, 0.88);
-        socketL.rotation.x = -0.15;
-        headGroup.add(socketL);
+        socketL.scale.set(1.15, 0.95, 0.55);
+        socketL.position.set(-0.28, 0.08, 0.75);
+        socketL.rotation.x = -0.1;
+        girlGroup.add(socketL);
 
-        // Socket right
         const socketR = new THREE.Mesh(eyeSocketGeo, eyeSocketMat.clone());
-        socketR.scale.set(1.15, 0.85, 0.6);
-        socketR.position.set(0.32, 0.12, 0.88);
-        socketR.rotation.x = -0.15;
-        headGroup.add(socketR);
+        socketR.scale.set(1.15, 0.95, 0.55);
+        socketR.position.set(0.28, 0.08, 0.75);
+        socketR.rotation.x = -0.1;
+        girlGroup.add(socketR);
 
-        // Pupil left
-        pupilL.position.set(-0.32, 0.12, 0.95);
-        headGroup.add(pupilL);
+        // Iris (colored — takes signal color)
+        const irisGeo = new THREE.CircleGeometry(0.075, 32);
+        const irisMatL = new THREE.MeshBasicMaterial({ color: 0xffcc00, transparent: true, opacity: 1, side: THREE.DoubleSide });
+        const irisMatR = irisMatL.clone();
+        const irisL = new THREE.Mesh(irisGeo, irisMatL);
+        irisL.position.set(-0.28, 0.08, 0.82);
+        girlGroup.add(irisL);
+        const irisR = new THREE.Mesh(irisGeo, irisMatR);
+        irisR.position.set(0.28, 0.08, 0.82);
+        girlGroup.add(irisR);
 
-        // Pupil right
-        pupilR.position.set(0.32, 0.12, 0.95);
-        headGroup.add(pupilR);
+        // Pupils (dark center)
+        const pupilEyeGeo = new THREE.CircleGeometry(0.035, 20);
+        const pupilEyeMat = new THREE.MeshBasicMaterial({ color: 0x0a0e17, side: THREE.DoubleSide });
+        const pupilEyeL = new THREE.Mesh(pupilEyeGeo, pupilEyeMat);
+        pupilEyeL.position.set(-0.28, 0.08, 0.825);
+        girlGroup.add(pupilEyeL);
+        const pupilEyeR = new THREE.Mesh(pupilEyeGeo, pupilEyeMat.clone());
+        pupilEyeR.position.set(0.28, 0.08, 0.825);
+        girlGroup.add(pupilEyeR);
 
-        // Eye glow (point lights)
-        const eyeLightL = new THREE.PointLight(0xffcc00, 1.2, 3);
-        eyeLightL.position.set(-0.32, 0.12, 1.1);
-        headGroup.add(eyeLightL);
-        const eyeLightR = new THREE.PointLight(0xffcc00, 1.2, 3);
-        eyeLightR.position.set(0.32, 0.12, 1.1);
-        headGroup.add(eyeLightR);
+        // Eye highlight (small sparkle)
+        const sparkleGeo = new THREE.CircleGeometry(0.02, 12);
+        const sparkleMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+        const sparkleL = new THREE.Mesh(sparkleGeo, sparkleMat);
+        sparkleL.position.set(-0.30, 0.11, 0.83);
+        girlGroup.add(sparkleL);
+        const sparkleR = new THREE.Mesh(sparkleGeo, sparkleMat.clone());
+        sparkleR.position.set(0.26, 0.11, 0.83);
+        girlGroup.add(sparkleR);
 
-        // ─── 3. EYEBROWS ───
+        // Eye glow lights
+        const eyeLightL = new THREE.PointLight(0xffcc00, 0.8, 2.5);
+        eyeLightL.position.set(-0.28, 0.08, 1.0);
+        girlGroup.add(eyeLightL);
+        const eyeLightR = new THREE.PointLight(0xffcc00, 0.8, 2.5);
+        eyeLightR.position.set(0.28, 0.08, 1.0);
+        girlGroup.add(eyeLightR);
+
+        // ─── 4. EYELASHES (delicate curved lines above eyes) ───
+        function makeLash(sign, offsetY, tilt) {
+            const curve = new THREE.CatmullRomCurve3([
+                new THREE.Vector3(sign * 0.14, offsetY, 0),
+                new THREE.Vector3(sign * 0.22, offsetY + 0.05, 0.02),
+                new THREE.Vector3(sign * 0.32, offsetY + 0.04, 0)
+            ]);
+            const geo = new THREE.TubeGeometry(curve, 12, 0.008, 6, false);
+            const mat = new THREE.MeshBasicMaterial({ color: 0x1a1a2e });
+            const lash = new THREE.Mesh(geo, mat);
+            lash.position.set(sign === -1 ? -0.28 : 0.28, 0.12, 0.82);
+            return lash;
+        }
+        girlGroup.add(makeLash(-1, 0, 0));
+        girlGroup.add(makeLash(1, 0, 0));
+
+        // ─── 5. EYEBROWS (thin curved lines) ───
         function makeBrow(sign) {
-            const curve = new THREE.EllipseCurve(0, 0, 0.18, 0.04, 0, Math.PI, false, 0);
-            const points = curve.getPoints(20).map(p => new THREE.Vector3(p.x, p.y, 0));
-            const geo = new THREE.BufferGeometry().setFromPoints(points);
-            const mat = new THREE.LineBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.7 });
-            const line = new THREE.Line(geo, mat);
-            line.position.set(sign * 0.32, 0.32, 0.92);
-            return line;
+            const curve = new THREE.CatmullRomCurve3([
+                new THREE.Vector3(sign * 0.12, 0, 0),
+                new THREE.Vector3(sign * 0.22, 0.05, 0.01),
+                new THREE.Vector3(sign * 0.34, 0.02, 0)
+            ]);
+            const geo = new THREE.TubeGeometry(curve, 12, 0.012, 6, false);
+            const mat = new THREE.MeshBasicMaterial({ color: 0x6b21a8, transparent: true, opacity: 0.9 });
+            const brow = new THREE.Mesh(geo, mat);
+            brow.position.set(sign === -1 ? -0.28 : 0.28, 0.28, 0.82);
+            return brow;
         }
         const browL = makeBrow(-1);
         const browR = makeBrow(1);
-        headGroup.add(browL);
-        headGroup.add(browR);
+        girlGroup.add(browL);
+        girlGroup.add(browR);
 
-        // ─── 4. MOUTH (curved line, expression changes) ───
-        const mouthCurveDefault = new THREE.EllipseCurve(0, 0, 0.2, 0.06, 0, Math.PI, false, 0).getPoints(20);
-        const mouthGeo = new THREE.BufferGeometry().setFromPoints(
-            mouthCurveDefault.map(p => new THREE.Vector3(p.x, -0.32 + p.y, 0))
-        );
-        const mouthMat = new THREE.LineBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.7 });
-        const mouth = new THREE.Line(mouthGeo, mouthMat);
-        mouth.position.set(0, 0, 0.9);
-        headGroup.add(mouth);
+        // ─── 6. NOSE (small delicate) ───
+        const noseGeo = new THREE.ConeGeometry(0.045, 0.18, 12);
+        const noseMat = new THREE.MeshPhongMaterial({
+            color: 0x2a3560,
+            emissive: 0x4a5580,
+            emissiveIntensity: 0.3,
+            shininess: 40,
+            transparent: true,
+            opacity: 0.85
+        });
+        const nose = new THREE.Mesh(noseGeo, noseMat);
+        nose.rotation.x = Math.PI / 2;
+        nose.position.set(0, -0.08, 0.78);
+        girlGroup.add(nose);
 
-        // ─── 5. HALO RING (orbiting around the head) ───
-        const haloGeo = new THREE.TorusGeometry(1.45, 0.008, 12, 120);
-        const haloMat = new THREE.MeshBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending });
+        // ─── 7. LIPS ───
+        // Upper lip
+        const upperLipCurve = new THREE.CatmullRomCurve3([
+            new THREE.Vector3(-0.13, 0, 0),
+            new THREE.Vector3(-0.06, 0.03, 0),
+            new THREE.Vector3(0, 0.015, 0),
+            new THREE.Vector3(0.06, 0.03, 0),
+            new THREE.Vector3(0.13, 0, 0)
+        ]);
+        const upperLipGeo = new THREE.TubeGeometry(upperLipCurve, 20, 0.028, 8, false);
+        const lipMat = new THREE.MeshPhongMaterial({
+            color: 0xec4899,
+            emissive: 0xec4899,
+            emissiveIntensity: 0.5,
+            shininess: 100,
+            transparent: true,
+            opacity: 0.9
+        });
+        const upperLip = new THREE.Mesh(upperLipGeo, lipMat);
+        upperLip.position.set(0, -0.32, 0.82);
+        girlGroup.add(upperLip);
+
+        // Lower lip (fatter)
+        const lowerLipCurve = new THREE.CatmullRomCurve3([
+            new THREE.Vector3(-0.13, 0, 0),
+            new THREE.Vector3(-0.06, -0.05, 0),
+            new THREE.Vector3(0, -0.06, 0),
+            new THREE.Vector3(0.06, -0.05, 0),
+            new THREE.Vector3(0.13, 0, 0)
+        ]);
+        const lowerLipGeo = new THREE.TubeGeometry(lowerLipCurve, 20, 0.04, 10, false);
+        const lowerLip = new THREE.Mesh(lowerLipGeo, lipMat.clone());
+        lowerLip.position.set(0, -0.32, 0.82);
+        girlGroup.add(lowerLip);
+
+        // ─── 8. CHEEKS (soft glowing blush) ───
+        const cheekGeo = new THREE.CircleGeometry(0.08, 20);
+        const cheekMat = new THREE.MeshBasicMaterial({
+            color: 0xec4899,
+            transparent: true,
+            opacity: 0.3,
+            side: THREE.DoubleSide
+        });
+        const cheekL = new THREE.Mesh(cheekGeo, cheekMat);
+        cheekL.position.set(-0.35, -0.15, 0.78);
+        girlGroup.add(cheekL);
+        const cheekR = new THREE.Mesh(cheekGeo, cheekMat.clone());
+        cheekR.position.set(0.35, -0.15, 0.78);
+        girlGroup.add(cheekR);
+
+        // ─── 9. EARRINGS (subtle glowing accents) ───
+        const earGeo = new THREE.SphereGeometry(0.04, 12, 12);
+        const earMat = new THREE.MeshBasicMaterial({
+            color: 0xd8b4fe,
+            transparent: true,
+            opacity: 0.9
+        });
+        const earL = new THREE.Mesh(earGeo, earMat);
+        earL.position.set(-0.85, -0.15, 0);
+        girlGroup.add(earL);
+        const earR = new THREE.Mesh(earGeo, earMat.clone());
+        earR.position.set(0.85, -0.15, 0);
+        girlGroup.add(earR);
+
+        // ─── 10. NECK + SHOULDERS (holographic silhouette) ───
+        const neckGeo = new THREE.CylinderGeometry(0.15, 0.2, 0.4, 20);
+        const neckMat = new THREE.MeshPhongMaterial({
+            color: 0x1a2540,
+            emissive: 0x2a3550,
+            transparent: true,
+            opacity: 0.55
+        });
+        const neck = new THREE.Mesh(neckGeo, neckMat);
+        neck.position.set(0, -1.05, 0);
+        girlGroup.add(neck);
+
+        const shoulderGeo = new THREE.SphereGeometry(0.7, 32, 16, 0, Math.PI * 2, 0, Math.PI * 0.5);
+        const shoulderMat = new THREE.MeshPhongMaterial({
+            color: 0x1a2540,
+            emissive: 0x2a3550,
+            transparent: true,
+            opacity: 0.4
+        });
+        const shoulders = new THREE.Mesh(shoulderGeo, shoulderMat);
+        shoulders.scale.set(1.2, 0.6, 0.8);
+        shoulders.position.set(0, -1.35, 0);
+        shoulders.rotation.x = Math.PI;
+        girlGroup.add(shoulders);
+
+        // ─── 11. HALO RINGS ───
+        const haloGeo = new THREE.TorusGeometry(1.6, 0.006, 12, 120);
+        const haloMat = new THREE.MeshBasicMaterial({ color: 0x8b5cf6, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending });
         const halo = new THREE.Mesh(haloGeo, haloMat);
-        halo.rotation.x = Math.PI / 2.2;
+        halo.rotation.x = Math.PI / 2.5;
+        halo.position.y = 0.2;
         scene.add(halo);
 
-        // Second tilted halo
-        const halo2Geo = new THREE.TorusGeometry(1.6, 0.006, 12, 120);
-        const halo2Mat = new THREE.MeshBasicMaterial({ color: 0x8b5cf6, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending });
+        const halo2Geo = new THREE.TorusGeometry(1.9, 0.005, 12, 120);
+        const halo2Mat = new THREE.MeshBasicMaterial({ color: 0xec4899, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending });
         const halo2 = new THREE.Mesh(halo2Geo, halo2Mat);
         halo2.rotation.x = Math.PI / 3;
-        halo2.rotation.y = Math.PI / 4;
+        halo2.rotation.z = Math.PI / 5;
         scene.add(halo2);
 
-        // ─── 6. PARTICLES ───
-        const particleCount = 300;
+        // ─── 12. FLOATING PARTICLES ───
+        const particleCount = 250;
         const particleGeo = new THREE.BufferGeometry();
         const positions = new Float32Array(particleCount * 3);
         const pColors = new Float32Array(particleCount * 3);
         const speeds = [];
 
         for (let i = 0; i < particleCount; i++) {
-            const radius = 1.6 + Math.random() * 1.6;
+            const radius = 1.4 + Math.random() * 1.8;
             const theta = Math.random() * Math.PI * 2;
             const phi = Math.acos(2 * Math.random() - 1);
             positions[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
             positions[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
             positions[i * 3 + 2] = radius * Math.cos(phi);
             const cc = Math.random();
-            if (cc < 0.6) { pColors[i*3]=0.23; pColors[i*3+1]=0.51; pColors[i*3+2]=0.96; }
-            else if (cc < 0.85) { pColors[i*3]=0.55; pColors[i*3+1]=0.36; pColors[i*3+2]=0.96; }
-            else { pColors[i*3]=1.0; pColors[i*3+1]=1.0; pColors[i*3+2]=1.0; }
-            speeds.push({ theta, phi, radius, dTheta: 0.001 + Math.random() * 0.002, dPhi: (Math.random() - 0.5) * 0.0015 });
+            if (cc < 0.5) { pColors[i*3]=0.55; pColors[i*3+1]=0.36; pColors[i*3+2]=0.96; }  // purple
+            else if (cc < 0.8) { pColors[i*3]=0.93; pColors[i*3+1]=0.28; pColors[i*3+2]=0.60; } // pink
+            else { pColors[i*3]=1.0; pColors[i*3+1]=1.0; pColors[i*3+2]=1.0; } // white
+            speeds.push({ theta, phi, radius, dTheta: 0.0008 + Math.random() * 0.0015, dPhi: (Math.random() - 0.5) * 0.001 });
         }
         particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
         particleGeo.setAttribute('color', new THREE.BufferAttribute(pColors, 3));
-        const particleMat = new THREE.PointsMaterial({ size: 0.03, vertexColors: true, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, sizeAttenuation: true });
+        const particleMat = new THREE.PointsMaterial({ size: 0.025, vertexColors: true, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, sizeAttenuation: true });
         const particles = new THREE.Points(particleGeo, particleMat);
         scene.add(particles);
 
-        // ─── Lighting ───
-        scene.add(new THREE.AmbientLight(0x5566aa, 0.9));
-        const keyLight = new THREE.DirectionalLight(0x3b82f6, 1.2);
-        keyLight.position.set(1, 2, 3);
+        // ─── LIGHTING ───
+        scene.add(new THREE.AmbientLight(0x8899cc, 0.8));
+        const keyLight = new THREE.DirectionalLight(0xffffff, 0.9);
+        keyLight.position.set(1.5, 2, 3);
         scene.add(keyLight);
-        const rimLight = new THREE.DirectionalLight(0xffcc00, 0.8);
+        const rimLight = new THREE.DirectionalLight(0x8b5cf6, 0.7);
         rimLight.position.set(-2, 1, -2);
         scene.add(rimLight);
+        const pinkLight = new THREE.PointLight(0xec4899, 0.6, 8);
+        pinkLight.position.set(0, -0.5, 2);
+        scene.add(pinkLight);
 
-        // ─── Camera ───
-        camera.position.set(0, 0.1, 3.6);
+        // ─── CAMERA ───
+        camera.position.set(0, 0.15, 3.4);
         camera.lookAt(0, 0, 0);
 
-        // ─── Animation ───
+        // ─── ANIMATION ───
         const clock = new THREE.Clock();
 
         // Eye tracking
-        let mouseX = 0;
-        let mouseY = 0;
         let targetLookX = 0;
         let targetLookY = 0;
 
-        container.addEventListener("mousemove", (e) => {
+        function setLook(cx, cy) {
             const rect = container.getBoundingClientRect();
-            mouseX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-            mouseY = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
-            targetLookX = mouseX * 0.15;
-            targetLookY = mouseY * 0.1;
-        });
+            const nx = ((cx - rect.left) / rect.width) * 2 - 1;
+            const ny = -(((cy - rect.top) / rect.height) * 2 - 1);
+            targetLookX = nx * 0.03;
+            targetLookY = ny * 0.02;
+        }
 
+        container.addEventListener("mousemove", (e) => setLook(e.clientX, e.clientY));
         container.addEventListener("touchmove", (e) => {
-            if (e.touches.length > 0) {
-                const rect = container.getBoundingClientRect();
-                const touch = e.touches[0];
-                mouseX = ((touch.clientX - rect.left) / rect.width) * 2 - 1;
-                mouseY = -(((touch.clientY - rect.top) / rect.height) * 2 - 1);
-                targetLookX = mouseX * 0.15;
-                targetLookY = mouseY * 0.1;
-            }
+            if (e.touches.length > 0) setLook(e.touches[0].clientX, e.touches[0].clientY);
         });
 
+        // Blink state
+        let nextBlink = 2 + Math.random() * 3;
         let blinkTimer = 0;
-        let nextBlinkAt = 2 + Math.random() * 3;
+        let blinkScale = 1;
 
         function animate() {
             requestAnimationFrame(animate);
             const t = clock.getElapsedTime();
             const dt = 0.016;
 
-            // Head bobbing (breathing)
-            headGroup.position.y = Math.sin(t * 1.2) * 0.04;
-            headGroup.rotation.y = Math.sin(t * 0.6) * 0.04;
-            headGroup.rotation.x = Math.sin(t * 0.8) * 0.02;
+            // Head gentle bob + sway
+            girlGroup.position.y = Math.sin(t * 1.1) * 0.03;
+            girlGroup.rotation.y = Math.sin(t * 0.5) * 0.05;
+            girlGroup.rotation.x = Math.sin(t * 0.7) * 0.02;
 
-            // Pupils follow cursor
-            const pupilOffsetX = targetLookX;
-            const pupilOffsetY = targetLookY;
-            pupilL.position.x = -0.32 + pupilOffsetX;
-            pupilL.position.y = 0.12 + pupilOffsetY;
-            pupilR.position.x = 0.32 + pupilOffsetX;
-            pupilR.position.y = 0.12 + pupilOffsetY;
+            // Eyes follow cursor
+            irisL.position.x = -0.28 + targetLookX;
+            irisL.position.y = 0.08 + targetLookY;
+            irisR.position.x = 0.28 + targetLookX;
+            irisR.position.y = 0.08 + targetLookY;
+            pupilEyeL.position.x = -0.28 + targetLookX;
+            pupilEyeL.position.y = 0.08 + targetLookY;
+            pupilEyeR.position.x = 0.28 + targetLookX;
+            pupilEyeR.position.y = 0.08 + targetLookY;
+            sparkleL.position.x = -0.30 + targetLookX;
+            sparkleL.position.y = 0.11 + targetLookY;
+            sparkleR.position.x = 0.26 + targetLookX;
+            sparkleR.position.y = 0.11 + targetLookY;
+            eyeLightL.position.x = -0.28 + targetLookX;
+            eyeLightL.position.y = 0.08 + targetLookY;
+            eyeLightR.position.x = 0.28 + targetLookX;
+            eyeLightR.position.y = 0.08 + targetLookY;
 
-            // Eye lights follow pupils
-            eyeLightL.position.x = -0.32 + pupilOffsetX;
-            eyeLightL.position.y = 0.12 + pupilOffsetY;
-            eyeLightR.position.x = 0.32 + pupilOffsetX;
-            eyeLightR.position.y = 0.12 + pupilOffsetY;
-
-            // Blinking
+            // Natural blinking
             blinkTimer += dt;
-            if (blinkTimer >= nextBlinkAt) {
-                // start blink
+            if (blinkTimer >= nextBlink) {
                 blinkTimer = 0;
-                nextBlinkAt = 2 + Math.random() * 3;
-                // Quick scale animation on sockets
-                blinkPhase = 1;
+                nextBlink = 2 + Math.random() * 3;
             }
-            // (Simple blink visual handled by pulsing pupil intensity occasionally)
-            const blinkPulse = Math.max(0, Math.sin(t * 1.7) * 0.1);
-            pupilMat.opacity = 0.9 + blinkPulse;
+            // Blink curve: quick down, quick up
+            const bt = blinkTimer;
+            if (bt < 0.15) {
+                blinkScale = 1 - Math.abs(Math.sin(bt / 0.15 * Math.PI)) * 0.9;
+            } else {
+                blinkScale = 1;
+            }
+            socketL.scale.y = 0.95 * blinkScale;
+            socketR.scale.y = 0.95 * blinkScale;
+            irisL.scale.y = blinkScale;
+            irisR.scale.y = blinkScale;
+            pupilEyeL.scale.y = blinkScale;
+            pupilEyeR.scale.y = blinkScale;
 
-            // Mouth subtle movement
-            const mouthWobble = Math.sin(t * 2.3) * 0.02;
-            mouth.position.y = mouthWobble;
+            // Hair sway
+            hairCap.rotation.z = Math.sin(t * 1.3) * 0.02;
+            backHair.rotation.z = Math.sin(t * 1.0) * 0.04;
+            fringe.rotation.z = Math.sin(t * 1.5) * 0.03;
 
-            // Head wireframe slight rotation
-            headWire.rotation.y += 0.001;
+            // Halos rotate
+            halo.rotation.z += 0.004;
+            halo2.rotation.z -= 0.003;
 
-            // Halos
-            halo.rotation.z += 0.003;
-            halo2.rotation.z -= 0.002;
-
-            // Particles
-            const positions = particleGeo.attributes.position.array;
+            // Particles orbit
+            const posArr = particleGeo.attributes.position.array;
             for (let i = 0; i < particleCount; i++) {
                 const s = speeds[i];
                 s.theta += s.dTheta;
                 s.phi += s.dPhi;
-                positions[i * 3]     = s.radius * Math.sin(s.phi) * Math.cos(s.theta);
-                positions[i * 3 + 1] = s.radius * Math.sin(s.phi) * Math.sin(s.theta);
-                positions[i * 3 + 2] = s.radius * Math.cos(s.phi);
+                posArr[i * 3]     = s.radius * Math.sin(s.phi) * Math.cos(s.theta);
+                posArr[i * 3 + 1] = s.radius * Math.sin(s.phi) * Math.sin(s.theta);
+                posArr[i * 3 + 2] = s.radius * Math.cos(s.phi);
             }
             particleGeo.attributes.position.needsUpdate = true;
-            particles.rotation.y += 0.0008;
+            particles.rotation.y += 0.001;
 
-            // Eye glow pulse
-            eyeLightL.intensity = 1.0 + Math.sin(t * 3) * 0.3;
-            eyeLightR.intensity = 1.0 + Math.sin(t * 3 + 0.5) * 0.3;
+            // Eye lights pulse softly
+            eyeLightL.intensity = 0.7 + Math.sin(t * 2.5) * 0.25;
+            eyeLightR.intensity = 0.7 + Math.sin(t * 2.5 + 0.4) * 0.25;
 
             renderer.render(scene, camera);
         }
@@ -659,72 +861,54 @@
             renderer.setSize(container.clientWidth, container.clientHeight);
         });
 
-        // ─── Update face with signal ───
+        // ─── SIGNAL REACTIONS ───
         function updateFaceColor(signal) {
-            currentSignal = signal;
             let colorHex;
             if (signal === "BUY") { colorHex = 0x00ff88; }
             else if (signal === "SELL") { colorHex = 0xff3366; }
             else { colorHex = 0xffcc00; }
 
-            currentColorHex = colorHex;
             const c = new THREE.Color(colorHex);
 
-            // Head emissive glow
-            headMat.emissive = c.clone().multiplyScalar(0.3);
-            headMat.specular = c.clone();
-            headMat.color = c.clone().multiplyScalar(0.15).add(new THREE.Color(0x0a1428));
-
-            // Wireframe color
-            wireMat.color = c.clone().multiplyScalar(0.9);
-
-            // Pupils
-            pupilL.material.color = c.clone();
-            pupilR.material.color = c.clone();
-
-            // Eye lights
+            // Iris + eye lights take the signal color
+            irisMatL.color = c.clone();
+            irisMatR.color = c.clone();
             eyeLightL.color = c.clone();
             eyeLightR.color = c.clone();
 
-            // Eyebrows + mouth
-            browL.material.color = c.clone();
-            browR.material.color = c.clone();
-            mouthMat.color = c.clone();
+            // Skin glow takes signal color
+            headMat.emissive = c.clone().multiplyScalar(0.35);
+            headMat.specular = c.clone().multiplyScalar(0.8);
+            wireMat.color = c.clone().multiplyScalar(0.5);
 
-            // Halo tint
+            // Halos tint toward signal
             haloMat.color = c.clone();
 
-            // Adjust eyebrows based on signal
+            // Expression — eyebrows + lips
             if (signal === "BUY") {
-                // Raise brows slightly (happier)
-                browL.position.y = 0.34;
-                browR.position.y = 0.34;
-                // Smile (curve mouth upward)
-                mouth.rotation.z = 0;
-                mouth.scale.set(1.0, 1.4, 1.0);
-                mouth.position.y = 0.02;
+                // Happy — brows raised, lips slightly smiling
+                browL.rotation.z = 0.15;
+                browR.rotation.z = -0.15;
+                upperLip.rotation.z = 0.08;
+                lowerLip.rotation.z = 0.08;
+                lipMat.emissiveIntensity = 0.7;
             } else if (signal === "SELL") {
-                // Lower brows (concerned)
-                browL.position.y = 0.28;
-                browR.position.y = 0.28;
-                browL.rotation.z = -0.15;
-                browR.rotation.z = 0.15;
-                // Frown (curve mouth downward)
-                mouth.rotation.z = Math.PI;
-                mouth.scale.set(1.0, 0.8, 1.0);
-                mouth.position.y = -0.06;
+                // Concerned — brows furrowed inward, lips slightly pursed
+                browL.rotation.z = -0.25;
+                browR.rotation.z = 0.25;
+                upperLip.rotation.z = -0.05;
+                lowerLip.rotation.z = -0.05;
+                lipMat.emissiveIntensity = 0.4;
             } else {
-                // Neutral (HOLD)
-                browL.position.y = 0.32;
-                browR.position.y = 0.32;
+                // Neutral — relaxed
                 browL.rotation.z = 0;
                 browR.rotation.z = 0;
-                mouth.rotation.z = 0;
-                mouth.scale.set(1.0, 1.0, 1.0);
-                mouth.position.y = 0;
+                upperLip.rotation.z = 0;
+                lowerLip.rotation.z = 0;
+                lipMat.emissiveIntensity = 0.5;
             }
         }
-        // ═══ END HOLOGRAPHIC HEAD ═══
+        // ═══ END FEMALE AI ═══
 
         // ---------- DATA ----------
         let latestData = null;
@@ -788,10 +972,14 @@
         function getBestVoice() {
             const voices = window.speechSynthesis.getVoices();
             if (!voices.length) return null;
-            const preferredNames = ["Google UK English Male", "Microsoft Ryan Online", "Microsoft Guy Online", "Google US English", "Microsoft Mark", "Daniel", "Alex", "Google UK English Female", "Samantha"];
+            // Prefer female voices first
+            const femaleNames = ["Google UK English Female", "Microsoft Zira", "Microsoft Aria", "Microsoft Jenny", "Samantha", "Victoria", "Karen", "Moira", "Tessa", "Fiona"];
+            const maleNames = ["Google UK English Male", "Microsoft Ryan Online", "Microsoft Guy Online", "Daniel", "Alex"];
             const englishVoices = voices.filter(v => v.lang.startsWith("en"));
-            const matches = preferredNames.map(n => englishVoices.find(v => v.name.includes(n.split(" ")[0]))).filter(v => v);
-            if (matches.length) return pickRandom(matches);
+            const females = femaleNames.map(n => englishVoices.find(v => v.name.includes(n.split(" ")[0]))).filter(v => v);
+            if (females.length) return pickRandom(females);
+            const males = maleNames.map(n => englishVoices.find(v => v.name.includes(n.split(" ")[0]))).filter(v => v);
+            if (males.length) return pickRandom(males);
             if (englishVoices.length) return pickRandom(englishVoices);
             return voices[0];
         }
@@ -818,8 +1006,8 @@
             const u = new SpeechSynthesisUtterance(text);
             const v = getBestVoice();
             if (v) u.voice = v;
-            u.rate = 0.88 + Math.random() * 0.15;
-            u.pitch = 0.85 + Math.random() * 0.25;
+            u.rate = 0.92 + Math.random() * 0.08;
+            u.pitch = 1.05 + Math.random() * 0.15; // slightly higher for female
             window.speechSynthesis.speak(u);
         }
 
@@ -876,8 +1064,8 @@
             const u = new SpeechSynthesisUtterance(text);
             const v = getBestVoice();
             if (v) u.voice = v;
-            u.rate = 0.92 + Math.random() * 0.08;
-            u.pitch = 0.90 + Math.random() * 0.15;
+            u.rate = 0.95 + Math.random() * 0.05;
+            u.pitch = 1.08 + Math.random() * 0.12;
             u.volume = 1.0;
             window.speechSynthesis.speak(u);
         }
@@ -900,7 +1088,7 @@
             const todayIST = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
             const timeIST = new Date().toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit" });
 
-            let prompt = `You are a professional EUR/USD trader AND personal assistant to a client named Boss. You have 10 years of hedge fund experience. Be friendly, funny, and motivational. Always call him "Boss".
+            let prompt = `You are Aria — a warm, friendly female AI assistant to a client named Boss. You're a professional EUR/USD trader with 10 years of hedge fund experience, AND you're a caring personal companion. You speak with feminine warmth and empathy. Always call him "Boss".
 
 CURRENT DATE (IST): ${todayIST}
 CURRENT TIME (IST): ${timeIST}
@@ -956,33 +1144,41 @@ ${d.reason || 'No analysis yet'}
 
             prompt += `\n\n${webEnabled ? "🌐 WEB SEARCH IS ENABLED. Use it when the user asks about current events, latest news, prices, sports, weather, or any factual info you may not know." : "🌐 WEB SEARCH IS DISABLED. Answer from your training data and context only."}
 
+=== YOUR PERSONALITY ===
+You are Aria — feminine, warm, caring, and intelligent. You speak with a gentle, motivating tone. You are the kind of woman who:
+- Genuinely cares about Boss's wellbeing
+- Checks in on his health, family, and mood
+- Encourages him when he's stressed
+- Celebrates his wins
+- Speaks with warmth and a little playful humor
+- Is professional about trading but personal about life
+
 === CRITICAL RULES FOR ROUTINE REMINDERS ===
-1. BEFORE asking about any routine item (breakfast, lunch, tablets, dinner, etc), SCAN the LONG-TERM MEMORY above for entries with TODAY'S date (${todayIST}).
-2. If Boss tells you he did something today, IMMEDIATELY extract it as dated memory:
-   [REMEMBER: Boss had breakfast on ${todayIST}]
+1. BEFORE asking about any routine item (breakfast, lunch, tablets, dinner), SCAN memory for TODAY'S date (${todayIST}).
+2. If Boss mentions doing something today, extract it: [REMEMBER: Boss had breakfast on ${todayIST}]
 3. Time-based logic:
-   - Morning (before 11 AM IST): ask about breakfast IF not logged today
-   - Afternoon (12-5 PM IST): ask about lunch IF not logged today
-   - Evening (after 8 PM IST): remind about BP tablets/dinner IF not logged today
+   - Morning (before 11 AM IST): can ask about breakfast IF not logged
+   - Afternoon (12-5 PM IST): can ask about lunch IF not logged
+   - Evening (after 8 PM IST): remind about BP tablets/dinner
    - After 10 PM IST: wish good night
-4. NEVER ask the same routine question twice in one day. Check memory FIRST.
-5. If memory already shows Boss did the item today, ACKNOWLEDGE it instead.
+4. NEVER ask the same routine question twice in one day.
+5. If memory shows Boss did the item, ACKNOWLEDGE warmly instead of asking.
 
 === GENERAL INSTRUCTIONS ===
 - You HAVE access to the actual OHLC candle data above. Use it!
 - When Boss asks about patterns, ACTUALLY read the candles and identify real structures.
 - Do NOT invent patterns.
 - Be warm, personal, and helpful. Call him "Boss".
-- Keep responses concise (2-4 sentences) unless he asks for detailed analysis.
+- Keep responses concise (2-4 sentences) unless detailed analysis is requested.
 - Do NOT use markdown formatting. Just plain text.
 
 === MEMORY EXTRACTION ===
-At the very end of your reply, if you learned any NEW important fact about Boss worth remembering long-term, add it as a separate line:
+At the very end of your reply, if you learned any NEW important fact about Boss worth remembering, add it as a separate line:
 [REMEMBER: fact to remember]
 
 Only remember personal things (family, plans, preferences, goals, routine items with today's date).
 
-If nothing new is worth remembering, do NOT add any [REMEMBER: ...] line.`;
+If nothing new, do NOT add any [REMEMBER: ...] line.`;
 
             return prompt;
         }
@@ -1090,12 +1286,8 @@ If nothing new is worth remembering, do NOT add any [REMEMBER: ...] line.`;
                             }
                         }
                         
-                        if (answer) {
-                            console.log(`✅ Working model: ${model}${sources.length ? " (with sources)" : ""}`);
-                            break;
-                        } else {
-                            allErrors.push(`${model} → empty response`);
-                        }
+                        if (answer) break;
+                        else allErrors.push(`${model} → empty response`);
                     } catch (e) {
                         allErrors.push(`${model} → ${e.message}`);
                         lastError = `${model} → ${e.message}`;
