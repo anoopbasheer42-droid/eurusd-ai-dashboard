@@ -47,7 +47,6 @@
         .ai-reason-box { background: rgba(0,0,0,0.3); padding: 20px; border-radius: 12px; font-size: 0.95rem; line-height: 1.7; color: #e2e8f0; border-left: 4px solid var(--accent); }
         .ai-reason-label { display: block; font-weight: 600; color: var(--accent); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
         
-        /* Chart container */
         .chart-container { width: 100%; height: 500px; border-radius: 10px; overflow: hidden; background: #131722; }
         .chart-container iframe { width: 100%; height: 100%; border: none; display: block; }
         .chart-controls { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
@@ -66,12 +65,7 @@
         .chat-msg.thinking { background: rgba(255,255,255,0.05); color: var(--muted); align-self: flex-start; font-style: italic; }
         .chat-msg.error { background: rgba(255,51,102,0.1); color: var(--red); align-self: flex-start; border-left: 3px solid var(--red); font-family: monospace; font-size: 0.75rem; max-width: 100%; }
         
-        .chat-speak-btn {
-            display: inline-block; margin-left: 10px; padding: 4px 10px;
-            background: rgba(0,255,136,0.15); border: 1px solid var(--green);
-            border-radius: 6px; color: var(--text); font-size: 0.85rem;
-            cursor: pointer; opacity: 0.9; transition: all 0.2s; vertical-align: middle;
-        }
+        .chat-speak-btn { display: inline-block; margin-left: 10px; padding: 4px 10px; background: rgba(0,255,136,0.15); border: 1px solid var(--green); border-radius: 6px; color: var(--text); font-size: 0.85rem; cursor: pointer; opacity: 0.9; transition: all 0.2s; vertical-align: middle; }
         .chat-speak-btn:hover { opacity: 1; background: var(--green); color: #0a0e17; transform: scale(1.05); }
         
         .chat-input-row { display: flex; gap: 10px; }
@@ -150,7 +144,6 @@
             </div>
         </div>
 
-        <!-- LIVE CHART -->
         <div class="card" style="grid-column: 1 / -1;">
             <h2>📈 Live EUR/USD Chart</h2>
             <div class="chart-controls">
@@ -218,6 +211,7 @@
                 <div class="candle-item"><span class="candle-timeframe">Current Candle:</span><span id="candle_current">Waiting...</span></div>
                 <div class="candle-item"><span class="candle-timeframe">1 Hour Candle:</span><span id="candle_1h">Waiting...</span></div>
                 <div class="candle-item"><span class="candle-timeframe">4 Hour Candle:</span><span id="candle_4h">Waiting...</span></div>
+                <div class="candle-item"><span class="candle-timeframe">Trend:</span><span id="trend">Waiting...</span></div>
                 <div class="candle-item"><span class="candle-timeframe">Session:</span><span id="session">-</span></div>
                 <div class="level-grid">
                     <div class="level-item"><div class="level-label">Support</div><div class="level-value" id="support">-</div></div>
@@ -243,20 +237,11 @@
 
         // ---------- CHART ----------
         function setChartInterval(interval, btn) {
-            // Update active button
             document.querySelectorAll(".chart-btn").forEach(b => b.classList.remove("active"));
-            btn.classList.add("active");
-            
-            // Build TradingView widget URL
+            if (btn) btn.classList.add("active");
             const url = `https://s.tradingview.com/widgetembed/?frameElementId=tvChart&symbol=FX%3AEURUSD&interval=${interval}&hidesidetoolbar=0&symboledit=0&saveimage=0&toolbarbg=131722&studies=RSI%1CMACD%1CEMA%40tv-basicstudies&theme=dark&style=1&timezone=Asia%2FKolkata&locale=en&withdateranges=1&hide_legend=0&hide_top_toolbar=0`;
             document.getElementById("tvChart").src = url;
         }
-
-        // Load default chart (1H) on page load
-        window.addEventListener("load", () => {
-            const url = `https://s.tradingview.com/widgetembed/?frameElementId=tvChart&symbol=FX%3AEURUSD&interval=60&hidesidetoolbar=0&symboledit=0&saveimage=0&toolbarbg=131722&studies=RSI%1CMACD%1CEMA%40tv-basicstudies&theme=dark&style=1&timezone=Asia%2FKolkata&locale=en&withdateranges=1&hide_legend=0&hide_top_toolbar=0`;
-            document.getElementById("tvChart").src = url;
-        });
 
         // ---------- STORAGE HELPERS ----------
         function getStoredKey() {
@@ -392,6 +377,8 @@
         window.addEventListener("load", () => {
             if (!getStoredKey()) document.getElementById("keyPanel").classList.add("visible");
             renderMemoryList();
+            const url = `https://s.tradingview.com/widgetembed/?frameElementId=tvChart&symbol=FX%3AEURUSD&interval=60&hidesidetoolbar=0&symboledit=0&saveimage=0&toolbarbg=131722&studies=RSI%1CMACD%1CEMA%40tv-basicstudies&theme=dark&style=1&timezone=Asia%2FKolkata&locale=en&withdateranges=1&hide_legend=0&hide_top_toolbar=0`;
+            document.getElementById("tvChart").src = url;
         });
 
         // ---------- 3D MODEL ----------
@@ -456,6 +443,7 @@
             document.getElementById("candle_current").innerText = data.candle_current || "No data.";
             document.getElementById("candle_1h").innerText = data.candle_1h;
             document.getElementById("candle_4h").innerText = data.candle_4h;
+            document.getElementById("trend").innerText = data.trend || "-";
             document.getElementById("session").innerText = (data.session || "-") + " (" + (data.volatility || "-") + " volatility)";
             document.getElementById("support").innerText = data.support || "-";
             document.getElementById("resistance").innerText = data.resistance || "-";
@@ -572,6 +560,15 @@
             const p = personalContext || {};
             const memory = loadMemory();
             
+            function formatCandles(candleArr, label) {
+                if (!candleArr || !candleArr.length) return `${label}: No data available.`;
+                const lines = [`${label} (oldest → newest):`];
+                for (const c of candleArr) {
+                    lines.push(`  ${c.time} | O:${c.open} H:${c.high} L:${c.low} C:${c.close}`);
+                }
+                return lines.join("\n");
+            }
+
             let prompt = `You are a professional EUR/USD trader AND personal assistant to a client named Boss. You have 10 years of hedge fund experience. Be friendly, funny, and motivational. Always call him "Boss".
 
 CURRENT MARKET STATE:
@@ -581,11 +578,27 @@ CURRENT MARKET STATE:
 - Entry: ${d.entry || '-'} | SL: ${d.sl || '-'} | TP: ${d.tp || '-'}
 - Valid Until: ${d.valid || '-'}
 - Support: ${d.support || '-'} | Resistance: ${d.resistance || '-'}
+- Mid-Range: ${d.mid_range || '-'}
 - Session: ${d.session || '-'} (${d.volatility || '-'} volatility)
-- Current Analysis: ${d.reason || 'No analysis yet'}
+
+TREND STRUCTURE:
+- Overall Trend: ${d.trend || 'unknown'}
+- Recent Swing Highs: ${(d.swing_highs || []).join(", ") || 'none'}
+- Recent Swing Lows: ${(d.swing_lows || []).join(", ") || 'none'}
+
+CANDLESTICK PATTERNS (latest hour): ${(d.patterns || []).join(", ") || 'none'}
+
+CURRENT ANALYSIS:
+${d.reason || 'No analysis yet'}
 `;
+
+            prompt += "\n\n=== RAW CANDLE DATA (you can analyze patterns from this) ===\n\n";
+            prompt += formatCandles(d.candles_h1, "1-HOUR CANDLES (30 most recent)") + "\n\n";
+            prompt += formatCandles(d.candles_h4, "4-HOUR CANDLES (10 most recent)") + "\n\n";
+            prompt += formatCandles(d.candles_daily, "DAILY CANDLES (5 most recent)") + "\n";
+
             if (p.family) {
-                prompt += `\nBOSS'S FAMILY:\n`;
+                prompt += `\n\nBOSS'S FAMILY:\n`;
                 if (p.family.wife) prompt += `- Wife: ${p.family.wife.name} (in ${p.family.wife.location})\n`;
                 if (p.family.daughters) p.family.daughters.forEach(dd => prompt += `- Daughter: ${dd.name}, ${dd.grade}, birthday ${dd.birthday}\n`);
                 if (p.family.cat) prompt += `- Cat: ${p.family.cat}\n`;
@@ -601,29 +614,30 @@ CURRENT MARKET STATE:
             }
 
             if (memory.length > 0) {
-                prompt += `\nLONG-TERM MEMORY (things you remember about Boss from past conversations):\n`;
+                prompt += `\n\nLONG-TERM MEMORY (things you remember about Boss from past conversations):\n`;
                 memory.forEach(m => prompt += `- ${m.fact}\n`);
             }
 
-            prompt += `\nINSTRUCTIONS:
-- Answer Boss's question clearly and directly.
-- Be warm, personal, and helpful.
-- You remember previous messages in this conversation AND the long-term memory above.
-- Reference memories naturally when relevant.
-- If he asks about market/trades, use the current market data above.
-- If he asks about routine/family, reference the personal context above.
-- If you don't know something, say so honestly.
-- Keep responses concise (2-4 sentences usually).
+            prompt += `\n\nINSTRUCTIONS:
+- You HAVE access to the actual OHLC candle data above. Use it!
+- When Boss asks about patterns, ACTUALLY read the candles and identify real structures:
+  - Support/resistance levels where price has reacted multiple times
+  - Trend structure (higher highs + higher lows = uptrend, etc.)
+  - Candlestick patterns (engulfing, doji, hammer, shooting star, etc.)
+  - Breakouts, false breakouts, consolidations
+  - Gaps, exhaustion candles
+- Do NOT invent patterns. If you don't see a pattern, say "no clear pattern, Boss."
+- When asked about support/resistance, look at where price bounced or reversed in the data.
+- When asked about trend, look at the sequence of highs and lows.
+- Be warm, personal, and helpful. Call him "Boss".
+- Keep responses concise (2-4 sentences) unless he asks for detailed analysis.
+- Do NOT use markdown formatting. Just plain text.
 
-IMPORTANT — MEMORY EXTRACTION:
-At the very end of your reply, if you learned any NEW important facts about Boss worth remembering long-term (family members, preferences, plans, goals, habits, important dates, personal details), add them as separate lines in this EXACT format:
+MEMORY EXTRACTION:
+At the very end of your reply, if you learned any NEW important personal facts worth remembering long-term, add them as separate lines like:
 [REMEMBER: fact to remember]
 
-Only add facts that are genuinely personal and important. Do NOT remember market observations, casual greetings, or anything trivial.
-
-If nothing new is worth remembering, do NOT add any [REMEMBER: ...] lines.
-
-Do NOT use markdown formatting. Just plain text.`;
+Only remember genuinely personal things (family, plans, preferences, goals). Do NOT remember market observations.`;
 
             return prompt;
         }
@@ -653,7 +667,7 @@ Do NOT use markdown formatting. Just plain text.`;
                 const requestBody = {
                     system_instruction: { parts: [{ text: systemPrompt }] },
                     contents: chatHistory,
-                    generationConfig: { temperature: 0.7, maxOutputTokens: 800 }
+                    generationConfig: { temperature: 0.7, maxOutputTokens: 1000 }
                 };
 
                 let availableModels = [];
