@@ -285,6 +285,7 @@
                     <button class="btn" id="web-toggle" onclick="toggleWeb()">Web OFF</button>
                     <button class="btn" onclick="togglePanel('panel-reminders')">Reminders</button>
                     <button class="btn" onclick="togglePanel('panel-memory')">Memory</button>
+                    <button class="btn" onclick="togglePanel('panel-gist')">Gist</button> <!-- NEW GIST BUTTON -->
                     <button class="btn" onclick="togglePanel('panel-key')">Key</button>
                 </div>
             </div>
@@ -307,6 +308,17 @@
                     <button class="btn danger" onclick="clearLongTermMemory()">Clear</button>
                 </div>
                 <div id="memory-list" style="font-size:0.75rem; color:var(--text-muted); max-height:100px; overflow-y:auto;">No facts saved.</div>
+            </div>
+
+            <!-- NEW GIST PANEL -->
+            <div class="panel" id="panel-gist">
+                <strong>Gist Memory Sync</strong>
+                <p style="font-size:0.7rem; color:var(--text-muted); margin:5px 0;">Sync your long-term memory to the cloud so it works on any device. Requires a GitHub PAT with `gist` scope.</p>
+                <input type="password" id="gist-token-input" placeholder="GitHub Token (ghp_...)" style="width:100%; padding:8px; border-radius:6px; border:1px solid #444; background:#111; color:white; margin-bottom:5px;">
+                <input type="text" id="gist-id-input" placeholder="Gist ID (e.g., a1b2c3d4...)" style="width:100%; padding:8px; border-radius:6px; border:1px solid #444; background:#111; color:white; margin-bottom:5px;">
+                <button class="btn" onclick="saveGistConfig()">Save & Sync Now</button>
+                <button class="btn" style="margin-left:5px;" onclick="loadMemoryFromGist()">Force Pull</button>
+                <div id="gist-status" style="font-size:0.7rem; margin-top:5px; color:var(--yellow);"></div>
             </div>
 
             <div class="panel" id="panel-key">
@@ -370,26 +382,16 @@
         let reminders = JSON.parse(localStorage.getItem('eurusd_reminders') || '[]');
         let apiKey = localStorage.getItem('eurusd_chat_key') || '';
 
+        // --- GIST CONFIGURATION ---
+        let gistToken = localStorage.getItem('eurusd_gist_token') || '';
+        let gistId = localStorage.getItem('eurusd_gist_id') || '';
+
         // --- FIX 1: VOICE INITIALIZATION ON ANDROID ---
         document.body.addEventListener('click', () => {
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.getVoices();
             }
         }, { once: true });
-
-        // --- NEW: MARKET CLOSED WEEKEND LOGIC ---
-        function isMarketClosed() {
-            const now = new Date();
-            const day = now.getUTCDay(); // 0 = Sunday, 6 = Saturday
-            const hour = now.getUTCHours();
-            
-            // Forex closes Friday 5 PM EST (22:00 UTC) and opens Sunday 5 PM EST (22:00 UTC)
-            if (day === 6) return true; // Saturday
-            if (day === 0 && hour < 22) return true; // Sunday before 22:00 UTC
-            if (day === 5 && hour >= 22) return true; // Friday after 22:00 UTC
-            
-            return false;
-        }
 
         // --- 1. THREE.JS NEURAL CORE ---
         const container = document.getElementById('canvas-container');
@@ -440,11 +442,9 @@
         });
 
         function updateCoreColor(signal) {
-            let color = 0xf1c40f; // Yellow HOLD
+            let color = 0xf1c40f; 
             if (signal === 'BUY') color = 0x2ecc71;
             if (signal === 'SELL') color = 0xe74c3c;
-            if (signal === 'CLOSED') color = 0x555555; // Gray for closed
-            
             glowSphere.material.color.setHex(color);
             innerCore.material.color.setHex(color);
             outerShell.material.color.setHex(color);
@@ -472,29 +472,7 @@
 
         function updateUI(data) {
             document.getElementById('live-price').innerText = data.price || '1.00000';
-            
             const signalText = document.getElementById('signal-text');
-            const detailsDiv = document.getElementById('signal-details');
-
-            // CHECK IF MARKET IS CLOSED
-            if (isMarketClosed()) {
-                signalText.innerText = "MARKET CLOSED";
-                signalText.style.color = 'var(--text-muted)';
-                signalText.style.textShadow = 'none';
-                signalText.style.fontSize = '2rem'; // Smaller text to fit
-                updateCoreColor('CLOSED');
-                
-                // Hide trading details
-                detailsDiv.style.display = 'none';
-                document.getElementById('val-reason').innerText = "Forex market is closed for the weekend. Enjoy your time with the family, Boss!";
-                document.getElementById('wise-words').innerText = "Rest is part of the process. The market will be back on Monday.";
-                return; // Stop here, don't update the rest
-            } else {
-                // Market is open, ensure details are shown
-                detailsDiv.style.display = 'grid';
-                signalText.style.fontSize = '3rem';
-            }
-
             signalText.innerText = data.signal || 'WAITING';
             if (data.signal === 'BUY') { signalText.style.color = 'var(--green)'; signalText.style.textShadow = '0 0 30px rgba(46, 204, 113, 0.6)'; }
             else if (data.signal === 'SELL') { signalText.style.color = 'var(--red)'; signalText.style.textShadow = '0 0 30px rgba(231, 76, 60, 0.6)'; }
@@ -527,10 +505,6 @@
         function getRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
         function playVoiceReport() {
-            if (isMarketClosed()) {
-                speakText("The market is closed for the weekend, Boss. Rest well and spend time with your family. I will be back on Monday.");
-                return;
-            }
             if (!globalData) return;
             if (isSpeaking) stopVoice();
             const opening = getRandom(OPENINGS);
@@ -602,6 +576,64 @@
             if (id === 'panel-reminders') renderReminders();
             if (id === 'panel-memory') renderMemory();
             if (id === 'panel-key') document.getElementById('api-key-input').value = apiKey;
+            if (id === 'panel-gist') {
+                document.getElementById('gist-token-input').value = gistToken;
+                document.getElementById('gist-id-input').value = gistId;
+            }
+        }
+
+        // --- GIST LOGIC ---
+        function saveGistConfig() {
+            gistToken = document.getElementById('gist-token-input').value.trim();
+            gistId = document.getElementById('gist-id-input').value.trim();
+            localStorage.setItem('eurusd_gist_token', gistToken);
+            localStorage.setItem('eurusd_gist_id', gistId);
+            document.getElementById('gist-status').innerText = "Saving to Gist...";
+            saveMemoryToGist();
+        }
+
+        async function loadMemoryFromGist() {
+            if (!gistToken || !gistId) {
+                document.getElementById('gist-status').innerText = "Please enter Token and Gist ID.";
+                return;
+            }
+            document.getElementById('gist-status').innerText = "Loading from Gist...";
+            try {
+                const res = await fetch(`https://api.github.com/gists/${gistId}`, {
+                    headers: { 'Authorization': `token ${gistToken}` }
+                });
+                if (!res.ok) throw new Error('Failed to fetch gist');
+                const data = await res.json();
+                const content = data.files['memory.json']?.content;
+                if (content) {
+                    longTermMemory = JSON.parse(content);
+                    localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory));
+                    renderMemory();
+                    document.getElementById('gist-status').innerText = "Memory loaded from Gist!";
+                }
+            } catch (e) {
+                document.getElementById('gist-status').innerText = "Error: " + e.message;
+            }
+        }
+
+        async function saveMemoryToGist() {
+            if (!gistToken || !gistId) return;
+            try {
+                const res = await fetch(`https://api.github.com/gists/${gistId}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `token ${gistToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        files: { 'memory.json': { content: JSON.stringify(longTermMemory, null, 2) } }
+                    })
+                });
+                if (!res.ok) throw new Error('Failed to update gist');
+                document.getElementById('gist-status').innerText = "Synced to Gist successfully!";
+            } catch (e) {
+                document.getElementById('gist-status').innerText = "Error: " + e.message;
+            }
         }
 
         async function sendChat() {
@@ -763,6 +795,7 @@
         function addLongTermMemory(fact) {
             longTermMemory.push({ fact: fact, added: new Date().toISOString().split('T')[0] });
             localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory));
+            saveMemoryToGist(); // Auto-save to Gist
         }
 
         function renderMemory() {
@@ -775,6 +808,7 @@
             if(confirm("Clear all long-term memory?")) {
                 longTermMemory = [];
                 localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory));
+                saveMemoryToGist(); // Auto-save empty array to Gist
                 renderMemory();
             }
         }
@@ -798,6 +832,11 @@
             renderMemory();
             if (apiKey) document.getElementById('web-toggle').style.display = 'block';
             if ('speechSynthesis' in window) { window.speechSynthesis.getVoices(); }
+            
+            // Auto-load memory from Gist if config exists
+            if (gistToken && gistId) {
+                loadMemoryFromGist();
+            }
         };
     </script>
 </body>
