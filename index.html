@@ -345,19 +345,36 @@
             el.innerText = pool[Math.floor(Math.random() * pool.length)];
         }
 
-        // === WEB SEARCH (FREE - NO API KEY) ===
+        // === WEB SEARCH (FREE - NO API KEY, uses AllOrigins proxy to scrape DuckDuckGo) ===
         async function searchWeb(query) {
             try {
-                const url = `https://api.cors.lol/?url=${encodeURIComponent(`http://127.0.0.1:5000/search?q=${encodeURIComponent(query)}&engine=duckduckgo`)}`;
-                const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+                const ddgUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(ddgUrl)}`;
+                const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(15000) });
                 if (!res.ok) throw new Error(`Search failed: ${res.status}`);
-                const data = await res.json();
-                if (!data.results || data.results.length === 0) return "No results found.";
+                const html = await res.text();
+                
+                // Extract snippets and titles using regex
+                const snippetRegex = /<a class="result__snippet"[^>]*>(.*?)<\/a>/g;
+                const titleRegex = /<a class="result__a"[^>]*>(.*?)<\/a>/g;
+                
+                let match;
+                let snippets = [];
+                let titles = [];
+                
+                while ((match = snippetRegex.exec(html)) !== null) {
+                    snippets.push(match[1].replace(/<[^>]*>?/gm, '').trim());
+                }
+                while ((match = titleRegex.exec(html)) !== null) {
+                    titles.push(match[1].replace(/<[^>]*>?/gm, '').trim());
+                }
+                
+                if (snippets.length === 0) return "No results found.";
                 
                 let formatted = "Here are the latest search results:\n\n";
-                data.results.slice(0, 3).forEach((r, i) => {
-                    formatted += `${i+1}. ${r.title}\n${r.snippet}\nSource: ${r.url}\n\n`;
-                });
+                for (let i = 0; i < Math.min(snippets.length, 3); i++) {
+                    formatted += `${i+1}. ${titles[i] || 'Result'}\n${snippets[i]}\n\n`;
+                }
                 return formatted.trim();
             } catch (e) {
                 console.error("Web search error:", e);
@@ -887,11 +904,12 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
                     response = response.replace(/\[SCHEDULE_SEARCH:.*?\]/g, '').trim();
                 }
                 // JS Safety Net: If user asked for a delayed web search but AI forgot the tag
-                else if (webSearchEnabled && (text.toLowerCase().includes('check') || text.toLowerCase().includes('search') || text.toLowerCase().includes('update')) && text.toLowerCase().includes('min')) {
-                    const minMatch = text.match(/in (\d+)\s*(?:min|minute|minutes|mints)/i);
+                else if (webSearchEnabled && (text.toLowerCase().includes('check') || text.toLowerCase().includes('search') || text.toLowerCase().includes('update')) && (text.toLowerCase().includes('min') || text.toLowerCase().includes('mints'))) {
+                    const minMatch = text.match(/\b(\d+)\s*(?:min|minute|minutes|mints)\b/i);
                     if (minMatch && minMatch[1]) {
                         const mins = parseInt(minMatch[1]);
-                        let query = text.replace(/check|web|net|search|update|me|in \d+\s*min(ute)?s?|mints/gi, '').trim();
+                        let query = text.replace(/check|web|net|search|update|me|inform|in\s*\d+\s*(?:min|minute|minutes|mints)/gi, '').trim();
+                        query = query.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, ' ').trim(); // Clean up
                         if (!query) query = "latest news";
                         addScheduledSearch(mins, query);
                         response += ` (I've also set a timer to check that for you in ${mins} minutes, Boss.)`;
