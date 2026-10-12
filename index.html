@@ -549,9 +549,84 @@
             if (id === 'panel-key') { document.getElementById('groq-key-input').value = groqKey; document.getElementById('api-key-input').value = apiKey; }
             if (id === 'panel-gist') { document.getElementById('gist-token-input').value = gistToken; document.getElementById('gist-id-input').value = gistId; }
         }
-        function saveGistConfig() { gistToken = document.getElementById('gist-token-input').value.trim(); gistId = document.getElementById('gist-id-input').value.trim(); localStorage.setItem('eurusd_gist_token', gistToken); localStorage.setItem('eurusd_gist_id', gistId); saveMemoryToGist(); }
-        async function loadMemoryFromGist() { if (!gistToken || !gistId) return; try { const r = await fetch(`https://api.github.com/gists/${gistId}`, {headers:{Authorization:`token ${gistToken}`}}); const d = await r.json(); const c = d.files['memory.json']?.content; if (c) { longTermMemory = JSON.parse(c); localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); renderMemory(); } } catch(e) {} }
-        async function saveMemoryToGist() { if (!gistToken || !gistId) return; try { await fetch(`https://api.github.com/gists/${gistId}`, {method:'PATCH', headers:{Authorization:`token ${gistToken}`,'Content-Type':'application/json'}, body: JSON.stringify({files:{'memory.json':{content: JSON.stringify(longTermMemory, null, 2)}}})}); } catch(e) {} }
+        
+        // === UPDATED GIST FUNCTIONS WITH ERROR FEEDBACK ===
+        function saveGistConfig() { 
+            gistToken = document.getElementById('gist-token-input').value.trim(); 
+            gistId = document.getElementById('gist-id-input').value.trim(); 
+            localStorage.setItem('eurusd_gist_token', gistToken); 
+            localStorage.setItem('eurusd_gist_id', gistId); 
+            saveMemoryToGist(); 
+        }
+
+        async function loadMemoryFromGist() {
+            if (!gistToken || !gistId) {
+                document.getElementById('gist-status').innerText = "Missing Token or Gist ID";
+                document.getElementById('gist-status').style.color = "var(--red)";
+                return;
+            }
+            document.getElementById('gist-status').innerText = "Pulling...";
+            document.getElementById('gist-status').style.color = "var(--yellow)";
+            try {
+                const r = await fetch(`https://api.github.com/gists/${gistId}`, {
+                    headers: { Authorization: `token ${gistToken}` }
+                });
+                if (!r.ok) throw new Error(`GitHub API Error: ${r.status}`);
+                const d = await r.json();
+                const c = d.files['memory.json']?.content;
+                if (c) {
+                    longTermMemory = JSON.parse(c);
+                    localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory));
+                    renderMemory();
+                    document.getElementById('gist-status').innerText = "✓ Loaded from Gist!";
+                    document.getElementById('gist-status').style.color = "var(--green)";
+                } else {
+                    document.getElementById('gist-status').innerText = "No memory.json found in Gist.";
+                    document.getElementById('gist-status').style.color = "var(--yellow)";
+                }
+            } catch(e) {
+                document.getElementById('gist-status').innerText = `✗ Error: ${e.message}`;
+                document.getElementById('gist-status').style.color = "var(--red)";
+            }
+        }
+
+        async function saveMemoryToGist() {
+            if (!gistToken || !gistId) {
+                document.getElementById('gist-status').innerText = "Missing Token or Gist ID";
+                document.getElementById('gist-status').style.color = "var(--red)";
+                return;
+            }
+            document.getElementById('gist-status').innerText = "Syncing...";
+            document.getElementById('gist-status').style.color = "var(--yellow)";
+            try {
+                const res = await fetch(`https://api.github.com/gists/${gistId}`, {
+                    method: 'PATCH',
+                    headers: {
+                        Authorization: `token ${gistToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        files: {
+                            'memory.json': {
+                                content: JSON.stringify(longTermMemory, null, 2)
+                            }
+                        }
+                    })
+                });
+                if (res.ok) {
+                    document.getElementById('gist-status').innerText = "✓ Synced successfully!";
+                    document.getElementById('gist-status').style.color = "var(--green)";
+                } else {
+                    const err = await res.json();
+                    document.getElementById('gist-status').innerText = `✗ Error: ${err.message || res.status}`;
+                    document.getElementById('gist-status').style.color = "var(--red)";
+                }
+            } catch(e) {
+                document.getElementById('gist-status').innerText = `✗ Network Error: ${e.message}`;
+                document.getElementById('gist-status').style.color = "var(--red)";
+            }
+        }
+
         function cleanResponse(text) { return text.split('\n').filter(line => { const l = line.trim().toLowerCase(); if (l.startsWith('*') || l.startsWith('-')) return false; if (l.includes('friendly?') || l.includes('funny?') || l.includes('motivational?')) return false; if (l.includes('checked') || l.includes('no emojis?')) return false; return true; }).join('\n').trim(); }
 
         // === UPGRADED PERSONALITY & PROMPT ===
@@ -638,7 +713,6 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
             if (chatInProgress) return;
             if (!groqKey && !apiKey) return;
             
-            // Randomize the focus so it doesn't feel repetitive
             const topics = [
                 "Ask how Sadia is doing in Dubai.",
                 "Ask about Emy and Bismah, and their Malayalam tuition this weekend.",
