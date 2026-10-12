@@ -581,17 +581,17 @@
                 return;
             }
 
-            // === 1. KOKORO TTS (Self-Hosted with 15s Timeout + CORS Proxy) ===
+            // === 1. KOKORO TTS (Self-Hosted with 20s Timeout + Codetabs Proxy) ===
             if (voiceEngineMode === 'kokoro' && kokoroUrl) {
                 try {
-                    if (statusEl) statusEl.innerHTML = "<span style='color:var(--yellow);'>Waking up Kokoro Server (may take 10s)...</span>";
+                    if (statusEl) statusEl.innerHTML = "<span style='color:var(--yellow);'>Waking up Kokoro Server (may take 15s)...</span>";
                     
                     const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15-second timeout
+                    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20-second timeout
 
                     const targetUrl = kokoroUrl.replace(/\/$/, '') + '/v1/audio/speech';
-                    // Using corsproxy.io which handles POST requests with JSON bodies
-                    const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(targetUrl);
+                    // Using codetabs as a reliable CORS proxy for POST requests
+                    const proxyUrl = 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(targetUrl);
 
                     const response = await fetch(proxyUrl, {
                         method: 'POST',
@@ -617,7 +617,7 @@
                 } catch (e) {
                     console.error("Kokoro error:", e);
                     if (e.name === 'AbortError') {
-                        if (statusEl) statusEl.innerHTML = "<span style='color:var(--red);'>Kokoro Server Timeout (Cold Start). Falling back...</span>";
+                        if (statusEl) statusEl.innerHTML = "<span style='color:var(--red);'>Kokoro Server Timeout. Falling back...</span>";
                     } else {
                         if (statusEl) statusEl.innerHTML = `<span style='color:var(--red);'>Kokoro Error: ${e.message}. Falling back...</span>`;
                     }
