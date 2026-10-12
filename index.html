@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://js.puter.com/v2/"></script>
+    <!-- PUTER.JS REMOVED -->
     <style>
         :root { --bg:#05060a; --card-bg:rgba(255,255,255,0.022); --card-border:rgba(255,255,255,0.055);
             --text-main:#f8fafc; --text-body:#c8cdd6; --text-muted:#64748b; --text-subtle:#475569;
@@ -163,34 +163,14 @@
                 <div style="font-size:0.7rem; color:var(--text-muted); margin-top:12px;">Voice Engine Mode:</div>
                 <select id="voice-engine-mode" onchange="saveVoiceEngineMode()" style="width:100%; padding:9px; margin-top:6px; border-radius:7px; border:1px solid rgba(255,255,255,0.08); background:rgba(0,0,0,0.3); color:white;">
                     <option value="cloud">Cloud Voice (ElevenLabs - Uses Credits)</option>
-                    <option value="kokoro">Kokoro Cloud (Free 24/7)</option>
                     <option value="browser">Browser Voice (Robotic - Saves Credits)</option>
                 </select>
                 
-                <div style="font-size:0.7rem; color:var(--text-muted); margin-top:12px;">Method 1: Official ElevenLabs API (Free 10k chars/month)</div>
+                <div style="font-size:0.7rem; color:var(--text-muted); margin-top:12px;">Official ElevenLabs API Key (Free 10k chars/month)</div>
                 <input type="password" id="elevenlabs-api-input" placeholder="sk_... (Your ElevenLabs API Key)" style="width:100%; padding:9px; margin-top:6px; border-radius:7px; border:1px solid rgba(255,255,255,0.08); background:rgba(0,0,0,0.3); color:white;">
                 <button class="btn" style="margin-top:6px; width:100%;" onclick="saveElevenLabsApiKey()">Save ElevenLabs Key</button>
 
-                <div style="font-size:0.7rem; color:var(--text-muted); margin-top:12px;">Method 2: Kokoro TTS Lite on Railway (Free 24/7)</div>
-                <input type="text" id="kokoro-url-input" placeholder="https://your-app.up.railway.app" style="width:100%; padding:9px; margin-top:6px; border-radius:7px; border:1px solid rgba(255,255,255,0.08); background:rgba(0,0,0,0.3); color:white;">
-                <button class="btn" style="margin-top:6px; width:100%;" onclick="saveKokoroUrl()">Save Kokoro URL</button>
-                
-                <div style="font-size:0.7rem; color:var(--text-muted); margin-top:12px;">Kokoro Voice Selection:</div>
-                <select id="kokoro-voice-select" onchange="saveKokoroVoice()" style="width:100%; padding:9px; margin-top:6px; border-radius:7px; border:1px solid rgba(255,255,255,0.08); background:rgba(0,0,0,0.3); color:white;">
-                    <option value="af_heart">Heart (American Female - Warm)</option>
-                    <option value="af_bella">Bella (American Female - Beautiful)</option>
-                    <option value="af_nicole">Nicole (American Female - Calm)</option>
-                    <option value="am_adam">Adam (American Male - Deep)</option>
-                    <option value="am_michael">Michael (American Male - Professional)</option>
-                    <option value="am_onyx">Onyx (American Male - Noir)</option>
-                    <option value="bf_emma">Emma (British Female - Elegant)</option>
-                    <option value="bf_isabella">Isabella (British Female - Soft)</option>
-                    <option value="bm_george">George (British Male - Classic)</option>
-                    <option value="bm_lewis">Lewis (British Male - Casual)</option>
-                </select>
-                
-                <div style="font-size:0.7rem; color:var(--text-muted); margin-top:12px;">Method 3: Puter.js Free Credits (Fallback)</div>
-                
+                <div style="font-size:0.7rem; color:var(--text-muted); margin-top:12px;">ElevenLabs Voice Selection:</div>
                 <select id="elevenlabs-voice-select" onchange="saveElevenLabsVoice()" style="width:100%; padding:9px; margin-top:6px; border-radius:7px; border:1px solid rgba(255,255,255,0.08); background:rgba(0,0,0,0.3); color:white;">
                     <option value="ErXwobaYiN019PkySvjV">Antoni (Casual, Friendly, Warm) - Default</option>
                     <option value="pNInz6obpgDQGcFmaJgB">Adam (Deep, Professional, Narrative)</option>
@@ -199,7 +179,7 @@
                 </select>
                 
                 <button class="btn" style="margin-top:10px; width:100%;" onclick="testCloudVoice()">Test Cloud Voice</button>
-                <div style="font-size:0.7rem; color:var(--text-muted); margin-top:8px;">If all cloud options fail, it will silently fall back to your device's browser voice.</div>
+                <div style="font-size:0.7rem; color:var(--text-muted); margin-top:8px;">If the premium voice fails, it will immediately fall back to your device's browser voice.</div>
             </div>
             <div class="panel" id="panel-key">
                 <strong>Groq API Key (primary AI)</strong>
@@ -249,7 +229,7 @@
         const GROQ_MODELS = ['meta-llama/llama-4-scout-17b-16e-instruct','llama-3.3-70b-versatile','openai/gpt-oss-120b'];
         const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
         const GEMINI_MODELS = ['gemini-3.8-flash','gemini-flash-latest','gemini-2.5-flash'];
-        const MARKET_KEYWORDS = ['market','buy','sell','trade','signal','entry','sl','tp','stop loss','take profit','setup','chart','trend','support','resistance','eur/usd','eurusd','should i','analysis','long','short','position','pip','bullish','bearish','candle','indicator','rsi','ema','atr'];
+        const MARKET_KEYWORDS = ['market','buy','sell','trade','signal','entry','sl','tp','stop loss','take profit','setup','chart','trend','support','resistance','eur/usd','eurusd','should i','analysis','long','short','position','pip','bullish','bearish','candle','indicator','rsi','ema','atr','scalp','day trade'];
 
         const LOCAL_QUOTES = ["Discipline beats conviction...", "Every loss is tuition...", "Protect your capital first...", "Cut losses short, let winners run...", "A calm mind catches more pips...", "You don't need to be right every time...", "The trend is your friend until it bends...", "Patience is not waiting...", "The market rewards preparation...", "Trade like a sniper..."];
         const LOCAL_JOKES = ["Why don't traders play hide and seek?...", "I told my wife I was a forex trader...", "My stop loss is like my ex...", "What's the difference between a forex trader and a pizza?..."];
@@ -266,8 +246,6 @@
         let alertLog = JSON.parse(localStorage.getItem('eurusd_alert_log') || '[]');
         let elevenLabsVoiceId = localStorage.getItem('eurusd_elevenlabs_voice') || 'ErXwobaYiN019PkySvjV';
         let elevenLabsApiKey = localStorage.getItem('eurusd_elevenlabs_api_key') || '';
-        let kokoroUrl = localStorage.getItem('eurusd_kokoro_url') || '';
-        let kokoroVoice = localStorage.getItem('eurusd_kokoro_voice') || 'af_heart';
         let voiceEngineMode = localStorage.getItem('eurusd_voice_engine_mode') || 'cloud';
 
         // === AUDIO TRACKING ===
@@ -565,7 +543,7 @@
             return voices.find(v => v.lang.startsWith('en')) || voices[0];
         }
 
-        // === CLOUD AI VOICE ENGINE (KOKORO + ELEVENLABS + PUTER.JS + BROWSER) ===
+        // === SIMPLIFIED VOICE ENGINE (ELEVENLABS + BROWSER ONLY) ===
         async function speakText(text, isReminder = false) {
             const statusEl = document.getElementById('voice-status');
             if (currentAudio) { currentAudio.pause(); currentAudio = null; }
@@ -581,50 +559,7 @@
                 return;
             }
 
-            // === 1. KOKORO TTS (Self-Hosted with 20s Timeout + Codetabs Proxy) ===
-            if (voiceEngineMode === 'kokoro' && kokoroUrl) {
-                try {
-                    if (statusEl) statusEl.innerHTML = "<span style='color:var(--yellow);'>Waking up Kokoro Server (may take 15s)...</span>";
-                    
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20-second timeout
-
-                    const targetUrl = kokoroUrl.replace(/\/$/, '') + '/v1/audio/speech';
-                    // Using codetabs as a reliable CORS proxy for POST requests
-                    const proxyUrl = 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(targetUrl);
-
-                    const response = await fetch(proxyUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        signal: controller.signal,
-                        body: JSON.stringify({
-                            model: 'kokoro',
-                            voice: kokoroVoice,
-                            input: cleanText,
-                            response_format: 'mp3'
-                        })
-                    });
-                    
-                    clearTimeout(timeoutId);
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                    
-                    const blob = await response.blob();
-                    currentAudio = new Audio(URL.createObjectURL(blob));
-                    if (statusEl) statusEl.innerHTML = "<span style='color:var(--green);'>✓ Playing Kokoro Voice</span>";
-                    currentAudio.play();
-                    currentAudio.onended = () => { isSpeaking = false; currentAudio = null; };
-                    return;
-                } catch (e) {
-                    console.error("Kokoro error:", e);
-                    if (e.name === 'AbortError') {
-                        if (statusEl) statusEl.innerHTML = "<span style='color:var(--red);'>Kokoro Server Timeout. Falling back...</span>";
-                    } else {
-                        if (statusEl) statusEl.innerHTML = `<span style='color:var(--red);'>Kokoro Error: ${e.message}. Falling back...</span>`;
-                    }
-                }
-            }
-
-            // === 2. ELEVENLABS DIRECT API ===
+            // === 1. ELEVENLABS DIRECT API ===
             if (elevenLabsApiKey) {
                 try {
                     if (statusEl) statusEl.innerHTML = "<span style='color:var(--yellow);'>Generating ElevenLabs audio...</span>";
@@ -642,27 +577,11 @@
                     return;
                 } catch (e) {
                     console.error("ElevenLabs error:", e);
-                    if (statusEl) statusEl.innerHTML = `<span style='color:var(--red);'>ElevenLabs Error: ${e.message}. Falling back...</span>`;
+                    if (statusEl) statusEl.innerHTML = `<span style='color:var(--red);'>ElevenLabs Error: ${e.message}. Using Browser Voice.</span>`;
                 }
             }
 
-            // === 3. PUTER.JS FALLBACK ===
-            if (typeof puter !== 'undefined') {
-                try {
-                    if (statusEl) statusEl.innerHTML = "<span style='color:var(--yellow);'>Generating Puter audio...</span>";
-                    const audio = await puter.ai.txt2speech(cleanText, { provider: "elevenlabs", voice: elevenLabsVoiceId, model: "eleven_multilingual_v2" });
-                    currentAudio = audio;
-                    if (statusEl) statusEl.innerHTML = "<span style='color:var(--green);'>✓ Playing Puter Voice</span>";
-                    audio.play();
-                    audio.onended = () => { isSpeaking = false; currentAudio = null; };
-                    return;
-                } catch (err) {
-                    console.error("Puter error:", err);
-                    if (statusEl) statusEl.innerHTML = "<span style='color:var(--red);'>Puter failed. Using Browser Voice.</span>";
-                }
-            }
-
-            // === 4. BROWSER FALLBACK ===
+            // === 2. BROWSER FALLBACK ===
             if (statusEl) statusEl.innerHTML = "<span style='color:var(--yellow);'>Using Browser Voice Fallback</span>";
             fallbackSpeakText(cleanText, isReminder);
         }
@@ -722,8 +641,6 @@
             if (id === 'panel-voice') {
                 document.getElementById('elevenlabs-voice-select').value = elevenLabsVoiceId;
                 document.getElementById('elevenlabs-api-input').value = elevenLabsApiKey;
-                document.getElementById('kokoro-url-input').value = kokoroUrl;
-                document.getElementById('kokoro-voice-select').value = kokoroVoice;
                 document.getElementById('voice-engine-mode').value = voiceEngineMode;
             }
         }
@@ -743,25 +660,10 @@
             speakText("ElevenLabs API key saved.");
         }
 
-        function saveKokoroUrl() {
-            kokoroUrl = document.getElementById('kokoro-url-input').value.trim();
-            localStorage.setItem('eurusd_kokoro_url', kokoroUrl);
-            const statusEl = document.getElementById('voice-status');
-            if (statusEl) statusEl.innerHTML = "<span style='color:var(--green);'>✓ Kokoro URL Saved!</span>";
-            speakText("Kokoro URL saved. I'm now using your self-hosted voice.");
-        }
-
-        function saveKokoroVoice() {
-            kokoroVoice = document.getElementById('kokoro-voice-select').value;
-            localStorage.setItem('eurusd_kokoro_voice', kokoroVoice);
-            speakText("Kokoro voice updated, Boss.");
-        }
-
         function saveVoiceEngineMode() {
             voiceEngineMode = document.getElementById('voice-engine-mode').value;
             localStorage.setItem('eurusd_voice_engine_mode', voiceEngineMode);
             if (voiceEngineMode === 'browser') speakText("Switched to browser voice.");
-            else if (voiceEngineMode === 'kokoro') speakText("Switched to Kokoro voice.");
             else speakText("Switched to ElevenLabs voice.");
         }
 
