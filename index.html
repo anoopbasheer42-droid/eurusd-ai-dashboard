@@ -56,7 +56,7 @@
         .panel { display: none; background: rgba(0,0,0,0.3); padding: 14px; border-radius: 10px; margin-bottom: 12px; font-size: 0.78rem; border: 1px solid rgba(255,255,255,0.05); }
         .panel.active { display: block; }
         .panel strong { font-family: 'Space Grotesk', sans-serif; color: var(--text-body); font-weight: 600; }
-        .panel input { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; }
+        .panel input, .panel select { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; }
         .chat-history { height: 340px; overflow-y: auto; background: rgba(0,0,0,0.3); border-radius: 10px; padding: 14px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 10px; border: 1px solid rgba(255,255,255,0.03); }
         .chat-history::-webkit-scrollbar { width: 4px; }
         .chat-history::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.25); border-radius: 4px; }
@@ -132,6 +132,7 @@
                     <button class="btn" onclick="togglePanel('panel-memory')">Memory</button>
                     <button class="btn" onclick="togglePanel('panel-gist')">Gist</button>
                     <button class="btn" onclick="togglePanel('panel-key')">Key</button>
+                    <button class="btn" onclick="togglePanel('panel-voice')">Voice</button>
                 </div>
             </div>
             <div class="panel" id="panel-reminders">
@@ -153,6 +154,13 @@
                 <button class="btn" style="margin-top:8px;" onclick="saveGistConfig()">Save & Sync</button>
                 <button class="btn" style="margin-top:8px;" onclick="loadMemoryFromGist()">Pull</button>
                 <div id="gist-status" style="font-size:0.7rem; margin-top:8px; color:var(--yellow);"></div>
+            </div>
+            <div class="panel" id="panel-voice">
+                <strong>Select Voice</strong>
+                <select id="voice-select" onchange="saveVoiceSelection()" style="width:100%; padding:9px; margin-top:8px; border-radius:7px; border:1px solid rgba(255,255,255,0.08); background:rgba(0,0,0,0.3); color:white;">
+                    <option>Loading voices...</option>
+                </select>
+                <div style="font-size:0.7rem; color:var(--text-muted); margin-top:8px;">Voices depend on your device and browser. If you don't hear a change, try a different browser or device.</div>
             </div>
             <div class="panel" id="panel-key">
                 <strong>Groq API Key (primary)</strong>
@@ -502,9 +510,46 @@
         const CLOSINGS = ["Stay sharp, Boss.", "Trade safe.", "I'll keep watching.", "Good luck out there.", "That's all for now.", "Talk soon."];
         const rnd = (a) => a[Math.floor(Math.random()*a.length)];
 
+        // === VOICE SELECTION LOGIC ===
+        function populateVoiceList() {
+            const voices = window.speechSynthesis.getVoices();
+            const select = document.getElementById('voice-select');
+            if (!select) return;
+            const savedVoice = localStorage.getItem('eurusd_voice_name');
+            select.innerHTML = '';
+            
+            // Filter for English voices to keep the list manageable, but allow all if no English is found
+            let filteredVoices = voices.filter(v => v.lang.startsWith('en'));
+            if (filteredVoices.length === 0) filteredVoices = voices;
+
+            filteredVoices.forEach(v => {
+                const option = document.createElement('option');
+                option.textContent = `${v.name} (${v.lang})`;
+                option.value = v.name;
+                if (v.name === savedVoice) option.selected = true;
+                select.appendChild(option);
+            });
+        }
+
+        function saveVoiceSelection() {
+            const select = document.getElementById('voice-select');
+            if (select.value) {
+                localStorage.setItem('eurusd_voice_name', select.value);
+                speakText("Voice updated, Boss."); // Short confirmation
+            }
+        }
+
         function getBestVoice() {
             const voices = window.speechSynthesis.getVoices();
-            // Prioritize the most natural sounding voices across different platforms
+            const savedVoiceName = localStorage.getItem('eurusd_voice_name');
+            
+            // 1. Try to use the user's saved selection first
+            if (savedVoiceName) {
+                const saved = voices.find(v => v.name === savedVoiceName);
+                if (saved) return saved;
+            }
+            
+            // 2. Fallback to the priority list of natural-sounding voices
             const priorities = [
                 'Google UK English Male', 'Google US English', 
                 'Microsoft Guy Online', 'Microsoft Mark', 'Microsoft David', 
@@ -514,6 +559,8 @@
                 const found = voices.find(v => v.name.includes(name)); 
                 if (found) return found; 
             }
+            
+            // 3. Absolute fallback
             return voices.find(v => v.lang.startsWith('en')) || voices[0];
         }
 
@@ -525,7 +572,6 @@
             const voice = getBestVoice(); 
             if (!voice) return;
 
-            // Split into natural clauses/sentences
             const sentences = text.split(/(?<=[.!?,])\s+/).map(s => s.trim()).filter(s => s.length > 0);
             if (sentences.length === 0) return;
 
@@ -542,9 +588,8 @@
                 const u = new SpeechSynthesisUtterance(sentence);
                 u.voice = voice;
                 
-                // Human-like pitch and rate variations
-                const basePitch = isReminder ? 1.0 : 0.95 + Math.random() * 0.1; // Slightly lower for male tone
-                const baseRate = isReminder ? 0.9 : 0.88 + Math.random() * 0.06; // Slightly slower for natural pace
+                const basePitch = isReminder ? 1.0 : 0.95 + Math.random() * 0.1;
+                const baseRate = isReminder ? 0.9 : 0.88 + Math.random() * 0.06;
                 
                 u.pitch = Math.max(0.5, Math.min(2.0, basePitch + (Math.random() - 0.5) * 0.08));
                 u.rate = Math.max(0.5, Math.min(1.5, baseRate + (Math.random() - 0.5) * 0.04));
@@ -552,7 +597,6 @@
 
                 u.onend = () => {
                     index++;
-                    // Random pause between 200ms and 500ms between sentences to simulate thinking/breathing
                     const pause = 200 + Math.random() * 300;
                     setTimeout(speakNext, pause);
                 };
@@ -560,7 +604,6 @@
                 window.speechSynthesis.speak(u);
             }
 
-            // Start the sequential speaking process
             speakNext();
         }
 
@@ -587,6 +630,7 @@
             if (id === 'panel-memory') renderMemory();
             if (id === 'panel-key') { document.getElementById('groq-key-input').value = groqKey; document.getElementById('api-key-input').value = apiKey; }
             if (id === 'panel-gist') { document.getElementById('gist-token-input').value = gistToken; document.getElementById('gist-id-input').value = gistId; }
+            if (id === 'panel-voice') populateVoiceList();
         }
         function saveGistConfig() { gistToken = document.getElementById('gist-token-input').value.trim(); gistId = document.getElementById('gist-id-input').value.trim(); localStorage.setItem('eurusd_gist_token', gistToken); localStorage.setItem('eurusd_gist_id', gistId); saveMemoryToGist(); }
         
@@ -790,7 +834,13 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
         window.onload = () => {
             fetch('https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/personal_context.json').then(r => r.json()).then(d => { personalContext = d; loadWisdom(); }).catch(() => { loadWisdom(); });
             renderChat(); renderReminders(); renderMemory(); renderAlertLog();
-            if ('speechSynthesis' in window) { window.speechSynthesis.getVoices(); window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.getVoices(); }; }
+            
+            // Initialize Voice List
+            populateVoiceList();
+            if (typeof speechSynthesis !== 'undefined' && speechSynthesis.onvoiceschanged !== undefined) {
+                speechSynthesis.onvoiceschanged = populateVoiceList;
+            }
+
             if (gistToken && gistId) loadMemoryFromGist();
             updateCoreColor('HOLD'); updateISTClock();
             if ('Notification' in window && Notification.permission === 'default') { setTimeout(() => Notification.requestPermission(), 2000); }
