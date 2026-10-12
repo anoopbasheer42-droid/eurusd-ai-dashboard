@@ -9,6 +9,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- === PUTER.JS FOR HIGH-QUALITY AI VOICE === -->
+    <script src="https://js.puter.com/v2/"></script>
     <style>
         :root { --bg:#05060a; --card-bg:rgba(255,255,255,0.022); --card-border:rgba(255,255,255,0.055);
             --text-main:#f8fafc; --text-body:#c8cdd6; --text-muted:#64748b; --text-subtle:#475569;
@@ -56,7 +58,7 @@
         .panel { display: none; background: rgba(0,0,0,0.3); padding: 14px; border-radius: 10px; margin-bottom: 12px; font-size: 0.78rem; border: 1px solid rgba(255,255,255,0.05); }
         .panel.active { display: block; }
         .panel strong { font-family: 'Space Grotesk', sans-serif; color: var(--text-body); font-weight: 600; }
-        .panel input, .panel select { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; }
+        .panel input { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; }
         .chat-history { height: 340px; overflow-y: auto; background: rgba(0,0,0,0.3); border-radius: 10px; padding: 14px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 10px; border: 1px solid rgba(255,255,255,0.03); }
         .chat-history::-webkit-scrollbar { width: 4px; }
         .chat-history::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.25); border-radius: 4px; }
@@ -156,11 +158,9 @@
                 <div id="gist-status" style="font-size:0.7rem; margin-top:8px; color:var(--yellow);"></div>
             </div>
             <div class="panel" id="panel-voice">
-                <strong>Select Voice</strong>
-                <select id="voice-select" onchange="saveVoiceSelection()" style="width:100%; padding:9px; margin-top:8px; border-radius:7px; border:1px solid rgba(255,255,255,0.08); background:rgba(0,0,0,0.3); color:white;">
-                    <option>Loading voices...</option>
-                </select>
-                <div style="font-size:0.7rem; color:var(--text-muted); margin-top:8px;">Voices depend on your device and browser. If you don't hear a change, try a different browser or device.</div>
+                <strong>Voice Engine Status</strong>
+                <div style="font-size:0.75rem; color:var(--green); margin-top:6px;">✓ Using Premium Cloud Voice (ElevenLabs via Puter.js)</div>
+                <div style="font-size:0.7rem; color:var(--text-muted); margin-top:8px;">This provides a natural, human-sounding voice. If the internet is slow, it automatically falls back to your device's browser voice.</div>
             </div>
             <div class="panel" id="panel-key">
                 <strong>Groq API Key (primary)</strong>
@@ -225,6 +225,9 @@
         let gistToken = localStorage.getItem('eurusd_gist_token') || '';
         let gistId = localStorage.getItem('eurusd_gist_id') || '';
         let alertLog = JSON.parse(localStorage.getItem('eurusd_alert_log') || '[]');
+        
+        // === AUDIO TRACKING FOR CLOUD VOICE ===
+        let currentAudio = null;
 
         document.body.addEventListener('click', () => { if ('speechSynthesis' in window) window.speechSynthesis.getVoices(); }, { once: true });
 
@@ -510,46 +513,8 @@
         const CLOSINGS = ["Stay sharp, Boss.", "Trade safe.", "I'll keep watching.", "Good luck out there.", "That's all for now.", "Talk soon."];
         const rnd = (a) => a[Math.floor(Math.random()*a.length)];
 
-        // === VOICE SELECTION LOGIC ===
-        function populateVoiceList() {
-            const voices = window.speechSynthesis.getVoices();
-            const select = document.getElementById('voice-select');
-            if (!select) return;
-            const savedVoice = localStorage.getItem('eurusd_voice_name');
-            select.innerHTML = '';
-            
-            // Filter for English voices to keep the list manageable, but allow all if no English is found
-            let filteredVoices = voices.filter(v => v.lang.startsWith('en'));
-            if (filteredVoices.length === 0) filteredVoices = voices;
-
-            filteredVoices.forEach(v => {
-                const option = document.createElement('option');
-                option.textContent = `${v.name} (${v.lang})`;
-                option.value = v.name;
-                if (v.name === savedVoice) option.selected = true;
-                select.appendChild(option);
-            });
-        }
-
-        function saveVoiceSelection() {
-            const select = document.getElementById('voice-select');
-            if (select.value) {
-                localStorage.setItem('eurusd_voice_name', select.value);
-                speakText("Voice updated, Boss."); // Short confirmation
-            }
-        }
-
         function getBestVoice() {
             const voices = window.speechSynthesis.getVoices();
-            const savedVoiceName = localStorage.getItem('eurusd_voice_name');
-            
-            // 1. Try to use the user's saved selection first
-            if (savedVoiceName) {
-                const saved = voices.find(v => v.name === savedVoiceName);
-                if (saved) return saved;
-            }
-            
-            // 2. Fallback to the priority list of natural-sounding voices
             const priorities = [
                 'Google UK English Male', 'Google US English', 
                 'Microsoft Guy Online', 'Microsoft Mark', 'Microsoft David', 
@@ -559,15 +524,56 @@
                 const found = voices.find(v => v.name.includes(name)); 
                 if (found) return found; 
             }
-            
-            // 3. Absolute fallback
             return voices.find(v => v.lang.startsWith('en')) || voices[0];
         }
 
-        // === REWRITTEN VOICE ENGINE FOR HUMAN-LIKE PACING ===
+        // === CLOUD AI VOICE ENGINE (PUTER.JS / ELEVENLABS) ===
         function speakText(text, isReminder = false) {
+            // Stop any currently playing cloud audio
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio = null;
+            }
+            // Stop any browser speech
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
+
+            // Clean the text to remove any system tags
+            const cleanText = text.replace(/\[.*?\]/g, '').trim();
+            if (!cleanText) return;
+
+            isSpeaking = true;
+            
+            // ElevenLabs Voice IDs:
+            // Adam: pNInz6obpgDQGcFmaJgB (Deep, narrative)
+            // Antoni: ErXwobaYiN019PkySvjV (Well-modulated, casual)
+            // Josh: TxGEqnHWrfWFTfGW9XjX (Deep, young)
+            // Rachel: 21m00Tcm4TlvDq8ikWAM (Calm, narrative - female)
+            const voiceId = "pNInz6obpgDQGcFmaJgB"; // Adam - a highly natural male voice
+            const modelId = "eleven_turbo_v2_5"; // Fast and high quality
+
+            puter.ai.txt2speech(cleanText, {
+                provider: "elevenlabs",
+                voice: voiceId,
+                model: modelId
+            }).then(audio => {
+                currentAudio = audio;
+                audio.play();
+                audio.onended = () => {
+                    isSpeaking = false;
+                    currentAudio = null;
+                };
+            }).catch(err => {
+                console.error("Puter.js TTS error, falling back to browser voice:", err);
+                fallbackSpeakText(cleanText, isReminder);
+            });
+        }
+
+        // === FALLBACK BROWSER VOICE ENGINE ===
+        function fallbackSpeakText(text, isReminder = false) {
             if (!('speechSynthesis' in window)) return;
-            window.speechSynthesis.cancel(); // Stop any current speech
+            window.speechSynthesis.cancel();
             
             const voice = getBestVoice(); 
             if (!voice) return;
@@ -613,7 +619,17 @@
             let text = `${rnd(OPENINGS)} Price is ${globalData.price}. We've got a ${globalData.signal} signal with ${globalData.confidence} confidence. ${globalData.reason} ${rnd(TRANS)} Support sits at ${globalData.support}, resistance at ${globalData.resistance}. Entry is ${globalData.entry}. Stop loss at ${globalData.sl}. Take profit at ${globalData.tp}. ${globalData.wise_words ? globalData.wise_words : ''} ${rnd(CLOSINGS)}`;
             speakText(text);
         }
-        function stopVoice() { if ('speechSynthesis' in window) { window.speechSynthesis.cancel(); isSpeaking = false; } }
+        
+        function stopVoice() { 
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio = null;
+            }
+            if ('speechSynthesis' in window) { 
+                window.speechSynthesis.cancel(); 
+            }
+            isSpeaking = false; 
+        }
 
         function renderChat() {
             const el = document.getElementById('chat-history');
@@ -630,7 +646,6 @@
             if (id === 'panel-memory') renderMemory();
             if (id === 'panel-key') { document.getElementById('groq-key-input').value = groqKey; document.getElementById('api-key-input').value = apiKey; }
             if (id === 'panel-gist') { document.getElementById('gist-token-input').value = gistToken; document.getElementById('gist-id-input').value = gistId; }
-            if (id === 'panel-voice') populateVoiceList();
         }
         function saveGistConfig() { gistToken = document.getElementById('gist-token-input').value.trim(); gistId = document.getElementById('gist-id-input').value.trim(); localStorage.setItem('eurusd_gist_token', gistToken); localStorage.setItem('eurusd_gist_id', gistId); saveMemoryToGist(); }
         
@@ -834,13 +849,7 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
         window.onload = () => {
             fetch('https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/personal_context.json').then(r => r.json()).then(d => { personalContext = d; loadWisdom(); }).catch(() => { loadWisdom(); });
             renderChat(); renderReminders(); renderMemory(); renderAlertLog();
-            
-            // Initialize Voice List
-            populateVoiceList();
-            if (typeof speechSynthesis !== 'undefined' && speechSynthesis.onvoiceschanged !== undefined) {
-                speechSynthesis.onvoiceschanged = populateVoiceList;
-            }
-
+            if ('speechSynthesis' in window) { window.speechSynthesis.getVoices(); window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.getVoices(); }; }
             if (gistToken && gistId) loadMemoryFromGist();
             updateCoreColor('HOLD'); updateISTClock();
             if ('Notification' in window && Notification.permission === 'default') { setTimeout(() => Notification.requestPermission(), 2000); }
