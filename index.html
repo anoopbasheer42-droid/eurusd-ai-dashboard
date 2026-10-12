@@ -249,7 +249,7 @@
         const GROQ_MODELS = ['meta-llama/llama-4-scout-17b-16e-instruct','llama-3.3-70b-versatile','openai/gpt-oss-120b'];
         const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
         const GEMINI_MODELS = ['gemini-3.8-flash','gemini-flash-latest','gemini-2.5-flash'];
-        const MARKET_KEYWORDS = ['market','buy','sell','trade','signal','entry','sl','tp','stop loss','take profit','setup','chart','trend','support','resistance','eur/usd','eurusd','should i','analysis','long','short','position','pip','bullish','bearish','candle','indicator','rsi','ema','atr','scalp','day trade'];
+        const MARKET_KEYWORDS = ['market','buy','sell','trade','signal','entry','sl','tp','stop loss','take profit','setup','chart','trend','support','resistance','eur/usd','eurusd','should i','analysis','long','short','position','pip','bullish','bearish','candle','indicator','rsi','ema','atr'];
 
         const LOCAL_QUOTES = ["Discipline beats conviction...", "Every loss is tuition...", "Protect your capital first...", "Cut losses short, let winners run...", "A calm mind catches more pips...", "You don't need to be right every time...", "The trend is your friend until it bends...", "Patience is not waiting...", "The market rewards preparation...", "Trade like a sniper..."];
         const LOCAL_JOKES = ["Why don't traders play hide and seek?...", "I told my wife I was a forex trader...", "My stop loss is like my ex...", "What's the difference between a forex trader and a pizza?..."];
@@ -590,8 +590,8 @@
                     const timeoutId = setTimeout(() => controller.abort(), 15000); // 15-second timeout
 
                     const targetUrl = kokoroUrl.replace(/\/$/, '') + '/v1/audio/speech';
-                    // Using AllOrigins as a free, open CORS proxy
-                    const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(targetUrl);
+                    // Using corsproxy.io which handles POST requests with JSON bodies
+                    const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(targetUrl);
 
                     const response = await fetch(proxyUrl, {
                         method: 'POST',
@@ -621,7 +621,6 @@
                     } else {
                         if (statusEl) statusEl.innerHTML = `<span style='color:var(--red);'>Kokoro Error: ${e.message}. Falling back...</span>`;
                     }
-                    // Fall through to ElevenLabs since user asked not to remove it
                 }
             }
 
