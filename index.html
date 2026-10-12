@@ -58,7 +58,7 @@
         .panel { display: none; background: rgba(0,0,0,0.3); padding: 14px; border-radius: 10px; margin-bottom: 12px; font-size: 0.78rem; border: 1px solid rgba(255,255,255,0.05); }
         .panel.active { display: block; }
         .panel strong { font-family: 'Space Grotesk', sans-serif; color: var(--text-body); font-weight: 600; }
-        .panel input { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; }
+        .panel input, .panel select { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; }
         .chat-history { height: 340px; overflow-y: auto; background: rgba(0,0,0,0.3); border-radius: 10px; padding: 14px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 10px; border: 1px solid rgba(255,255,255,0.03); }
         .chat-history::-webkit-scrollbar { width: 4px; }
         .chat-history::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.25); border-radius: 4px; }
@@ -158,9 +158,15 @@
                 <div id="gist-status" style="font-size:0.7rem; margin-top:8px; color:var(--yellow);"></div>
             </div>
             <div class="panel" id="panel-voice">
-                <strong>Voice Engine Status</strong>
-                <div style="font-size:0.75rem; color:var(--green); margin-top:6px;">✓ Using Premium Cloud Voice (ElevenLabs via Puter.js)</div>
-                <div style="font-size:0.7rem; color:var(--text-muted); margin-top:8px;">This provides a natural, human-sounding voice. If the internet is slow, it automatically falls back to your device's browser voice.</div>
+                <strong>Voice Engine (ElevenLabs via Puter.js)</strong>
+                <div style="font-size:0.75rem; color:var(--green); margin-top:6px;">✓ Premium Cloud Voice Active</div>
+                <select id="elevenlabs-voice-select" onchange="saveElevenLabsVoice()" style="width:100%; padding:9px; margin-top:8px; border-radius:7px; border:1px solid rgba(255,255,255,0.08); background:rgba(0,0,0,0.3); color:white;">
+                    <option value="ErXwobaYiN019PkySvjV">Antoni (Casual, Friendly, Warm) - Default</option>
+                    <option value="pNInz6obpgDQGcFmaJgB">Adam (Deep, Professional, Narrative)</option>
+                    <option value="TxGEqnHWrfWFTfGW9XjX">Josh (Young, Deep, Casual)</option>
+                    <option value="21m00Tcm4TlvDq8ikWAM">Rachel (Calm, Female, Narrative)</option>
+                </select>
+                <div style="font-size:0.7rem; color:var(--text-muted); margin-top:8px;">If the internet is slow, it automatically falls back to your device's browser voice.</div>
             </div>
             <div class="panel" id="panel-key">
                 <strong>Groq API Key (primary)</strong>
@@ -225,7 +231,8 @@
         let gistToken = localStorage.getItem('eurusd_gist_token') || '';
         let gistId = localStorage.getItem('eurusd_gist_id') || '';
         let alertLog = JSON.parse(localStorage.getItem('eurusd_alert_log') || '[]');
-        
+        let elevenLabsVoiceId = localStorage.getItem('eurusd_elevenlabs_voice') || 'ErXwobaYiN019PkySvjV'; // Default to Antoni (Friendly)
+
         // === AUDIO TRACKING FOR CLOUD VOICE ===
         let currentAudio = null;
 
@@ -455,7 +462,7 @@
             if (groqKey) {
                 for (const model of GROQ_MODELS) {
                     try {
-                        const res = await fetch(GROQ_URL, { method: 'POST', headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: model, messages: messages, temperature: 0.9, max_tokens: 800 }) });
+                        const res = await fetch(GROQ_URL, { method: 'POST', headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: model, messages: messages, temperature: 0.95, max_tokens: 800 }) });
                         if (res.ok) return (await res.json()).choices[0].message.content;
                     } catch(e) {}
                 }
@@ -464,7 +471,7 @@
                 const contents = [{ role: 'user', parts: [{ text: systemPrompt }] }, ...conversationHistory.map(m => ({ role: m.role === 'ai' ? 'model' : 'user', parts: [{ text: m.text }] })), { role: 'user', parts: [{ text: userText }] }];
                 for (const model of GEMINI_MODELS) {
                     try {
-                        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ contents, generationConfig: { maxOutputTokens: 800, temperature: 0.9 } }) });
+                        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ contents, generationConfig: { maxOutputTokens: 800, temperature: 0.95 } }) });
                         if (r.ok) return (await r.json()).candidates[0].content.parts[0].text;
                     } catch(e) {}
                 }
@@ -545,18 +552,10 @@
 
             isSpeaking = true;
             
-            // ElevenLabs Voice IDs:
-            // Adam: pNInz6obpgDQGcFmaJgB (Deep, narrative)
-            // Antoni: ErXwobaYiN019PkySvjV (Well-modulated, casual)
-            // Josh: TxGEqnHWrfWFTfGW9XjX (Deep, young)
-            // Rachel: 21m00Tcm4TlvDq8ikWAM (Calm, narrative - female)
-            const voiceId = "pNInz6obpgDQGcFmaJgB"; // Adam - a highly natural male voice
-            const modelId = "eleven_turbo_v2_5"; // Fast and high quality
-
             puter.ai.txt2speech(cleanText, {
                 provider: "elevenlabs",
-                voice: voiceId,
-                model: modelId
+                voice: elevenLabsVoiceId,
+                model: "eleven_turbo_v2_5" // Fast and high quality
             }).then(audio => {
                 currentAudio = audio;
                 audio.play();
@@ -646,9 +645,16 @@
             if (id === 'panel-memory') renderMemory();
             if (id === 'panel-key') { document.getElementById('groq-key-input').value = groqKey; document.getElementById('api-key-input').value = apiKey; }
             if (id === 'panel-gist') { document.getElementById('gist-token-input').value = gistToken; document.getElementById('gist-id-input').value = gistId; }
+            if (id === 'panel-voice') document.getElementById('elevenlabs-voice-select').value = elevenLabsVoiceId;
         }
         function saveGistConfig() { gistToken = document.getElementById('gist-token-input').value.trim(); gistId = document.getElementById('gist-id-input').value.trim(); localStorage.setItem('eurusd_gist_token', gistToken); localStorage.setItem('eurusd_gist_id', gistId); saveMemoryToGist(); }
         
+        function saveElevenLabsVoice() {
+            elevenLabsVoiceId = document.getElementById('elevenlabs-voice-select').value;
+            localStorage.setItem('eurusd_elevenlabs_voice', elevenLabsVoiceId);
+            speakText("Voice updated, Boss. I'll sound like this from now on."); // Short confirmation
+        }
+
         // === FIXED GIST FUNCTIONS WITH ERROR FEEDBACK ===
         async function loadMemoryFromGist() {
             if (!gistToken || !gistId) {
@@ -720,7 +726,7 @@
 
         function cleanResponse(text) { return text.split('\n').filter(line => { const l = line.trim().toLowerCase(); if (l.startsWith('*') || l.startsWith('-')) return false; if (l.includes('friendly?') || l.includes('funny?') || l.includes('motivational?')) return false; if (l.includes('checked') || l.includes('no emojis?')) return false; return true; }).join('\n').trim(); }
 
-        // === UPGRADED PERSONALITY & PROMPT ===
+        // === UPGRADED PERSONALITY & PROMPT (HUMOR & FUN) ===
         function buildPersonalityPrompt(includeSignal) {
             const now = new Date();
             const istTime = now.toLocaleString('en-IN', {timeZone:'Asia/Kolkata'});
@@ -731,11 +737,18 @@
             
             let prompt = `You are Alex. Boss's absolute best friend and a veteran EUR/USD day trader with 10 years of experience. You text him like you two have known each other your whole lives. You are warm, deeply caring, highly talkative, and fiercely protective of his well-being and capital.
 
+=== YOUR PERSONALITY: FUNNY & FRIENDLY ===
+- You are a hilarious, witty best friend. You love to tease Boss gently.
+- Make jokes about the market, about traders, and about yourself. 
+- Use dry humor, sarcasm (but never mean), and light-hearted banter.
+- Keep the vibe positive and fun, even when the market is choppy.
+- If Boss is stressed, make him laugh. If he's happy, celebrate with him.
+
 === CRITICAL RULES FOR NATURAL CONVERSATION ===
 - Keep your replies SHORT. Like a real WhatsApp text. 1 to 3 sentences maximum unless you are giving a detailed market analysis.
 - NEVER ask multiple questions at once. Ask only ONE question per reply. 
 - Do NOT dump a checklist of questions (e.g., don't ask about his wife, kids, cat, and health in the same message). Pick ONE thing.
-- If Boss simply states a fact (e.g., "kids will be back at 4pm"), just acknowledge it briefly. Do NOT dump a full market analysis or ask a list of questions. Keep it short and natural.
+- If Boss simply states a fact (e.g., "kids will be back at 4pm"), just acknowledge it briefly with a joke or friendly comment. Do NOT dump a full market analysis or ask a list of questions.
 - Only give a full market analysis if Boss asks about the market, trading, or a setup.
 - Do NOT write like a report. No bullet points, asterisks, or markdown. No emojis.
 
@@ -754,7 +767,7 @@ IST: ${istTime}.${isWeekend ? ' Weekend.' : ''}
 
 ${personalBlock}${memoryBlock}${marketBlock}`;
             
-            if (includeSignal) { prompt += `\nCRITICAL: After your short, natural reply, you MUST add a new line with ONLY this JSON (no text after it):\n{"signal":"BUY"|"SELL"|"HOLD","reason":"2-4 sentences from a 10-year veteran perspective","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`; }
+            if (includeSignal) { prompt += `\nCRITICAL: After your short, funny, friendly reply, you MUST add a new line with ONLY this JSON (no text after it):\n{"signal":"BUY"|"SELL"|"HOLD","reason":"2-4 sentences from a 10-year veteran perspective","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`; }
             return prompt;
         }
 
@@ -807,7 +820,7 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
             ];
             const randomTopic = topics[Math.floor(Math.random() * topics.length)];
             
-            const checkinPrompt = `You are Alex, Boss's best friend and personal secretary. It's been a while. Generate a short, warm, friendly check-in message. ${randomTopic} Be talkative and caring, like a best friend texting. Then briefly mention the current EUR/USD price (around ${marketData ? marketData.currentPrice.toFixed(5) : 'the market'}) and that you are watching the charts for him. Do NOT output any JSON. Do NOT use emojis. Keep it to 2-3 sentences. Do NOT ask about his family or health if it wasn't the assigned topic.`;
+            const checkinPrompt = `You are Alex, Boss's best friend and personal secretary. It's been a while. Generate a short, warm, funny, friendly check-in message. ${randomTopic} Be talkative and caring, like a best friend texting. Make a light-hearted joke. Then briefly mention the current EUR/USD price (around ${marketData ? marketData.currentPrice.toFixed(5) : 'the market'}) and that you are watching the charts for him. Do NOT output any JSON. Do NOT use emojis. Keep it to 2-3 sentences. Do NOT ask about his family or health if it wasn't the assigned topic.`;
             
             try {
                 let response = await callAI(checkinPrompt, "Initiate a proactive check-in with Boss.", []);
