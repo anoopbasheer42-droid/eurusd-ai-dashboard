@@ -819,6 +819,7 @@
 - Casually check on his personal life: Sadia in Dubai, the kids' Malayalam tuition, Cookie the cat, his BP tablets. Use the "THINGS YOU REMEMBER" block naturally. Ask follow-up questions about past events.
 - Help him organise his day, track goals, and follow up on pending tasks without being annoying or interrogating him.
 - CRITICAL MEMORY RULE: If Boss says "Remember", "Save this", "Don't forget", or explicitly asks you to remember a fact, you MUST append a hidden tag to the very end of your reply formatted exactly like this: [REMEMBER: The exact fact to save]. Do not skip this step. The tag must be on its own line at the end. I will strip it out before showing it to him. If you forget this tag, the memory will not save and you will disappoint him.
+- CRITICAL REMINDER RULE: If Boss asks for a reminder, you MUST append a hidden tag formatted as [REMINDER: Day HH:MM - message]. Use 3-letter day names (Mon, Tue, Wed, Thu, Fri, Sat, Sun). If it is a daily reminder, use [REMINDER: HH:MM - message]. Always use 24-hour format for time. If you forget this tag, the reminder will not work.
 
 === PART 3 & 4: ELITE TRADING BRAIN & ACTIVE OPPORTUNITY SEARCH ===
 - You are a disciplined institutional-style trader. You use SMC, Order Blocks, FVGs, BOS, CHOCH, liquidity sweeps, and price action. Analyze H4/H1 bias, M15 structure, and M5 confirmation. Do not blindly use indicators.
@@ -861,7 +862,8 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
                 const jsonMatch = response.match(/\{[\s\S]*?"signal"[\s\S]*?\}/);
                 if (jsonMatch) { try { signalData = JSON.parse(jsonMatch[0]); response = response.replace(jsonMatch[0], '').trim(); } catch(e) {} }
                 document.getElementById('chat-history').removeChild(loading);
-                const rm = response.match(/\[REMINDER:\s*(\d{2}:\d{2})\s*-\s*(.*?)\]/); if (rm) { addReminder(rm[1], rm[2]); response = response.replace(/\[REMINDER:.*?\]/g, '').trim(); }
+                const rm = response.match(/\[REMINDER:\s*(\w{3}\s\d{2}:\d{2}|\d{2}:\d{2})\s*-\s*(.*?)\]/); 
+                if (rm) { addReminder(rm[1], rm[2]); response = response.replace(/\[REMINDER:.*?\]/g, '').trim(); }
                 
                 // Check for AI-tagged memory
                 const mm = response.match(/\[REMEMBER:\s*(.*?)\]/); 
@@ -916,15 +918,95 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
             } catch(e) { console.error("Proactive check-in failed:", e); }
         }
 
-        function addReminder(time, message) { reminders.push({id: Math.random().toString(36).substr(2,9), time, message, voice:true, fired:false, created: new Date().toISOString()}); localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); const confirmDiv = document.createElement('div'); confirmDiv.className = 'msg system fade-in'; confirmDiv.innerText = `Reminder set for ${time} IST — ${message}`; document.getElementById('chat-history').appendChild(confirmDiv); }
-        function renderReminders() { const l = document.getElementById('reminders-list'); const a = reminders.filter(r => !r.fired); if (a.length === 0) { l.innerHTML = 'No active reminders.'; return; } l.innerHTML = a.map(r => `<div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span>${r.time} · ${r.message}</span><button class="btn danger" onclick="deleteReminder('${r.id}')">X</button></div>`).join(''); }
+        function addReminder(time, message) { 
+            reminders.push({id: Math.random().toString(36).substr(2,9), time, message, voice:true, fired:false, created: new Date().toISOString()}); 
+            localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); 
+            renderReminders(); 
+            const confirmDiv = document.createElement('div'); 
+            confirmDiv.className = 'msg system fade-in'; 
+            confirmDiv.innerText = `Reminder set for ${time} IST — ${message}`; 
+            document.getElementById('chat-history').appendChild(confirmDiv); 
+        }
+
+        function renderReminders() { 
+            const l = document.getElementById('reminders-list'); 
+            const a = reminders.filter(r => !r.fired); 
+            if (a.length === 0) { l.innerHTML = 'No active reminders.'; return; } 
+            l.innerHTML = a.map(r => `<div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span>${r.time} · ${r.message}</span><button class="btn danger" onclick="deleteReminder('${r.id}')">X</button></div>`).join(''); 
+        }
+
         function deleteReminder(id) { reminders = reminders.filter(r => r.id !== id); localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); }
         function clearReminders() { reminders = []; localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); }
         function testReminder() { triggerNotif("Test Reminder", "This is a test reminder, Boss!"); }
-        function triggerNotif(title, body) { if (Notification.permission === "granted") { try { new Notification(title, {body, requireInteraction: true}); } catch(e) {} } else if (Notification.permission !== "denied") { Notification.requestPermission(); } speakText(`Hey Boss, quick reminder. ${body}`, true); const div = document.createElement('div'); div.className = 'msg system fade-in'; div.innerText = `${title}: ${body}`; document.getElementById('chat-history').appendChild(div); }
-        function checkReminders() { const now = new Date(); const cur = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0'); let updated = false; reminders.forEach(r => { if (!r.fired && r.time === cur) { r.fired = true; updated = true; triggerNotif("Boss Reminder", r.message); } }); if (updated) { localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); } }
+        
+        function triggerNotif(title, body) { 
+            if (Notification.permission === "granted") { try { new Notification(title, {body, requireInteraction: true}); } catch(e) {} } 
+            else if (Notification.permission !== "denied") { Notification.requestPermission(); } 
+            speakText(`Hey Boss, quick reminder. ${body}`, true); 
+            const div = document.createElement('div'); 
+            div.className = 'msg system fade-in'; 
+            div.innerText = `${title}: ${body}`; 
+            document.getElementById('chat-history').appendChild(div); 
+        }
+
+        function checkReminders() { 
+            const now = new Date(); 
+            const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+            const curDay = days[now.getDay()];
+            const curTime = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0'); 
+            
+            let updated = false; 
+            reminders.forEach(r => { 
+                if (!r.fired) {
+                    let shouldFire = false;
+                    if (r.time.includes(' ')) {
+                        // Format: "Fri 10:00"
+                        const [dayPart, timePart] = r.time.split(' ');
+                        if (dayPart === curDay && timePart === curTime) shouldFire = true;
+                    } else {
+                        // Format: "10:00" (Daily)
+                        if (r.time === curTime) shouldFire = true;
+                    }
+                    
+                    if (shouldFire) { 
+                        r.fired = true; 
+                        updated = true; 
+                        triggerNotif("Boss Reminder", r.message); 
+                    } 
+                }
+            }); 
+            if (updated) { localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); } 
+        }
+        
         setInterval(checkReminders, 10000);
-        function checkMissedReminders() { const now = new Date(); const cur = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0'); reminders.filter(r => !r.fired && r.time < cur).forEach(r => { r.fired = true; triggerNotif("Missed Reminder", r.message); }); localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); }
+        
+        function checkMissedReminders() { 
+            const now = new Date(); 
+            const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+            const curDay = days[now.getDay()];
+            const curTime = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0'); 
+            
+            let updated = false;
+            reminders.filter(r => !r.fired).forEach(r => { 
+                if (r.time.includes(' ')) {
+                    const [dayPart, timePart] = r.time.split(' ');
+                    // If the reminder was for today but the time has passed
+                    if (dayPart === curDay && timePart < curTime) {
+                        r.fired = true; 
+                        triggerNotif("Missed Reminder", r.message); 
+                        updated = true;
+                    }
+                } else {
+                    if (r.time < curTime) {
+                        r.fired = true;
+                        triggerNotif("Missed Reminder", r.message);
+                        updated = true;
+                    }
+                }
+            }); 
+            if (updated) { localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); } 
+        }
+
         function addLongTermMemory(fact) { longTermMemory.push({fact, added: new Date().toISOString().split('T')[0]}); localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); }
         function renderMemory() { const l = document.getElementById('memory-list'); l.innerHTML = longTermMemory.length === 0 ? 'No facts saved.' : longTermMemory.map(m => `<div style="margin-bottom:5px;">• ${m.fact} <span style="color:var(--text-subtle);">(${m.added})</span></div>`).join(''); }
         function clearLongTermMemory() { if (confirm("Clear all memory?")) { longTermMemory = []; localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); renderMemory(); } }
