@@ -336,41 +336,14 @@
         }
         function safeNum(val, fallback = 0) { return (isNaN(val) || val === undefined || val === null || !isFinite(val)) ? fallback : val; }
 
-        async function fetchWithTimeout(url, timeout = 3000) {
-            const ctrl = new AbortController();
-            const id = setTimeout(() => ctrl.abort(), timeout);
-            try { const r = await fetch(url, { signal: ctrl.signal }); clearTimeout(id); return r; }
-            catch(e) { clearTimeout(id); throw e; }
-        }
-        async function fetchYahooCandles(interval, range) {
-            const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/EURUSD=X?interval=${interval}&range=${range}`;
-            const proxies = [
-                `https://corsproxy.io/?${encodeURIComponent(yahooUrl)}`,
-                `https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`
-            ];
-            for (const proxyUrl of proxies) {
-                try {
-                    const res = await fetchWithTimeout(proxyUrl, 3000);
-                    if (!res.ok) continue;
-                    const data = await res.json();
-                    if (!data?.chart?.result?.[0]) continue;
-                    const result = data.chart.result[0];
-                    const ts = result.timestamp, q = result.indicators.quote[0];
-                    if (!ts || !q) continue;
-                    const candles = ts.map((t, i) => ({ time: t*1000, open: q.open[i], high: q.high[i], low: q.low[i], close: q.close[i] })).filter(c => c.open && c.high && c.low && c.close);
-                    if (candles.length > 0) return candles;
-                } catch(e) { continue; }
-            }
-            return [];
-        }
-
         function detectSetup(md) {
             const setups = [];
+            // We use the data from Python, but we can still run a quick local rule check
             if (md.rsi1H < 30 && md.currentPrice <= md.support * 1.001) setups.push({ type:'BUY', reason:`RSI oversold (${md.rsi1H.toFixed(1)}) + price at support ${md.support.toFixed(5)}`, strength:'STRONG' });
             if (md.rsi1H > 70 && md.currentPrice >= md.resistance * 0.999) setups.push({ type:'SELL', reason:`RSI overbought (${md.rsi1H.toFixed(1)}) + price at resistance ${md.resistance.toFixed(5)}`, strength:'STRONG' });
             if (md.currentPrice > md.resistance * 1.0005) setups.push({ type:'BUY', reason:`Breakout above resistance ${md.resistance.toFixed(5)}`, strength:'MEDIUM' });
             if (md.currentPrice < md.support * 0.9995) setups.push({ type:'SELL', reason:`Breakdown below support ${md.support.toFixed(5)}`, strength:'MEDIUM' });
-            if (md.candles1H.length >= 2) {
+            if (md.candles1H && md.candles1H.length >= 2) {
                 const last = md.candles1H[md.candles1H.length - 1];
                 const bodySize = Math.abs(last.close - last.open);
                 if (bodySize > md.atr * 1.5) {
@@ -420,74 +393,77 @@
             }
         }
 
+        // === UPGRADED: Now fetches from Python backend data.json ===
         async function refreshMarketData() {
             const statusEl = document.getElementById('signal-status');
-            const [candles5m, candles15m, candles1H, candlesDaily] = await Promise.all([
-                fetchYahooCandles('5m', '5d'), fetchYahooCandles('15m', '5d'),
-                fetchYahooCandles('1h', '1mo'), fetchYahooCandles('1d', '3mo')
-            ]);
-            if (candles1H.length === 0) {
-                try {
-                    const fb = await fetch(FALLBACK_URL + '?v=' + Date.now());
-                    const fbData = await fb.json();
-                    const safePrice = safeNum(parseFloat(fbData.price), 1.1200);
-                    const safeSupport = safeNum(parseFloat(fbData.support), 1.1176);
-                    const safeResistance = safeNum(parseFloat(fbData.resistance), 1.1246);
-                    const safeAtr = safeNum(parseFloat(fbData.atr), 0.001);
-                    marketData = { currentPrice: safePrice, trend: fbData.trend || 'Sideways', support: safeSupport, resistance: safeResistance, session: fbData.session || 'Unknown', rsi1H: 50, rsi15m: 50, rsi5m: 50, ema20: safePrice, ema50: safePrice, atr: safeAtr, candles5m: [], candles15m: [], candles1H: [], candlesDaily: [] };
-                    document.getElementById('live-price').innerText = safePrice.toFixed(5);
-                    document.getElementById('last-updated').innerText = `FALLBACK · ${new Date().toLocaleTimeString('en-IN',{hour12:false})}`;
-                    document.getElementById('val-trend').innerText = marketData.trend;
-                    document.getElementById('val-session').innerText = marketData.session;
-                    document.getElementById('val-support').innerText = safeSupport.toFixed(5);
-                    document.getElementById('val-resistance').innerText = safeResistance.toFixed(5);
-                    document.getElementById('val-candle-current').innerText = fbData.candle_current || '—';
-                    document.getElementById('val-candle-1h').innerText = fbData.candle_1h || '—';
-                    document.getElementById('val-candle-4h').innerText = fbData.candle_4h || '—';
-                    if (statusEl) statusEl.innerText = "Using backup data — live feed unavailable";
-                } catch(e) {
-                    const safePrice = 1.1200;
-                    marketData = { currentPrice: safePrice, trend: 'Sideways', support: 1.1176, resistance: 1.1246, session: 'Unknown', rsi1H: 50, rsi15m: 50, rsi5m: 50, ema20: safePrice, ema50: safePrice, atr: 0.001, candles5m: [], candles15m: [], candles1H: [], candlesDaily: [] };
-                    document.getElementById('live-price').innerText = safePrice.toFixed(5);
-                    document.getElementById('last-updated').innerText = `DEFAULT · ${new Date().toLocaleTimeString('en-IN',{hour12:false})}`;
-                    if (statusEl) statusEl.innerText = "Data unavailable — using defaults";
+            const livePriceEl = document.getElementById('live-price');
+            const lastUpdatedEl = document.getElementById('last-updated');
+
+            try {
+                // Fetch the data generated by your GitHub Action
+                const response = await fetch(FALLBACK_URL + '?v=' + Date.now());
+                if (!response.ok) throw new Error("Failed to fetch data.json");
+                const fbData = await response.json();
+
+                const safePrice = safeNum(parseFloat(fbData.price), 1.1200);
+                const safeSupport = safeNum(parseFloat(fbData.support), 1.1176);
+                const safeResistance = safeNum(parseFloat(fbData.resistance), 1.1246);
+                const safeAtr = safeNum(parseFloat(fbData.atr), 0.001);
+
+                // Map your Python JSON structure to your frontend marketData object
+                marketData = {
+                    currentPrice: safePrice,
+                    trend: fbData.trend || 'Sideways',
+                    support: safeSupport,
+                    resistance: safeResistance,
+                    session: fbData.session || 'Unknown',
+                    rsi1H: 50, // Defaults since Python handles the heavy lifting
+                    rsi15m: 50,
+                    rsi5m: 50,
+                    ema20: safePrice,
+                    ema50: safePrice,
+                    atr: safeAtr,
+                    candles5m: fbData.candles_5m || [],
+                    candles15m: fbData.candles_15m || [],
+                    candles1H: fbData.candles_h1 || [],
+                    candlesDaily: fbData.candles_daily || []
+                };
+
+                // Update the UI
+                livePriceEl.innerText = safePrice.toFixed(5);
+                lastUpdatedEl.innerText = `SYNCED · ${new Date().toLocaleTimeString('en-IN',{hour12:false})}`;
+
+                document.getElementById('val-trend').innerText = marketData.trend;
+                document.getElementById('val-session').innerText = marketData.session;
+                document.getElementById('val-support').innerText = safeSupport.toFixed(5);
+                document.getElementById('val-resistance').innerText = safeResistance.toFixed(5);
+                document.getElementById('val-candle-current').innerText = fbData.candle_current || '—';
+                document.getElementById('val-candle-1h').innerText = fbData.candle_1h || '—';
+                document.getElementById('val-candle-4h').innerText = fbData.candle_4h || '—';
+
+                // Check for setups based on the synced data
+                const setup = detectSetup(marketData);
+                if (setup) {
+                    addAlertToLog(setup);
+                    showSetupAlert(setup);
+                } else {
+                    showSetupAlert(null);
+                    if (statusEl) statusEl.innerText = "Engine scanning — no setup detected";
                 }
-                return;
+
+                if (statusEl) statusEl.innerText = "Synced with GitHub Actions — Live data active";
+
+            } catch(e) {
+                console.error("Data fetch error:", e);
+                // Absolute fallback if GitHub is down or file is missing
+                const safePrice = 1.1200;
+                marketData = { currentPrice: safePrice, trend: 'Sideways', support: 1.1176, resistance: 1.1246, session: 'Unknown', rsi1H: 50, rsi15m: 50, rsi5m: 50, ema20: safePrice, ema50: safePrice, atr: 0.001, candles5m: [], candles15m: [], candles1H: [], candlesDaily: [] };
+                livePriceEl.innerText = safePrice.toFixed(5);
+                lastUpdatedEl.innerText = `DEFAULT · ${new Date().toLocaleTimeString('en-IN',{hour12:false})}`;
+                if (statusEl) statusEl.innerText = "Data unavailable — using defaults";
             }
-            const closes1H = candles1H.map(c => c.close), highs1H = candles1H.map(c => c.high), lows1H = candles1H.map(c => c.low);
-            const closes5m = candles5m.map(c => c.close);
-            const closes15m = candles15m.map(c => c.close), highs15m = candles15m.map(c => c.high), lows15m = candles15m.map(c => c.low);
-            const ema20 = calculateEMA(closes1H, 20), ema50 = calculateEMA(closes1H, 50);
-            let rsi1H = safeNum(calculateRSI(closes1H, 14), 50);
-            let rsi15m = safeNum(calculateRSI(closes15m, 14), 50);
-            let rsi5m = safeNum(calculateRSI(closes5m, 14), 50);
-            let atr = safeNum(calculateATR(highs1H, lows1H, closes1H, 14), 0.001);
-            const support = safeNum(Math.min(...lows1H.slice(-50)), 1.1176);
-            const resistance = safeNum(Math.max(...highs1H.slice(-50)), 1.1246);
-            let currentPrice = safeNum(closes5m[closes5m.length - 1], 1.1200);
-            const rh = highs1H.slice(-20), rl = lows1H.slice(-20);
-            let trend = "Sideways";
-            if (rh[rh.length-1] > rh[0] && rl[rl.length-1] > rl[0]) trend = "Uptrend";
-            if (rh[rh.length-1] < rh[0] && rl[rl.length-1] < rl[0]) trend = "Downtrend";
-            const hour = new Date().getUTCHours();
-            let session = "Off-Session";
-            if (hour >= 7 && hour < 10) session = "London Open";
-            else if (hour >= 12 && hour < 15) session = "NY Open";
-            else if (hour >= 2 && hour < 5) session = "Asian Session";
-            marketData = { candles5m, candles15m, candles1H, candlesDaily, closes5m, closes15m, highs15m, lows15m, closes1H, highs1H, lows1H, ema20: safeNum(ema20[ema20.length-1], currentPrice), ema50: safeNum(ema50[ema50.length-1], currentPrice), rsi1H, rsi15m, rsi5m, atr, support, resistance, currentPrice, trend, session };
-            document.getElementById('live-price').innerText = currentPrice.toFixed(5);
-            document.getElementById('last-updated').innerText = `LIVE · ${new Date().toLocaleTimeString('en-IN',{hour12:false})}`;
-            document.getElementById('val-trend').innerText = trend;
-            document.getElementById('val-session').innerText = session;
-            document.getElementById('val-support').innerText = support.toFixed(5);
-            document.getElementById('val-resistance').innerText = resistance.toFixed(5);
-            document.getElementById('val-candle-current').innerText = `5m · ${currentPrice.toFixed(5)} · RSI ${rsi5m.toFixed(1)}`;
-            document.getElementById('val-candle-1h').innerText = `1H · ${trend} · RSI ${rsi1H.toFixed(1)} · EMA20 ${ema20[ema20.length-1].toFixed(5)}`;
-            document.getElementById('val-candle-4h').innerText = `ATR ${atr.toFixed(5)} · Daily context loaded`;
-            const setup = detectSetup(marketData);
-            if (setup) { addAlertToLog(setup); showSetupAlert(setup); }
-            else { showSetupAlert(null); if (statusEl) statusEl.innerText = "Engine scanning — no setup detected"; }
         }
+
         function isMarketQuestion(text) {
             const lower = text.toLowerCase();
             return MARKET_KEYWORDS.some(kw => lower.includes(kw));
