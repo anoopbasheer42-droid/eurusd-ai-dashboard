@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -342,28 +341,6 @@
                 pool = [...LOCAL_QUOTES.map(q => `"${q}"`), ...LOCAL_JOKES.map(j => j)];
             }
             el.innerText = pool[Math.floor(Math.random() * pool.length)];
-        }
-
-        // === WEB SEARCH (FREE - NO API KEY) ===
-        async function searchWeb(query) {
-            try {
-                // Using the free, no-API-key search service from OpenSearchAPI
-                const url = `https://api.cors.lol/?url=${encodeURIComponent(`http://127.0.0.1:5000/search?q=${encodeURIComponent(query)}&engine=duckduckgo`)}`;
-                const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
-                if (!res.ok) throw new Error(`Search failed: ${res.status}`);
-                const data = await res.json();
-                if (!data.results || data.results.length === 0) return "No results found.";
-                
-                // Format top 3 results into a clean string for the AI
-                let formatted = "Here are the latest search results:\n\n";
-                data.results.slice(0, 3).forEach((r, i) => {
-                    formatted += `${i+1}. ${r.title}\n${r.snippet}\nSource: ${r.url}\n\n`;
-                });
-                return formatted.trim();
-            } catch (e) {
-                console.error("Web search error:", e);
-                return "I couldn't reach the internet right now, Boss. The free search service might be busy. Try again in a minute.";
-            }
         }
 
         // === THREE.JS NEURAL CORE ===
@@ -757,14 +734,7 @@
         function saveChatHistory() { if (chatHistory.length > 40) chatHistory = chatHistory.slice(-40); localStorage.setItem('eurusd_chat_history', JSON.stringify(chatHistory)); }
         function clearChat() { chatHistory = []; saveChatHistory(); renderChat(); }
         function toggleDeepThink() { deepThinkEnabled = !deepThinkEnabled; const b = document.getElementById('deep-think-toggle'); b.classList.toggle('active', deepThinkEnabled); b.innerText = deepThinkEnabled ? 'Deep ON' : 'Deep OFF'; }
-        
-        function toggleWeb() { 
-            webSearchEnabled = !webSearchEnabled; 
-            const b = document.getElementById('web-toggle'); 
-            b.innerText = webSearchEnabled ? 'Web ON' : 'Web OFF'; 
-            b.classList.toggle('active', webSearchEnabled); 
-        }
-
+        function toggleWeb() { webSearchEnabled = !webSearchEnabled; const b = document.getElementById('web-toggle'); b.innerText = webSearchEnabled ? 'Web ON' : 'Web OFF'; b.classList.toggle('active', webSearchEnabled); }
         function togglePanel(id) { const el = document.getElementById(id); el.classList.toggle('active');
             if (id === 'panel-reminders') renderReminders();
             if (id === 'panel-memory') renderMemory();
@@ -884,20 +854,9 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
             const loading = document.createElement('div'); loading.className = 'msg ai thinking fade-in'; loading.innerText = '...';
             document.getElementById('chat-history').appendChild(loading); document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight;
             try {
-                let response;
-                if (webSearchEnabled) {
-                    // Step 1: Search the web for the query
-                    const searchResults = await searchWeb(text);
-                    // Step 2: Send the search results to the AI
-                    const searchPrompt = `You have been given web search results. Use them to answer Boss's question accurately. \n\nWeb Search Results:\n${searchResults}\n\nBoss's Question: ${text}\n\nProvide a short, friendly, and conversational answer. Do not just list the results. Summarize them in your own words.`;
-                    const systemPrompt = buildPersonalityPrompt(false);
-                    response = await callAI(systemPrompt, searchPrompt, chatHistory.slice(-4));
-                } else {
-                    const systemPrompt = buildPersonalityPrompt(isMarketQuestion(text));
-                    const recent = chatHistory.slice(-6);
-                    response = await callAI(systemPrompt, text, recent);
-                }
-                
+                const systemPrompt = buildPersonalityPrompt(isMarketQuestion(text));
+                const recent = chatHistory.slice(-6);
+                let response = await callAI(systemPrompt, text, recent);
                 response = cleanResponse(response);
                 let signalData = null;
                 const jsonMatch = response.match(/\{[\s\S]*?"signal"[\s\S]*?\}/);
@@ -1083,4 +1042,3 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
     </script>
 </body>
 </html>
-
