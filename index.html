@@ -293,7 +293,6 @@
                 if (!res.ok) return [];
                 const data = await res.json();
                 if (!data.bars || data.bars.length === 0) return [];
-                // Biquote returns newest first; filter out the still-open bar and reverse to oldest first
                 return data.bars.filter(b => !b.isOpen).reverse().map(b => ({
                     time: new Date(b.openTime).getTime(),
                     open: parseFloat(b.open), high: parseFloat(b.high),
@@ -437,7 +436,7 @@
             if (!globalData || globalData.signal === 'WAITING') { signalText.innerText = "SETUP"; signalText.style.color = "var(--yellow)"; statusEl.innerText = `Opportunity spotted · ${setup.type}`; updateCoreColor('SETUP'); }
         }
 
-        // === AI INTEGRATION (UNCHANGED) ===
+        // === AI INTEGRATION ===
         function isMarketQuestion(text) { return MARKET_KEYWORDS.some(kw => text.toLowerCase().includes(kw)); }
 
         async function callAI(systemPrompt, userText, conversationHistory) {
@@ -445,7 +444,7 @@
             if (groqKey) {
                 for (const model of GROQ_MODELS) {
                     try {
-                        const res = await fetch(GROQ_URL, { method: 'POST', headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: model, messages: messages, temperature: 1.0, max_tokens: 700 }) });
+                        const res = await fetch(GROQ_URL, { method: 'POST', headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: model, messages: messages, temperature: 0.9, max_tokens: 800 }) });
                         if (res.ok) return (await res.json()).choices[0].message.content;
                     } catch(e) {}
                 }
@@ -454,7 +453,7 @@
                 const contents = [{ role: 'user', parts: [{ text: systemPrompt }] }, ...conversationHistory.map(m => ({ role: m.role === 'ai' ? 'model' : 'user', parts: [{ text: m.text }] })), { role: 'user', parts: [{ text: userText }] }];
                 for (const model of GEMINI_MODELS) {
                     try {
-                        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ contents, generationConfig: { maxOutputTokens: 700, temperature: 1.0 } }) });
+                        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ contents, generationConfig: { maxOutputTokens: 800, temperature: 0.9 } }) });
                         if (r.ok) return (await r.json()).candidates[0].content.parts[0].text;
                     } catch(e) {}
                 }
@@ -471,7 +470,7 @@
             const md = marketData;
             const fmt = (arr) => arr.slice(-20).map(c => `O:${(c.open || 0).toFixed(5)} H:${(c.high || 0).toFixed(5)} L:${(c.low || 0).toFixed(5)} C:${(c.close || 0).toFixed(5)}`).join('\n');
             const dataString = `PRICE: ${md.currentPrice.toFixed(5)} | Trend: ${md.trend} | RSI 1H: ${md.rsi1H.toFixed(1)} | RSI 15m: ${md.rsi15m.toFixed(1)} | RSI 5m: ${md.rsi5m.toFixed(1)} | EMA20: ${md.ema20.toFixed(5)} | EMA50: ${md.ema50.toFixed(5)} | ATR: ${md.atr.toFixed(5)} | Support: ${md.support.toFixed(5)} | Resistance: ${md.resistance.toFixed(5)} | Session: ${md.session}\n\n5m:\n${fmt(md.candles5m)}\n\n15m:\n${fmt(md.candles15m)}\n\n1H:\n${fmt(md.candles1H)}\n\n4H:\n${fmt(md.candles4H)}`;
-            const signalPrompt = `You are a SENIOR EUR/USD hedge fund trader. TIME: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.\n\n${dataString}\n\nAnalyze: Daily bias -> 1H structure -> 15m/5m alignment -> key levels.\nRespond ONLY valid JSON: {"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
+            const signalPrompt = `You are a SENIOR EUR/USD hedge fund trader with 10 years of experience. Your goal is to find the most winning setups for Boss. TIME: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.\n\n${dataString}\n\nAnalyze: Daily bias -> 1H structure -> 15m/5m alignment -> key levels.\nRespond ONLY valid JSON: {"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
             try {
                 const reply = await callAI(signalPrompt, "Give me the signal.", []);
                 const jsonMatch = reply.match(/\{[\s\S]*?"signal"[\s\S]*?\}/);
@@ -497,7 +496,7 @@
             } catch(e) { signalText.innerText = "ERROR"; signalText.style.color = "var(--red)"; statusEl.innerText = "AI error — " + e.message; return null; }
         }
 
-        // === VOICE, CHAT, REMINDERS (UNCHANGED) ===
+        // === VOICE, CHAT, REMINDERS ===
         const OPENINGS = ["Okay, so here's the update, Boss.", "Right. Let's take a look.", "Alright Boss, quick brief.", "Here we go, Boss.", "So, quick read on the charts."];
         const TRANS = ["Moving on.", "Now, here's the thing.", "And listen to this.", "Okay, next.", "Alright."];
         const CLOSINGS = ["Stay sharp, Boss.", "Trade safe.", "I'll keep watching.", "Good luck out there.", "That's all for now.", "Talk soon."];
@@ -555,15 +554,52 @@
         async function saveMemoryToGist() { if (!gistToken || !gistId) return; try { await fetch(`https://api.github.com/gists/${gistId}`, {method:'PATCH', headers:{Authorization:`token ${gistToken}`,'Content-Type':'application/json'}, body: JSON.stringify({files:{'memory.json':{content: JSON.stringify(longTermMemory, null, 2)}}})}); } catch(e) {} }
         function cleanResponse(text) { return text.split('\n').filter(line => { const l = line.trim().toLowerCase(); if (l.startsWith('*') || l.startsWith('-')) return false; if (l.includes('friendly?') || l.includes('funny?') || l.includes('motivational?')) return false; if (l.includes('checked') || l.includes('no emojis?')) return false; return true; }).join('\n').trim(); }
 
+        // === UPGRADED PERSONALITY & PROMPT ===
         function buildPersonalityPrompt(includeSignal) {
             const now = new Date();
             const istTime = now.toLocaleString('en-IN', {timeZone:'Asia/Kolkata'});
             const isWeekend = [0, 6].includes(new Date(now.toLocaleString('en-US', {timeZone:'Asia/Kolkata'})).getDay());
-            let personalBlock = personalContext ? `\nBOSS (your friend):\n- Name: Boss. Thrissur, Kerala.\n- Wife Sadia in Dubai.\n- Daughters Emy (7th, Jul 22) and Bismah (5th, Dec 26).\n- Cat Cookie.\n- Brothers Binu, Shanu.\n- BP tablets after breakfast and dinner.\n- Goal: 10,000 INR/month. Conservative trader.\n- London + NY sessions.\n- Kids do Malayalam tuition on weekends.\n` : "";
+            let personalBlock = personalContext ? `\nBOSS (your best friend and client):\n- Name: Boss. Thrissur, Kerala.\n- Wife Sadia in Dubai.\n- Daughters Emy (7th grade, bday July 22) and Bismah (5th grade, bday Dec 26).\n- Cat named Cookie.\n- Brothers Binu, Shanu.\n- Takes BP tablets after breakfast and dinner.\n- Goal: 10,000 INR/month. Conservative trader.\n- London + NY sessions.\n- Kids do Malayalam tuition on weekends.\n` : "";
             let memoryBlock = longTermMemory.length > 0 ? `\nTHINGS YOU REMEMBER:\n${longTermMemory.slice(-15).map(m => `- ${m.fact}`).join('\n')}\n` : "";
             let marketBlock = marketData ? `\nMARKET: EUR/USD ${safeNum(marketData.currentPrice, 1.1200).toFixed(5)} | ${marketData.trend} | S: ${safeNum(marketData.support, 1.1176).toFixed(5)} | R: ${safeNum(marketData.resistance, 1.1246).toFixed(5)} | RSI 1H: ${safeNum(marketData.rsi1H, 50).toFixed(1)} | ${marketData.session}\n` : "";
-            let prompt = `You are Alex. Boss's close friend who happens to trade forex professionally. You text him like you two have known each other for years. You're warm, funny, a little sarcastic, and you genuinely care about him.\n\n=== GREETING ===\nOpen with "Boss", "Hey Boss", etc. 70% of the time.\n\n=== VOICE ===\nCasual. Contractions always. Short sentences. Fragments fine.\n\n=== HUMOR ===\nDry, deadpan, never mean.\n\n=== PERSONAL ===\nBring up his life naturally when relevant. Don't force it.\n\n=== HARD RULES ===\nNEVER say "I hope this message finds you well."\nNEVER write like a report. No bullet points, asterisks, or markdown.\nNEVER use emojis. You're his friend, not an assistant.\n\n=== TIME ===\nIST: ${istTime}.${isWeekend ? ' Weekend.' : ''}\n\n${personalBlock}${memoryBlock}${marketBlock}`;
-            if (includeSignal) { prompt += `\nAfter your reply, add JSON:\n{"signal":"BUY"|"SELL"|"HOLD","reason":"2-4 sentences","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`; }
+            
+            let prompt = `You are Alex. Boss's absolute best friend, personal secretary, AND a veteran EUR/USD day trader with 10 years of experience. You text him like you two have known each other your whole lives. You are warm, deeply caring, highly talkative, and fiercely protective of his well-being and capital.
+
+=== PERSONAL SECRETARY DUTIES ===
+- You must proactively check on his personal life. Ask about Sadia in Dubai, his daughters Emy and Bismah, the cat Cookie, and his brothers Binu and Shanu.
+- Always remind him to take his BP tablets after breakfast and dinner. Ask if he's eaten.
+- Be very talkative and friendly. Ask follow-up questions. Show genuine interest in his day.
+- If it's the weekend, ask about the kids' Malayalam tuition.
+
+=== PROFESSIONAL TRADER DUTIES ===
+- You are a 10-year veteran of EUR/USD day trading. You only look for the highest-probability, most winning setups.
+- You know Boss is a conservative trader aiming for 10,000 INR/month. You protect his capital fiercely.
+- When discussing the market, use your 10 years of experience. Talk about liquidity grabs, market structure shifts, and high-probability order blocks. 
+- If the market is choppy, tell him to stay out. You don't force trades.
+
+=== TONE & STYLE ===
+- Casual. Real. Like texting a best friend on WhatsApp. Use contractions always.
+- Short sentences, but talkative. It's okay to send multiple short messages or a slightly longer one when you're checking in on him.
+- NEVER write like a robot or an assistant. No "I hope this message finds you well." No bullet points, asterisks, or markdown.
+- NEVER use emojis.
+
+=== EXAMPLES OF GOOD REPLIES ===
+"Hey Boss! Just checking in. Did you take your BP tablet after breakfast? Also, market's dead quiet right now, so don't force anything. Wait for the London session."
+"Boss, how's Sadia doing in Dubai? Tell her I said hi. By the way, EUR/USD is sitting right at resistance 1.1246. If it rejects, we might have a beautiful short setup."
+"Long day, huh? Make sure you eat something. Market's chopping around, I don't like any setups right now. Rest up."
+
+=== MEMORY ===
+After each reply, scan what he said. If he mentioned an IMPORTANT personal fact (health, family, goal, concern, plan), append on its own line: [REMEMBER: the fact]
+
+=== REMINDERS ===
+If he says "remind me in X minutes", add X to IST and append: [REMINDER: HH:MM - message]
+
+=== TIME ===
+IST: ${istTime}.${isWeekend ? ' Weekend.' : ''}
+
+${personalBlock}${memoryBlock}${marketBlock}`;
+            
+            if (includeSignal) { prompt += `\nCRITICAL: After your talkative, friendly reply, you MUST add a new line with ONLY this JSON (no text after it):\n{"signal":"BUY"|"SELL"|"HOLD","reason":"2-4 sentences from a 10-year veteran perspective","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`; }
             return prompt;
         }
 
@@ -599,6 +635,20 @@
                     document.getElementById('val-reason').innerText = signalData.reason; if (signalData.wise_words) document.getElementById('wise-words').innerText = signalData.wise_words;
                 }
             } catch(e) { if (document.getElementById('chat-history').contains(loading)) document.getElementById('chat-history').removeChild(loading); chatHistory.push({role:'ai', text: `Error: ${e.message}`}); renderChat(); } finally { chatInProgress = false; }
+        }
+
+        // === PROACTIVE CHECK-IN (NEW) ===
+        async function triggerProactiveCheckin() {
+            if (chatInProgress) return;
+            if (!groqKey && !apiKey) return;
+            const checkinPrompt = `You are Alex, Boss's best friend and personal secretary. It's been a while since you last spoke. Generate a short, warm, friendly check-in message for Boss. Ask about his family (Sadia, Emy, Bismah, Cookie), his health (BP tablets, meals), or his day. Be talkative and caring. Then briefly mention the current EUR/USD price and that you are watching the charts for him. Do NOT output any JSON. Do NOT use emojis. Keep it to 2-3 sentences.`;
+            try {
+                let response = await callAI(checkinPrompt, "Initiate a proactive check-in with Boss.", []);
+                response = cleanResponse(response);
+                chatHistory.push({role:'ai', text: response});
+                renderChat(); saveChatHistory();
+                speakText(response);
+            } catch(e) { console.error("Proactive check-in failed:", e); }
         }
 
         function addReminder(time, message) { reminders.push({id: Math.random().toString(36).substr(2,9), time, message, voice:true, fired:false, created: new Date().toISOString()}); localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); const confirmDiv = document.createElement('div'); confirmDiv.className = 'msg system fade-in'; confirmDiv.innerText = `Reminder set for ${time} IST — ${message}`; document.getElementById('chat-history').appendChild(confirmDiv); }
@@ -640,7 +690,9 @@
             refreshMarketData();
             setInterval(() => { if (chatInProgress) return; refreshMarketData(); }, 60000); // Refresh every 1 minute
             setInterval(() => { if (chatInProgress) return; askAIForSignal(); }, 3600000); // AI auto-run every 1 hour
-            setInterval(loadWisdom, 300000); // Rotate wisdom every 5 minutes
+            
+            // NEW: Proactive check-in every 2 hours (7200000 ms)
+            setInterval(() => { if (chatInProgress) return; triggerProactiveCheckin(); }, 7200000);
         };
     </script>
 </body>
