@@ -10,76 +10,135 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        :root { --bg:#05060a; --card-bg:rgba(255,255,255,0.022); --card-border:rgba(255,255,255,0.055);
-            --text-main:#f8fafc; --text-body:#c8cdd6; --text-muted:#64748b; --text-subtle:#475569;
-            --green:#10b981; --yellow:#f59e0b; --red:#ef4444; --blue:#3b82f6; --purple:#8b5cf6; --violet:#a78bfa; }
+        :root { 
+            --bg:#030408; 
+            --card-bg:rgba(10, 12, 20, 0.75); 
+            --card-border:rgba(139, 92, 246, 0.15);
+            --text-main:#f8fafc; 
+            --text-body:#c8cdd6; 
+            --text-muted:#8b95a5; 
+            --text-subtle:#475569;
+            --green:#10b981; 
+            --yellow:#f59e0b; 
+            --red:#ef4444; 
+            --blue:#3b82f6; 
+            --purple:#8b5cf6; 
+            --violet:#a78bfa;
+            --glow: 0 0 30px rgba(139, 92, 246, 0.15);
+        }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; }
-        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background-color: var(--bg);
-            background-image: radial-gradient(ellipse 90% 60% at 50% -20%, rgba(139,92,246,0.10), transparent 60%),
-                radial-gradient(ellipse 60% 40% at 80% 100%, rgba(59,130,246,0.07), transparent 60%);
-            background-attachment: fixed; color: var(--text-main); min-height: 100vh;
-            padding: 24px 20px; display: flex; flex-direction: column; align-items: center; letter-spacing: -0.011em; }
-        .dashboard { width: 100%; max-width: 640px; display: flex; flex-direction: column; gap: 14px; }
-        header { display: flex; justify-content: space-between; align-items: flex-start; padding: 8px 0 22px 0; border-bottom: 1px solid rgba(255,255,255,0.04); margin-bottom: 6px; }
-        .logo-wrap { display: flex; flex-direction: column; gap: 5px; }
-        .logo { display: flex; align-items: baseline; gap: 7px; font-family: 'Space Grotesk', sans-serif; font-size: 1.15rem; font-weight: 700; letter-spacing: -0.03em; }
-        .logo .bolt { color: var(--purple); font-size: 1rem; filter: drop-shadow(0 0 8px rgba(139,92,246,0.6)); }
-        .logo .accent { background: linear-gradient(135deg, #a78bfa, #8b5cf6, #7c3aed); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 700; }
-        .ist-clock { font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; color: var(--text-subtle); letter-spacing: 0.12em; text-transform: uppercase; font-weight: 500; }
+        body { 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+            background-color: var(--bg);
+            background-image: 
+                radial-gradient(ellipse 80% 50% at 50% -10%, rgba(139,92,246,0.15), transparent 60%),
+                radial-gradient(ellipse 60% 40% at 80% 100%, rgba(59,130,246,0.10), transparent 60%),
+                linear-gradient(rgba(139, 92, 246, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(139, 92, 246, 0.03) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+            background-attachment: fixed; 
+            color: var(--text-main); 
+            min-height: 100vh;
+            padding: 24px 16px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            letter-spacing: -0.011em; 
+        }
+        .dashboard { width: 100%; max-width: 680px; display: flex; flex-direction: column; gap: 16px; }
+        
+        /* HEADER */
+        header { display: flex; justify-content: space-between; align-items: flex-start; padding: 8px 0 20px 0; border-bottom: 1px solid rgba(139, 92, 246, 0.1); margin-bottom: 6px; }
+        .logo-wrap { display: flex; flex-direction: column; gap: 6px; }
+        .logo { display: flex; align-items: baseline; gap: 8px; font-family: 'Space Grotesk', sans-serif; font-size: 1.2rem; font-weight: 700; letter-spacing: -0.03em; }
+        .logo .bolt { color: var(--purple); font-size: 1.1rem; filter: drop-shadow(0 0 10px rgba(139,92,246,0.8)); }
+        .logo .accent { background: linear-gradient(135deg, #a78bfa, #8b5cf6, #6366f1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 700; }
+        .ist-clock { font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; color: var(--text-muted); letter-spacing: 0.15em; text-transform: uppercase; font-weight: 500; }
         .price-wrap { text-align: right; }
-        .price-ticker { font-family: 'JetBrains Mono', monospace; font-size: 1.4rem; font-weight: 700; color: var(--green); letter-spacing: -0.02em; line-height: 1; text-shadow: 0 0 20px rgba(16,185,129,0.25); font-variant-numeric: tabular-nums; }
-        .last-updated { font-size: 0.58rem; color: var(--text-subtle); font-family: 'JetBrains Mono', monospace; margin-top: 7px; letter-spacing: 0.08em; text-transform: uppercase; }
-        .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 20px 22px; backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); position: relative; overflow: hidden; }
-        .card::before { content: ''; position: absolute; top: 0; left: 10%; right: 10%; height: 1px; background: linear-gradient(90deg, transparent, rgba(167,139,250,0.18), transparent); }
-        .card-title { font-family: 'Space Grotesk', sans-serif; font-size: 0.68rem; font-weight: 600; color: var(--text-muted); letter-spacing: 0.16em; text-transform: uppercase; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
-        #canvas-container { width: 100%; height: 220px; position: relative; z-index: 1; display: flex; justify-content: center; }
-        .subtitle { text-align: center; font-family: 'Space Grotesk', sans-serif; font-size: 0.6rem; letter-spacing: 0.28em; color: var(--text-subtle); margin-top: 8px; font-weight: 500; text-transform: uppercase; }
-        .signal-card { text-align: center; padding: 28px 22px; }
-        #signal-text { font-family: 'Space Grotesk', sans-serif; font-size: 2.6rem; font-weight: 700; letter-spacing: 0.06em; color: var(--text-subtle); transition: all 0.4s ease; margin-bottom: 10px; line-height: 1; }
-        .signal-status-line { font-family: 'JetBrains Mono', monospace; font-size: 0.66rem; color: var(--text-subtle); letter-spacing: 0.12em; margin-bottom: 22px; text-transform: uppercase; font-weight: 500; }
-        .alert-box { background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.22); border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; font-size: 0.78rem; color: #fbbf24; text-align: left; line-height: 1.6; display: none; font-weight: 500; }
+        .price-ticker { font-family: 'JetBrains Mono', monospace; font-size: 1.5rem; font-weight: 700; color: var(--green); letter-spacing: -0.02em; line-height: 1; text-shadow: 0 0 25px rgba(16,185,129,0.4); font-variant-numeric: tabular-nums; }
+        .last-updated { font-size: 0.58rem; color: var(--text-subtle); font-family: 'JetBrains Mono', monospace; margin-top: 8px; letter-spacing: 0.1em; text-transform: uppercase; }
+
+        /* CARDS */
+        .card { 
+            background: var(--card-bg); 
+            border: 1px solid var(--card-border); 
+            border-radius: 20px; 
+            padding: 22px 24px; 
+            backdrop-filter: blur(30px); 
+            -webkit-backdrop-filter: blur(30px); 
+            position: relative; 
+            overflow: hidden; 
+            box-shadow: var(--glow), inset 0 1px 0 rgba(255,255,255,0.05);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .card:hover { box-shadow: 0 0 40px rgba(139, 92, 246, 0.25), inset 0 1px 0 rgba(255,255,255,0.08); }
+        .card::before { content: ''; position: absolute; top: 0; left: 10%; right: 10%; height: 1px; background: linear-gradient(90deg, transparent, rgba(167,139,250,0.4), transparent); }
+        .card-title { font-family: 'Space Grotesk', sans-serif; font-size: 0.68rem; font-weight: 600; color: var(--text-muted); letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; }
+        
+        /* NEURAL CORE */
+        #canvas-container { width: 100%; height: 240px; position: relative; z-index: 1; display: flex; justify-content: center; align-items: center; }
+        .subtitle { text-align: center; font-family: 'Space Grotesk', sans-serif; font-size: 0.6rem; letter-spacing: 0.3em; color: var(--text-subtle); margin-top: 10px; font-weight: 500; text-transform: uppercase; }
+
+        /* SIGNAL CARD */
+        .signal-card { text-align: center; padding: 30px 24px; }
+        #signal-text { font-family: 'Space Grotesk', sans-serif; font-size: 2.8rem; font-weight: 700; letter-spacing: 0.08em; color: var(--text-subtle); transition: all 0.4s ease; margin-bottom: 12px; line-height: 1; text-shadow: 0 0 30px currentColor; }
+        .signal-status-line { font-family: 'JetBrains Mono', monospace; font-size: 0.66rem; color: var(--text-subtle); letter-spacing: 0.15em; margin-bottom: 24px; text-transform: uppercase; font-weight: 500; }
+        .alert-box { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.3); border-radius: 14px; padding: 16px 18px; margin-bottom: 18px; font-size: 0.78rem; color: #fbbf24; text-align: left; line-height: 1.6; display: none; font-weight: 500; box-shadow: 0 0 20px rgba(245,158,11,0.1); }
         .alert-box.active { display: block; animation: fadeIn 0.4s ease-in; }
-        .signal-details { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; text-align: left; padding: 16px 0; border-top: 1px solid rgba(255,255,255,0.04); border-bottom: 1px solid rgba(255,255,255,0.04); margin-top: 8px; font-variant-numeric: tabular-nums; }
+        .signal-details { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; text-align: left; padding: 18px 0; border-top: 1px solid rgba(139, 92, 246, 0.1); border-bottom: 1px solid rgba(139, 92, 246, 0.1); margin-top: 10px; font-variant-numeric: tabular-nums; }
         .signal-details div { display: flex; justify-content: space-between; }
-        .signal-details span:first-child { color: var(--text-muted); font-weight: 500; letter-spacing: 0.04em; }
+        .signal-details span:first-child { color: var(--text-muted); font-weight: 500; letter-spacing: 0.05em; }
         .signal-details span:last-child { color: var(--text-body); font-weight: 600; }
-        .signal-hint { font-family: 'Inter', sans-serif; font-size: 0.68rem; color: var(--text-subtle); margin-top: 14px; line-height: 1.5; }
-        .btn { font-family: 'Inter', sans-serif; background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.075); color: var(--text-body); padding: 7px 14px; border-radius: 9px; font-size: 0.72rem; font-weight: 500; cursor: pointer; transition: all 0.15s ease; }
-        .btn:hover { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.14); color: var(--text-main); }
+        .signal-hint { font-family: 'Inter', sans-serif; font-size: 0.68rem; color: var(--text-subtle); margin-top: 16px; line-height: 1.5; }
+
+        /* BUTTONS */
+        .btn { font-family: 'Inter', sans-serif; background: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.2); color: var(--text-body); padding: 8px 16px; border-radius: 10px; font-size: 0.72rem; font-weight: 500; cursor: pointer; transition: all 0.2s ease; }
+        .btn:hover { background: rgba(139, 92, 246, 0.15); border-color: rgba(139, 92, 246, 0.4); color: var(--text-main); box-shadow: 0 0 15px rgba(139, 92, 246, 0.2); }
         .btn.active { background: rgba(59,130,246,0.15); border-color: rgba(59,130,246,0.4); color: #93c5fd; }
-        .btn.active.deep { background: rgba(139,92,246,0.16); border-color: rgba(139,92,246,0.42); color: #c4b5fd; }
-        .btn.danger { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.22); color: #fca5a5; }
-        .btn.primary { font-family: 'Space Grotesk', sans-serif; background: linear-gradient(135deg, #7c3aed 0%, #6366f1 50%, #3b82f6 100%); border: none; font-weight: 600; color: white; box-shadow: 0 4px 22px rgba(124,58,237,0.28), 0 0 0 1px rgba(255,255,255,0.05) inset; }
-        .btn.primary:hover { box-shadow: 0 6px 30px rgba(124,58,237,0.45); transform: translateY(-1px); }
-        .chat-controls { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
-        .panel { display: none; background: rgba(0,0,0,0.3); padding: 14px; border-radius: 10px; margin-bottom: 12px; font-size: 0.78rem; border: 1px solid rgba(255,255,255,0.05); }
+        .btn.active.deep { background: rgba(139,92,246,0.2); border-color: rgba(139,92,246,0.5); color: #c4b5fd; box-shadow: 0 0 15px rgba(139, 92, 246, 0.2); }
+        .btn.danger { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.25); color: #fca5a5; }
+        .btn.primary { font-family: 'Space Grotesk', sans-serif; background: linear-gradient(135deg, #7c3aed 0%, #6366f1 50%, #3b82f6 100%); border: none; font-weight: 600; color: white; box-shadow: 0 4px 25px rgba(124,58,237,0.4), 0 0 0 1px rgba(255,255,255,0.1) inset; }
+        .btn.primary:hover { box-shadow: 0 6px 35px rgba(124,58,237,0.6); transform: translateY(-1px); }
+
+        /* CHAT INTERFACE */
+        .chat-controls { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+        .panel { display: none; background: rgba(0,0,0,0.4); padding: 16px; border-radius: 12px; margin-bottom: 14px; font-size: 0.78rem; border: 1px solid rgba(139, 92, 246, 0.1); }
         .panel.active { display: block; }
         .panel strong { font-family: 'Space Grotesk', sans-serif; color: var(--text-body); font-weight: 600; }
         .panel input, .panel select { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; }
-        .chat-history { height: 340px; overflow-y: auto; background: rgba(0,0,0,0.3); border-radius: 10px; padding: 14px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 10px; border: 1px solid rgba(255,255,255,0.03); }
-        .chat-history::-webkit-scrollbar { width: 4px; }
-        .chat-history::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.25); border-radius: 4px; }
-        .msg { font-family: 'Inter', sans-serif; padding: 10px 14px; border-radius: 12px; max-width: 85%; line-height: 1.6; font-size: 0.83rem; }
-        .msg.user { background: linear-gradient(135deg, #4f46e5, #3b82f6); color: white; align-self: flex-end; border-bottom-right-radius: 3px; box-shadow: 0 4px 14px rgba(59,130,246,0.2); }
-        .msg.ai { background: rgba(255,255,255,0.04); align-self: flex-start; border-left: 2px solid var(--purple); color: var(--text-body); }
-        .msg.system { background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.2); align-self: center; font-size: 0.72rem; text-align: center; color: #fbbf24; padding: 6px 12px; font-family: 'JetBrains Mono', monospace; }
-        .msg.thinking { background: rgba(139,92,246,0.08); border-left: 2px solid var(--violet); font-style: italic; color: #c4b5fd; }
-        .chat-input-row { display: flex; gap: 8px; }
-        .chat-input-row input { flex: 1; background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.07); color: var(--text-main); padding: 12px 14px; border-radius: 10px; outline: none; font-family: 'Inter', sans-serif; font-size: 0.85rem; }
-        .chat-input-row input:focus { border-color: rgba(139,92,246,0.45); background: rgba(0,0,0,0.5); }
+        
+        .chat-history { height: 380px; overflow-y: auto; background: rgba(0,0,0,0.5); border-radius: 14px; padding: 18px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 12px; border: 1px solid rgba(139, 92, 246, 0.08); box-shadow: inset 0 0 20px rgba(0,0,0,0.5); }
+        .chat-history::-webkit-scrollbar { width: 5px; }
+        .chat-history::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.3); border-radius: 4px; }
+        .msg { font-family: 'Inter', sans-serif; padding: 12px 16px; border-radius: 14px; max-width: 85%; line-height: 1.6; font-size: 0.85rem; animation: fadeIn 0.3s ease-out; }
+        .msg.user { background: linear-gradient(135deg, #4f46e5, #3b82f6); color: white; align-self: flex-end; border-bottom-right-radius: 4px; box-shadow: 0 4px 20px rgba(59,130,246,0.3); }
+        .msg.ai { background: rgba(139, 92, 246, 0.08); align-self: flex-start; border-left: 3px solid var(--purple); color: var(--text-body); border-top-left-radius: 4px; box-shadow: 0 4px 20px rgba(139, 92, 246, 0.1); }
+        .msg.system { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); align-self: center; font-size: 0.72rem; text-align: center; color: #fbbf24; padding: 8px 14px; font-family: 'JetBrains Mono', monospace; }
+        .msg.thinking { background: rgba(139,92,246,0.1); border-left: 3px solid var(--violet); font-style: italic; color: #c4b5fd; }
+        
+        .chat-input-row { display: flex; gap: 10px; }
+        .chat-input-row input { flex: 1; background: rgba(0,0,0,0.6); border: 1px solid rgba(139, 92, 246, 0.2); color: var(--text-main); padding: 14px 16px; border-radius: 12px; outline: none; font-family: 'Inter', sans-serif; font-size: 0.9rem; transition: all 0.2s ease; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); }
+        .chat-input-row input:focus { border-color: rgba(139,92,246,0.6); background: rgba(0,0,0,0.8); box-shadow: 0 0 20px rgba(139, 92, 246, 0.2), inset 0 2px 10px rgba(0,0,0,0.5); }
         .chat-input-row input::placeholder { color: var(--text-subtle); }
-        .chat-input-row button { font-family: 'Space Grotesk', sans-serif; background: linear-gradient(135deg, #10b981, #059669); border: none; color: white; padding: 0 20px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 0.85rem; box-shadow: 0 4px 18px rgba(16,185,129,0.22); }
-        .chat-input-row button:hover { box-shadow: 0 6px 24px rgba(16,185,129,0.4); }
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.8rem; }
-        .stat-item { background: rgba(255,255,255,0.018); padding: 10px 14px; border-radius: 9px; display: flex; justify-content: space-between; border: 1px solid rgba(255,255,255,0.03); }
+        .chat-input-row button { font-family: 'Space Grotesk', sans-serif; background: linear-gradient(135deg, #10b981, #059669); border: none; color: white; padding: 0 24px; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 0.9rem; box-shadow: 0 4px 20px rgba(16,185,129,0.3); transition: all 0.2s ease; }
+        .chat-input-row button:hover { box-shadow: 0 6px 30px rgba(16,185,129,0.5); transform: translateY(-1px); }
+
+        /* STATS & LOGS */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.8rem; }
+        .stat-item { background: rgba(139, 92, 246, 0.04); padding: 12px 16px; border-radius: 10px; display: flex; justify-content: space-between; border: 1px solid rgba(139, 92, 246, 0.08); }
         .stat-label { font-family: 'Space Grotesk', sans-serif; color: var(--text-muted); font-weight: 500; font-size: 0.7rem; }
-        .stat-item span:last-child { color: var(--text-body); font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 0.76rem; font-variant-numeric: tabular-nums; }
-        .alert-log-item { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--text-muted); padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,0.03); line-height: 1.45; }
+        .stat-item span:last-child { color: var(--text-body); font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 0.78rem; font-variant-numeric: tabular-nums; }
+        .alert-log-item { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--text-muted); padding: 8px 0; border-bottom: 1px solid rgba(139, 92, 246, 0.08); line-height: 1.5; }
         .alert-log-item:last-child { border-bottom: none; }
-        .reasoning-text { font-family: 'Inter', sans-serif; font-size: 0.83rem; line-height: 1.75; color: var(--text-body); }
+        .reasoning-text { font-family: 'Inter', sans-serif; font-size: 0.85rem; line-height: 1.8; color: var(--text-body); }
+
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .fade-in { animation: fadeIn 0.3s ease-in; }
+        
+        /* PULSING DOT FOR AI HEADER */
+        .pulse-dot { display: inline-block; width: 6px; height: 6px; background: var(--green); border-radius: 50%; margin-right: 6px; box-shadow: 0 0 10px var(--green); animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
@@ -94,11 +153,13 @@
                 <div class="last-updated" id="last-updated">AWAITING DATA</div>
             </div>
         </header>
+        
         <div class="card">
             <div class="card-title">Neural Core</div>
             <div id="canvas-container"></div>
             <div class="subtitle">Quantum Market Intelligence</div>
         </div>
+        
         <div class="card signal-card">
             <div class="card-title">Current Signal</div>
             <div id="signal-text">AWAITING</div>
@@ -112,17 +173,19 @@
                 <div><span>Take Profit</span><span id="val-tp">—</span></div>
                 <div><span>ATR</span><span id="val-atr">—</span></div>
             </div>
-            <div style="margin-top:20px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+            <div style="margin-top:24px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
                 <button class="btn primary" onclick="askAIForSignal()">Ask AI for Signal</button>
                 <button class="btn" onclick="playVoiceReport()">Play Voice</button>
                 <button class="btn danger" onclick="stopVoice()">Stop</button>
             </div>
             <div class="signal-hint">Engine scans every 1:00 · AI auto-runs hourly + on demand</div>
         </div>
+        
         <div class="card">
             <div class="card-title">Engine Alerts — Last 5</div>
             <div id="alert-log">No alerts yet. Engine scanning...</div>
         </div>
+        
         <div class="card">
             <div class="card-title">Ask Your AI Trader
                 <div class="chat-controls">
@@ -135,73 +198,82 @@
                     <button class="btn" onclick="togglePanel('panel-voice')">Voice</button>
                 </div>
             </div>
+            
             <div class="panel" id="panel-reminders">
                 <div style="display:flex; justify-content:space-between; margin-bottom:8px;"><strong>Active Reminders</strong>
                     <div><button class="btn" onclick="testReminder()">Test</button><button class="btn danger" onclick="clearReminders()">Clear</button></div>
                 </div>
                 <div id="reminders-list" style="font-size:0.75rem; color:var(--text-muted);">No active reminders.</div>
             </div>
+            
             <div class="panel" id="panel-memory">
                 <div style="display:flex; justify-content:space-between; margin-bottom:8px;"><strong>Long-Term Memory</strong>
                     <button class="btn danger" onclick="clearLongTermMemory()">Clear</button>
                 </div>
                 <div id="memory-list" style="font-size:0.75rem; color:var(--text-muted); max-height:120px; overflow-y:auto;">No facts saved.</div>
             </div>
+            
             <div class="panel" id="panel-gist">
                 <strong>Gist Memory Sync</strong>
-                <input type="password" id="gist-token-input" placeholder="GitHub Token" style="width:100%; padding:9px; margin-top:8px; border-radius:7px; border:1px solid rgba(255,255,255,0.08); background:rgba(0,0,0,0.3); color:white;">
-                <input type="text" id="gist-id-input" placeholder="Gist ID" style="width:100%; padding:9px; margin-top:8px; border-radius:7px; border:1px solid rgba(255,255,255,0.08); background:rgba(0,0,0,0.3); color:white;">
-                <button class="btn" style="margin-top:8px;" onclick="saveGistConfig()">Save & Sync</button>
-                <button class="btn" style="margin-top:8px;" onclick="loadMemoryFromGist()">Pull</button>
+                <input type="password" id="gist-token-input" placeholder="GitHub Token" style="width:100%; padding:10px; margin-top:8px; border-radius:8px; border:1px solid rgba(139,92,246,0.2); background:rgba(0,0,0,0.4); color:white;">
+                <input type="text" id="gist-id-input" placeholder="Gist ID" style="width:100%; padding:10px; margin-top:8px; border-radius:8px; border:1px solid rgba(139,92,246,0.2); background:rgba(0,0,0,0.4); color:white;">
+                <button class="btn" style="margin-top:10px;" onclick="saveGistConfig()">Save & Sync</button>
+                <button class="btn" style="margin-top:10px;" onclick="loadMemoryFromGist()">Pull</button>
                 <div id="gist-status" style="font-size:0.7rem; margin-top:8px; color:var(--yellow);"></div>
             </div>
+            
             <div class="panel" id="panel-voice">
                 <strong>Voice Engine Settings</strong>
                 <div id="voice-status" style="font-size:0.75rem; color:var(--yellow); margin-top:6px;">Checking system...</div>
                 
                 <div style="font-size:0.7rem; color:var(--text-muted); margin-top:12px;">Voice Engine Mode:</div>
-                <select id="voice-engine-mode" onchange="saveVoiceEngineMode()" style="width:100%; padding:9px; margin-top:6px; border-radius:7px; border:1px solid rgba(255,255,255,0.08); background:rgba(0,0,0,0.3); color:white;">
+                <select id="voice-engine-mode" onchange="saveVoiceEngineMode()" style="width:100%; padding:10px; margin-top:6px; border-radius:8px; border:1px solid rgba(139,92,246,0.2); background:rgba(0,0,0,0.4); color:white;">
                     <option value="cloud">Cloud Voice (ElevenLabs - Uses Credits)</option>
                     <option value="browser">Browser Voice (Robotic - Saves Credits)</option>
                 </select>
                 
                 <div style="font-size:0.7rem; color:var(--text-muted); margin-top:12px;">Official ElevenLabs API Key (Free 10k chars/month)</div>
-                <input type="password" id="elevenlabs-api-input" placeholder="sk_... (Your ElevenLabs API Key)" style="width:100%; padding:9px; margin-top:6px; border-radius:7px; border:1px solid rgba(255,255,255,0.08); background:rgba(0,0,0,0.3); color:white;">
-                <button class="btn" style="margin-top:6px; width:100%;" onclick="saveElevenLabsApiKey()">Save ElevenLabs Key</button>
+                <input type="password" id="elevenlabs-api-input" placeholder="sk_... (Your ElevenLabs API Key)" style="width:100%; padding:10px; margin-top:6px; border-radius:8px; border:1px solid rgba(139,92,246,0.2); background:rgba(0,0,0,0.4); color:white;">
+                <button class="btn" style="margin-top:10px; width:100%;" onclick="saveElevenLabsApiKey()">Save ElevenLabs Key</button>
 
                 <div style="font-size:0.7rem; color:var(--text-muted); margin-top:12px;">ElevenLabs Voice Selection:</div>
-                <select id="elevenlabs-voice-select" onchange="saveElevenLabsVoice()" style="width:100%; padding:9px; margin-top:6px; border-radius:7px; border:1px solid rgba(255,255,255,0.08); background:rgba(0,0,0,0.3); color:white;">
+                <select id="elevenlabs-voice-select" onchange="saveElevenLabsVoice()" style="width:100%; padding:10px; margin-top:6px; border-radius:8px; border:1px solid rgba(139,92,246,0.2); background:rgba(0,0,0,0.4); color:white;">
                     <option value="CwhRBWXzGAHq8TQ4Fs17">Roger (Laid-Back, Casual, Resonant)</option>
                     <option value="QIhD5ivPGEoYZQDocuHI">Adam (Deep, Professional, Narrative)</option>
                     <option value="TYKLc7ViOIGE13dSZYlK">Rachel (Friendly, Energetic & Authentic)</option>
                 </select>
                 
-                <button class="btn" style="margin-top:10px; width:100%;" onclick="testCloudVoice()">Test Cloud Voice</button>
+                <button class="btn" style="margin-top:12px; width:100%;" onclick="testCloudVoice()">Test Cloud Voice</button>
                 <div style="font-size:0.7rem; color:var(--text-muted); margin-top:8px;">If the premium voice fails, it will immediately fall back to your device's browser voice.</div>
             </div>
+            
             <div class="panel" id="panel-key">
                 <strong>Groq API Key (primary AI)</strong>
-                <input type="password" id="groq-key-input" placeholder="gsk_..." style="width:100%; padding:9px; margin-top:8px; border-radius:7px; border:1px solid rgba(255,255,255,0.08); background:rgba(0,0,0,0.3); color:white;">
-                <button class="btn" style="margin-top:8px;" onclick="saveGroqKey()">Save Groq Key</button>
+                <input type="password" id="groq-key-input" placeholder="gsk_..." style="width:100%; padding:10px; margin-top:8px; border-radius:8px; border:1px solid rgba(139,92,246,0.2); background:rgba(0,0,0,0.4); color:white;">
+                <button class="btn" style="margin-top:10px;" onclick="saveGroqKey()">Save Groq Key</button>
                 <div id="groq-status" style="font-size:0.7rem; margin-top:8px; color:var(--yellow);"></div>
-                <hr style="border:none; border-top:1px solid rgba(255,255,255,0.05); margin:12px 0;">
+                <hr style="border:none; border-top:1px solid rgba(139,92,246,0.15); margin:16px 0;">
                 <strong>Gemini API Key (fallback AI)</strong>
-                <input type="password" id="api-key-input" placeholder="AIzaSy..." style="width:100%; padding:9px; margin-top:8px; border-radius:7px; border:1px solid rgba(255,255,255,0.08); background:rgba(0,0,0,0.3); color:white;">
-                <button class="btn" style="margin-top:8px;" onclick="saveApiKey()">Save Gemini Key</button>
+                <input type="password" id="api-key-input" placeholder="AIzaSy..." style="width:100%; padding:10px; margin-top:8px; border-radius:8px; border:1px solid rgba(139,92,246,0.2); background:rgba(0,0,0,0.4); color:white;">
+                <button class="btn" style="margin-top:10px;" onclick="saveApiKey()">Save Gemini Key</button>
             </div>
+            
             <div class="chat-history" id="chat-history">
-                <div class="msg ai fade-in">Hey Boss. Good to see you. What's on your mind?</div>
+                <div class="msg ai fade-in"><span class="pulse-dot"></span>Hey Boss. Good to see you. What's on your mind?</div>
             </div>
+            
             <div class="chat-input-row">
                 <input type="text" id="chat-input" placeholder="Talk to me, Boss..." onkeypress="if(event.key==='Enter') sendChat()">
                 <button onclick="sendChat()">Send</button>
             </div>
-            <div style="text-align:right; margin-top:10px;"><button class="btn" onclick="clearChat()">Clear chat (memory stays)</button></div>
+            <div style="text-align:right; margin-top:12px;"><button class="btn" onclick="clearChat()">Clear chat (memory stays)</button></div>
         </div>
+        
         <div class="card">
             <div class="card-title">Boss's Wisdom Corner</div>
             <div class="reasoning-text" id="wise-words">Loading...</div>
         </div>
+        
         <div class="card">
             <div class="card-title">Live Market Data — No AI Quota Used</div>
             <div class="stats-grid">
@@ -210,12 +282,13 @@
                 <div class="stat-item"><span class="stat-label">Support</span><span id="val-support">—</span></div>
                 <div class="stat-item"><span class="stat-label">Resistance</span><span id="val-resistance">—</span></div>
             </div>
-            <div style="margin-top:12px; font-size:0.76rem; color:var(--text-muted); line-height:1.75; font-family:'JetBrains Mono', monospace;">
+            <div style="margin-top:14px; font-size:0.76rem; color:var(--text-muted); line-height:1.8; font-family:'JetBrains Mono', monospace;">
                 <div id="val-candle-current">—</div>
                 <div id="val-candle-1h">—</div>
                 <div id="val-candle-4h">—</div>
             </div>
         </div>
+        
         <div class="card">
             <div class="card-title">AI Trader's Reasoning</div>
             <div class="reasoning-text" id="val-reason">Engine scanning. AI auto-analyzes hourly.</div>
