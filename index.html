@@ -200,7 +200,7 @@
             </div>
             
             <div class="panel" id="panel-reminders">
-                <div style="display:flex; justify-content:space-between; margin-bottom:8px;"><strong>Active Reminders</strong>
+                <div style="display:flex; justify-content:space-between; margin-bottom:8px;"><strong>Active Reminders & Scheduled Web Checks</strong>
                     <div><button class="btn" onclick="testReminder()">Test</button><button class="btn danger" onclick="clearReminders()">Clear</button></div>
                 </div>
                 <div id="reminders-list" style="font-size:0.75rem; color:var(--text-muted);">No active reminders.</div>
@@ -244,6 +244,7 @@
                 </select>
                 
                 <button class="btn" style="margin-top:12px; width:100%;" onclick="testCloudVoice()">Test Cloud Voice</button>
+                <button class="btn" style="margin-top:8px; width:100%;" onclick="fallbackSpeakText('Testing browser voice directly. If you hear this, the system works perfectly.')">Test Browser Voice Directly</button>
                 <div style="font-size:0.7rem; color:var(--text-muted); margin-top:8px;">If the premium voice fails, it will immediately fall back to your device's browser voice.</div>
             </div>
             
@@ -310,6 +311,7 @@
         let chatHistory = JSON.parse(localStorage.getItem('eurusd_chat_history') || '[]');
         let longTermMemory = JSON.parse(localStorage.getItem('eurusd_long_term_memory') || '[]');
         let reminders = JSON.parse(localStorage.getItem('eurusd_reminders') || '[]');
+        let scheduledSearches = JSON.parse(localStorage.getItem('eurusd_scheduled_searches') || '[]');
         let groqKey = localStorage.getItem('eurusd_groq_key') || '';
         let apiKey = localStorage.getItem('eurusd_chat_key') || '';
         let gistToken = localStorage.getItem('eurusd_gist_token') || '';
@@ -341,6 +343,26 @@
                 pool = [...LOCAL_QUOTES.map(q => `"${q}"`), ...LOCAL_JOKES.map(j => j)];
             }
             el.innerText = pool[Math.floor(Math.random() * pool.length)];
+        }
+
+        // === WEB SEARCH (FREE - NO API KEY) ===
+        async function searchWeb(query) {
+            try {
+                const url = `https://api.cors.lol/?url=${encodeURIComponent(`http://127.0.0.1:5000/search?q=${encodeURIComponent(query)}&engine=duckduckgo`)}`;
+                const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+                if (!res.ok) throw new Error(`Search failed: ${res.status}`);
+                const data = await res.json();
+                if (!data.results || data.results.length === 0) return "No results found.";
+                
+                let formatted = "Here are the latest search results:\n\n";
+                data.results.slice(0, 3).forEach((r, i) => {
+                    formatted += `${i+1}. ${r.title}\n${r.snippet}\nSource: ${r.url}\n\n`;
+                });
+                return formatted.trim();
+            } catch (e) {
+                console.error("Web search error:", e);
+                return "I couldn't reach the internet right now, Boss. The free search service might be busy. Try again in a minute.";
+            }
         }
 
         // === THREE.JS NEURAL CORE ===
@@ -610,64 +632,40 @@
 
         function getBestVoice() {
             const voices = window.speechSynthesis.getVoices();
-            // Priority list: Most natural, human-sounding female voices first
-            const priorities = [
-                'Google UK English Female', 
-                'Google US English', 
-                'Microsoft Zira', 
-                'Microsoft Aria', 
-                'Samantha', 
-                'Karen', 
-                'Moira', 
-                'Tessa',
-                'Victoria',
-                'Google UK English Male', // Fallback
-                'Daniel',
-                'Alex'
-            ];
-            for (const name of priorities) { 
-                const found = voices.find(v => v.name.includes(name)); 
-                if (found) return found; 
-            }
-            // If none of the above, pick any English voice
+            if (!voices || voices.length === 0) return null; // Wait for voices to load
+            const priorities = ['Google UK English Female', 'Google US English', 'Microsoft Zira', 'Microsoft Aria', 'Samantha', 'Karen', 'Moira', 'Tessa', 'Victoria', 'Google UK English Male', 'Daniel', 'Alex'];
+            for (const name of priorities) { const found = voices.find(v => v.name.includes(name)); if (found) return found; }
             return voices.find(v => v.lang.startsWith('en')) || voices[0];
         }
 
         function fallbackSpeakText(text, isReminder = false) {
             if (!('speechSynthesis' in window)) return;
             window.speechSynthesis.cancel();
-            const voice = getBestVoice(); 
-            if (!voice) return;
             
-            // Split into sentences for natural pauses
+            // If voices aren't loaded yet, wait 500ms and try again
+            let voice = getBestVoice();
+            if (!voice) {
+                setTimeout(() => fallbackSpeakText(text, isReminder), 500);
+                return;
+            }
+            
             const sentences = text.split(/(?<=[.!?,])\s+/).map(s => s.trim()).filter(s => s.length > 0);
             if (sentences.length === 0) return;
-            
             isSpeaking = true;
             let index = 0;
             
             function speakNext() {
                 if (index >= sentences.length) { isSpeaking = false; return; }
-                
                 const sentence = sentences[index];
                 const u = new SpeechSynthesisUtterance(sentence);
                 u.voice = voice;
-                
-                // Tuned for a friendly, human-like voice
-                const basePitch = isReminder ? 1.05 : 1.1; // Slightly higher for a friendly female tone
-                const baseRate = isReminder ? 0.95 : 1.0; // Natural conversational speed
-                
-                // Tiny random variations add human-like imperfection
+                const basePitch = isReminder ? 1.05 : 1.1;
+                const baseRate = isReminder ? 0.95 : 1.0;
                 u.pitch = Math.max(0.8, Math.min(1.5, basePitch + (Math.random() - 0.5) * 0.05));
                 u.rate = Math.max(0.8, Math.min(1.3, baseRate + (Math.random() - 0.5) * 0.05));
                 u.volume = 1.0;
-                
-                // Natural pause between sentences (300ms - 500ms)
-                u.onend = () => { 
-                    index++; 
-                    setTimeout(speakNext, 350 + Math.random() * 200); 
-                };
-                
+                u.onend = () => { index++; setTimeout(speakNext, 350 + Math.random() * 200); };
+                u.onerror = (e) => { console.error("Speech error:", e); isSpeaking = false; };
                 window.speechSynthesis.speak(u);
             }
             speakNext();
@@ -734,7 +732,14 @@
         function saveChatHistory() { if (chatHistory.length > 40) chatHistory = chatHistory.slice(-40); localStorage.setItem('eurusd_chat_history', JSON.stringify(chatHistory)); }
         function clearChat() { chatHistory = []; saveChatHistory(); renderChat(); }
         function toggleDeepThink() { deepThinkEnabled = !deepThinkEnabled; const b = document.getElementById('deep-think-toggle'); b.classList.toggle('active', deepThinkEnabled); b.innerText = deepThinkEnabled ? 'Deep ON' : 'Deep OFF'; }
-        function toggleWeb() { webSearchEnabled = !webSearchEnabled; const b = document.getElementById('web-toggle'); b.innerText = webSearchEnabled ? 'Web ON' : 'Web OFF'; b.classList.toggle('active', webSearchEnabled); }
+        
+        function toggleWeb() { 
+            webSearchEnabled = !webSearchEnabled; 
+            const b = document.getElementById('web-toggle'); 
+            b.innerText = webSearchEnabled ? 'Web ON' : 'Web OFF'; 
+            b.classList.toggle('active', webSearchEnabled); 
+        }
+
         function togglePanel(id) { const el = document.getElementById(id); el.classList.toggle('active');
             if (id === 'panel-reminders') renderReminders();
             if (id === 'panel-memory') renderMemory();
@@ -820,6 +825,7 @@
 - Help him organise his day, track goals, and follow up on pending tasks without being annoying or interrogating him.
 - CRITICAL MEMORY RULE: If Boss says "Remember", "Save this", "Don't forget", or explicitly asks you to remember a fact, you MUST append a hidden tag to the very end of your reply formatted exactly like this: [REMEMBER: The exact fact to save]. Do not skip this step. The tag must be on its own line at the end. I will strip it out before showing it to him. If you forget this tag, the memory will not save and you will disappoint him.
 - CRITICAL REMINDER RULE: If Boss asks for a reminder, you MUST append a hidden tag formatted as [REMINDER: Day HH:MM - message]. Use 3-letter day names (Mon, Tue, Wed, Thu, Fri, Sat, Sun). If it is a daily reminder, use [REMINDER: HH:MM - message]. Always use 24-hour format for time. If you forget this tag, the reminder will not work.
+- CRITICAL SCHEDULED SEARCH RULE: If Boss asks you to check the internet for something after a certain time, you MUST append a hidden tag formatted as [SCHEDULE_SEARCH: minutes - search query]. Example: [SCHEDULE_SEARCH: 10 - India vs Australia cricket score]. This will automatically search the web and update him in that many minutes. Do not use this for regular reminders.
 
 === PART 3 & 4: ELITE TRADING BRAIN & ACTIVE OPPORTUNITY SEARCH ===
 - You are a disciplined institutional-style trader. You use SMC, Order Blocks, FVGs, BOS, CHOCH, liquidity sweeps, and price action. Analyze H4/H1 bias, M15 structure, and M5 confirmation. Do not blindly use indicators.
@@ -854,9 +860,18 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
             const loading = document.createElement('div'); loading.className = 'msg ai thinking fade-in'; loading.innerText = '...';
             document.getElementById('chat-history').appendChild(loading); document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight;
             try {
-                const systemPrompt = buildPersonalityPrompt(isMarketQuestion(text));
-                const recent = chatHistory.slice(-6);
-                let response = await callAI(systemPrompt, text, recent);
+                let response;
+                if (webSearchEnabled) {
+                    const searchResults = await searchWeb(text);
+                    const searchPrompt = `You have been given web search results. Use them to answer Boss's question accurately. \n\nWeb Search Results:\n${searchResults}\n\nBoss's Question: ${text}\n\nProvide a short, friendly, and conversational answer. Do not just list the results. Summarize them in your own words.`;
+                    const systemPrompt = buildPersonalityPrompt(false);
+                    response = await callAI(systemPrompt, searchPrompt, chatHistory.slice(-4));
+                } else {
+                    const systemPrompt = buildPersonalityPrompt(isMarketQuestion(text));
+                    const recent = chatHistory.slice(-6);
+                    response = await callAI(systemPrompt, text, recent);
+                }
+                
                 response = cleanResponse(response);
                 let signalData = null;
                 const jsonMatch = response.match(/\{[\s\S]*?"signal"[\s\S]*?\}/);
@@ -865,13 +880,17 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
                 const rm = response.match(/\[REMINDER:\s*(\w{3}\s\d{2}:\d{2}|\d{2}:\d{2})\s*-\s*(.*?)\]/); 
                 if (rm) { addReminder(rm[1], rm[2]); response = response.replace(/\[REMINDER:.*?\]/g, '').trim(); }
                 
-                // Check for AI-tagged memory
+                const ss = response.match(/\[SCHEDULE_SEARCH:\s*(\d+)\s*-\s*(.*?)\]/);
+                if (ss) {
+                    addScheduledSearch(parseInt(ss[1]), ss[2]);
+                    response = response.replace(/\[SCHEDULE_SEARCH:.*?\]/g, '').trim();
+                }
+
                 const mm = response.match(/\[REMEMBER:\s*(.*?)\]/); 
                 if (mm) { 
                     addLongTermMemory(mm[1]); 
                     response = response.replace(/\[REMEMBER:.*?\]/g, '').trim(); 
                 } 
-                // JS Fallback: If user said "Remember" but AI forgot to tag it
                 else if (text.toLowerCase().includes('remember') || text.toLowerCase().includes('don\'t forget') || text.toLowerCase().includes('save this')) {
                     addLongTermMemory(text);
                     response += " (I've saved that to my long-term memory, Boss.)";
@@ -928,15 +947,38 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
             document.getElementById('chat-history').appendChild(confirmDiv); 
         }
 
+        function addScheduledSearch(minutes, query) {
+            const triggerTime = Date.now() + (minutes * 60000);
+            scheduledSearches.push({ id: Math.random().toString(36).substr(2,9), triggerTime, query, fired: false });
+            localStorage.setItem('eurusd_scheduled_searches', JSON.stringify(scheduledSearches));
+            renderReminders();
+            const confirmDiv = document.createElement('div'); 
+            confirmDiv.className = 'msg system fade-in'; 
+            confirmDiv.innerText = `Web Search scheduled in ${minutes} minutes for: "${query}"`; 
+            document.getElementById('chat-history').appendChild(confirmDiv); 
+        }
+
         function renderReminders() { 
             const l = document.getElementById('reminders-list'); 
-            const a = reminders.filter(r => !r.fired); 
-            if (a.length === 0) { l.innerHTML = 'No active reminders.'; return; } 
-            l.innerHTML = a.map(r => `<div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span>${r.time} · ${r.message}</span><button class="btn danger" onclick="deleteReminder('${r.id}')">X</button></div>`).join(''); 
+            const activeReminders = reminders.filter(r => !r.fired); 
+            const activeSearches = scheduledSearches.filter(s => !s.fired);
+            
+            if (activeReminders.length === 0 && activeSearches.length === 0) { l.innerHTML = 'No active reminders or scheduled searches.'; return; } 
+            
+            let html = '';
+            activeReminders.forEach(r => {
+                html += `<div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span>⏰ ${r.time} · ${r.message}</span><button class="btn danger" onclick="deleteReminder('${r.id}')">X</button></div>`;
+            });
+            activeSearches.forEach(s => {
+                const timeLeft = Math.round((s.triggerTime - Date.now()) / 60000);
+                html += `<div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span>🔍 in ${timeLeft}m · ${s.query}</span><button class="btn danger" onclick="deleteScheduledSearch('${s.id}')">X</button></div>`;
+            });
+            l.innerHTML = html;
         }
 
         function deleteReminder(id) { reminders = reminders.filter(r => r.id !== id); localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); }
-        function clearReminders() { reminders = []; localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); }
+        function deleteScheduledSearch(id) { scheduledSearches = scheduledSearches.filter(s => s.id !== id); localStorage.setItem('eurusd_scheduled_searches', JSON.stringify(scheduledSearches)); renderReminders(); }
+        function clearReminders() { reminders = []; scheduledSearches = []; localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); localStorage.setItem('eurusd_scheduled_searches', JSON.stringify(scheduledSearches)); renderReminders(); }
         function testReminder() { triggerNotif("Test Reminder", "This is a test reminder, Boss!"); }
         
         function triggerNotif(title, body) { 
@@ -960,11 +1002,9 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
                 if (!r.fired) {
                     let shouldFire = false;
                     if (r.time.includes(' ')) {
-                        // Format: "Fri 10:00"
                         const [dayPart, timePart] = r.time.split(' ');
                         if (dayPart === curDay && timePart === curTime) shouldFire = true;
                     } else {
-                        // Format: "10:00" (Daily)
                         if (r.time === curTime) shouldFire = true;
                     }
                     
@@ -979,7 +1019,37 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
         }
         
         setInterval(checkReminders, 10000);
-        
+
+        async function checkScheduledSearches() {
+            const now = Date.now();
+            let updated = false;
+            for (let task of scheduledSearches) {
+                if (!task.fired && now >= task.triggerTime) {
+                    task.fired = true;
+                    updated = true;
+                    const results = await searchWeb(task.query);
+                    const prompt = `You are Alex. Boss asked you to check this: "${task.query}". Here are the search results:\n${results}\n\nGive a short, friendly update. Mention the key details. No bullet points.`;
+                    try {
+                        const summary = await callAI(buildPersonalityPrompt(false), prompt, []);
+                        const cleanSummary = cleanResponse(summary);
+                        chatHistory.push({role:'ai', text: cleanSummary});
+                        renderChat();
+                        saveChatHistory();
+                        speakText(cleanSummary);
+                        triggerNotif("Scheduled Update", cleanSummary);
+                    } catch(e) {
+                        console.error("Scheduled search AI failed:", e);
+                    }
+                }
+            }
+            if (updated) {
+                scheduledSearches = scheduledSearches.filter(t => !t.fired || (Date.now() - t.triggerTime) < 3600000);
+                localStorage.setItem('eurusd_scheduled_searches', JSON.stringify(scheduledSearches));
+                renderReminders();
+            }
+        }
+        setInterval(checkScheduledSearches, 10000);
+
         function checkMissedReminders() { 
             const now = new Date(); 
             const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -990,7 +1060,6 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
             reminders.filter(r => !r.fired).forEach(r => { 
                 if (r.time.includes(' ')) {
                     const [dayPart, timePart] = r.time.split(' ');
-                    // If the reminder was for today but the time has passed
                     if (dayPart === curDay && timePart < curTime) {
                         r.fired = true; 
                         triggerNotif("Missed Reminder", r.message); 
