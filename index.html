@@ -161,7 +161,14 @@
                 <strong>Voice Engine Settings</strong>
                 <div id="voice-status" style="font-size:0.75rem; color:var(--yellow); margin-top:6px;">Checking system...</div>
                 
-                <div style="font-size:0.7rem; color:var(--text-muted); margin-top:8px;">Method 1: Official ElevenLabs API (Free 10k chars/month, recommended)</div>
+                <!-- NEW: Voice Engine Mode Toggle -->
+                <div style="font-size:0.7rem; color:var(--text-muted); margin-top:12px;">Voice Engine Mode:</div>
+                <select id="voice-engine-mode" onchange="saveVoiceEngineMode()" style="width:100%; padding:9px; margin-top:6px; border-radius:7px; border:1px solid rgba(255,255,255,0.08); background:rgba(0,0,0,0.3); color:white;">
+                    <option value="cloud">Cloud Voice (Premium - Uses Credits)</option>
+                    <option value="browser">Browser Voice (Robotic - Saves Credits)</option>
+                </select>
+                
+                <div style="font-size:0.7rem; color:var(--text-muted); margin-top:12px;">Method 1: Official ElevenLabs API (Free 10k chars/month, recommended)</div>
                 <input type="password" id="elevenlabs-api-input" placeholder="sk_... (Your ElevenLabs API Key)" style="width:100%; padding:9px; margin-top:6px; border-radius:7px; border:1px solid rgba(255,255,255,0.08); background:rgba(0,0,0,0.3); color:white;">
                 <button class="btn" style="margin-top:6px; width:100%;" onclick="saveElevenLabsApiKey()">Save ElevenLabs Key</button>
 
@@ -242,6 +249,7 @@
         let alertLog = JSON.parse(localStorage.getItem('eurusd_alert_log') || '[]');
         let elevenLabsVoiceId = localStorage.getItem('eurusd_elevenlabs_voice') || 'ErXwobaYiN019PkySvjV'; // Default to Antoni (Friendly)
         let elevenLabsApiKey = localStorage.getItem('eurusd_elevenlabs_api_key') || ''; // User's own ElevenLabs API Key
+        let voiceEngineMode = localStorage.getItem('eurusd_voice_engine_mode') || 'cloud'; // 'cloud' or 'browser'
 
         // === AUDIO TRACKING FOR CLOUD VOICE ===
         let currentAudio = null;
@@ -564,6 +572,13 @@
 
             isSpeaking = true;
 
+            // === NEW: Check if user manually chose Browser Voice ===
+            if (voiceEngineMode === 'browser') {
+                if (statusEl) statusEl.innerHTML = "<span style='color:var(--yellow);'>Using Browser Voice (Manual Mode)</span>";
+                fallbackSpeakText(cleanText, isReminder);
+                return; // Skip cloud API calls
+            }
+
             // === 1. TRY DIRECT ELEVENLABS API (User's own key) ===
             if (elevenLabsApiKey) {
                 try {
@@ -706,6 +721,7 @@
             if (id === 'panel-voice') {
                 document.getElementById('elevenlabs-voice-select').value = elevenLabsVoiceId;
                 document.getElementById('elevenlabs-api-input').value = elevenLabsApiKey;
+                document.getElementById('voice-engine-mode').value = voiceEngineMode; // Load saved mode
             }
         }
         function saveGistConfig() { gistToken = document.getElementById('gist-token-input').value.trim(); gistId = document.getElementById('gist-id-input').value.trim(); localStorage.setItem('eurusd_gist_token', gistToken); localStorage.setItem('eurusd_gist_id', gistId); saveMemoryToGist(); }
@@ -722,6 +738,17 @@
             const statusEl = document.getElementById('voice-status');
             if (statusEl) statusEl.innerHTML = "<span style='color:var(--green);'>✓ ElevenLabs API Key Saved!</span>";
             speakText("API key saved. I am now using your personal ElevenLabs quota.");
+        }
+
+        // === NEW: SAVE VOICE ENGINE MODE ===
+        function saveVoiceEngineMode() {
+            voiceEngineMode = document.getElementById('voice-engine-mode').value;
+            localStorage.setItem('eurusd_voice_engine_mode', voiceEngineMode);
+            if (voiceEngineMode === 'browser') {
+                speakText("Switched to browser voice, Boss. This saves your credits.");
+            } else {
+                speakText("Switched to cloud voice, Boss. Premium quality is back.");
+            }
         }
 
         // === FIXED GIST FUNCTIONS WITH ERROR FEEDBACK ===
