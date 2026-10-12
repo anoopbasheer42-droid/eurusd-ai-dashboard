@@ -345,40 +345,45 @@
             el.innerText = pool[Math.floor(Math.random() * pool.length)];
         }
 
-        // === WEB SEARCH (FREE - NO API KEY, uses AllOrigins proxy to scrape DuckDuckGo) ===
+        // === WEB SEARCH (FREE - NO API KEY, Dual API approach) ===
         async function searchWeb(query) {
             try {
-                const ddgUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
-                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(ddgUrl)}`;
-                const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(15000) });
-                if (!res.ok) throw new Error(`Search failed: ${res.status}`);
-                const html = await res.text();
-                
-                // Extract snippets and titles using regex
-                const snippetRegex = /<a class="result__snippet"[^>]*>(.*?)<\/a>/g;
-                const titleRegex = /<a class="result__a"[^>]*>(.*?)<\/a>/g;
-                
-                let match;
-                let snippets = [];
-                let titles = [];
-                
-                while ((match = snippetRegex.exec(html)) !== null) {
-                    snippets.push(match[1].replace(/<[^>]*>?/gm, '').trim());
+                // 1. Check for Currency Conversion (e.g., "AED to INR", "USD in INR")
+                const currencyMatch = query.match(/([A-Z]{3})\s*(?:to|in|for|of)\s*([A-Z]{3})/i);
+                if (currencyMatch) {
+                    const from = currencyMatch[1].toUpperCase();
+                    const to = currencyMatch[2].toUpperCase();
+                    const res = await fetch(`https://open.er-api.com/v6/latest/${from}`, { signal: AbortSignal.timeout(10000) });
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.rates && data.rates[to]) {
+                            return `The current exchange rate is 1 ${from} = ${data.rates[to].toFixed(4)} ${to}. Last updated: ${new Date(data.time_last_update_unix * 1000).toLocaleString()}.`;
+                        }
+                    }
                 }
-                while ((match = titleRegex.exec(html)) !== null) {
-                    titles.push(match[1].replace(/<[^>]*>?/gm, '').trim());
+
+                // 2. DuckDuckGo Instant Answer API (for general facts and news)
+                const ddgUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1`;
+                const res = await fetch(ddgUrl, { signal: AbortSignal.timeout(10000) });
+                if (res.ok) {
+                    const data = await res.json();
+                    let resultText = "";
+                    if (data.Answer) resultText += `Answer: ${data.Answer}\n`;
+                    if (data.AbstractText) resultText += `Summary: ${data.AbstractText}\n`;
+                    if (data.Definition) resultText += `Definition: ${data.Definition}\n`;
+                    if (data.RelatedTopics && data.RelatedTopics.length > 0) {
+                        resultText += "Related info:\n";
+                        data.RelatedTopics.slice(0, 2).forEach(t => {
+                            if (t.Text) resultText += `- ${t.Text}\n`;
+                        });
+                    }
+                    if (resultText) return resultText.trim();
                 }
-                
-                if (snippets.length === 0) return "No results found.";
-                
-                let formatted = "Here are the latest search results:\n\n";
-                for (let i = 0; i < Math.min(snippets.length, 3); i++) {
-                    formatted += `${i+1}. ${titles[i] || 'Result'}\n${snippets[i]}\n\n`;
-                }
-                return formatted.trim();
+
+                return "I couldn't find a specific instant answer for that, Boss. Try rephrasing the question.";
             } catch (e) {
                 console.error("Web search error:", e);
-                return "I couldn't reach the internet right now, Boss. The free search service might be busy. Try again in a minute.";
+                return "I couldn't reach the internet right now, Boss. The search service might be busy. Try again in a minute.";
             }
         }
 
