@@ -583,16 +583,12 @@
 - NEVER write like a robot or an assistant. No "I hope this message finds you well." No bullet points, asterisks, or markdown.
 - NEVER use emojis.
 
-=== EXAMPLES OF GOOD REPLIES ===
-"Hey Boss! Just checking in. Did you take your BP tablet after breakfast? Also, market's dead quiet right now, so don't force anything. Wait for the London session."
-"Boss, how's Sadia doing in Dubai? Tell her I said hi. By the way, EUR/USD is sitting right at resistance 1.1246. If it rejects, we might have a beautiful short setup."
-"Long day, huh? Make sure you eat something. Market's chopping around, I don't like any setups right now. Rest up."
-
-=== MEMORY ===
-After each reply, scan what he said. If he mentioned an IMPORTANT personal fact (health, family, goal, concern, plan), append on its own line: [REMEMBER: the fact]
-
-=== REMINDERS ===
-If he says "remind me in X minutes", add X to IST and append: [REMINDER: HH:MM - message]
+=== HARD RULES ===
+- NEVER say "I hope this message finds you well."
+- NEVER write like a report. No bullet points, asterisks, or markdown.
+- NEVER use emojis. You're his friend, not an assistant.
+- If Boss simply states a fact (e.g., "kids will be back at 4pm"), just acknowledge it briefly. Do NOT dump a full market analysis or a checklist of personal questions. Keep it short and natural.
+- Only give a full market analysis if Boss asks about the market, trading, or a setup.
 
 === TIME ===
 IST: ${istTime}.${isWeekend ? ' Weekend.' : ''}
@@ -637,11 +633,24 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
             } catch(e) { if (document.getElementById('chat-history').contains(loading)) document.getElementById('chat-history').removeChild(loading); chatHistory.push({role:'ai', text: `Error: ${e.message}`}); renderChat(); } finally { chatInProgress = false; }
         }
 
-        // === PROACTIVE CHECK-IN (NEW) ===
+        // === PROACTIVE CHECK-IN (UPDATED FOR NATURAL VARIATION) ===
         async function triggerProactiveCheckin() {
             if (chatInProgress) return;
             if (!groqKey && !apiKey) return;
-            const checkinPrompt = `You are Alex, Boss's best friend and personal secretary. It's been a while since you last spoke. Generate a short, warm, friendly check-in message for Boss. Ask about his family (Sadia, Emy, Bismah, Cookie), his health (BP tablets, meals), or his day. Be talkative and caring. Then briefly mention the current EUR/USD price and that you are watching the charts for him. Do NOT output any JSON. Do NOT use emojis. Keep it to 2-3 sentences.`;
+            
+            // Randomize the focus so it doesn't feel repetitive
+            const topics = [
+                "Ask how Sadia is doing in Dubai.",
+                "Ask about Emy and Bismah, and their Malayalam tuition this weekend.",
+                "Ask if he has taken his BP tablets today.",
+                "Ask if he has eaten, and remind him to rest if he's tired.",
+                "Ask about Cookie the cat.",
+                "Ask how his day is going in general."
+            ];
+            const randomTopic = topics[Math.floor(Math.random() * topics.length)];
+            
+            const checkinPrompt = `You are Alex, Boss's best friend and personal secretary. It's been a while. Generate a short, warm, friendly check-in message. ${randomTopic} Be talkative and caring, like a best friend texting. Then briefly mention the current EUR/USD price (around ${marketData ? marketData.currentPrice.toFixed(5) : 'the market'}) and that you are watching the charts for him. Do NOT output any JSON. Do NOT use emojis. Keep it to 2-3 sentences. Do NOT ask about his family or health if it wasn't the assigned topic.`;
+            
             try {
                 let response = await callAI(checkinPrompt, "Initiate a proactive check-in with Boss.", []);
                 response = cleanResponse(response);
@@ -691,7 +700,7 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
             setInterval(() => { if (chatInProgress) return; refreshMarketData(); }, 60000); // Refresh every 1 minute
             setInterval(() => { if (chatInProgress) return; askAIForSignal(); }, 3600000); // AI auto-run every 1 hour
             
-            // NEW: Proactive check-in every 2 hours (7200000 ms)
+            // Proactive check-in every 2 hours (7200000 ms)
             setInterval(() => { if (chatInProgress) return; triggerProactiveCheckin(); }, 7200000);
         };
     </script>
