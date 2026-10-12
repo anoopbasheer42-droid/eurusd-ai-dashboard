@@ -175,6 +175,20 @@
                 <input type="text" id="kokoro-url-input" placeholder="https://your-app.up.railway.app" style="width:100%; padding:9px; margin-top:6px; border-radius:7px; border:1px solid rgba(255,255,255,0.08); background:rgba(0,0,0,0.3); color:white;">
                 <button class="btn" style="margin-top:6px; width:100%;" onclick="saveKokoroUrl()">Save Kokoro URL</button>
                 
+                <div style="font-size:0.7rem; color:var(--text-muted); margin-top:12px;">Kokoro Voice Selection:</div>
+                <select id="kokoro-voice-select" onchange="saveKokoroVoice()" style="width:100%; padding:9px; margin-top:6px; border-radius:7px; border:1px solid rgba(255,255,255,0.08); background:rgba(0,0,0,0.3); color:white;">
+                    <option value="af_heart">Heart (American Female - Warm)</option>
+                    <option value="af_bella">Bella (American Female - Beautiful)</option>
+                    <option value="af_nicole">Nicole (American Female - Calm)</option>
+                    <option value="am_adam">Adam (American Male - Deep)</option>
+                    <option value="am_michael">Michael (American Male - Professional)</option>
+                    <option value="am_onyx">Onyx (American Male - Noir)</option>
+                    <option value="bf_emma">Emma (British Female - Elegant)</option>
+                    <option value="bf_isabella">Isabella (British Female - Soft)</option>
+                    <option value="bm_george">George (British Male - Classic)</option>
+                    <option value="bm_lewis">Lewis (British Male - Casual)</option>
+                </select>
+                
                 <div style="font-size:0.7rem; color:var(--text-muted); margin-top:12px;">Method 3: Puter.js Free Credits (Fallback)</div>
                 
                 <select id="elevenlabs-voice-select" onchange="saveElevenLabsVoice()" style="width:100%; padding:9px; margin-top:6px; border-radius:7px; border:1px solid rgba(255,255,255,0.08); background:rgba(0,0,0,0.3); color:white;">
@@ -252,8 +266,9 @@
         let alertLog = JSON.parse(localStorage.getItem('eurusd_alert_log') || '[]');
         let elevenLabsVoiceId = localStorage.getItem('eurusd_elevenlabs_voice') || 'ErXwobaYiN019PkySvjV';
         let elevenLabsApiKey = localStorage.getItem('eurusd_elevenlabs_api_key') || '';
-        let kokoroUrl = localStorage.getItem('eurusd_kokoro_url') || ''; // NEW: Kokoro API URL
-        let voiceEngineMode = localStorage.getItem('eurusd_voice_engine_mode') || 'cloud'; // 'cloud', 'kokoro', 'browser'
+        let kokoroUrl = localStorage.getItem('eurusd_kokoro_url') || '';
+        let kokoroVoice = localStorage.getItem('eurusd_kokoro_voice') || 'af_heart';
+        let voiceEngineMode = localStorage.getItem('eurusd_voice_engine_mode') || 'cloud';
 
         // === AUDIO TRACKING ===
         let currentAudio = null;
@@ -566,21 +581,29 @@
                 return;
             }
 
-            // === 1. KOKORO TTS (Self-Hosted) ===
+            // === 1. KOKORO TTS (Self-Hosted with 15s Timeout for Cold Starts) ===
             if (voiceEngineMode === 'kokoro' && kokoroUrl) {
                 try {
-                    if (statusEl) statusEl.innerHTML = "<span style='color:var(--yellow);'>Generating Kokoro audio...</span>";
+                    if (statusEl) statusEl.innerHTML = "<span style='color:var(--yellow);'>Waking up Kokoro Server (may take 10s)...</span>";
+                    
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15-second timeout
+
                     const response = await fetch(kokoroUrl.replace(/\/$/, '') + '/v1/audio/speech', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
+                        signal: controller.signal,
                         body: JSON.stringify({
                             model: 'kokoro',
-                            voice: 'af_heart',
+                            voice: kokoroVoice,
                             input: cleanText,
                             response_format: 'mp3'
                         })
                     });
-                    if (!response.ok) throw new Error(`Kokoro Error: ${response.status}`);
+                    
+                    clearTimeout(timeoutId);
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    
                     const blob = await response.blob();
                     currentAudio = new Audio(URL.createObjectURL(blob));
                     if (statusEl) statusEl.innerHTML = "<span style='color:var(--green);'>✓ Playing Kokoro Voice</span>";
@@ -589,7 +612,12 @@
                     return;
                 } catch (e) {
                     console.error("Kokoro error:", e);
-                    if (statusEl) statusEl.innerHTML = `<span style='color:var(--red);'>Kokoro Error: ${e.message}. Falling back...</span>`;
+                    if (e.name === 'AbortError') {
+                        if (statusEl) statusEl.innerHTML = "<span style='color:var(--red);'>Kokoro Server Timeout (Cold Start). Falling back...</span>";
+                    } else {
+                        if (statusEl) statusEl.innerHTML = `<span style='color:var(--red);'>Kokoro Error: ${e.message}. Falling back...</span>`;
+                    }
+                    // Fall through to ElevenLabs since user asked not to remove it
                 }
             }
 
@@ -667,7 +695,7 @@
         function playVoiceReport() {
             if (!globalData) return;
             if (isSpeaking) stopVoice();
-            let text = `${rnd(OPENINGS)} Price is ${globalData.price}. We've got a ${globalData.signal} signal with ${globalData.confidence} confidence. ${globalData.reason} ${rnd(TRANS)} Support sits at ${globalData.support}, resistance at ${globalData.resistance}. Entry is ${globalData.entry}. Stop loss at ${globalData.sl}. Take profit at ${globalData.tp}. ${globalData.wise_words ? globalData.wise_words : ''} ${rnd(CLOSINGS)}`;
+            let text = `${rnd(OPENINGS)} Price is ${globalData.price}. We've got a ${globalData.signal} with ${globalData.confidence} confidence. ${globalData.reason} ${rnd(TRANS)} Support sits at ${globalData.support}, resistance at ${globalData.resistance}. Entry is ${globalData.entry}. Stop loss at ${globalData.sl}. Take profit at ${globalData.tp}. ${globalData.wise_words ? globalData.wise_words : ''} ${rnd(CLOSINGS)}`;
             speakText(text);
         }
         
@@ -692,6 +720,7 @@
                 document.getElementById('elevenlabs-voice-select').value = elevenLabsVoiceId;
                 document.getElementById('elevenlabs-api-input').value = elevenLabsApiKey;
                 document.getElementById('kokoro-url-input').value = kokoroUrl;
+                document.getElementById('kokoro-voice-select').value = kokoroVoice;
                 document.getElementById('voice-engine-mode').value = voiceEngineMode;
             }
         }
@@ -717,6 +746,12 @@
             const statusEl = document.getElementById('voice-status');
             if (statusEl) statusEl.innerHTML = "<span style='color:var(--green);'>✓ Kokoro URL Saved!</span>";
             speakText("Kokoro URL saved. I'm now using your self-hosted voice.");
+        }
+
+        function saveKokoroVoice() {
+            kokoroVoice = document.getElementById('kokoro-voice-select').value;
+            localStorage.setItem('eurusd_kokoro_voice', kokoroVoice);
+            speakText("Kokoro voice updated, Boss.");
         }
 
         function saveVoiceEngineMode() {
