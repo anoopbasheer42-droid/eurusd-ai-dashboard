@@ -312,6 +312,7 @@
         let longTermMemory = JSON.parse(localStorage.getItem('eurusd_long_term_memory') || '[]');
         let reminders = JSON.parse(localStorage.getItem('eurusd_reminders') || '[]');
         let scheduledSearches = JSON.parse(localStorage.getItem('eurusd_scheduled_searches') || '[]');
+        let recentCheckinTopics = JSON.parse(localStorage.getItem('eurusd_recent_checkin_topics') || '[]');
         let groqKey = localStorage.getItem('eurusd_groq_key') || '';
         let apiKey = localStorage.getItem('eurusd_chat_key') || '';
         let gistToken = localStorage.getItem('eurusd_gist_token') || '';
@@ -827,7 +828,7 @@
             const istTime = now.toLocaleString('en-IN', {timeZone:'Asia/Kolkata'});
             const isWeekend = [0, 6].includes(new Date(now.toLocaleString('en-US', {timeZone:'Asia/Kolkata'})).getDay());
             
-            let personalBlock = personalContext ? `\nBOSS (your best friend):\n- Name: Boss. Thrissur, Kerala.\n- Wife Sadia in Dubai.\n- Daughters Emy and Bismah.\n- Cat named Cookie.\n- Takes BP tablets after breakfast and dinner.\n- Goal: 10,000 INR/month. Conservative trader.\n- London + NY sessions.\n` : "";
+            let personalBlock = personalContext ? `\nBOSS (your best friend):\n- Name: Boss. Thrissur, Kerala.\n- Wife Sadia in Dubai.\n- Daughters Emy and Bismah.\n- Cat named Cookie.\n- Takes BP tablets after breakfast and dinner.\n- Goal: 10,000 INR/month. Conservative trader.\n- London + NY sessions.\n- Brothers: Binu, Shanu.\n` : "";
             
             let memoryBlock = longTermMemory.length > 0 ? `\nTHINGS YOU REMEMBER (Use naturally):\n${longTermMemory.slice(-15).map(m => `- ${m.fact}`).join('\n')}\n` : "";
             
@@ -845,6 +846,8 @@
 === PART 2: PERSONAL SECRETARY ===
 - Casually check on his personal life: Sadia in Dubai, the kids' Malayalam tuition, Cookie the cat, his BP tablets. Use the "THINGS YOU REMEMBER" block naturally. Ask follow-up questions about past events.
 - Help him organise his day, track goals, and follow up on pending tasks without being annoying or interrogating him.
+- CRITICAL RULE OF ROTATION: Do NOT ask about the same personal topic repeatedly. If you asked about Sadia recently, ask about the kids, or the cat, or his health, or the weather next time. Mix it up naturally. Never list multiple personal questions in one reply. Pick one and keep it casual.
+- If you see a saved memory, ask about it naturally. Example: "By the way, how did that thing with the car go?"
 - CRITICAL MEMORY RULE: If Boss says "Remember", "Save this", "Don't forget", or explicitly asks you to remember a fact, you MUST append a hidden tag to the very end of your reply formatted exactly like this: [REMEMBER: The exact fact to save]. Do not skip this step. The tag must be on its own line at the end. I will strip it out before showing it to him. If you forget this tag, the memory will not save and you will disappoint him.
 - CRITICAL REMINDER RULE: If Boss asks for a reminder, you MUST append a hidden tag formatted as [REMINDER: Day HH:MM - message]. Use 3-letter day names (Mon, Tue, Wed, Thu, Fri, Sat, Sun). If it is a daily reminder, use [REMINDER: HH:MM - message]. Always use 24-hour format for time. If you forget this tag, the reminder will not work.
 - CRITICAL SCHEDULED SEARCH RULE: If Boss asks you to check the internet for something after a certain time, you MUST append a hidden tag formatted as [SCHEDULE_SEARCH: minutes - search query]. Example: [SCHEDULE_SEARCH: 10 - India vs Australia cricket score]. This will automatically search the web and update him in that many minutes. Do not use this for regular reminders.
@@ -949,7 +952,8 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
         async function triggerProactiveCheckin() {
             if (chatInProgress) return;
             if (!groqKey && !apiKey) return;
-            const topics = [
+            
+            const allTopics = [
                 "Ask how Sadia is doing in Dubai.",
                 "Ask about Emy and Bismah, and their Malayalam tuition this weekend.",
                 "Ask if he has taken his BP tablets today.",
@@ -959,9 +963,26 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
                 "Ask if he watched any sports or movies recently.",
                 "Ask about the weather in Thrissur today.",
                 "Ask if he has any plans for the evening or weekend.",
-                "Ask about a hobby or something he enjoys doing outside of trading."
+                "Ask about a hobby or something he enjoys doing outside of trading.",
+                "Ask how his brothers Binu and Shanu are doing.",
+                "Ask if he has any goals he's working towards right now."
             ];
-            const randomTopic = topics[Math.floor(Math.random() * topics.length)];
+            
+            // Filter out recently used topics
+            let availableTopics = allTopics.filter(t => !recentCheckinTopics.includes(t));
+            if (availableTopics.length === 0) {
+                // If all used, reset the history and start fresh
+                recentCheckinTopics = [];
+                availableTopics = allTopics;
+            }
+            
+            const randomTopic = availableTopics[Math.floor(Math.random() * availableTopics.length)];
+            
+            // Remember this topic for next time
+            recentCheckinTopics.push(randomTopic);
+            if (recentCheckinTopics.length > 5) recentCheckinTopics.shift(); // Keep only last 5
+            localStorage.setItem('eurusd_recent_checkin_topics', JSON.stringify(recentCheckinTopics));
+
             const checkinPrompt = `You are Alex, Boss's best friend and personal secretary. It's been a while. Generate a short, warm, funny, friendly check-in message. ${randomTopic} Be talkative and caring, like a best friend texting. Make a light-hearted joke. Then briefly mention the current EUR/USD price (around ${marketData ? marketData.currentPrice.toFixed(5) : 'the market'}) and that you are watching the charts for him. Do NOT output any JSON. Do NOT use emojis. Keep it to 2-3 sentences. Do NOT ask about his family or health if it wasn't the assigned topic.`;
             try {
                 let response = await callAI(checkinPrompt, "Initiate a proactive check-in with Boss.", []);
