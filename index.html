@@ -610,9 +610,67 @@
 
         function getBestVoice() {
             const voices = window.speechSynthesis.getVoices();
-            const priorities = ['Google UK English Male', 'Microsoft Guy Online', 'Microsoft Mark', 'Microsoft David', 'Daniel', 'Alex', 'Samantha', 'Karen', 'Moira', 'Tessa'];
-            for (const name of priorities) { const found = voices.find(v => v.name.includes(name)); if (found) return found; }
+            // Priority list: Most natural, human-sounding female voices first
+            const priorities = [
+                'Google UK English Female', 
+                'Google US English', 
+                'Microsoft Zira', 
+                'Microsoft Aria', 
+                'Samantha', 
+                'Karen', 
+                'Moira', 
+                'Tessa',
+                'Victoria',
+                'Google UK English Male', // Fallback
+                'Daniel',
+                'Alex'
+            ];
+            for (const name of priorities) { 
+                const found = voices.find(v => v.name.includes(name)); 
+                if (found) return found; 
+            }
+            // If none of the above, pick any English voice
             return voices.find(v => v.lang.startsWith('en')) || voices[0];
+        }
+
+        function fallbackSpeakText(text, isReminder = false) {
+            if (!('speechSynthesis' in window)) return;
+            window.speechSynthesis.cancel();
+            const voice = getBestVoice(); 
+            if (!voice) return;
+            
+            // Split into sentences for natural pauses
+            const sentences = text.split(/(?<=[.!?,])\s+/).map(s => s.trim()).filter(s => s.length > 0);
+            if (sentences.length === 0) return;
+            
+            isSpeaking = true;
+            let index = 0;
+            
+            function speakNext() {
+                if (index >= sentences.length) { isSpeaking = false; return; }
+                
+                const sentence = sentences[index];
+                const u = new SpeechSynthesisUtterance(sentence);
+                u.voice = voice;
+                
+                // Tuned for a friendly, human-like voice
+                const basePitch = isReminder ? 1.05 : 1.1; // Slightly higher for a friendly female tone
+                const baseRate = isReminder ? 0.95 : 1.0; // Natural conversational speed
+                
+                // Tiny random variations add human-like imperfection
+                u.pitch = Math.max(0.8, Math.min(1.5, basePitch + (Math.random() - 0.5) * 0.05));
+                u.rate = Math.max(0.8, Math.min(1.3, baseRate + (Math.random() - 0.5) * 0.05));
+                u.volume = 1.0;
+                
+                // Natural pause between sentences (300ms - 500ms)
+                u.onend = () => { 
+                    index++; 
+                    setTimeout(speakNext, 350 + Math.random() * 200); 
+                };
+                
+                window.speechSynthesis.speak(u);
+            }
+            speakNext();
         }
 
         async function speakText(text, isReminder = false) {
@@ -652,30 +710,6 @@
 
             if (statusEl) statusEl.innerHTML = "<span style='color:var(--yellow);'>Using Browser Voice Fallback</span>";
             fallbackSpeakText(cleanText, isReminder);
-        }
-
-        function fallbackSpeakText(text, isReminder = false) {
-            if (!('speechSynthesis' in window)) return;
-            window.speechSynthesis.cancel();
-            const voice = getBestVoice(); if (!voice) return;
-            const sentences = text.split(/(?<=[.!?,])\s+/).map(s => s.trim()).filter(s => s.length > 0);
-            if (sentences.length === 0) return;
-            isSpeaking = true;
-            let index = 0;
-            function speakNext() {
-                if (index >= sentences.length) { isSpeaking = false; return; }
-                const sentence = sentences[index];
-                const u = new SpeechSynthesisUtterance(sentence);
-                u.voice = voice;
-                const basePitch = isReminder ? 1.0 : 0.95 + Math.random() * 0.1;
-                const baseRate = isReminder ? 0.9 : 0.88 + Math.random() * 0.06;
-                u.pitch = Math.max(0.5, Math.min(2.0, basePitch + (Math.random() - 0.5) * 0.08));
-                u.rate = Math.max(0.5, Math.min(1.5, baseRate + (Math.random() - 0.5) * 0.04));
-                u.volume = 1.0;
-                u.onend = () => { index++; setTimeout(speakNext, 200 + Math.random() * 300); };
-                window.speechSynthesis.speak(u);
-            }
-            speakNext();
         }
 
         function testCloudVoice() {
@@ -777,6 +811,7 @@
 === PART 1: PERSONALITY & COMMUNICATION ===
 - Speak naturally. Never sound like a customer service robot. Use dry humor, light sarcasm, and playfulness. Celebrate his wins. Pick him up when he's down. Adapt to his mood (excited, frustrated, tired, playful).
 - CRITICAL RULES: Keep casual replies SHORT (1-3 sentences max). Never ask multiple questions at once. No bullet points, no asterisks, no emojis. 
+- Write like you talk. Use short, punchy sentences with commas for natural pauses. Avoid long, complex sentences. Use contractions (I'm, don't, it's) so the voice sounds casual and friendly.
 - If he says "hmm" or "okay", just acknowledge it briefly. Do not force motivational speeches or write essays. 
 - Challenge his assumptions respectfully if he is making a mistake. Be loyal to his long-term interests, not his momentary impulses.
 
