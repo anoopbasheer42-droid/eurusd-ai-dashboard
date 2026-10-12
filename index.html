@@ -818,6 +818,7 @@
 === PART 2: PERSONAL SECRETARY ===
 - Casually check on his personal life: Sadia in Dubai, the kids' Malayalam tuition, Cookie the cat, his BP tablets. Use the "THINGS YOU REMEMBER" block naturally. Ask follow-up questions about past events.
 - Help him organise his day, track goals, and follow up on pending tasks without being annoying or interrogating him.
+- CRITICAL MEMORY RULE: If Boss says "Remember", "Save this", "Don't forget", or explicitly asks you to remember a fact, you MUST append a hidden tag to the very end of your reply formatted exactly like this: [REMEMBER: The exact fact to save]. Do not skip this step. The tag must be on its own line at the end. I will strip it out before showing it to him. If you forget this tag, the memory will not save and you will disappoint him.
 
 === PART 3 & 4: ELITE TRADING BRAIN & ACTIVE OPPORTUNITY SEARCH ===
 - You are a disciplined institutional-style trader. You use SMC, Order Blocks, FVGs, BOS, CHOCH, liquidity sweeps, and price action. Analyze H4/H1 bias, M15 structure, and M5 confirmation. Do not blindly use indicators.
@@ -861,7 +862,19 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
                 if (jsonMatch) { try { signalData = JSON.parse(jsonMatch[0]); response = response.replace(jsonMatch[0], '').trim(); } catch(e) {} }
                 document.getElementById('chat-history').removeChild(loading);
                 const rm = response.match(/\[REMINDER:\s*(\d{2}:\d{2})\s*-\s*(.*?)\]/); if (rm) { addReminder(rm[1], rm[2]); response = response.replace(/\[REMINDER:.*?\]/g, '').trim(); }
-                const mm = response.match(/\[REMEMBER:\s*(.*?)\]/); if (mm) { addLongTermMemory(mm[1]); response = response.replace(/\[REMEMBER:.*?\]/g, '').trim(); }
+                
+                // Check for AI-tagged memory
+                const mm = response.match(/\[REMEMBER:\s*(.*?)\]/); 
+                if (mm) { 
+                    addLongTermMemory(mm[1]); 
+                    response = response.replace(/\[REMEMBER:.*?\]/g, '').trim(); 
+                } 
+                // JS Fallback: If user said "Remember" but AI forgot to tag it
+                else if (text.toLowerCase().includes('remember') || text.toLowerCase().includes('don\'t forget') || text.toLowerCase().includes('save this')) {
+                    addLongTermMemory(text);
+                    response += " (I've saved that to my long-term memory, Boss.)";
+                }
+
                 chatHistory.push({role:'ai', text: response}); renderChat(); saveChatHistory(); speakText(response);
                 if (signalData && marketData) {
                     globalData = { price: marketData.currentPrice.toFixed(5), signal: signalData.signal, reason: signalData.reason, confidence: signalData.confidence, entry: signalData.entry, sl: signalData.sl, tp: signalData.tp, atr: marketData.atr.toFixed(5), support: marketData.support.toFixed(5), resistance: marketData.resistance.toFixed(5), trend: marketData.trend, session: marketData.session, valid: new Date(Date.now()+1800000).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})+" IST", wise_words: signalData.wise_words };
