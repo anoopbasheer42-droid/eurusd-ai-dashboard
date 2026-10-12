@@ -564,7 +564,7 @@
                 return;
             }
 
-            // === 2. KOKORO TTS (Self-Hosted) ===
+            // === 2. KOKORO TTS (Self-Hosted with 15s Timeout for Cold Starts) ===
             if (voiceEngineMode === 'kokoro') {
                 if (!kokoroUrl) {
                     if (statusEl) statusEl.innerHTML = "<span style='color:var(--red);'>Kokoro URL missing. Using Browser Voice.</span>";
@@ -572,10 +572,15 @@
                     return;
                 }
                 try {
-                    if (statusEl) statusEl.innerHTML = "<span style='color:var(--yellow);'>Connecting to Kokoro Server...</span>";
+                    if (statusEl) statusEl.innerHTML = "<span style='color:var(--yellow);'>Waking up Kokoro Server (may take 10s)...</span>";
+                    
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15-second timeout
+
                     const response = await fetch(kokoroUrl.replace(/\/$/, '') + '/v1/audio/speech', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
+                        signal: controller.signal,
                         body: JSON.stringify({
                             model: 'kokoro',
                             voice: kokoroVoice,
@@ -583,7 +588,10 @@
                             response_format: 'mp3'
                         })
                     });
+                    
+                    clearTimeout(timeoutId);
                     if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    
                     const blob = await response.blob();
                     currentAudio = new Audio(URL.createObjectURL(blob));
                     if (statusEl) statusEl.innerHTML = "<span style='color:var(--green);'>✓ Playing Kokoro Voice</span>";
@@ -592,7 +600,11 @@
                     return;
                 } catch (e) {
                     console.error("Kokoro error:", e);
-                    if (statusEl) statusEl.innerHTML = `<span style='color:var(--red);'>Kokoro Failed: ${e.message}. Using Browser Voice.</span>`;
+                    if (e.name === 'AbortError') {
+                        if (statusEl) statusEl.innerHTML = "<span style='color:var(--red);'>Kokoro Server Timeout (Cold Start). Please try again.</span>";
+                    } else {
+                        if (statusEl) statusEl.innerHTML = `<span style='color:var(--red);'>Kokoro Failed: ${e.message}. Using Browser Voice.</span>`;
+                    }
                     fallbackSpeakText(cleanText, isReminder);
                     return; // Do NOT fall back to ElevenLabs
                 }
