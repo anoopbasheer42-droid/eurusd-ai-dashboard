@@ -569,7 +569,7 @@
             puter.ai.txt2speech(cleanText, {
                 provider: "elevenlabs",
                 voice: elevenLabsVoiceId,
-                model: "eleven_turbo_v2_5" // Fast and high quality
+                model: "eleven_multilingual_v2" // <<<<<<<<< FIXED: Updated to the current valid model
             }).then(audio => {
                 currentAudio = audio;
                 
