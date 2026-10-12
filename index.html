@@ -880,10 +880,22 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
                 const rm = response.match(/\[REMINDER:\s*(\w{3}\s\d{2}:\d{2}|\d{2}:\d{2})\s*-\s*(.*?)\]/); 
                 if (rm) { addReminder(rm[1], rm[2]); response = response.replace(/\[REMINDER:.*?\]/g, '').trim(); }
                 
+                // Check for AI-tagged scheduled search
                 const ss = response.match(/\[SCHEDULE_SEARCH:\s*(\d+)\s*-\s*(.*?)\]/);
                 if (ss) {
                     addScheduledSearch(parseInt(ss[1]), ss[2]);
                     response = response.replace(/\[SCHEDULE_SEARCH:.*?\]/g, '').trim();
+                }
+                // JS Safety Net: If user asked for a delayed web search but AI forgot the tag
+                else if (webSearchEnabled && (text.toLowerCase().includes('check') || text.toLowerCase().includes('search') || text.toLowerCase().includes('update')) && text.toLowerCase().includes('min')) {
+                    const minMatch = text.match(/in (\d+)\s*(?:min|minute|minutes|mints)/i);
+                    if (minMatch && minMatch[1]) {
+                        const mins = parseInt(minMatch[1]);
+                        let query = text.replace(/check|web|net|search|update|me|in \d+\s*min(ute)?s?|mints/gi, '').trim();
+                        if (!query) query = "latest news";
+                        addScheduledSearch(mins, query);
+                        response += ` (I've also set a timer to check that for you in ${mins} minutes, Boss.)`;
+                    }
                 }
 
                 const mm = response.match(/\[REMEMBER:\s*(.*?)\]/); 
