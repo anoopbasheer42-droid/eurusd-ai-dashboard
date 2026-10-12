@@ -549,16 +549,9 @@
             if (id === 'panel-key') { document.getElementById('groq-key-input').value = groqKey; document.getElementById('api-key-input').value = apiKey; }
             if (id === 'panel-gist') { document.getElementById('gist-token-input').value = gistToken; document.getElementById('gist-id-input').value = gistId; }
         }
+        function saveGistConfig() { gistToken = document.getElementById('gist-token-input').value.trim(); gistId = document.getElementById('gist-id-input').value.trim(); localStorage.setItem('eurusd_gist_token', gistToken); localStorage.setItem('eurusd_gist_id', gistId); saveMemoryToGist(); }
         
-        // === UPDATED GIST FUNCTIONS WITH ERROR FEEDBACK ===
-        function saveGistConfig() { 
-            gistToken = document.getElementById('gist-token-input').value.trim(); 
-            gistId = document.getElementById('gist-id-input').value.trim(); 
-            localStorage.setItem('eurusd_gist_token', gistToken); 
-            localStorage.setItem('eurusd_gist_id', gistId); 
-            saveMemoryToGist(); 
-        }
-
+        // === FIXED GIST FUNCTIONS WITH ERROR FEEDBACK ===
         async function loadMemoryFromGist() {
             if (!gistToken || !gistId) {
                 document.getElementById('gist-status').innerText = "Missing Token or Gist ID";
@@ -626,6 +619,7 @@
                 document.getElementById('gist-status').style.color = "var(--red)";
             }
         }
+        // ===============================================
 
         function cleanResponse(text) { return text.split('\n').filter(line => { const l = line.trim().toLowerCase(); if (l.startsWith('*') || l.startsWith('-')) return false; if (l.includes('friendly?') || l.includes('funny?') || l.includes('motivational?')) return false; if (l.includes('checked') || l.includes('no emojis?')) return false; return true; }).join('\n').trim(); }
 
