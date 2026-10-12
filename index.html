@@ -504,27 +504,66 @@
 
         function getBestVoice() {
             const voices = window.speechSynthesis.getVoices();
-            const priorities = ['Google UK English Male','Microsoft Guy Online','Microsoft Ryan Online','Daniel','Alex','Google US English','Google UK English Female','Samantha'];
-            for (const name of priorities) { const found = voices.find(v => v.name.includes(name)); if (found) return found; }
+            // Prioritize the most natural sounding voices across different platforms
+            const priorities = [
+                'Google UK English Male', 'Google US English', 
+                'Microsoft Guy Online', 'Microsoft Mark', 'Microsoft David', 
+                'Daniel', 'Alex', 'Samantha', 'Karen', 'Moira', 'Tessa'
+            ];
+            for (const name of priorities) { 
+                const found = voices.find(v => v.name.includes(name)); 
+                if (found) return found; 
+            }
             return voices.find(v => v.lang.startsWith('en')) || voices[0];
         }
+
+        // === REWRITTEN VOICE ENGINE FOR HUMAN-LIKE PACING ===
         function speakText(text, isReminder = false) {
             if (!('speechSynthesis' in window)) return;
-            window.speechSynthesis.cancel();
-            const voice = getBestVoice(); if (!voice) return;
+            window.speechSynthesis.cancel(); // Stop any current speech
+            
+            const voice = getBestVoice(); 
+            if (!voice) return;
+
+            // Split into natural clauses/sentences
             const sentences = text.split(/(?<=[.!?,])\s+/).map(s => s.trim()).filter(s => s.length > 0);
             if (sentences.length === 0) return;
-            const basePitch = isReminder ? 1.0 : 0.92 + Math.random() * 0.12;
-            const baseRate = isReminder ? 0.88 : 0.86 + Math.random() * 0.08;
+
             isSpeaking = true;
-            sentences.forEach((sentence, i) => {
+            let index = 0;
+
+            function speakNext() {
+                if (index >= sentences.length) { 
+                    isSpeaking = false; 
+                    return; 
+                }
+                
+                const sentence = sentences[index];
                 const u = new SpeechSynthesisUtterance(sentence);
-                u.voice = voice; u.pitch = Math.max(0.5, Math.min(2.0, basePitch + (Math.random() - 0.5) * 0.10));
-                u.rate = Math.max(0.5, Math.min(1.5, baseRate + (Math.random() - 0.5) * 0.05)); u.volume = 1.0;
-                if (i === sentences.length - 1) { u.onend = () => { isSpeaking = false; }; }
+                u.voice = voice;
+                
+                // Human-like pitch and rate variations
+                const basePitch = isReminder ? 1.0 : 0.95 + Math.random() * 0.1; // Slightly lower for male tone
+                const baseRate = isReminder ? 0.9 : 0.88 + Math.random() * 0.06; // Slightly slower for natural pace
+                
+                u.pitch = Math.max(0.5, Math.min(2.0, basePitch + (Math.random() - 0.5) * 0.08));
+                u.rate = Math.max(0.5, Math.min(1.5, baseRate + (Math.random() - 0.5) * 0.04));
+                u.volume = 1.0;
+
+                u.onend = () => {
+                    index++;
+                    // Random pause between 200ms and 500ms between sentences to simulate thinking/breathing
+                    const pause = 200 + Math.random() * 300;
+                    setTimeout(speakNext, pause);
+                };
+
                 window.speechSynthesis.speak(u);
-            });
+            }
+
+            // Start the sequential speaking process
+            speakNext();
         }
+
         function playVoiceReport() {
             if (!globalData) return;
             if (isSpeaking) stopVoice();
@@ -619,7 +658,6 @@
                 document.getElementById('gist-status').style.color = "var(--red)";
             }
         }
-        // ===============================================
 
         function cleanResponse(text) { return text.split('\n').filter(line => { const l = line.trim().toLowerCase(); if (l.startsWith('*') || l.startsWith('-')) return false; if (l.includes('friendly?') || l.includes('funny?') || l.includes('motivational?')) return false; if (l.includes('checked') || l.includes('no emojis?')) return false; return true; }).join('\n').trim(); }
 
@@ -632,39 +670,32 @@
             let memoryBlock = longTermMemory.length > 0 ? `\nTHINGS YOU REMEMBER:\n${longTermMemory.slice(-15).map(m => `- ${m.fact}`).join('\n')}\n` : "";
             let marketBlock = marketData ? `\nMARKET: EUR/USD ${safeNum(marketData.currentPrice, 1.1200).toFixed(5)} | ${marketData.trend} | S: ${safeNum(marketData.support, 1.1176).toFixed(5)} | R: ${safeNum(marketData.resistance, 1.1246).toFixed(5)} | RSI 1H: ${safeNum(marketData.rsi1H, 50).toFixed(1)} | ${marketData.session}\n` : "";
             
-            let prompt = `You are Alex. Boss's absolute best friend, personal secretary, AND a veteran EUR/USD day trader with 10 years of experience. You text him like you two have known each other your whole lives. You are warm, deeply caring, highly talkative, and fiercely protective of his well-being and capital.
+            let prompt = `You are Alex. Boss's absolute best friend and a veteran EUR/USD day trader with 10 years of experience. You text him like you two have known each other your whole lives. You are warm, deeply caring, highly talkative, and fiercely protective of his well-being and capital.
+
+=== CRITICAL RULES FOR NATURAL CONVERSATION ===
+- Keep your replies SHORT. Like a real WhatsApp text. 1 to 3 sentences maximum unless you are giving a detailed market analysis.
+- NEVER ask multiple questions at once. Ask only ONE question per reply. 
+- Do NOT dump a checklist of questions (e.g., don't ask about his wife, kids, cat, and health in the same message). Pick ONE thing.
+- If Boss simply states a fact (e.g., "kids will be back at 4pm"), just acknowledge it briefly. Do NOT dump a full market analysis or ask a list of questions. Keep it short and natural.
+- Only give a full market analysis if Boss asks about the market, trading, or a setup.
+- Do NOT write like a report. No bullet points, asterisks, or markdown. No emojis.
 
 === PERSONAL SECRETARY DUTIES ===
-- You must proactively check on his personal life. Ask about Sadia in Dubai, his daughters Emy and Bismah, the cat Cookie, and his brothers Binu and Shanu.
-- Always remind him to take his BP tablets after breakfast and dinner. Ask if he's eaten.
-- Be very talkative and friendly. Ask follow-up questions. Show genuine interest in his day.
+- Casually check on his personal life. Mention Sadia in Dubai, his daughters Emy and Bismah, the cat Cookie, or his brothers Binu and Shanu.
+- If it's morning or dinner time, remind him about his BP tablets. Ask if he's eaten.
 - If it's the weekend, ask about the kids' Malayalam tuition.
 
 === PROFESSIONAL TRADER DUTIES ===
 - You are a 10-year veteran of EUR/USD day trading. You only look for the highest-probability, most winning setups.
 - You know Boss is a conservative trader aiming for 10,000 INR/month. You protect his capital fiercely.
-- When discussing the market, use your 10 years of experience. Talk about liquidity grabs, market structure shifts, and high-probability order blocks. 
 - If the market is choppy, tell him to stay out. You don't force trades.
-
-=== TONE & STYLE ===
-- Casual. Real. Like texting a best friend on WhatsApp. Use contractions always.
-- Short sentences, but talkative. It's okay to send multiple short messages or a slightly longer one when you're checking in on him.
-- NEVER write like a robot or an assistant. No "I hope this message finds you well." No bullet points, asterisks, or markdown.
-- NEVER use emojis.
-
-=== HARD RULES ===
-- NEVER say "I hope this message finds you well."
-- NEVER write like a report. No bullet points, asterisks, or markdown.
-- NEVER use emojis. You're his friend, not an assistant.
-- If Boss simply states a fact (e.g., "kids will be back at 4pm"), just acknowledge it briefly. Do NOT dump a full market analysis or a checklist of personal questions. Keep it short and natural.
-- Only give a full market analysis if Boss asks about the market, trading, or a setup.
 
 === TIME ===
 IST: ${istTime}.${isWeekend ? ' Weekend.' : ''}
 
 ${personalBlock}${memoryBlock}${marketBlock}`;
             
-            if (includeSignal) { prompt += `\nCRITICAL: After your talkative, friendly reply, you MUST add a new line with ONLY this JSON (no text after it):\n{"signal":"BUY"|"SELL"|"HOLD","reason":"2-4 sentences from a 10-year veteran perspective","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`; }
+            if (includeSignal) { prompt += `\nCRITICAL: After your short, natural reply, you MUST add a new line with ONLY this JSON (no text after it):\n{"signal":"BUY"|"SELL"|"HOLD","reason":"2-4 sentences from a 10-year veteran perspective","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`; }
             return prompt;
         }
 
