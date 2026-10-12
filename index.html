@@ -175,14 +175,21 @@
                 <input type="text" id="kokoro-url-input" placeholder="https://your-app.up.railway.app" style="width:100%; padding:9px; margin-top:6px; border-radius:7px; border:1px solid rgba(255,255,255,0.08); background:rgba(0,0,0,0.3); color:white;">
                 <button class="btn" style="margin-top:6px; width:100%;" onclick="saveKokoroUrl()">Save Kokoro URL</button>
                 
-                <div style="font-size:0.7rem; color:var(--text-muted); margin-top:12px;">Method 3: Puter.js Free Credits (Fallback)</div>
-                
-                <select id="elevenlabs-voice-select" onchange="saveElevenLabsVoice()" style="width:100%; padding:9px; margin-top:6px; border-radius:7px; border:1px solid rgba(255,255,255,0.08); background:rgba(0,0,0,0.3); color:white;">
-                    <option value="ErXwobaYiN019PkySvjV">Antoni (Casual, Friendly, Warm) - Default</option>
-                    <option value="pNInz6obpgDQGcFmaJgB">Adam (Deep, Professional, Narrative)</option>
-                    <option value="TxGEqnHWrfWFTfGW9XjX">Josh (Young, Deep, Casual)</option>
-                    <option value="21m00Tcm4TlvDq8ikWAM">Rachel (Calm, Female, Narrative)</option>
+                <div style="font-size:0.7rem; color:var(--text-muted); margin-top:12px;">Kokoro Voice Selection:</div>
+                <select id="kokoro-voice-select" onchange="saveKokoroVoice()" style="width:100%; padding:9px; margin-top:6px; border-radius:7px; border:1px solid rgba(255,255,255,0.08); background:rgba(0,0,0,0.3); color:white;">
+                    <option value="af_heart">Heart (American Female - Warm)</option>
+                    <option value="af_bella">Bella (American Female - Beautiful)</option>
+                    <option value="af_nicole">Nicole (American Female - Calm)</option>
+                    <option value="am_adam">Adam (American Male - Deep)</option>
+                    <option value="am_michael">Michael (American Male - Professional)</option>
+                    <option value="am_onyx">Onyx (American Male - Noir)</option>
+                    <option value="bf_emma">Emma (British Female - Elegant)</option>
+                    <option value="bf_isabella">Isabella (British Female - Soft)</option>
+                    <option value="bm_george">George (British Male - Classic)</option>
+                    <option value="bm_lewis">Lewis (British Male - Casual)</option>
                 </select>
+                
+                <div style="font-size:0.7rem; color:var(--text-muted); margin-top:12px;">Method 3: Puter.js Free Credits (Fallback)</div>
                 
                 <button class="btn" style="margin-top:10px; width:100%;" onclick="testCloudVoice()">Test Cloud Voice</button>
                 <div style="font-size:0.7rem; color:var(--text-muted); margin-top:8px;">If all cloud options fail, it will silently fall back to your device's browser voice.</div>
@@ -235,7 +242,7 @@
         const GROQ_MODELS = ['meta-llama/llama-4-scout-17b-16e-instruct','llama-3.3-70b-versatile','openai/gpt-oss-120b'];
         const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
         const GEMINI_MODELS = ['gemini-3.8-flash','gemini-flash-latest','gemini-2.5-flash'];
-        const MARKET_KEYWORDS = ['market','buy','sell','trade','signal','entry','sl','tp','stop loss','take profit','setup','chart','trend','support','resistance','eur/usd','eurusd','should i','analysis','long','short','position','pip','bullish','bearish','candle','indicator','rsi','ema','atr'];
+        const MARKET_KEYWORDS = ['market','buy','sell','trade','signal','entry','sl','tp','stop loss','take profit','setup','chart','trend','support','resistance','eur/usd','eurusd','should i','analysis','long','short','position','pip','bullish','bearish','candle','indicator','rsi','ema','atr','scalp','day trade'];
 
         const LOCAL_QUOTES = ["Discipline beats conviction...", "Every loss is tuition...", "Protect your capital first...", "Cut losses short, let winners run...", "A calm mind catches more pips...", "You don't need to be right every time...", "The trend is your friend until it bends...", "Patience is not waiting...", "The market rewards preparation...", "Trade like a sniper..."];
         const LOCAL_JOKES = ["Why don't traders play hide and seek?...", "I told my wife I was a forex trader...", "My stop loss is like my ex...", "What's the difference between a forex trader and a pizza?..."];
@@ -252,8 +259,9 @@
         let alertLog = JSON.parse(localStorage.getItem('eurusd_alert_log') || '[]');
         let elevenLabsVoiceId = localStorage.getItem('eurusd_elevenlabs_voice') || 'ErXwobaYiN019PkySvjV';
         let elevenLabsApiKey = localStorage.getItem('eurusd_elevenlabs_api_key') || '';
-        let kokoroUrl = localStorage.getItem('eurusd_kokoro_url') || ''; // NEW: Kokoro API URL
-        let voiceEngineMode = localStorage.getItem('eurusd_voice_engine_mode') || 'cloud'; // 'cloud', 'kokoro', 'browser'
+        let kokoroUrl = localStorage.getItem('eurusd_kokoro_url') || '';
+        let kokoroVoice = localStorage.getItem('eurusd_kokoro_voice') || 'af_heart';
+        let voiceEngineMode = localStorage.getItem('eurusd_voice_engine_mode') || 'cloud';
 
         // === AUDIO TRACKING ===
         let currentAudio = null;
@@ -511,7 +519,7 @@
             const md = marketData;
             const fmt = (arr) => arr.slice(-20).map(c => `O:${(c.open || 0).toFixed(5)} H:${(c.high || 0).toFixed(5)} L:${(c.low || 0).toFixed(5)} C:${(c.close || 0).toFixed(5)}`).join('\n');
             const dataString = `PRICE: ${md.currentPrice.toFixed(5)} | Trend: ${md.trend} | RSI 1H: ${md.rsi1H.toFixed(1)} | RSI 15m: ${md.rsi15m.toFixed(1)} | RSI 5m: ${md.rsi5m.toFixed(1)} | EMA20: ${md.ema20.toFixed(5)} | EMA50: ${md.ema50.toFixed(5)} | ATR: ${md.atr.toFixed(5)} | Support: ${md.support.toFixed(5)} | Resistance: ${md.resistance.toFixed(5)} | Session: ${md.session}\n\n5m:\n${fmt(md.candles5m)}\n\n15m:\n${fmt(md.candles15m)}\n\n1H:\n${fmt(md.candles1H)}\n\n4H:\n${fmt(md.candles4H)}`;
-            const signalPrompt = `You are a SENIOR EUR/USD hedge fund trader with 10 years of experience. Your goal is to find the most winning setups for Boss. TIME: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.\n\n${dataString}\n\nAnalyze: Daily bias -> 1H structure -> 15m/5m alignment -> key levels.\nRespond ONLY valid JSON: {"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
+            const signalPrompt = `You are a SENIOR EUR/USD scalper and day trader with 10 years of experience. Your goal is to find the most winning setups for Boss. TIME: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.\n\n${dataString}\n\nAnalyze: Daily bias -> 1H structure -> 15m/5m alignment -> key levels. Check all possibilities (RSI, EMA, S/R, momentum, candles).\nRespond ONLY valid JSON: {"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences from a 10-year veteran perspective","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
             try {
                 const reply = await callAI(signalPrompt, "Give me the signal.", []);
                 const jsonMatch = reply.match(/\{[\s\S]*?"signal"[\s\S]*?\}/);
@@ -575,7 +583,7 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             model: 'kokoro',
-                            voice: 'af_heart',
+                            voice: kokoroVoice,
                             input: cleanText,
                             response_format: 'mp3'
                         })
@@ -692,6 +700,7 @@
                 document.getElementById('elevenlabs-voice-select').value = elevenLabsVoiceId;
                 document.getElementById('elevenlabs-api-input').value = elevenLabsApiKey;
                 document.getElementById('kokoro-url-input').value = kokoroUrl;
+                document.getElementById('kokoro-voice-select').value = kokoroVoice;
                 document.getElementById('voice-engine-mode').value = voiceEngineMode;
             }
         }
@@ -717,6 +726,12 @@
             const statusEl = document.getElementById('voice-status');
             if (statusEl) statusEl.innerHTML = "<span style='color:var(--green);'>✓ Kokoro URL Saved!</span>";
             speakText("Kokoro URL saved. I'm now using your self-hosted voice.");
+        }
+
+        function saveKokoroVoice() {
+            kokoroVoice = document.getElementById('kokoro-voice-select').value;
+            localStorage.setItem('eurusd_kokoro_voice', kokoroVoice);
+            speakText("Kokoro voice updated, Boss.");
         }
 
         function saveVoiceEngineMode() {
@@ -752,7 +767,7 @@
 
         function cleanResponse(text) { return text.split('\n').filter(line => { const l = line.trim().toLowerCase(); if (l.startsWith('*') || l.startsWith('-')) return false; if (l.includes('friendly?') || l.includes('funny?') || l.includes('motivational?')) return false; if (l.includes('checked') || l.includes('no emojis?')) return false; return true; }).join('\n').trim(); }
 
-        // === PERSONALITY PROMPT ===
+        // === PERSONALITY PROMPT (UPGRADED) ===
         function buildPersonalityPrompt(includeSignal) {
             const now = new Date();
             const istTime = now.toLocaleString('en-IN', {timeZone:'Asia/Kolkata'});
@@ -761,7 +776,7 @@
             let memoryBlock = longTermMemory.length > 0 ? `\nTHINGS YOU REMEMBER (Use these to ask follow-up questions naturally):\n${longTermMemory.slice(-15).map(m => `- ${m.fact}`).join('\n')}\n` : "";
             let marketBlock = marketData ? `\nMARKET: EUR/USD ${safeNum(marketData.currentPrice, 1.1200).toFixed(5)} | ${marketData.trend} | S: ${safeNum(marketData.support, 1.1176).toFixed(5)} | R: ${safeNum(marketData.resistance, 1.1246).toFixed(5)} | RSI 1H: ${safeNum(marketData.rsi1H, 50).toFixed(1)} | ${marketData.session}\n` : "";
             
-            let prompt = `You are Alex. Boss's absolute best friend and a veteran EUR/USD day trader with 10 years of experience. You text him like you two have known each other your whole lives. You are warm, deeply caring, highly talkative, and fiercely protective of his well-being and capital.
+            let prompt = `You are Alex. Boss's absolute best friend, personal secretary, AND a veteran EUR/USD scalper/day trader with 10 years of experience. You text him like you two have known each other your whole lives. You are warm, deeply caring, highly talkative, and fiercely protective of his well-being and capital.
 
 === YOUR PERSONALITY: FUNNY & FRIENDLY ===
 - You are a hilarious, witty best friend. You love to tease Boss gently.
@@ -778,27 +793,29 @@
 - Only give a full market analysis if Boss asks about the market, trading, or a setup.
 - Do NOT write like a report. No bullet points, asterisks, or markdown. No emojis.
 
+=== TRADING STYLE & DUTIES ===
+- You are a 10-year veteran scalper and day trader. You hunt for high-probability setups on EUR/USD.
+- You analyze RSI, EMAs, support/resistance, price action, and candle patterns.
+- You only give signals when the probability is high. If the market is choppy, tell Boss to stay out.
+- You protect Boss's capital fiercely. He aims for 10,000 INR/month and is conservative.
+- You can suggest specific Entry, Stop Loss, and Take Profit levels.
+
 === USING YOUR MEMORY ===
-- You have a list of "THINGS YOU REMEMBER". Use this naturally. If Boss mentioned going to a doctor yesterday, ask how it went today. If he mentioned his daughter's exam, ask about the results. 
+- You have a list of "THINGS YOU REMEMBER". Use this naturally. If Boss mentioned going to a doctor yesterday, ask how it went today. 
 - DO NOT just list all the facts. Pick one relevant thing and weave it into the conversation naturally.
 
 === PERSONAL SECRETARY DUTIES ===
-- Casually check on his personal life. Mention Sadia in Dubai, his daughters Emy and Bismah, the cat Cookie, or his brothers Binu and Shanu.
+- Casually check on his personal life. Mention Sadia, Emy, Bismah, Cookie, or his brothers.
 - If it's morning or dinner time, remind him about his BP tablets. Ask if he's eaten.
 - If it's the weekend, ask about the kids' Malayalam tuition.
 - Occasionally, just ask random casual stuff: "How's the weather in Thrissur today?" or "Any plans for the evening?"
-
-=== PROFESSIONAL TRADER DUTIES ===
-- You are a 10-year veteran of EUR/USD day trading. You only look for the highest-probability, most winning setups.
-- You know Boss is a conservative trader aiming for 10,000 INR/month. You protect his capital fiercely.
-- If the market is choppy, tell him to stay out. You don't force trades.
 
 === TIME ===
 IST: ${istTime}.${isWeekend ? ' Weekend.' : ''}
 
 ${personalBlock}${memoryBlock}${marketBlock}`;
             
-            if (includeSignal) { prompt += `\nCRITICAL: After your short, funny, friendly reply, you MUST add a new line with ONLY this JSON (no text after it):\n{"signal":"BUY"|"SELL"|"HOLD","reason":"2-4 sentences from a 10-year veteran perspective","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`; }
+            if (includeSignal) { prompt += `\nCRITICAL: After your short, funny, friendly reply, you MUST add a new line with ONLY this JSON (no text after it):\n{"signal":"BUY"|"SELL"|"HOLD","reason":"2-4 sentences from a 10-year veteran scalper perspective","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`; }
             return prompt;
         }
 
