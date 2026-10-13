@@ -382,6 +382,34 @@
                     if (resultText) return resultText.trim();
                 }
 
+                // 3. Fallback: Scrape DuckDuckGo HTML via Proxy (for movie times, general news, etc.)
+                const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+                const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(searchUrl)}`;
+                const scrapeRes = await fetch(proxyUrl, { signal: AbortSignal.timeout(15000) });
+                if (scrapeRes.ok) {
+                    const html = await scrapeRes.text();
+                    const snippetRegex = /<a class="result__snippet"[^>]*>(.*?)<\/a>/g;
+                    const titleRegex = /<a class="result__a"[^>]*>(.*?)<\/a>/g;
+                    let match;
+                    let snippets = [];
+                    let titles = [];
+                    
+                    while ((match = snippetRegex.exec(html)) !== null) {
+                        snippets.push(match[1].replace(/<[^>]*>?/gm, '').trim());
+                    }
+                    while ((match = titleRegex.exec(html)) !== null) {
+                        titles.push(match[1].replace(/<[^>]*>?/gm, '').trim());
+                    }
+                    
+                    if (snippets.length > 0) {
+                        let formatted = "Here are the latest web search results:\n\n";
+                        for (let i = 0; i < Math.min(snippets.length, 3); i++) {
+                            formatted += `${i+1}. ${titles[i] || 'Result'}\n${snippets[i]}\n\n`;
+                        }
+                        return formatted.trim();
+                    }
+                }
+
                 return "I couldn't find a specific instant answer for that, Boss. Try rephrasing the question.";
             } catch (e) {
                 console.error("Web search error:", e);
@@ -827,7 +855,9 @@
         function buildPersonalityPrompt(includeSignal) {
             const now = new Date();
             const istTime = now.toLocaleString('en-IN', {timeZone:'Asia/Kolkata'});
-            const isWeekend = [0, 6].includes(new Date(now.toLocaleString('en-US', {timeZone:'Asia/Kolkata'})).getDay());
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const dayName = days[now.getDay()];
+            const isWeekend = [0, 6].includes(now.getDay());
             
             let personalBlock = personalContext ? `\nBOSS (your best friend):\n- Name: Boss. Thrissur, Kerala.\n- Wife Sadia in Dubai.\n- Daughters Emy and Bismah.\n- Cat named Cookie.\n- Takes BP tablets after breakfast and dinner.\n- Goal: 10,000 INR/month. Conservative trader.\n- London + NY sessions.\n- Brothers: Binu, Shanu.\n` : "";
             
@@ -865,8 +895,12 @@
 - If live data is stale or unavailable, say so. Do not pretend to monitor the market continuously.
 - If he sends a chart image, analyze it visually: point out trend, key support/resistance, candlestick patterns, and whether you would take the trade.
 
+=== DAY & CONTEXT ===
+Today is ${dayName}.
+${isWeekend ? 'IT IS THE WEEKEND. THE FOREX MARKET IS CLOSED. DO NOT look for trades. DO NOT analyze charts. Focus on personal life, family, hobbies, movies, and relaxation. Wish him a good weekend and ask about his plans.' : 'It is a weekday. Focus on high-quality EUR/USD trading setups during London and NY sessions. Check on his personal life during quiet moments.'}
+
 === TIME ===
-IST: ${istTime}.${isWeekend ? ' Weekend.' : ''}
+IST: ${istTime}.
 
 ${personalBlock}${memoryBlock}${marketBlock}`;
             
