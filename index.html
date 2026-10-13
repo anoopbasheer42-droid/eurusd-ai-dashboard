@@ -77,7 +77,7 @@
         .card-title { font-family: 'Space Grotesk', sans-serif; font-size: 0.68rem; font-weight: 600; color: var(--text-muted); letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; }
         
         /* NEURAL CORE */
-        #canvas-container { width: 100%; height: 240px; position: relative; z-index: 1; display: flex; justify-content: center; align-items: center; touch-action: none; cursor: grab; }
+        #canvas-container { width: 100%; height: 240px; position: relative; z-index: 1; touch-action: none; cursor: grab; }
         #canvas-container:active { cursor: grabbing; }
         #canvas-container.touched { filter: drop-shadow(0 0 25px rgba(167,139,250,0.7)); transition: filter 0.3s ease; }
         .subtitle { text-align: center; font-family: 'Space Grotesk', sans-serif; font-size: 0.6rem; letter-spacing: 0.3em; color: var(--text-subtle); margin-top: 10px; font-weight: 500; text-transform: uppercase; }
@@ -160,7 +160,7 @@
         <div class="card">
             <div class="card-title">Neural Core</div>
             <div id="canvas-container"></div>
-            <div class="subtitle">Touch · Drag · Pinch · Hold</div>
+            <div class="subtitle">Quantum Market Intelligence</div>
         </div>
         
         <div class="card signal-card">
@@ -419,7 +419,7 @@
             }
         }
 
-        // === THREE.JS NEURAL CORE (INTERACTIVE) ===
+        // === THREE.JS NEURAL CORE (FREE MOVEMENT) ===
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
@@ -435,7 +435,6 @@
         const midShell = new THREE.Mesh(new THREE.IcosahedronGeometry(1.6, 1), new THREE.MeshBasicMaterial({ color: 0x8b5cf6, wireframe: true, transparent: true, opacity: 0.4 }));
         const outerShell = new THREE.Mesh(new THREE.IcosahedronGeometry(2.2, 1), new THREE.MeshBasicMaterial({ color: 0x7c3aed, wireframe: true, transparent: true, opacity: 0.2 }));
 
-        // Group all core meshes so we can rotate/scale them together on touch
         const coreGroup = new THREE.Group();
         coreGroup.add(glowSphere, innerBright, innerCore, midShell, outerShell);
         scene.add(coreGroup);
@@ -445,6 +444,11 @@
         let coreScale = 1;
         let coreScaleVel = 0;
         let coreRotVelX = 0, coreRotVelY = 0;
+
+        // Free-movement position state
+        let corePosX = 0, corePosY = 0;
+        let corePosVelX = 0, corePosVelY = 0;
+
         let touchBoost = 0;
         let isDragging = false;
         let pointerVelocity = { x: 0, y: 0 };
@@ -455,11 +459,15 @@
         const activePointers = new Map();
         const ripples = [];
 
+        // Bounds for free movement (keeps core inside the box)
+        const BOUND_X = 1.8;
+        const BOUND_Y = 1.0;
+
         function spawnRipple(color = 0xa78bfa) {
             const geo = new THREE.RingGeometry(0.5, 0.6, 48);
             const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.8, side: THREE.DoubleSide });
             const ring = new THREE.Mesh(geo, mat);
-            ring.position.z = 0.5;
+            ring.position.set(corePosX, corePosY, 0.5);
             scene.add(ring);
             ripples.push({ mesh: ring, life: 1 });
         }
@@ -467,6 +475,16 @@
         function getDistance(t1, t2) {
             const dx = t1.x - t2.x, dy = t1.y - t2.y;
             return Math.sqrt(dx*dx + dy*dy);
+        }
+
+        // Convert screen pixel delta to world-space delta
+        function screenToWorldDelta(dxPx, dyPx) {
+            const worldWidth = 2 * Math.tan((camera.fov * Math.PI / 180) / 2) * camera.position.z * camera.aspect;
+            const worldHeight = 2 * Math.tan((camera.fov * Math.PI / 180) / 2) * camera.position.z;
+            return {
+                x: (dxPx / container.clientWidth) * worldWidth,
+                y: -(dyPx / container.clientHeight) * worldHeight
+            };
         }
 
         container.addEventListener('pointerdown', (e) => {
@@ -501,8 +519,24 @@
             if (activePointers.size === 1 && isDragging) {
                 const dx = e.clientX - prev.x;
                 const dy = e.clientY - prev.y;
-                coreRotVelY += dx * 0.0009;
-                coreRotVelX += dy * 0.0009;
+
+                // Move the core freely across the box
+                const worldDelta = screenToWorldDelta(dx, dy);
+                corePosX += worldDelta.x;
+                corePosY += worldDelta.y;
+
+                // Clamp to bounds
+                corePosX = Math.max(-BOUND_X, Math.min(BOUND_X, corePosX));
+                corePosY = Math.max(-BOUND_Y, Math.min(BOUND_Y, corePosY));
+
+                // Store velocity for momentum on release
+                corePosVelX = worldDelta.x;
+                corePosVelY = worldDelta.y;
+
+                // Slight rotation feel
+                coreRotVelY += dx * 0.0004;
+                coreRotVelX += dy * 0.0004;
+
                 pointerVelocity.x = dx;
                 pointerVelocity.y = dy;
                 if (Math.abs(dx) + Math.abs(dy) > 5) clearTimeout(longPressTimer);
@@ -540,7 +574,7 @@
         container.addEventListener('pointerup', endPointer);
         container.addEventListener('pointercancel', endPointer);
 
-        // Prevent page scroll while touching the core on mobile
+        // Prevent page scroll while touching the core
         container.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
         container.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
 
@@ -569,13 +603,27 @@
             coreScale += coreScaleVel;
             coreGroup.scale.set(coreScale, coreScale, coreScale);
 
-            if (touchBoost > 0.3) {
-                coreGroup.position.x = (Math.random() - 0.5) * touchBoost * 0.08;
-                coreGroup.position.y = (Math.random() - 0.5) * touchBoost * 0.08;
-            } else {
-                coreGroup.position.x *= 0.9;
-                coreGroup.position.y *= 0.9;
+            // Free movement: momentum + gentle return to center
+            corePosX += corePosVelX;
+            corePosY += corePosVelY;
+            corePosVelX *= 0.90;
+            corePosVelY *= 0.90;
+
+            if (!isDragging) {
+                corePosX += (0 - corePosX) * 0.006;
+                corePosY += (0 - corePosY) * 0.006;
             }
+
+            corePosX = Math.max(-BOUND_X, Math.min(BOUND_X, corePosX));
+            corePosY = Math.max(-BOUND_Y, Math.min(BOUND_Y, corePosY));
+
+            let shakeX = 0, shakeY = 0;
+            if (touchBoost > 0.3) {
+                shakeX = (Math.random() - 0.5) * touchBoost * 0.08;
+                shakeY = (Math.random() - 0.5) * touchBoost * 0.08;
+            }
+            coreGroup.position.x = corePosX + shakeX;
+            coreGroup.position.y = corePosY + shakeY;
 
             glowSphere.material.opacity = 0.08 + Math.sin(pulseTime * 0.6) * 0.04 + touchBoost * 0.15;
 
