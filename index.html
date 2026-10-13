@@ -861,22 +861,31 @@
             
             let personalBlock = personalContext ? `\nBOSS (your best friend):\n- Name: Boss. Thenur, Kerala.\n- Wife Sadia in Dubai.\n- Daughters Emy and Bismah.\n- Cat named Cookie.\n- Takes BP tablets after breakfast and dinner.\n- Goal: 10,000 INR/month. Conservative trader.\n- London + NY sessions.\n- Brothers: Binu, Shanu.\n` : "";
             
-            // Smart Memory Filtering
+            // Smart Memory Filtering with Typo Tolerance
             let memoryBlock = "";
             if (longTermMemory.length > 0) {
                 let relevantMemories = [];
                 if (userText && userText.trim().length > 0) {
-                    const queryWords = userText.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+                    // Split user's question into significant words (ignore small words like 'is', 'the')
+                    const queryWords = userText.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 3);
+                    
                     relevantMemories = longTermMemory.filter(m => {
                         const factLower = m.fact.toLowerCase();
-                        return queryWords.some(w => factLower.includes(w));
+                        // Check if the memory contains any of the user's keywords (or partial matches for typos)
+                        return queryWords.some(w => {
+                            if (factLower.includes(w)) return true;
+                            // Typo tolerance: check if first 4 letters match (e.g., "tution" vs "tuition")
+                            if (w.length >= 4 && factLower.includes(w.substring(0, 4))) return true;
+                            return false;
+                        });
                     });
                 }
                 
                 if (relevantMemories.length > 0) {
                     memoryBlock = `\nRELEVANT MEMORIES (Use these to answer the specific question):\n${relevantMemories.map(m => `- ${m.fact}`).join('\n')}\n`;
                 } else {
-                    memoryBlock = `\nTHINGS YOU REMEMBER (Use naturally):\n${longTermMemory.slice(-15).map(m => `- ${m.fact}`).join('\n')}\n`;
+                    // Fallback: Send the last 60 memories if no specific match is found
+                    memoryBlock = `\nTHINGS YOU REMEMBER (Scan this full list carefully):\n${longTermMemory.slice(-60).map(m => `- ${m.fact}`).join('\n')}\n`;
                 }
             }
             
@@ -896,7 +905,7 @@
 - Help him organise his day, track goals, and follow up on pending tasks without being annoying or interrogating him.
 - CRITICAL RULE OF ROTATION: Do NOT ask about the same personal topic repeatedly. If you asked about Sadia recently, ask about the kids, or the cat, or his health, or the weather next time. Mix it up naturally. Never list multiple personal questions in one reply. Pick one and keep it casual.
 - If you see a saved memory, ask about it naturally. Example: "By the way, how did that thing with the car go?"
-- CRITICAL LOGIC RULE: When Boss asks a question, scan the "THINGS YOU REMEMBER" list carefully. If a fact says "Monday to Friday", and he asks about Wednesday, you KNOW the answer because Wednesday is between Monday and Friday. Deduce logically instead of saying you don't know.
+- CRITICAL LOGIC RULE: When Boss asks a question, scan the ENTIRE "THINGS YOU REMEMBER" list carefully before answering. Do not just look at the first few items. If a fact says "Monday to Friday", and he asks about Wednesday, you KNOW the answer because Wednesday is between Monday and Friday. Deduce logically instead of saying you don't know. If the answer is there, use it. If it is truly not there, say so. Do not ignore facts deeper in the list.
 - CRITICAL MEMORY RULE: If Boss says "Remember", "Save this", "Don't forget", or explicitly asks you to remember a fact, you MUST append a hidden tag to the very end of your reply formatted exactly like this: [REMEMBER: The exact fact to save]. Do not skip this step. The tag must be on its own line at the end. I will strip it out before showing it to him. If you forget this tag, the memory will not save and you will disappoint him.
 - CRITICAL REMINDER RULE: If Boss asks for a reminder, you MUST append a hidden tag formatted as [REMINDER: Day HH:MM - message]. Use 3-letter day names (Mon, Tue, Wed, Thu, Fri, Sat, Sun). If it is a daily reminder, use [REMINDER: HH:MM - message]. Always use 24-hour format for time. If you forget this tag, the reminder will not work.
 - CRITICAL SCHEDULED SEARCH RULE: If Boss asks you to check the internet for something after a certain time, you MUST append a hidden tag formatted as [SCHEDULE_SEARCH: minutes - search query]. Example: [SCHEDULE_SEARCH: 10 - India vs Australia cricket score]. This will automatically search the web and update him in that many minutes. Do not use this for regular reminders.
