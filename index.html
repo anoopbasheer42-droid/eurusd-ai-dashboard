@@ -136,6 +136,18 @@
         .alert-log-item:last-child { border-bottom: none; }
         .reasoning-text { font-family: 'Inter', sans-serif; font-size: 0.85rem; line-height: 1.8; color: var(--text-body); }
 
+        /* FOOTBALL GAME */
+        #football-pitch { position: relative; width: 100%; height: 160px; background: linear-gradient(180deg, rgba(16,185,129,0.08) 0%, rgba(16,185,129,0.02) 100%); border-radius: 14px; border: 1px solid rgba(16,185,129,0.2); overflow: hidden; cursor: crosshair; touch-action: none; }
+        #football-pitch::before { content: ''; position: absolute; inset: 0; background-image: linear-gradient(rgba(16,185,129,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(16,185,129,0.06) 1px, transparent 1px); background-size: 20px 20px; }
+        #goal-post { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); width: 60px; height: 90px; border: 3px solid rgba(255,255,255,0.7); border-left: none; border-radius: 0 8px 8px 0; box-shadow: inset 0 0 20px rgba(255,255,255,0.15), 0 0 15px rgba(255,255,255,0.3); }
+        #goal-post::before { content: ''; position: absolute; inset: -1px; background-image: linear-gradient(rgba(255,255,255,0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.15) 1px, transparent 1px); background-size: 12px 12px; }
+        #football { position: absolute; width: 22px; height: 22px; background: radial-gradient(circle at 30% 30%, #ffffff, #cccccc 70%, #888888); border-radius: 50%; box-shadow: 0 0 15px rgba(255,255,255,0.5), inset -3px -3px 8px rgba(0,0,0,0.4); pointer-events: none; transition: none; }
+        #football::before { content: ''; position: absolute; inset: 4px; border-radius: 50%; background-image: radial-gradient(circle, #333 1px, transparent 1.5px); background-size: 6px 6px; opacity: 0.7; }
+        #football-score { position: absolute; top: 8px; left: 12px; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: #10b981; font-weight: 600; letter-spacing: 0.1em; text-shadow: 0 0 8px rgba(16,185,129,0.6); }
+        #football-hint { position: absolute; bottom: 8px; right: 12px; font-family: 'Inter', sans-serif; font-size: 0.62rem; color: var(--text-subtle); letter-spacing: 0.05em; }
+        .goal-flash { animation: goalFlash 0.6s ease-out; }
+        @keyframes goalFlash { 0% { box-shadow: 0 0 0 rgba(16,185,129,0); } 30% { box-shadow: 0 0 40px rgba(16,185,129,0.9), inset 0 0 40px rgba(16,185,129,0.5); } 100% { box-shadow: inset 0 0 20px rgba(255,255,255,0.15), 0 0 15px rgba(255,255,255,0.3); } }
+
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .fade-in { animation: fadeIn 0.3s ease-in; }
         
@@ -294,6 +306,19 @@
         </div>
         
         <div class="card">
+            <div class="card-title">Stress Relief — Finger Football</div>
+            <div id="football-pitch">
+                <div id="football-score">GOALS: <span id="score-count">0</span></div>
+                <div id="goal-post"></div>
+                <div id="football"></div>
+                <div id="football-hint">Tap to kick →</div>
+            </div>
+            <div style="text-align:center; margin-top:12px;">
+                <button class="btn" onclick="resetFootball()">Reset Ball</button>
+            </div>
+        </div>
+        
+        <div class="card">
             <div class="card-title">AI Trader's Reasoning</div>
             <div class="reasoning-text" id="val-reason">Engine scanning. AI auto-analyzes hourly.</div>
         </div>
@@ -352,7 +377,6 @@
         // === WEB SEARCH (FREE - NO API KEY, Dual API approach) ===
         async function searchWeb(query) {
             try {
-                // 1. Check for Currency Conversion (e.g., "AED to INR", "USD in INR")
                 const currencyMatch = query.match(/([A-Z]{3})\s*(?:to|in|for|of)\s*([A-Z]{3})/i);
                 if (currencyMatch) {
                     const from = currencyMatch[1].toUpperCase();
@@ -366,7 +390,6 @@
                     }
                 }
 
-                // 2. DuckDuckGo Instant Answer API (for general facts and news)
                 const ddgUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1`;
                 const res = await fetch(ddgUrl, { signal: AbortSignal.timeout(10000) });
                 if (res.ok) {
@@ -384,7 +407,6 @@
                     if (resultText) return resultText.trim();
                 }
 
-                // 3. Fallback: Scrape DuckDuckGo HTML via Proxy (for movie times, general news, etc.)
                 const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
                 const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(searchUrl)}`;
                 const scrapeRes = await fetch(proxyUrl, { signal: AbortSignal.timeout(15000) });
@@ -419,7 +441,7 @@
             }
         }
 
-        // === THREE.JS NEURAL CORE (CENTERED + LONG-PRESS CHARGE) ===
+        // === THREE.JS NEURAL CORE (10s CHARGE + OUTER ELECTRIC) ===
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
@@ -439,17 +461,102 @@
         coreGroup.add(glowSphere, innerBright, innerCore, midShell, outerShell);
         scene.add(coreGroup);
 
+        // === ELECTRIC ARCS (reach outer shell) ===
+        const BOLT_COUNT = 8;
+        const boltPool = [];
+        for (let i = 0; i < BOLT_COUNT; i++) {
+            const boltMat = new THREE.LineBasicMaterial({ color: 0xffe066, transparent: true, opacity: 0 });
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(24 * 3), 3));
+            const line = new THREE.Line(geo, boltMat);
+            line.visible = false;
+            scene.add(line);
+            boltPool.push({ line, life: 0 });
+        }
+
+        function spawnBolt() {
+            const bolt = boltPool.find(b => b.life <= 0);
+            if (!bolt) return;
+            const startAngle = Math.random() * Math.PI * 2;
+            const startR = 0.3 + Math.random() * 0.35;
+            const endAngle = startAngle + (Math.random() - 0.5) * Math.PI * 1.2;
+            // Extend to OUTER shell (2.2) sometimes
+            const endR = 1.9 + Math.random() * 0.5;  // reaches outer shell
+
+            const points = [];
+            const segments = 14;
+            for (let i = 0; i <= segments; i++) {
+                const t = i / segments;
+                const r = startR + (endR - startR) * t + (Math.random() - 0.5) * 0.4;
+                const a = startAngle + (endAngle - startAngle) * t + (Math.random() - 0.5) * 0.5;
+                const x = Math.cos(a) * r;
+                const y = Math.sin(a) * r;
+                const z = (Math.random() - 0.5) * 0.7;
+                points.push(x, y, z);
+            }
+            const arr = bolt.line.geometry.attributes.position.array;
+            for (let i = 0; i < points.length; i++) arr[i] = points[i];
+            for (let i = points.length; i < arr.length; i++) arr[i] = points[points.length - 1];
+            bolt.line.geometry.attributes.position.needsUpdate = true;
+            bolt.line.geometry.computeBoundingSphere();
+
+            const c = new THREE.Color().setHSL(0.13 + Math.random() * 0.03, 1, 0.75);
+            bolt.line.material.color.copy(c);
+            bolt.line.material.opacity = 0.9 + Math.random() * 0.1;
+            bolt.line.visible = true;
+            bolt.life = 1;
+        }
+
+        // === SMOKE PARTICLES ===
+        function makeSmokeTexture() {
+            const size = 128;
+            const canvas = document.createElement('canvas');
+            canvas.width = size; canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            const grad = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+            grad.addColorStop(0, 'rgba(180,180,200,0.55)');
+            grad.addColorStop(0.5, 'rgba(120,120,140,0.25)');
+            grad.addColorStop(1, 'rgba(60,60,80,0)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, size, size);
+            return new THREE.CanvasTexture(canvas);
+        }
+        const smokeTexture = makeSmokeTexture();
+        const smokePool = [];
+        const smokeGroup = new THREE.Group();
+        scene.add(smokeGroup);
+
+        function spawnSmoke() {
+            let p = smokePool.find(s => s.life <= 0);
+            if (!p) {
+                const mat = new THREE.SpriteMaterial({ map: smokeTexture, transparent: true, opacity: 0, depthWrite: false, color: 0x9ca3af });
+                const sprite = new THREE.Sprite(mat);
+                smokeGroup.add(sprite);
+                p = { sprite, life: 0, vx: 0, vy: 0, rotation: 0, rotSpeed: 0 };
+                smokePool.push(p);
+            }
+            const angle = Math.random() * Math.PI * 2;
+            const r = 0.6 + Math.random() * 0.7;
+            p.sprite.position.set(Math.cos(angle) * r, Math.sin(angle) * r * 0.6 - 0.3, -0.5);
+            const s = 0.3 + Math.random() * 0.4;
+            p.sprite.scale.set(s, s, 1);
+            p.sprite.material.opacity = 0.35 + Math.random() * 0.35;
+            p.sprite.material.rotation = Math.random() * Math.PI * 2;
+            p.rotSpeed = (Math.random() - 0.5) * 0.06;
+            p.vx = (Math.random() - 0.5) * 0.008;
+            p.vy = 0.006 + Math.random() * 0.01;
+            p.life = 1;
+        }
+
         // --- INTERACTION STATE ---
         let pulseTime = 0;
         let coreScale = 1;
         let coreScaleVel = 0;
         let coreRotVelX = 0, coreRotVelY = 0;
         let touchBoost = 0;
-
-        // Long-press charge state (0 → 1 as you hold)
         let chargeLevel = 0;
         let isCharging = false;
-
+        let chargeStartTime = 0;
         let isDragging = false;
         let pointerVelocity = { x: 0, y: 0 };
         let pinchStartDist = 0;
@@ -458,6 +565,12 @@
         let longPressActive = false;
         const activePointers = new Map();
         const ripples = [];
+        let boltTimer = 0;
+        let smokeTimer = 0;
+
+        // 10-second charge to explode
+        const CHARGE_START_MS = 400;       // begins charging after 0.4s
+        const CHARGE_FULL_MS = 10000;      // reaches full charge (explosion power) at 10s
 
         function spawnRipple(color = 0xa78bfa) {
             const geo = new THREE.RingGeometry(0.5, 0.6, 48);
@@ -469,10 +582,9 @@
         }
 
         function spawnExplosion(color = 0xf59e0b) {
-            // Big burst: multiple rings
-            for (let i = 0; i < 4; i++) {
-                setTimeout(() => spawnRipple(color), i * 60);
-            }
+            for (let i = 0; i < 6; i++) setTimeout(() => spawnRipple(color), i * 60);
+            for (let i = 0; i < 20; i++) setTimeout(spawnBolt, i * 30);
+            for (let i = 0; i < 35; i++) setTimeout(spawnSmoke, i * 25);
         }
 
         function getDistance(t1, t2) {
@@ -488,15 +600,14 @@
             if (activePointers.size === 1) {
                 isDragging = true;
                 pointerVelocity = { x: 0, y: 0 };
-
-                // 400ms of holding = start charging
                 longPressTimer = setTimeout(() => {
                     if (isDragging && activePointers.size === 1) {
                         longPressActive = true;
                         isCharging = true;
-                        if (navigator.vibrate) navigator.vibrate(30);
+                        chargeStartTime = Date.now();
+                        if (navigator.vibrate) navigator.vibrate(20);
                     }
-                }, 400);
+                }, CHARGE_START_MS);
             } else if (activePointers.size === 2) {
                 const pts = Array.from(activePointers.values());
                 pinchStartDist = getDistance(pts[0], pts[1]);
@@ -504,6 +615,7 @@
                 clearTimeout(longPressTimer);
                 isCharging = false;
                 longPressActive = false;
+                chargeLevel = 0;
             }
         });
 
@@ -515,13 +627,14 @@
             if (activePointers.size === 1 && isDragging) {
                 const dx = e.clientX - prev.x;
                 const dy = e.clientY - prev.y;
-                // Rotate feel with drag (but core stays centered)
                 coreRotVelY += dx * 0.0009;
                 coreRotVelX += dy * 0.0009;
                 pointerVelocity.x = dx;
                 pointerVelocity.y = dy;
-                // If moved significantly before 400ms, cancel the charge start
-                if (Math.abs(dx) + Math.abs(dy) > 5 && !longPressActive) clearTimeout(longPressTimer);
+                // Movement cancels charge IF still in the pre-charge window
+                if (Math.abs(dx) + Math.abs(dy) > 5 && !longPressActive) {
+                    clearTimeout(longPressTimer);
+                }
             } else if (activePointers.size === 2) {
                 const pts = Array.from(activePointers.values());
                 const dist = getDistance(pts[0], pts[1]);
@@ -541,16 +654,23 @@
 
                 const speed = Math.sqrt(pointerVelocity.x**2 + pointerVelocity.y**2);
 
-                // If we were charging (long-press) — trigger the explosion!
-                if (longPressActive && chargeLevel > 0.3) {
+                // ONLY explode if charge was full (held ~10 seconds)
+                if (longPressActive && chargeLevel >= 0.95) {
                     spawnExplosion(0xf59e0b);
-                    touchBoost = 2.0;
-                    coreScaleVel += 0.35;
-                    coreRotVelY += 0.35;   // big spin kick
-                    coreRotVelX -= 0.25;
-                    if (navigator.vibrate) navigator.vibrate([40, 30, 60]);
+                    touchBoost = 2.5;
+                    coreScaleVel += 0.45;
+                    coreRotVelY += 0.5;
+                    coreRotVelX -= 0.35;
+                    if (navigator.vibrate) navigator.vibrate([60, 40, 80, 40, 100]);
                 }
-                // Else if it was a quick tap — normal pulse
+                // Released early (before full charge) — just a soft release, no boom
+                else if (longPressActive && chargeLevel > 0.3) {
+                    touchBoost = 0.8;
+                    spawnRipple(0xf59e0b);
+                    coreScaleVel += 0.2;
+                    if (navigator.vibrate) navigator.vibrate(15);
+                }
+                // Quick tap — normal pulse
                 else if (!longPressActive && speed < 3) {
                     touchBoost = 1.0;
                     coreScaleVel += 0.15;
@@ -569,7 +689,6 @@
         container.addEventListener('pointerup', endPointer);
         container.addEventListener('pointercancel', endPointer);
 
-        // Prevent page scroll while touching the core
         container.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
         container.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
 
@@ -577,23 +696,21 @@
         function animate() {
             requestAnimationFrame(animate);
 
-            // Charge buildup while holding
+            // Charge builds over 10 seconds
             if (isCharging) {
-                chargeLevel = Math.min(1, chargeLevel + 0.02);
+                const elapsed = Date.now() - chargeStartTime;
+                chargeLevel = Math.min(1, elapsed / CHARGE_FULL_MS);
             }
 
-            // Base animation speed increases with charge + touchBoost
-            const spin = 1 + chargeLevel * 6 + touchBoost * 0.5;
+            const spin = 1 + chargeLevel * 9 + touchBoost * 0.5;
             pulseTime += 0.04 * spin;
             touchBoost *= 0.94;
 
-            // Pulsing bright core (grows + shakes more as charge builds)
-            const chargeScale = 1 + chargeLevel * 0.5;
+            const chargeScale = 1 + chargeLevel * 0.7;
             const brightScale = (1 + Math.sin(pulseTime * 1.5) * 0.15 + touchBoost * 0.25) * chargeScale;
             innerBright.scale.set(brightScale, brightScale, brightScale);
-            innerBright.material.opacity = 0.3 + Math.sin(pulseTime * 1.5) * 0.1 + touchBoost * 0.2 + chargeLevel * 0.4;
+            innerBright.material.opacity = 0.3 + Math.sin(pulseTime * 1.5) * 0.1 + touchBoost * 0.2 + chargeLevel * 0.5;
 
-            // Auto-rotate the shells (speed scales with charge)
             innerCore.rotation.x += 0.008 * spin;
             innerCore.rotation.y += 0.012 * spin;
             midShell.rotation.x -= 0.004 * spin;
@@ -601,21 +718,18 @@
             outerShell.rotation.x += 0.002 * spin;
             outerShell.rotation.y -= 0.003 * spin;
 
-            // Extra wild spin from drag momentum
             coreGroup.rotation.y += coreRotVelY;
             coreGroup.rotation.x += coreRotVelX;
             coreRotVelY *= 0.92;
             coreRotVelX *= 0.92;
 
-            // Scale spring
             const scaleForce = (1 - coreScale) * 0.15;
             coreScaleVel += scaleForce;
             coreScaleVel *= 0.85;
             coreScale += coreScaleVel;
             coreGroup.scale.set(coreScale, coreScale, coreScale);
 
-            // Rumble/shake — stronger as charge builds
-            const rumble = touchBoost * 0.08 + chargeLevel * 0.12;
+            const rumble = touchBoost * 0.08 + chargeLevel * 0.22;
             if (rumble > 0.01) {
                 coreGroup.position.x = (Math.random() - 0.5) * rumble;
                 coreGroup.position.y = (Math.random() - 0.5) * rumble;
@@ -624,10 +738,8 @@
                 coreGroup.position.y *= 0.9;
             }
 
-            // Glow intensifies with charge
-            glowSphere.material.opacity = 0.08 + Math.sin(pulseTime * 0.6) * 0.04 + touchBoost * 0.15 + chargeLevel * 0.35;
+            glowSphere.material.opacity = 0.08 + Math.sin(pulseTime * 0.6) * 0.04 + touchBoost * 0.15 + chargeLevel * 0.5;
 
-            // Charge shifts color: purple → orange → yellow (about to blow)
             if (chargeLevel > 0.01) {
                 const c = new THREE.Color();
                 if (chargeLevel < 0.6) {
@@ -642,7 +754,53 @@
                 outerShell.material.color.copy(c);
             }
 
-            // Ripples
+            if (isCharging && chargeLevel > 0.1) {
+                boltTimer -= 1;
+                const boltInterval = Math.max(1, Math.floor(12 - chargeLevel * 11));
+                if (boltTimer <= 0) {
+                    spawnBolt();
+                    if (chargeLevel > 0.4 && Math.random() < 0.5) spawnBolt();
+                    if (chargeLevel > 0.7 && Math.random() < 0.6) spawnBolt();
+                    boltTimer = boltInterval;
+                }
+            }
+
+            for (const b of boltPool) {
+                if (b.life > 0) {
+                    b.life -= 0.12 + chargeLevel * 0.08;
+                    b.line.material.opacity = Math.max(0, b.life * 1.2);
+                    if (b.life <= 0) {
+                        b.line.visible = false;
+                        b.line.material.opacity = 0;
+                    }
+                }
+            }
+
+            if (isCharging && chargeLevel > 0.15) {
+                smokeTimer -= 1;
+                const smokeInterval = Math.max(1, Math.floor(10 - chargeLevel * 9));
+                if (smokeTimer <= 0) {
+                    spawnSmoke();
+                    if (chargeLevel > 0.5) spawnSmoke();
+                    smokeTimer = smokeInterval;
+                }
+            }
+
+            for (const s of smokePool) {
+                if (s.life > 0) {
+                    s.sprite.position.x += s.vx;
+                    s.sprite.position.y += s.vy;
+                    s.vy *= 1.005;
+                    s.sprite.material.rotation += s.rotSpeed;
+                    s.life -= 0.012;
+                    const fade = Math.max(0, s.life);
+                    s.sprite.material.opacity = fade * 0.6;
+                    const grow = 0.3 + (1 - s.life) * 0.6;
+                    s.sprite.scale.set(grow, grow, 1);
+                    if (s.life <= 0) s.sprite.material.opacity = 0;
+                }
+            }
+
             for (let i = ripples.length - 1; i >= 0; i--) {
                 const r = ripples[i];
                 r.life -= 0.03;
@@ -667,13 +825,122 @@
         });
 
         function updateCoreColor(signal) {
-            // Skip if currently charging (charge colors take priority)
             if (isCharging) return;
             let color = 0x8b5cf6;
             if (signal === 'BUY') color = 0x10b981; else if (signal === 'SELL') color = 0xef4444; else if (signal === 'SETUP') color = 0xf59e0b;
             glowSphere.material.color.setHex(color); innerBright.material.color.setHex(color);
             innerCore.material.color.setHex(color); midShell.material.color.setHex(color); outerShell.material.color.setHex(color);
         }
+
+        // === FOOTBALL MINI-GAME ===
+        const pitch = document.getElementById('football-pitch');
+        const ball = document.getElementById('football');
+        const goalPost = document.getElementById('goal-post');
+        const scoreCountEl = document.getElementById('score-count');
+
+        const pitchRect = () => pitch.getBoundingClientRect();
+        let ballX = 40, ballY = 60;
+        let ballVX = 0, ballVY = 0;
+        const BALL_R = 11;
+        const FRICTION = 0.985;
+        const WALL_BOUNCE = 0.75;
+        let score = 0;
+
+        function setBallPos() {
+            ball.style.left = (ballX - BALL_R) + 'px';
+            ball.style.top  = (ballY - BALL_R) + 'px';
+        }
+
+        function resetFootball() {
+            const r = pitchRect();
+            ballX = 40;
+            ballY = r.height / 2;
+            ballVX = 0;
+            ballVY = 0;
+            setBallPos();
+        }
+
+        function pitchDim() {
+            const r = pitchRect();
+            return { w: r.width, h: r.height };
+        }
+
+        // Kick the ball toward the goal (right side)
+        function kickBall(clickX, clickY) {
+            const { w, h } = pitchDim();
+            // Vector from ball → click point, but always push toward the goal
+            let dirX = clickX - ballX;
+            let dirY = clickY - ballY;
+            const len = Math.sqrt(dirX*dirX + dirY*dirY) || 1;
+            dirX /= len; dirY /= len;
+
+            // Force mostly-rightward push so the ball heads to the goal
+            const power = 11;
+            ballVX = Math.abs(dirX) * power + 4;
+            ballVY = dirY * power * 0.7;
+
+            if (navigator.vibrate) navigator.vibrate(12);
+        }
+
+        pitch.addEventListener('pointerdown', (e) => {
+            const r = pitchRect();
+            const x = e.clientX - r.left;
+            const y = e.clientY - r.top;
+            kickBall(x, y);
+        });
+
+        function footballLoop() {
+            requestAnimationFrame(footballLoop);
+            const { w, h } = pitchDim();
+            if (w === 0) return;
+
+            // Apply velocity + friction
+            ballX += ballVX;
+            ballY += ballVY;
+            ballVX *= FRICTION;
+            ballVY *= FRICTION;
+
+            // Stop micro-drift
+            if (Math.abs(ballVX) < 0.05) ballVX = 0;
+            if (Math.abs(ballVY) < 0.05) ballVY = 0;
+
+            // Goal detection (right side opening, before the right wall)
+            const goalLeft = w - 74;
+            const goalTop = h/2 - 45;
+            const goalBottom = h/2 + 45;
+
+            if (ballX + BALL_R > goalLeft && ballY > goalTop && ballY < goalBottom) {
+                // GOAL!
+                score++;
+                scoreCountEl.innerText = score;
+                goalPost.classList.remove('goal-flash');
+                void goalPost.offsetWidth;
+                goalPost.classList.add('goal-flash');
+                if (navigator.vibrate) navigator.vibrate([30, 20, 30]);
+                // Reset
+                ballX = 40;
+                ballY = h / 2;
+                ballVX = 0;
+                ballVY = 0;
+            } else {
+                // Wall bounces
+                if (ballX - BALL_R < 0) { ballX = BALL_R; ballVX = -ballVX * WALL_BOUNCE; }
+                if (ballX + BALL_R > w) {
+                    // Only bounce off right wall if NOT in goal zone
+                    if (!(ballY > goalTop && ballY < goalBottom)) {
+                        ballX = w - BALL_R; ballVX = -ballVX * WALL_BOUNCE;
+                    }
+                }
+                if (ballY - BALL_R < 0) { ballY = BALL_R; ballVY = -ballVY * WALL_BOUNCE; }
+                if (ballY + BALL_R > h) { ballY = h - BALL_R; ballVY = -ballVY * WALL_BOUNCE; }
+            }
+
+            setBallPos();
+        }
+
+        // Init ball after layout
+        setTimeout(() => { resetFootball(); footballLoop(); }, 100);
+        window.addEventListener('resize', () => { setTimeout(resetFootball, 100); });
 
         // === MARKET DATA (BIQUOTE) ===
         function safeNum(val, fallback = 0) { return (isNaN(val) || val === undefined || val === null || !isFinite(val)) ? fallback : val; }
