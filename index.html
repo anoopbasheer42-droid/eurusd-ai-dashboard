@@ -966,7 +966,8 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
                     addLongTermMemory(mm[1]); 
                     response = response.replace(/\[REMEMBER:.*?\]/g, '').trim(); 
                 } 
-                else if (text.toLowerCase().includes('remember') || text.toLowerCase().includes('don\'t forget') || text.toLowerCase().includes('save this') || text.toLowerCase().includes('my fav') || text.toLowerCase().includes('my favorite')) {
+                // Stricter JS Safety Net: Only save if user explicitly says "remember", "save this", or "don't forget"
+                else if (text.toLowerCase().includes('remember') || text.toLowerCase().includes('don\'t forget') || text.toLowerCase().includes('save this')) {
                     addLongTermMemory(text);
                     response += " (I've saved that to my long-term memory, Boss.)";
                 }
