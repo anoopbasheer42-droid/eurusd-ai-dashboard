@@ -102,26 +102,27 @@
         .btn.primary:hover { box-shadow: 0 6px 35px rgba(124,58,237,0.6); transform: translateY(-1px); }
 
         /* CHAT INTERFACE */
-        .chat-controls { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+        .chat-card { border: 1px solid rgba(139, 92, 246, 0.4); box-shadow: 0 0 40px rgba(139, 92, 246, 0.15), inset 0 1px 0 rgba(255,255,255,0.1); }
+        .chat-controls { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
         .panel { display: none; background: rgba(0,0,0,0.4); padding: 16px; border-radius: 12px; margin-bottom: 14px; font-size: 0.78rem; border: 1px solid rgba(139, 92, 246, 0.1); }
         .panel.active { display: block; }
         .panel strong { font-family: 'Space Grotesk', sans-serif; color: var(--text-body); font-weight: 600; }
         .panel input, .panel select { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; }
         
-        .chat-history { height: 380px; overflow-y: auto; background: rgba(0,0,0,0.5); border-radius: 14px; padding: 18px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 12px; border: 1px solid rgba(139, 92, 246, 0.08); box-shadow: inset 0 0 20px rgba(0,0,0,0.5); }
-        .chat-history::-webkit-scrollbar { width: 5px; }
+        .chat-history { height: 280px; overflow-y: auto; background: rgba(0,0,0,0.6); border-radius: 14px; padding: 14px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 10px; border: 1px solid rgba(255,255,255,0.05); box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
+        .chat-history::-webkit-scrollbar { width: 4px; }
         .chat-history::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.3); border-radius: 4px; }
-        .msg { font-family: 'Inter', sans-serif; padding: 12px 16px; border-radius: 14px; max-width: 85%; line-height: 1.6; font-size: 0.85rem; animation: fadeIn 0.3s ease-out; }
+        .msg { font-family: 'Inter', sans-serif; padding: 10px 14px; border-radius: 14px; max-width: 85%; line-height: 1.5; font-size: 0.82rem; animation: fadeIn 0.3s ease-out; }
         .msg.user { background: linear-gradient(135deg, #4f46e5, #3b82f6); color: white; align-self: flex-end; border-bottom-right-radius: 4px; box-shadow: 0 4px 20px rgba(59,130,246,0.3); }
         .msg.ai { background: rgba(139, 92, 246, 0.08); align-self: flex-start; border-left: 3px solid var(--purple); color: var(--text-body); border-top-left-radius: 4px; box-shadow: 0 4px 20px rgba(139, 92, 246, 0.1); }
-        .msg.system { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); align-self: center; font-size: 0.72rem; text-align: center; color: #fbbf24; padding: 8px 14px; font-family: 'JetBrains Mono', monospace; }
+        .msg.system { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); align-self: center; font-size: 0.7rem; text-align: center; color: #fbbf24; padding: 6px 12px; font-family: 'JetBrains Mono', monospace; }
         .msg.thinking { background: rgba(139,92,246,0.1); border-left: 3px solid var(--violet); font-style: italic; color: #c4b5fd; }
         
-        .chat-input-row { display: flex; gap: 10px; }
-        .chat-input-row input { flex: 1; background: rgba(0,0,0,0.6); border: 1px solid rgba(139, 92, 246, 0.2); color: var(--text-main); padding: 14px 16px; border-radius: 12px; outline: none; font-family: 'Inter', sans-serif; font-size: 0.9rem; transition: all 0.2s ease; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); }
-        .chat-input-row input:focus { border-color: rgba(139,92,246,0.6); background: rgba(0,0,0,0.8); box-shadow: 0 0 20px rgba(139, 92, 246, 0.2), inset 0 2px 10px rgba(0,0,0,0.5); }
+        .chat-input-row { display: flex; gap: 8px; }
+        .chat-input-row input { flex: 1; background: rgba(0,0,0,0.7); border: 1px solid rgba(139, 92, 246, 0.2); color: var(--text-main); padding: 10px 14px; border-radius: 12px; outline: none; font-family: 'Inter', sans-serif; font-size: 0.85rem; transition: all 0.2s ease; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); }
+        .chat-input-row input:focus { border-color: rgba(139,92,246,0.6); background: rgba(0,0,0,0.9); box-shadow: 0 0 20px rgba(139, 92, 246, 0.2), inset 0 2px 10px rgba(0,0,0,0.5); }
         .chat-input-row input::placeholder { color: var(--text-subtle); }
-        .chat-input-row button { font-family: 'Space Grotesk', sans-serif; background: linear-gradient(135deg, #10b981, #059669); border: none; color: white; padding: 0 24px; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 0.9rem; box-shadow: 0 4px 20px rgba(16,185,129,0.3); transition: all 0.2s ease; }
+        .chat-input-row button { font-family: 'Space Grotesk', sans-serif; background: linear-gradient(135deg, #10b981, #059669); border: none; color: white; padding: 0 18px; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 0.85rem; box-shadow: 0 4px 20px rgba(16,185,129,0.3); transition: all 0.2s ease; }
         .chat-input-row button:hover { box-shadow: 0 6px 30px rgba(16,185,129,0.5); transform: translateY(-1px); }
 
         /* STATS & LOGS */
@@ -181,12 +182,7 @@
             <div class="signal-hint">Engine scans every 1:00 · AI auto-runs hourly + on demand</div>
         </div>
         
-        <div class="card">
-            <div class="card-title">Engine Alerts — Last 5</div>
-            <div id="alert-log">No alerts yet. Engine scanning...</div>
-        </div>
-        
-        <div class="card">
+        <div class="card chat-card">
             <div class="card-title">Ask Your AI Trader
                 <div class="chat-controls">
                     <button class="btn active deep" id="deep-think-toggle" onclick="toggleDeepThink()">Deep ON</button>
@@ -267,7 +263,7 @@
                 <input type="text" id="chat-input" placeholder="Talk to me, Boss..." onkeypress="if(event.key==='Enter') sendChat()">
                 <button onclick="sendChat()">Send</button>
             </div>
-            <div style="text-align:right; margin-top:12px;"><button class="btn" onclick="clearChat()">Clear chat (memory stays)</button></div>
+            <div style="text-align:right; margin-top:10px;"><button class="btn" onclick="clearChat()">Clear chat (memory stays)</button></div>
         </div>
         
         <div class="card">
@@ -288,6 +284,11 @@
                 <div id="val-candle-1h">—</div>
                 <div id="val-candle-4h">—</div>
             </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-title">Engine Alerts — Last 5</div>
+            <div id="alert-log">No alerts yet. Engine scanning...</div>
         </div>
         
         <div class="card">
