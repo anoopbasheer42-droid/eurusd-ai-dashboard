@@ -859,9 +859,10 @@
             const dayName = days[now.getDay()];
             const isWeekend = [0, 6].includes(now.getDay());
             
-            let personalBlock = personalContext ? `\nBOSS (your best friend):\n- Name: Boss. Thrissur, Kerala.\n- Wife Sadia in Dubai.\n- Daughters Emy and Bismah.\n- Cat named Cookie.\n- Takes BP tablets after breakfast and dinner.\n- Goal: 10,000 INR/month. Conservative trader.\n- London + NY sessions.\n- Brothers: Binu, Shanu.\n` : "";
+            let personalBlock = personalContext ? `\nBOSS (your best friend):\n- Name: Boss. Thenur, Kerala.\n- Wife Sadia in Dubai.\n- Daughters Emy and Bismah.\n- Cat named Cookie.\n- Takes BP tablets after breakfast and dinner.\n- Goal: 10,000 INR/month. Conservative trader.\n- London + NY sessions.\n- Brothers: Binu, Shanu.\n` : "";
             
-            let memoryBlock = longTermMemory.length > 0 ? `\nTHINGS YOU REMEMBER (Use naturally):\n${longTermMemory.slice(-15).map(m => `- ${m.fact}`).join('\n')}\n` : "";
+            // Sending up to 50 memories instead of 15
+            let memoryBlock = longTermMemory.length > 0 ? `\nTHINGS YOU REMEMBER (Use naturally):\n${longTermMemory.slice(-50).map(m => `- ${m.fact}`).join('\n')}\n` : "";
             
             let marketBlock = marketData ? `\nLIVE MARKET DATA (Only trust this data. Never invent prices.):\nEUR/USD ${safeNum(marketData.currentPrice, 1.1200).toFixed(5)} | ${marketData.trend} | S: ${safeNum(marketData.support, 1.1176).toFixed(5)} | R: ${safeNum(marketData.resistance, 1.1246).toFixed(5)} | RSI 1H: ${safeNum(marketData.rsi1H, 50).toFixed(1)} | Session: ${marketData.session}\n` : "";
 
@@ -879,6 +880,7 @@
 - Help him organise his day, track goals, and follow up on pending tasks without being annoying or interrogating him.
 - CRITICAL RULE OF ROTATION: Do NOT ask about the same personal topic repeatedly. If you asked about Sadia recently, ask about the kids, or the cat, or his health, or the weather next time. Mix it up naturally. Never list multiple personal questions in one reply. Pick one and keep it casual.
 - If you see a saved memory, ask about it naturally. Example: "By the way, how did that thing with the car go?"
+- CRITICAL LOGIC RULE: When Boss asks a question, scan the "THINGS YOU REMEMBER" list carefully. If a fact says "Monday to Friday", and he asks about Wednesday, you KNOW the answer because Wednesday is between Monday and Friday. Deduce logically instead of saying you don't know.
 - CRITICAL MEMORY RULE: If Boss says "Remember", "Save this", "Don't forget", or explicitly asks you to remember a fact, you MUST append a hidden tag to the very end of your reply formatted exactly like this: [REMEMBER: The exact fact to save]. Do not skip this step. The tag must be on its own line at the end. I will strip it out before showing it to him. If you forget this tag, the memory will not save and you will disappoint him.
 - CRITICAL REMINDER RULE: If Boss asks for a reminder, you MUST append a hidden tag formatted as [REMINDER: Day HH:MM - message]. Use 3-letter day names (Mon, Tue, Wed, Thu, Fri, Sat, Sun). If it is a daily reminder, use [REMINDER: HH:MM - message]. Always use 24-hour format for time. If you forget this tag, the reminder will not work.
 - CRITICAL SCHEDULED SEARCH RULE: If Boss asks you to check the internet for something after a certain time, you MUST append a hidden tag formatted as [SCHEDULE_SEARCH: minutes - search query]. Example: [SCHEDULE_SEARCH: 10 - India vs Australia cricket score]. This will automatically search the web and update him in that many minutes. Do not use this for regular reminders.
