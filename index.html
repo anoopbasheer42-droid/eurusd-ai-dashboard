@@ -964,7 +964,7 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
                     addLongTermMemory(mm[1]); 
                     response = response.replace(/\[REMEMBER:.*?\]/g, '').trim(); 
                 } 
-                else if (text.toLowerCase().includes('remember') || text.toLowerCase().includes('don\'t forget') || text.toLowerCase().includes('save this')) {
+                else if (text.toLowerCase().includes('remember') || text.toLowerCase().includes('don\'t forget') || text.toLowerCase().includes('save this') || text.toLowerCase().includes('my fav') || text.toLowerCase().includes('my favorite')) {
                     addLongTermMemory(text);
                     response += " (I've saved that to my long-term memory, Boss.)";
                 }
