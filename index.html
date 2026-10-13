@@ -77,7 +77,7 @@
         .card-title { font-family: 'Space Grotesk', sans-serif; font-size: 0.68rem; font-weight: 600; color: var(--text-muted); letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; }
         
         /* NEURAL CORE */
-        #canvas-container { width: 100%; height: 240px; position: relative; z-index: 1; touch-action: none; cursor: grab; }
+        #canvas-container { width: 100%; height: 240px; position: relative; z-index: 1; display: flex; justify-content: center; align-items: center; touch-action: none; cursor: grab; }
         #canvas-container:active { cursor: grabbing; }
         #canvas-container.touched { filter: drop-shadow(0 0 25px rgba(167,139,250,0.7)); transition: filter 0.3s ease; }
         .subtitle { text-align: center; font-family: 'Space Grotesk', sans-serif; font-size: 0.6rem; letter-spacing: 0.3em; color: var(--text-subtle); margin-top: 10px; font-weight: 500; text-transform: uppercase; }
@@ -419,7 +419,7 @@
             }
         }
 
-        // === THREE.JS NEURAL CORE (FREE MOVEMENT) ===
+        // === THREE.JS NEURAL CORE (CENTERED + LONG-PRESS CHARGE) ===
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
@@ -444,12 +444,12 @@
         let coreScale = 1;
         let coreScaleVel = 0;
         let coreRotVelX = 0, coreRotVelY = 0;
-
-        // Free-movement position state
-        let corePosX = 0, corePosY = 0;
-        let corePosVelX = 0, corePosVelY = 0;
-
         let touchBoost = 0;
+
+        // Long-press charge state (0 → 1 as you hold)
+        let chargeLevel = 0;
+        let isCharging = false;
+
         let isDragging = false;
         let pointerVelocity = { x: 0, y: 0 };
         let pinchStartDist = 0;
@@ -459,32 +459,25 @@
         const activePointers = new Map();
         const ripples = [];
 
-        // Bounds for free movement (keeps core inside the box)
-        const BOUND_X = 1.8;
-        const BOUND_Y = 1.0;
-
         function spawnRipple(color = 0xa78bfa) {
             const geo = new THREE.RingGeometry(0.5, 0.6, 48);
             const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.8, side: THREE.DoubleSide });
             const ring = new THREE.Mesh(geo, mat);
-            ring.position.set(corePosX, corePosY, 0.5);
+            ring.position.z = 0.5;
             scene.add(ring);
             ripples.push({ mesh: ring, life: 1 });
+        }
+
+        function spawnExplosion(color = 0xf59e0b) {
+            // Big burst: multiple rings
+            for (let i = 0; i < 4; i++) {
+                setTimeout(() => spawnRipple(color), i * 60);
+            }
         }
 
         function getDistance(t1, t2) {
             const dx = t1.x - t2.x, dy = t1.y - t2.y;
             return Math.sqrt(dx*dx + dy*dy);
-        }
-
-        // Convert screen pixel delta to world-space delta
-        function screenToWorldDelta(dxPx, dyPx) {
-            const worldWidth = 2 * Math.tan((camera.fov * Math.PI / 180) / 2) * camera.position.z * camera.aspect;
-            const worldHeight = 2 * Math.tan((camera.fov * Math.PI / 180) / 2) * camera.position.z;
-            return {
-                x: (dxPx / container.clientWidth) * worldWidth,
-                y: -(dyPx / container.clientHeight) * worldHeight
-            };
         }
 
         container.addEventListener('pointerdown', (e) => {
@@ -495,11 +488,12 @@
             if (activePointers.size === 1) {
                 isDragging = true;
                 pointerVelocity = { x: 0, y: 0 };
+
+                // 400ms of holding = start charging
                 longPressTimer = setTimeout(() => {
                     if (isDragging && activePointers.size === 1) {
                         longPressActive = true;
-                        touchBoost = 1.5;
-                        spawnRipple(0xf59e0b);
+                        isCharging = true;
                         if (navigator.vibrate) navigator.vibrate(30);
                     }
                 }, 400);
@@ -508,6 +502,8 @@
                 pinchStartDist = getDistance(pts[0], pts[1]);
                 pinchStartScale = coreScale;
                 clearTimeout(longPressTimer);
+                isCharging = false;
+                longPressActive = false;
             }
         });
 
@@ -519,27 +515,13 @@
             if (activePointers.size === 1 && isDragging) {
                 const dx = e.clientX - prev.x;
                 const dy = e.clientY - prev.y;
-
-                // Move the core freely across the box
-                const worldDelta = screenToWorldDelta(dx, dy);
-                corePosX += worldDelta.x;
-                corePosY += worldDelta.y;
-
-                // Clamp to bounds
-                corePosX = Math.max(-BOUND_X, Math.min(BOUND_X, corePosX));
-                corePosY = Math.max(-BOUND_Y, Math.min(BOUND_Y, corePosY));
-
-                // Store velocity for momentum on release
-                corePosVelX = worldDelta.x;
-                corePosVelY = worldDelta.y;
-
-                // Slight rotation feel
-                coreRotVelY += dx * 0.0004;
-                coreRotVelX += dy * 0.0004;
-
+                // Rotate feel with drag (but core stays centered)
+                coreRotVelY += dx * 0.0009;
+                coreRotVelX += dy * 0.0009;
                 pointerVelocity.x = dx;
                 pointerVelocity.y = dy;
-                if (Math.abs(dx) + Math.abs(dy) > 5) clearTimeout(longPressTimer);
+                // If moved significantly before 400ms, cancel the charge start
+                if (Math.abs(dx) + Math.abs(dy) > 5 && !longPressActive) clearTimeout(longPressTimer);
             } else if (activePointers.size === 2) {
                 const pts = Array.from(activePointers.values());
                 const dist = getDistance(pts[0], pts[1]);
@@ -558,7 +540,18 @@
                 clearTimeout(longPressTimer);
 
                 const speed = Math.sqrt(pointerVelocity.x**2 + pointerVelocity.y**2);
-                if (!longPressActive && speed < 3) {
+
+                // If we were charging (long-press) — trigger the explosion!
+                if (longPressActive && chargeLevel > 0.3) {
+                    spawnExplosion(0xf59e0b);
+                    touchBoost = 2.0;
+                    coreScaleVel += 0.35;
+                    coreRotVelY += 0.35;   // big spin kick
+                    coreRotVelX -= 0.25;
+                    if (navigator.vibrate) navigator.vibrate([40, 30, 60]);
+                }
+                // Else if it was a quick tap — normal pulse
+                else if (!longPressActive && speed < 3) {
                     touchBoost = 1.0;
                     coreScaleVel += 0.15;
                     spawnRipple();
@@ -566,6 +559,8 @@
                 }
 
                 longPressActive = false;
+                isCharging = false;
+                chargeLevel = 0;
                 pointerVelocity = { x: 0, y: 0 };
             } else if (activePointers.size === 1) {
                 pinchStartDist = 0;
@@ -581,52 +576,73 @@
         // --- ANIMATION LOOP ---
         function animate() {
             requestAnimationFrame(animate);
-            pulseTime += 0.04 + touchBoost * 0.15;
+
+            // Charge buildup while holding
+            if (isCharging) {
+                chargeLevel = Math.min(1, chargeLevel + 0.02);
+            }
+
+            // Base animation speed increases with charge + touchBoost
+            const spin = 1 + chargeLevel * 6 + touchBoost * 0.5;
+            pulseTime += 0.04 * spin;
             touchBoost *= 0.94;
 
-            const brightScale = 1 + Math.sin(pulseTime * 1.5) * 0.15 + touchBoost * 0.25;
+            // Pulsing bright core (grows + shakes more as charge builds)
+            const chargeScale = 1 + chargeLevel * 0.5;
+            const brightScale = (1 + Math.sin(pulseTime * 1.5) * 0.15 + touchBoost * 0.25) * chargeScale;
             innerBright.scale.set(brightScale, brightScale, brightScale);
-            innerBright.material.opacity = 0.3 + Math.sin(pulseTime * 1.5) * 0.1 + touchBoost * 0.2;
+            innerBright.material.opacity = 0.3 + Math.sin(pulseTime * 1.5) * 0.1 + touchBoost * 0.2 + chargeLevel * 0.4;
 
-            innerCore.rotation.x += 0.008; innerCore.rotation.y += 0.012;
-            midShell.rotation.x -= 0.004; midShell.rotation.y -= 0.006;
-            outerShell.rotation.x += 0.002; outerShell.rotation.y -= 0.003;
+            // Auto-rotate the shells (speed scales with charge)
+            innerCore.rotation.x += 0.008 * spin;
+            innerCore.rotation.y += 0.012 * spin;
+            midShell.rotation.x -= 0.004 * spin;
+            midShell.rotation.y -= 0.006 * spin;
+            outerShell.rotation.x += 0.002 * spin;
+            outerShell.rotation.y -= 0.003 * spin;
 
+            // Extra wild spin from drag momentum
             coreGroup.rotation.y += coreRotVelY;
             coreGroup.rotation.x += coreRotVelX;
             coreRotVelY *= 0.92;
             coreRotVelX *= 0.92;
 
+            // Scale spring
             const scaleForce = (1 - coreScale) * 0.15;
             coreScaleVel += scaleForce;
             coreScaleVel *= 0.85;
             coreScale += coreScaleVel;
             coreGroup.scale.set(coreScale, coreScale, coreScale);
 
-            // Free movement: momentum + gentle return to center
-            corePosX += corePosVelX;
-            corePosY += corePosVelY;
-            corePosVelX *= 0.90;
-            corePosVelY *= 0.90;
-
-            if (!isDragging) {
-                corePosX += (0 - corePosX) * 0.006;
-                corePosY += (0 - corePosY) * 0.006;
+            // Rumble/shake — stronger as charge builds
+            const rumble = touchBoost * 0.08 + chargeLevel * 0.12;
+            if (rumble > 0.01) {
+                coreGroup.position.x = (Math.random() - 0.5) * rumble;
+                coreGroup.position.y = (Math.random() - 0.5) * rumble;
+            } else {
+                coreGroup.position.x *= 0.9;
+                coreGroup.position.y *= 0.9;
             }
 
-            corePosX = Math.max(-BOUND_X, Math.min(BOUND_X, corePosX));
-            corePosY = Math.max(-BOUND_Y, Math.min(BOUND_Y, corePosY));
+            // Glow intensifies with charge
+            glowSphere.material.opacity = 0.08 + Math.sin(pulseTime * 0.6) * 0.04 + touchBoost * 0.15 + chargeLevel * 0.35;
 
-            let shakeX = 0, shakeY = 0;
-            if (touchBoost > 0.3) {
-                shakeX = (Math.random() - 0.5) * touchBoost * 0.08;
-                shakeY = (Math.random() - 0.5) * touchBoost * 0.08;
+            // Charge shifts color: purple → orange → yellow (about to blow)
+            if (chargeLevel > 0.01) {
+                const c = new THREE.Color();
+                if (chargeLevel < 0.6) {
+                    c.lerpColors(new THREE.Color(0x8b5cf6), new THREE.Color(0xf59e0b), chargeLevel / 0.6);
+                } else {
+                    c.lerpColors(new THREE.Color(0xf59e0b), new THREE.Color(0xfde047), (chargeLevel - 0.6) / 0.4);
+                }
+                glowSphere.material.color.copy(c);
+                innerBright.material.color.copy(c);
+                innerCore.material.color.copy(c);
+                midShell.material.color.copy(c);
+                outerShell.material.color.copy(c);
             }
-            coreGroup.position.x = corePosX + shakeX;
-            coreGroup.position.y = corePosY + shakeY;
 
-            glowSphere.material.opacity = 0.08 + Math.sin(pulseTime * 0.6) * 0.04 + touchBoost * 0.15;
-
+            // Ripples
             for (let i = ripples.length - 1; i >= 0; i--) {
                 const r = ripples[i];
                 r.life -= 0.03;
@@ -651,6 +667,8 @@
         });
 
         function updateCoreColor(signal) {
+            // Skip if currently charging (charge colors take priority)
+            if (isCharging) return;
             let color = 0x8b5cf6;
             if (signal === 'BUY') color = 0x10b981; else if (signal === 'SELL') color = 0xef4444; else if (signal === 'SETUP') color = 0xf59e0b;
             glowSphere.material.color.setHex(color); innerBright.material.color.setHex(color);
