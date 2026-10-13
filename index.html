@@ -572,7 +572,10 @@
             
             const hour = new Date().getUTCHours();
             let session = "Off-Session";
-            if (hour >= 7 && hour < 10) session = "London Open"; else if (hour >= 12 && hour < 15) session = "NY Open"; else if (hour >= 2 && hour < 5) session = "Asian Session";
+            if (hour >= 7 && hour < 16) session = "London Session";
+            else if (hour >= 12 && hour < 21) session = "New York Session";
+            else if (hour >= 0 && hour < 8) session = "Asian Session";
+            if (hour >= 12 && hour < 16) session = "London / NY Overlap";
 
             marketData = { candles5m, candles15m, candles1H, candles4H, currentPrice, trend, support, resistance, session, rsi1H, rsi15m, rsi5m, ema20: ema20[ema20.length-1], ema50: ema50[ema50.length-1], atr };
 
@@ -866,15 +869,12 @@
             if (longTermMemory.length > 0) {
                 let relevantMemories = [];
                 if (userText && userText.trim().length > 0) {
-                    // Split user's question into significant words (ignore small words like 'is', 'the')
                     const queryWords = userText.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 3);
                     
                     relevantMemories = longTermMemory.filter(m => {
                         const factLower = m.fact.toLowerCase();
-                        // Check if the memory contains any of the user's keywords (or partial matches for typos)
                         return queryWords.some(w => {
                             if (factLower.includes(w)) return true;
-                            // Typo tolerance: check if first 4 letters match (e.g., "tution" vs "tuition")
                             if (w.length >= 4 && factLower.includes(w.substring(0, 4))) return true;
                             return false;
                         });
@@ -884,7 +884,6 @@
                 if (relevantMemories.length > 0) {
                     memoryBlock = `\nRELEVANT MEMORIES (Use these to answer the specific question):\n${relevantMemories.map(m => `- ${m.fact}`).join('\n')}\n`;
                 } else {
-                    // Fallback: Send the last 60 memories if no specific match is found
                     memoryBlock = `\nTHINGS YOU REMEMBER (Scan this full list carefully):\n${longTermMemory.slice(-60).map(m => `- ${m.fact}`).join('\n')}\n`;
                 }
             }
