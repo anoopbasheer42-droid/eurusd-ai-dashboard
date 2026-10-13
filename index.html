@@ -852,7 +852,7 @@
         function cleanResponse(text) { return text.split('\n').filter(line => { const l = line.trim().toLowerCase(); if (l.startsWith('*') || l.startsWith('-')) return false; if (l.includes('friendly?') || l.includes('funny?') || l.includes('motivational?')) return false; if (l.includes('checked') || l.includes('no emojis?')) return false; return true; }).join('\n').trim(); }
 
         // === ELITE TRADER PERSONALITY PROMPT ===
-        function buildPersonalityPrompt(includeSignal) {
+        function buildPersonalityPrompt(includeSignal, userText = "") {
             const now = new Date();
             const istTime = now.toLocaleString('en-IN', {timeZone:'Asia/Kolkata'});
             const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -861,8 +861,24 @@
             
             let personalBlock = personalContext ? `\nBOSS (your best friend):\n- Name: Boss. Thenur, Kerala.\n- Wife Sadia in Dubai.\n- Daughters Emy and Bismah.\n- Cat named Cookie.\n- Takes BP tablets after breakfast and dinner.\n- Goal: 10,000 INR/month. Conservative trader.\n- London + NY sessions.\n- Brothers: Binu, Shanu.\n` : "";
             
-            // Sending up to 50 memories instead of 15
-            let memoryBlock = longTermMemory.length > 0 ? `\nTHINGS YOU REMEMBER (Use naturally):\n${longTermMemory.slice(-50).map(m => `- ${m.fact}`).join('\n')}\n` : "";
+            // Smart Memory Filtering
+            let memoryBlock = "";
+            if (longTermMemory.length > 0) {
+                let relevantMemories = [];
+                if (userText && userText.trim().length > 0) {
+                    const queryWords = userText.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+                    relevantMemories = longTermMemory.filter(m => {
+                        const factLower = m.fact.toLowerCase();
+                        return queryWords.some(w => factLower.includes(w));
+                    });
+                }
+                
+                if (relevantMemories.length > 0) {
+                    memoryBlock = `\nRELEVANT MEMORIES (Use these to answer the specific question):\n${relevantMemories.map(m => `- ${m.fact}`).join('\n')}\n`;
+                } else {
+                    memoryBlock = `\nTHINGS YOU REMEMBER (Use naturally):\n${longTermMemory.slice(-15).map(m => `- ${m.fact}`).join('\n')}\n`;
+                }
+            }
             
             let marketBlock = marketData ? `\nLIVE MARKET DATA (Only trust this data. Never invent prices.):\nEUR/USD ${safeNum(marketData.currentPrice, 1.1200).toFixed(5)} | ${marketData.trend} | S: ${safeNum(marketData.support, 1.1176).toFixed(5)} | R: ${safeNum(marketData.resistance, 1.1246).toFixed(5)} | RSI 1H: ${safeNum(marketData.rsi1H, 50).toFixed(1)} | Session: ${marketData.session}\n` : "";
 
@@ -926,10 +942,10 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
                 if (webSearchEnabled) {
                     const searchResults = await searchWeb(text);
                     const searchPrompt = `You have been given web search results. Use them to answer Boss's question accurately. \n\nWeb Search Results:\n${searchResults}\n\nBoss's Question: ${text}\n\nProvide a short, friendly, and conversational answer. Do not just list the results. Summarize them in your own words.`;
-                    const systemPrompt = buildPersonalityPrompt(false);
+                    const systemPrompt = buildPersonalityPrompt(false, text);
                     response = await callAI(systemPrompt, searchPrompt, chatHistory.slice(-4));
                 } else {
-                    const systemPrompt = buildPersonalityPrompt(isMarketQuestion(text));
+                    const systemPrompt = buildPersonalityPrompt(isMarketQuestion(text), text);
                     const recent = chatHistory.slice(-6);
                     response = await callAI(systemPrompt, text, recent);
                 }
