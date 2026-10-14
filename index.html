@@ -725,49 +725,60 @@
         const cometHeadTex = makeCometHeadTexLocal();
         function spawnTravelComet() {
             const cg = new THREE.Group();
-            const nucleus = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+            const nSize = 0.08 + Math.random() * 0.12;
+            const nucleus = new THREE.Mesh(new THREE.SphereGeometry(nSize, 16, 16), new THREE.MeshStandardMaterial({ color: Math.random() > 0.5 ? 0xffffff : 0xccddff, roughness: 0.3 }));
             cg.add(nucleus);
             const headGlow = new THREE.Sprite(new THREE.SpriteMaterial({
-                map: cometHeadTex, transparent: true, opacity: 1,
+                map: cometHeadTex, transparent: true, opacity: 0.9 + Math.random() * 0.1,
                 depthWrite: false, blending: THREE.AdditiveBlending
             }));
-            headGlow.scale.set(2.0, 2.0, 1);
+            const scaleVar = 1.2 + Math.random() * 1.2;
+            headGlow.scale.set(scaleVar, scaleVar, 1);
             cg.add(headGlow);
-            const tailTex = makeCometTailTexLocal('180,220,255');
-            for (let layer = 0; layer < 4; layer++) {
+            const rgbColor = Math.random() > 0.5 ? '160,210,255' : '220,190,255';
+            const tailTex = makeCometTailTexLocal(rgbColor);
+            for (let layer = 0; layer < 3; layer++) {
                 const tail = new THREE.Sprite(new THREE.SpriteMaterial({
-                    map: tailTex, transparent: true, opacity: 0.85 - layer * 0.18,
+                    map: tailTex, transparent: true, opacity: (0.75 - layer * 0.2) * (0.8 + Math.random() * 0.2),
                     depthWrite: false, blending: THREE.AdditiveBlending
                 }));
-                tail.scale.set(22 - layer * 3.0, 2.4 - layer * 0.5, 1);
-                tail.position.x = -7.0 + layer * 0.6;
+                const tLen = (14 + Math.random() * 12) - layer * 2.5;
+                tail.scale.set(tLen, 1.5 - layer * 0.3, 1);
+                tail.position.x = -tLen * 0.35 + layer * 0.3;
                 cg.add(tail);
             }
             const angle = Math.random() * Math.PI * 2;
-            const rStart = 200 + Math.random() * 150;
-            cg.position.set(Math.cos(angle) * rStart, (Math.random() - 0.5) * 80, Math.sin(angle) * rStart);
-            const dir = new THREE.Vector3(-cg.position.x, -cg.position.y, -cg.position.z).normalize();
-            travelComets.push({ grp: cg, dir, speed: 2.5 + Math.random() * 2.0, life: 1 });
+            const rStart = 220 + Math.random() * 140;
+            cg.position.set(Math.cos(angle) * rStart, (Math.random() - 0.5) * 70, Math.sin(angle) * rStart);
+            const dir = new THREE.Vector3(-cg.position.x + (Math.random()-0.5)*30, -cg.position.y + (Math.random()-0.5)*20, -cg.position.z + (Math.random()-0.5)*30).normalize();
+            travelComets.push({ grp: cg, dir, speed: 1.8 + Math.random() * 2.2, life: 1 });
             milkyWayGroup.add(cg);
         }
-        let travelCometTimer = 40;
+        let travelCometTimer = 120; // Reduced frequency by half
 
-        // Space debris & meteoroids
         const meteoroids = [];
         (function buildMeteoroids() {
-            for (let i = 0; i < 15; i++) {
+            const geoTypes = [
+                () => new THREE.DodecahedronGeometry(0.4 + Math.random() * 0.9, 0),
+                () => new THREE.IcosahedronGeometry(0.3 + Math.random() * 0.8, 0),
+                () => new THREE.BoxGeometry(0.6 + Math.random() * 0.7, 0.4 + Math.random() * 0.5, 0.5 + Math.random() * 0.6)
+            ];
+            const colors = [0x554433, 0x777777, 0x444a55, 0x665555];
+            for (let i = 0; i < 12; i++) {
                 const mg = new THREE.Group();
+                const geoFn = geoTypes[Math.floor(Math.random() * geoTypes.length)];
+                const col = colors[Math.floor(Math.random() * colors.length)];
                 const mMesh = new THREE.Mesh(
-                    new THREE.DodecahedronGeometry(0.5 + Math.random() * 0.8, 1),
-                    new THREE.MeshStandardMaterial({ color: 0x665544, roughness: 0.9, metalness: 0.1 })
+                    geoFn(),
+                    new THREE.MeshStandardMaterial({ color: col, roughness: 0.85, metalness: 0.2 })
                 );
-                mMesh.rotation.set(Math.random()*Math.PI, Math.random()*Math.PI, 0);
+                mMesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
                 mg.add(mMesh);
                 const angle = Math.random() * Math.PI * 2;
-                const dist = 50 + Math.random() * 120;
-                mg.position.set(Math.cos(angle)*dist, (Math.random()-0.5)*40, Math.sin(angle)*dist);
+                const dist = 60 + Math.random() * 100;
+                mg.position.set(Math.cos(angle) * dist, (Math.random() - 0.5) * 50, Math.sin(angle) * dist);
                 milkyWayGroup.add(mg);
-                meteoroids.push({ grp: mg, rotSpd: new THREE.Vector3(Math.random()*0.02, Math.random()*0.02, 0) });
+                meteoroids.push({ grp: mg, rotSpd: new THREE.Vector3((Math.random()-0.5)*0.025, (Math.random()-0.5)*0.025, (Math.random()-0.5)*0.025) });
             }
         })();
 
@@ -959,7 +970,7 @@
         }
 
         const BASE_CAM_Z = 6;
-        const SPACE_CAM_Z = 380; // Deep initial outer space start
+        const SPACE_CAM_Z = 450;
 
         let cameraTheta = 0;
         let cameraPhi = 0.55;
@@ -990,6 +1001,7 @@
             solarAlpha = 0;
             milkyAlpha = 1;
             earthFocusAmount = 0;
+            currentZoomIndex = 0;
             resetIdleTimer();
         }
         function triggerSpaceCollapse() {
@@ -1002,13 +1014,15 @@
         let lastTapTime = 0;
         let lastTapX = 0, lastTapY = 0;
 
-        // Custom Zoom Steps matching your requested progression:
-        // Stage 0: 380u (Deep outer space view)
-        // Zoom Steps through deep space (4 zooms) -> ~180u
-        // Zoom Steps into close view (2 zooms) -> ~90u
-        // Zoom Steps to solar system (4 views) -> ~35u
-        // Zoom down to Earth (final approach) -> ~8u
-        const zoomMilestones = [380, 290, 210, 140, 95, 65, 48, 35, 24, 15, 8];
+        // Generate 150 total zoom steps (50 zooms to first stage, 50 zooms to second stage, 50 zooms to Earth/final)
+        const zoomMilestones = [];
+        for (let i = 0; i <= 150; i++) {
+            const t = i / 150;
+            // Exponential curve for ultra-smooth space travel feel
+            const dist = 450 * Math.pow(0.015, t); 
+            zoomMilestones.push(dist);
+        }
+        zoomMilestones.reverse(); // Starts at 450u down to ~8u
         let currentZoomIndex = 0;
 
         container.addEventListener('wheel', (e) => {
@@ -1118,7 +1132,6 @@
         const activePointers = new Map();
         const ripples = [];
         let boltTimer = 0;
-        let smokeTimer = 0;
         const CHARGE_START_MS = 300;
         const CHARGE_FULL_MS = 10000;
         const CENTER_RADIUS = 85;
@@ -1377,15 +1390,15 @@
 
             if (spaceProgress > 0.01 && milkyAlpha > 0.05) {
                 travelCometTimer -= 1;
-                if (travelCometTimer <= 0 && travelComets.length < 4) {
+                if (travelCometTimer <= 0 && travelComets.length < 3) {
                     spawnTravelComet();
-                    travelCometTimer = 70 + Math.floor(Math.random() * 120);
+                    travelCometTimer = 160 + Math.floor(Math.random() * 120);
                 }
                 for (let i = travelComets.length - 1; i >= 0; i--) {
                     const c = travelComets[i];
                     c.grp.position.addScaledVector(c.dir, c.speed);
                     c.grp.lookAt(new THREE.Vector3(c.grp.position.x + c.dir.x, c.grp.position.y + c.dir.y, c.grp.position.z + c.dir.z));
-                    c.life -= 0.004;
+                    c.life -= 0.0035;
                     if (c.life <= 0 || c.grp.position.length() > 700) {
                         milkyWayGroup.remove(c.grp);
                         travelComets.splice(i, 1);
@@ -1394,6 +1407,7 @@
                 for (const m of meteoroids) {
                     m.grp.rotation.x += m.rotSpd.x;
                     m.grp.rotation.y += m.rotSpd.y;
+                    m.grp.rotation.z += m.rotSpd.z;
                 }
             }
 
