@@ -535,19 +535,6 @@
             return new THREE.CanvasTexture(canvas);
         }
 
-        function makeGlowTex(color, size = 128) {
-            const canvas = document.createElement('canvas');
-            canvas.width = canvas.height = size;
-            const ctx = canvas.getContext('2d');
-            const grad = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
-            const hex = '#' + color.toString(16).padStart(6, '0');
-            grad.addColorStop(0, hex);
-            grad.addColorStop(0.3, hex + 'aa');
-            grad.addColorStop(1, hex + '00');
-            ctx.fillStyle = grad;
-            ctx.fillRect(0, 0, size, size);
-            return new THREE.CanvasTexture(canvas);
-        }
         function _canvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
 
         function makeSunTexFallback() {
@@ -738,32 +725,51 @@
         const cometHeadTex = makeCometHeadTexLocal();
         function spawnTravelComet() {
             const cg = new THREE.Group();
-            const nucleus = new THREE.Mesh(new THREE.SphereGeometry(0.08, 16, 16), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+            const nucleus = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), new THREE.MeshBasicMaterial({ color: 0xffffff }));
             cg.add(nucleus);
             const headGlow = new THREE.Sprite(new THREE.SpriteMaterial({
                 map: cometHeadTex, transparent: true, opacity: 1,
                 depthWrite: false, blending: THREE.AdditiveBlending
             }));
-            headGlow.scale.set(1.5, 1.5, 1);
+            headGlow.scale.set(2.0, 2.0, 1);
             cg.add(headGlow);
             const tailTex = makeCometTailTexLocal('180,220,255');
-            for (let layer = 0; layer < 3; layer++) {
+            for (let layer = 0; layer < 4; layer++) {
                 const tail = new THREE.Sprite(new THREE.SpriteMaterial({
-                    map: tailTex, transparent: true, opacity: 0.8 - layer * 0.18,
+                    map: tailTex, transparent: true, opacity: 0.85 - layer * 0.18,
                     depthWrite: false, blending: THREE.AdditiveBlending
                 }));
-                tail.scale.set(16 - layer * 1.8, 1.8 - layer * 0.4, 1);
-                tail.position.x = -5.5 + layer * 0.4;
+                tail.scale.set(22 - layer * 3.0, 2.4 - layer * 0.5, 1);
+                tail.position.x = -7.0 + layer * 0.6;
                 cg.add(tail);
             }
             const angle = Math.random() * Math.PI * 2;
             const rStart = 200 + Math.random() * 150;
             cg.position.set(Math.cos(angle) * rStart, (Math.random() - 0.5) * 80, Math.sin(angle) * rStart);
             const dir = new THREE.Vector3(-cg.position.x, -cg.position.y, -cg.position.z).normalize();
-            travelComets.push({ grp: cg, dir, speed: 2.0 + Math.random() * 2.0, life: 1 });
+            travelComets.push({ grp: cg, dir, speed: 2.5 + Math.random() * 2.0, life: 1 });
             milkyWayGroup.add(cg);
         }
-        let travelCometTimer = 60;
+        let travelCometTimer = 40;
+
+        // Space debris & meteoroids
+        const meteoroids = [];
+        (function buildMeteoroids() {
+            for (let i = 0; i < 15; i++) {
+                const mg = new THREE.Group();
+                const mMesh = new THREE.Mesh(
+                    new THREE.DodecahedronGeometry(0.5 + Math.random() * 0.8, 1),
+                    new THREE.MeshStandardMaterial({ color: 0x665544, roughness: 0.9, metalness: 0.1 })
+                );
+                mMesh.rotation.set(Math.random()*Math.PI, Math.random()*Math.PI, 0);
+                mg.add(mMesh);
+                const angle = Math.random() * Math.PI * 2;
+                const dist = 50 + Math.random() * 120;
+                mg.position.set(Math.cos(angle)*dist, (Math.random()-0.5)*40, Math.sin(angle)*dist);
+                milkyWayGroup.add(mg);
+                meteoroids.push({ grp: mg, rotSpd: new THREE.Vector3(Math.random()*0.02, Math.random()*0.02, 0) });
+            }
+        })();
 
         const solarSystemGroup = new THREE.Group();
         solarSystemGroup.visible = false;
@@ -953,7 +959,7 @@
         }
 
         const BASE_CAM_Z = 6;
-        const SPACE_CAM_Z = 350; // Deep outer space starting view after core explosion
+        const SPACE_CAM_Z = 380; // Deep initial outer space start
 
         let cameraTheta = 0;
         let cameraPhi = 0.55;
@@ -996,12 +1002,26 @@
         let lastTapTime = 0;
         let lastTapX = 0, lastTapY = 0;
 
+        // Custom Zoom Steps matching your requested progression:
+        // Stage 0: 380u (Deep outer space view)
+        // Zoom Steps through deep space (4 zooms) -> ~180u
+        // Zoom Steps into close view (2 zooms) -> ~90u
+        // Zoom Steps to solar system (4 views) -> ~35u
+        // Zoom down to Earth (final approach) -> ~8u
+        const zoomMilestones = [380, 290, 210, 140, 95, 65, 48, 35, 24, 15, 8];
+        let currentZoomIndex = 0;
+
         container.addEventListener('wheel', (e) => {
             if (spaceState === 'space' || spaceState === 'expanding') {
                 e.preventDefault();
                 resetIdleTimer();
-                cameraRadius = Math.max(2, Math.min(500, cameraRadius + e.deltaY * 0.35));
-                targetCameraZ = cameraRadius;
+                if (e.deltaY > 0) {
+                    currentZoomIndex = Math.max(0, currentZoomIndex - 1);
+                } else {
+                    currentZoomIndex = Math.min(zoomMilestones.length - 1, currentZoomIndex + 1);
+                }
+                targetCameraZ = zoomMilestones[currentZoomIndex];
+                cameraRadius = targetCameraZ;
             }
         }, { passive: false });
 
@@ -1270,7 +1290,7 @@
             if (spaceState === 'expanding') {
                 const t = Math.min(1, (nowMs - spacePhaseStart) / SPACE_FULL_MS);
                 spaceProgress = t;
-                if (t >= 1) { spaceProgress = 1; spaceState = 'space'; }
+                if (t >= 1) { spaceProgress = 1; spaceState = 'space'; currentZoomIndex = 0; }
             } else if (spaceState === 'collapsing') {
                 const t = Math.min(1, (nowMs - spacePhaseStart) / SPACE_FULL_MS);
                 spaceProgress = 1 - t;
@@ -1285,11 +1305,6 @@
 
             const camDist = camera.position.length();
             
-            // Zoom Journey Thresholds:
-            // 350u -> Deep Space Galaxy Start (after explosion)
-            // Zoom in past ~200u -> Outer Edge of Milky Way
-            // Zoom in past ~80u -> Solar System entry
-            // Zoom in past ~18u down to ~8u -> Earth Focus
             if (spaceState === 'space' || spaceState === 'expanding') {
                 if (camDist >= 120) solarAlpha = 0;
                 else if (camDist <= 60) solarAlpha = 1;
@@ -1362,9 +1377,9 @@
 
             if (spaceProgress > 0.01 && milkyAlpha > 0.05) {
                 travelCometTimer -= 1;
-                if (travelCometTimer <= 0 && travelComets.length < 3) {
+                if (travelCometTimer <= 0 && travelComets.length < 4) {
                     spawnTravelComet();
-                    travelCometTimer = 90 + Math.floor(Math.random() * 180);
+                    travelCometTimer = 70 + Math.floor(Math.random() * 120);
                 }
                 for (let i = travelComets.length - 1; i >= 0; i--) {
                     const c = travelComets[i];
@@ -1375,6 +1390,10 @@
                         milkyWayGroup.remove(c.grp);
                         travelComets.splice(i, 1);
                     }
+                }
+                for (const m of meteoroids) {
+                    m.grp.rotation.x += m.rotSpd.x;
+                    m.grp.rotation.y += m.rotSpd.y;
                 }
             }
 
