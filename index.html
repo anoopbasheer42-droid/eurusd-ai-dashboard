@@ -133,7 +133,7 @@
             <div class="card-title">Neural Core / Cosmic Explorer</div>
             <div id="canvas-container"></div>
             <div class="subtitle">
-                <span>Tap Planet to Navigate · Drag to Explore Freely</span>
+                <span>Tap Planet to Navigate · Single Tap Earth to Enter Atmosphere · Double Tap for Core</span>
                 <span class="nav-target-label" id="nav-target-label">Neural Core</span>
             </div>
         </div>
@@ -658,9 +658,9 @@
             cameraTheta = 0;
             cameraPhi = 0.55;
             cameraRadius = GALAXY_START_Z;
-            targetedPlanet = earthGroup;
+            targetedPlanet = earthGroup; // Default main view on Earth
             enteringEarthAtmosphere = false;
-            updateTargetLabel("Main View: Earth");
+            updateTargetLabel("Solar System · Main View: Earth");
         }
 
         function triggerSpaceCollapse() {
@@ -695,19 +695,22 @@
                     const planetName = hit.userData.name;
                     const parentGrp = planetObjs.find(p => p.userData.name === planetName);
                     if (parentGrp) {
-                        targetedPlanet = parentGrp;
-                        if (planetName === 'Earth' && enteringEarthAtmosphere) {
-                            // Already targeting earth descent
-                            return;
-                        }
-                        if (planetName === 'Earth' && !enteringEarthAtmosphere && targetCameraZ <= parentGrp.userData.radius * 3.5) {
-                            // Tap Earth a second time when close -> Enter Atmosphere into Kerala!
-                            enteringEarthAtmosphere = true;
-                            earthDescentStartTime = Date.now();
-                            updateTargetLabel("Entering Atmosphere: Kerala, Ottapalam (NSS College)");
+                        if (planetName === 'Earth') {
+                            if (!enteringEarthAtmosphere) {
+                                // First tap on Earth -> Enter Atmosphere down to Kerala / Ottapalam / NSS College
+                                enteringEarthAtmosphere = true;
+                                earthDescentStartTime = Date.now();
+                                updateTargetLabel("Descent: Kerala, Palakkad · Ottapalam (Near NSS College)");
+                            } else {
+                                // Single tap while inside Earth -> Return to Solar System
+                                enteringEarthAtmosphere = false;
+                                targetedPlanet = earthGroup;
+                                updateTargetLabel("Solar System Overview");
+                            }
                             return;
                         }
                         enteringEarthAtmosphere = false;
+                        targetedPlanet = parentGrp;
                         updateTargetLabel(`Targeted: ${planetName}`);
                         targetCameraZ = parentGrp.userData.radius * 3.2;
                     }
@@ -841,14 +844,13 @@
 
             if (spaceState === 'space') {
                 if (enteringEarthAtmosphere && earthGroup) {
-                    // Cinematic Layer-by-Layer Descent into Kerala, Ottapalam (NSS College) over 8 seconds
+                    // Cinematic Layer-by-Layer Descent into Kerala, Ottapalam, NSS College over 9 seconds
                     const descentElapsed = nowMs - earthDescentStartTime;
-                    const descentProgress = Math.min(1, descentElapsed / 8000);
+                    const descentProgress = Math.min(1, descentElapsed / 9000);
                     const easedDescent = descentProgress < 0.5 ? 2 * descentProgress * descentProgress : 1 - Math.pow(-2 * descentProgress + 2, 2) / 2;
 
                     earthGroup.getWorldPosition(_planetWorld);
-                    // Position camera plunging through clouds right onto India / Kerala coordinates relative to Earth center
-                    const keralaOffset = new THREE.Vector3(0.12 * earthGroup.userData.radius, 0.22 * earthGroup.userData.radius, earthGroup.userData.radius * (1.3 - 0.95 * easedDescent));
+                    const keralaOffset = new THREE.Vector3(0.12 * earthGroup.userData.radius, 0.22 * earthGroup.userData.radius, earthGroup.userData.radius * (1.3 - 0.96 * easedDescent));
                     keralaOffset.applyAxisAngle(new THREE.Vector3(0, 1, 0), earthGroup.userData.sphere.rotation.y);
                     
                     const camTargetPos = _planetWorld.clone().add(keralaOffset);
@@ -856,7 +858,7 @@
                     camera.lookAt(_planetWorld);
 
                     if (descentProgress >= 1) {
-                        updateTargetLabel("Landed: Kerala, Palakkad · Ottapalam (Near NSS College)");
+                        updateTargetLabel("Landed: Kerala, Palakkad · Ottapalam (Near NSS College) [Tap Earth to exit]");
                     }
                 } else {
                     cameraRadius += (targetCameraZ - cameraRadius) * 0.08;
