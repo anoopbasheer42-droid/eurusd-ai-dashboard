@@ -64,6 +64,18 @@
         #canvas-container:active { cursor: grabbing; }
         #canvas-container.touched { filter: drop-shadow(0 0 25px rgba(167,139,250,0.7)); transition: filter 0.3s ease; }
         .subtitle { text-align: center; font-family: 'Space Grotesk', sans-serif; font-size: 0.6rem; letter-spacing: 0.3em; color: var(--text-subtle); margin-top: 10px; font-weight: 500; text-transform: uppercase; }
+        
+        /* Earth History Time-Machine HUD Overlay */
+        .earth-timeline-hud { position: absolute; bottom: 10px; left: 12px; right: 12px; background: rgba(5, 7, 15, 0.88); border: 1px solid rgba(139, 92, 246, 0.35); border-radius: 12px; padding: 10px 14px; backdrop-filter: blur(15px); z-index: 10; display: none; box-shadow: 0 0 25px rgba(139,92,246,0.25); animation: fadeIn 0.3s ease; }
+        .earth-timeline-hud.active { display: block; }
+        .timeline-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .timeline-title { font-family: 'Space Grotesk', sans-serif; font-size: 0.72rem; font-weight: 700; color: var(--violet); letter-spacing: 0.05em; }
+        .timeline-epoch { font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; color: var(--yellow); }
+        .timeline-desc { font-family: 'Inter', sans-serif; font-size: 0.72rem; color: var(--text-body); line-height: 1.4; margin-bottom: 8px; }
+        .timeline-slider-row { display: flex; align-items: center; gap: 8px; }
+        .timeline-slider-row input[type=range] { flex: 1; accent-color: var(--purple); cursor: pointer; height: 4px; border-radius: 2px; }
+        .timeline-close-btn { background: rgba(239,68,68,0.2); border: 1px solid rgba(239,68,68,0.4); color: #fca5a5; font-size: 0.6rem; padding: 2px 8px; border-radius: 6px; cursor: pointer; }
+
         .signal-card { text-align: center; padding: 30px 24px; }
         #signal-text { font-family: 'Space Grotesk', sans-serif; font-size: 2.8rem; font-weight: 700; letter-spacing: 0.08em; color: var(--text-subtle); transition: all 0.4s ease; margin-bottom: 12px; line-height: 1; text-shadow: 0 0 30px currentColor; }
         .signal-status-line { font-family: 'JetBrains Mono', monospace; font-size: 0.66rem; color: var(--text-subtle); letter-spacing: 0.15em; margin-bottom: 24px; text-transform: uppercase; font-weight: 500; }
@@ -128,8 +140,21 @@
         </header>
         <div class="card">
             <div class="card-title">Cosmic Explorer</div>
-            <div id="canvas-container"></div>
-            <div class="subtitle">Earth View · Pinch to Zoom</div>
+            <div id="canvas-container">
+                <!-- Earth History Time-Machine HUD -->
+                <div class="earth-timeline-hud" id="earth-timeline-hud">
+                    <div class="timeline-header">
+                        <div class="timeline-title">🌍 EARTH EVOLUTION TIME-MACHINE</div>
+                        <button class="timeline-close-btn" onclick="closeEarthTimeline()">Close</button>
+                    </div>
+                    <div class="timeline-epoch" id="timeline-epoch-title">4.6 Billion Years Ago: Molten Birth</div>
+                    <div class="timeline-desc" id="timeline-desc">Accretion of dust and gas, magma oceans covering the globe under a thick carbon dioxide and water vapor atmosphere.</div>
+                    <div class="timeline-slider-row">
+                        <input type="range" id="earth-time-slider" min="0" max="100" value="100" oninput="onEarthTimeSliderChange(this.value)">
+                    </div>
+                </div>
+            </div>
+            <div class="subtitle" id="explorer-subtitle">Earth View · Pinch to Zoom · Tap Earth for History</div>
         </div>
         <div class="card signal-card">
             <div class="card-title">Current Signal</div>
@@ -928,7 +953,6 @@
 
         const earthObj = planetObjs.find(g => g.userData.earth);
 
-        // Vibrant Asteroid Belt between Mars and Jupiter (orbit ~ 21)
         const asteroidBeltGroup = new THREE.Group();
         const asteroidCount = 180;
         const asteroidMeshes = [];
@@ -947,7 +971,6 @@
         }
         solarSystemGroup.add(asteroidBeltGroup);
 
-        // Exactly 3 Orbiting Satellites around Earth
         const satelliteGroup = new THREE.Group();
         if (earthObj) {
             earthObj.add(satelliteGroup);
@@ -1028,7 +1051,7 @@
         }
 
         const BASE_CAM_Z = 6;
-        const SPACE_CAM_Z = 3000; // Deep cosmic void start
+        const SPACE_CAM_Z = 3000;
 
         let cameraTheta = 0;
         let cameraPhi = 0.55;
@@ -1047,6 +1070,51 @@
         const IDLE_COLLAPSE_MS = 5 * 60 * 1000;
         function resetIdleTimer() { lastInteractionTime = Date.now(); }
 
+        let earthTimelineActive = false;
+
+        const EARTH_EPOCHS = [
+            {
+                year: "4.6 Billion Years Ago",
+                title: "The Violent Birth & Magma Oceans",
+                desc: "Accretion of dust and rocky planetesimals. Molten magma oceans cover the newborn globe under a suffocating greenhouse atmosphere of carbon dioxide and steam."
+            },
+            {
+                year: "4.4 Billion Years Ago",
+                title: "First Oceans & Crust Cooling",
+                desc: "As Earth cools, heavy continuous torrential rains fill the vast impact basins, forming Earth's first global liquid water oceans."
+            },
+            {
+                year: "3.5 Billion Years Ago",
+                title: "Dawn of Life & Stromatolites",
+                desc: "Single-celled prokaryotes and cyanobacteria emerge in shallow marine waters, generating energy via photosynthesis and releasing early oxygen."
+            },
+            {
+                year: "2.4 Billion Years Ago",
+                title: "The Great Oxidation Event",
+                desc: "Oxygen accumulates massively in the atmosphere for the first time, rusting iron-rich oceanic minerals and paving the way for complex aerobic life."
+            },
+            {
+                year: "540 Million Years Ago",
+                title: "The Cambrian Explosion",
+                desc: "A sudden burst of evolutionary diversity in the oceans yields complex multicellular life forms, trilobites, and early armored marine predators."
+            },
+            {
+                year: "250 – 65 Million Years Ago",
+                title: "Age of Dinosaurs & Impact Extinction",
+                desc: "Dinosaurs reign across lush Pangea and diverging continents until a catastrophic 10km asteroid strikes Chicxulub, wiping out 75% of species."
+            },
+            {
+                year: "1914 – 1945 AD",
+                title: "World Wars I & II Era",
+                desc: "Humanity splits into industrial global conflicts (WWI and WWII), accelerating technological evolution, aviation, rocketry, and global interconnectivity."
+            },
+            {
+                year: "Present Day (2026 AD)",
+                title: "The Anthropocene & Space Age",
+                desc: "Modern civilization spans the globe. Satellites orbit the planet, digital AI systems process information, and humanity looks toward interplanetary expansion."
+            }
+        ];
+
         function triggerSpaceExpand() {
             if (spaceState === 'expanding' || spaceState === 'space') return;
             spaceState = 'expanding';
@@ -1064,6 +1132,7 @@
         }
         function triggerSpaceCollapse() {
             if (spaceState === 'collapsing' || spaceState === 'core') return;
+            closeEarthTimeline();
             spaceState = 'collapsing';
             spacePhaseStart = Date.now();
             spaceProgress = 1;
@@ -1073,7 +1142,6 @@
         let lastTapTime = 0;
         let lastTapX = 0, lastTapY = 0;
 
-        // 450 total zoom milestones spanning from deep void (3000) down to Earth closeup (1.2)
         const zoomMilestones = [];
         for (let i = 0; i <= 450; i++) {
             const t = i / 450;
@@ -1094,6 +1162,9 @@
                 }
                 targetCameraZ = zoomMilestones[currentZoomIndex];
                 cameraRadius = targetCameraZ;
+                if (cameraRadius > 2.5 && earthTimelineActive) {
+                    closeEarthTimeline();
+                }
             }
         }, { passive: false });
 
@@ -1253,6 +1324,9 @@
                             if (navigator.vibrate) navigator.vibrate(20);
                         }
                     }, CHARGE_START_MS);
+                } else if (spaceState === 'space' && cameraRadius < 2.5) {
+                    // Tapped Earth closeup -> Open Earth Timeline Time-Machine!
+                    toggleEarthTimeline();
                 }
             } else if (activePointers.size === 2) {
                 const pts = Array.from(activePointers.values());
@@ -1297,6 +1371,7 @@
                     if (spaceState === 'space' || spaceState === 'expanding') {
                         cameraRadius = Math.max(1.2, Math.min(3000, cameraRadius / ratio));
                         targetCameraZ = cameraRadius;
+                        if (cameraRadius > 2.5 && earthTimelineActive) closeEarthTimeline();
                     } else {
                         coreScale = Math.max(0.6, Math.min(2.2, pinchStartScale * ratio));
                     }
@@ -1351,6 +1426,52 @@
         container.addEventListener('pointercancel', endPointer);
         container.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
         container.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+
+        function toggleEarthTimeline() {
+            earthTimelineActive = !earthTimelineActive;
+            const hud = document.getElementById('earth-timeline-hud');
+            const sub = document.getElementById('explorer-subtitle');
+            if (earthTimelineActive) {
+                hud.classList.add('active');
+                sub.innerText = "🌍 Earth History Time-Machine Active";
+                onEarthTimeSliderChange(document.getElementById('earth-time-slider').value);
+            } else {
+                hud.classList.remove('active');
+                sub.innerText = "Earth View · Pinch to Zoom · Tap Earth for History";
+            }
+        }
+        function closeEarthTimeline() {
+            earthTimelineActive = false;
+            document.getElementById('earth-timeline-hud').classList.remove('active');
+            document.getElementById('explorer-subtitle').innerText = "Earth View · Pinch to Zoom · Tap Earth for History";
+        }
+        function onEarthTimeSliderChange(val) {
+            const idx = Math.min(EARTH_EPOCHS.length - 1, Math.floor((val / 100) * EARTH_EPOCHS.length));
+            const epoch = EARTH_EPOCHS[idx];
+            document.getElementById('timeline-epoch-title').innerText = `${epoch.year}: ${epoch.title}`;
+            document.getElementById('timeline-desc').innerText = epoch.desc;
+
+            // Dynamically alter earth appearance based on time epoch!
+            if (earthObj && earthObj.userData.sphere) {
+                const mat = earthObj.userData.sphere.material;
+                if (idx === 0) {
+                    // Magma molten earth
+                    mat.color.setHex(0xff4500);
+                    mat.emissive.setHex(0xff2200);
+                    mat.emissiveIntensity = 0.6;
+                } else if (idx === 1 || idx === 2) {
+                    // Early oceans / green bacterial tint
+                    mat.color.setHex(0x1e90ff);
+                    mat.emissive.setHex(0x0044aa);
+                    mat.emissiveIntensity = 0.2;
+                } else {
+                    // Modern normal Earth
+                    mat.color.setHex(0xffffff);
+                    mat.emissive.setHex(0x000000);
+                    mat.emissiveIntensity = 0;
+                }
+            }
+        }
 
         const _earthWorld = new THREE.Vector3(0, 0, 0);
         const _lookTarget = new THREE.Vector3(0, 0, 0);
