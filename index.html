@@ -67,19 +67,7 @@
         #canvas-container.touched { filter: drop-shadow(0 0 25px rgba(167,139,250,0.7)); transition: filter 0.3s ease; }
         .subtitle { text-align: center; font-family: 'Space Grotesk', sans-serif; font-size: 0.6rem; letter-spacing: 0.3em; color: var(--text-subtle); margin-top: 10px; font-weight: 500; text-transform: uppercase; }
         
-        #realsky-btn {
-            position: fixed; bottom: 20px; right: 20px; z-index: 9999;
-            background: linear-gradient(135deg, #1e293b, #0f172a);
-            border: 1px solid rgba(139, 92, 246, 0.4);
-            color: #c4b5fd; padding: 12px 18px; border-radius: 30px;
-            font-family: 'Space Grotesk', sans-serif; font-size: 0.7rem;
-            font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
-            cursor: pointer; box-shadow: 0 4px 25px rgba(139, 92, 246, 0.3);
-            transition: all 0.3s ease; display: flex; align-items: center; gap: 8px;
-        }
-        #realsky-btn:hover { box-shadow: 0 6px 35px rgba(139, 92, 246, 0.6); transform: translateY(-2px); }
-        #realsky-btn.active { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; border-color: rgba(255,255,255,0.3); }
-        
+        /* Cinematic Map Overlay */
         #map-overlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             z-index: 99999; opacity: 0; pointer-events: none; transition: opacity 1.5s ease;
@@ -148,8 +136,6 @@
     </style>
 </head>
 <body>
-    <button id="realsky-btn" onclick="toggleRealSky()"><span>🌌</span> Real Sky</button>
-
     <div id="map-overlay">
         <div id="map"></div>
         <div id="street-view-container">
@@ -321,7 +307,6 @@
         let elevenLabsApiKey = localStorage.getItem('eurusd_elevenlabs_api_key') || '';
         let voiceEngineMode = localStorage.getItem('eurusd_voice_engine_mode') || 'cloud';
         let currentAudio = null;
-        let realSkyEnabled = false;
 
         document.body.addEventListener('click', () => { if ('speechSynthesis' in window) window.speechSynthesis.getVoices(); }, { once: true });
 
@@ -732,15 +717,121 @@
         const solarSystemGroup = new THREE.Group();
         solarSystemGroup.visible = false;
         scene.add(solarSystemGroup);
+
+        // === ULTRA-REALISTIC FIREBALL SUN ===
         const sunGroup = new THREE.Group();
-        const sunMesh = new THREE.Mesh(new THREE.SphereGeometry(1.6, 64, 64), new THREE.MeshBasicMaterial({ map: makeSunTexFallback() }));
+
+        // Core sun surface with high-res texture
+        const sunSurfaceTex = makeSunTexFallback();
+        const sunMesh = new THREE.Mesh(
+            new THREE.SphereGeometry(1.6, 128, 128),
+            new THREE.MeshBasicMaterial({ map: sunSurfaceTex, color: 0xfff5c0 })
+        );
         sunGroup.add(sunMesh);
-        const sunCoronaCanvas = _canvas(512, 512);
-        { const ctx = sunCoronaCanvas.getContext('2d'); const g = ctx.createRadialGradient(256, 256, 60, 256, 256, 256); g.addColorStop(0, 'rgba(255,240,180,0.95)'); g.addColorStop(0.3, 'rgba(255,200,100,0.55)'); g.addColorStop(0.6, 'rgba(255,140,60,0.2)'); g.addColorStop(1, 'rgba(255,100,40,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, 512, 512); }
-        const sunCorona = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(sunCoronaCanvas), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
-        sunCorona.scale.set(14, 14, 1); sunGroup.add(sunCorona);
-        const sunLight = new THREE.PointLight(0xfff2c4, 2.2, 900); sunGroup.add(sunLight);
+
+        // Inner hot glow (bright yellow-white)
+        const sunInnerGlow = new THREE.Mesh(
+            new THREE.SphereGeometry(1.68, 64, 64),
+            new THREE.MeshBasicMaterial({ 
+                color: 0xfff0b0, 
+                transparent: true, 
+                opacity: 0.35, 
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            })
+        );
+        sunGroup.add(sunInnerGlow);
+
+        // Mid corona (orange)
+        const sunCoronaCanvas = _canvas(1024, 1024);
+        { 
+            const ctx = sunCoronaCanvas.getContext('2d'); 
+            const g = ctx.createRadialGradient(512, 512, 80, 512, 512, 512); 
+            g.addColorStop(0, 'rgba(255,250,220,1)'); 
+            g.addColorStop(0.15, 'rgba(255,230,140,0.9)'); 
+            g.addColorStop(0.35, 'rgba(255,180,70,0.55)'); 
+            g.addColorStop(0.6, 'rgba(255,120,40,0.25)'); 
+            g.addColorStop(0.85, 'rgba(255,80,30,0.08)'); 
+            g.addColorStop(1, 'rgba(255,50,20,0)'); 
+            ctx.fillStyle = g; 
+            ctx.fillRect(0, 0, 1024, 1024); 
+        }
+        const sunCorona = new THREE.Sprite(new THREE.SpriteMaterial({ 
+            map: new THREE.CanvasTexture(sunCoronaCanvas), 
+            transparent: true, 
+            depthWrite: false, 
+            blending: THREE.AdditiveBlending 
+        }));
+        sunCorona.scale.set(16, 16, 1); 
+        sunGroup.add(sunCorona);
+
+        // Outer soft corona (deep orange halo)
+        const sunOuterCoronaCanvas = _canvas(1024, 1024);
+        { 
+            const ctx = sunOuterCoronaCanvas.getContext('2d'); 
+            const g = ctx.createRadialGradient(512, 512, 200, 512, 512, 512); 
+            g.addColorStop(0, 'rgba(255,160,60,0.5)'); 
+            g.addColorStop(0.5, 'rgba(255,100,40,0.15)'); 
+            g.addColorStop(1, 'rgba(255,60,20,0)'); 
+            ctx.fillStyle = g; 
+            ctx.fillRect(0, 0, 1024, 1024); 
+        }
+        const sunOuterCorona = new THREE.Sprite(new THREE.SpriteMaterial({ 
+            map: new THREE.CanvasTexture(sunOuterCoronaCanvas), 
+            transparent: true, 
+            depthWrite: false, 
+            blending: THREE.AdditiveBlending 
+        }));
+        sunOuterCorona.scale.set(26, 26, 1); 
+        sunGroup.add(sunOuterCorona);
+
+        // Solar flares (rotating spiky rays)
+        const solarFlaresGroup = new THREE.Group();
+        const flareCount = 24;
+        for (let i = 0; i < flareCount; i++) {
+            const flareCanvas = _canvas(64, 256);
+            const fctx = flareCanvas.getContext('2d');
+            const fg = fctx.createLinearGradient(0, 0, 0, 256);
+            fg.addColorStop(0, 'rgba(255,240,180,0.95)');
+            fg.addColorStop(0.4, 'rgba(255,180,80,0.6)');
+            fg.addColorStop(0.8, 'rgba(255,100,40,0.15)');
+            fg.addColorStop(1, 'rgba(255,60,20,0)');
+            fctx.fillStyle = fg;
+            fctx.beginPath();
+            fctx.moveTo(32, 0);
+            fctx.lineTo(48, 256);
+            fctx.lineTo(16, 256);
+            fctx.closePath();
+            fctx.fill();
+            const flareTex = new THREE.CanvasTexture(flareCanvas);
+            const flare = new THREE.Sprite(new THREE.SpriteMaterial({
+                map: flareTex,
+                transparent: true,
+                depthWrite: false,
+                blending: THREE.AdditiveBlending,
+                opacity: 0.5 + Math.random() * 0.3
+            }));
+            const angle = (i / flareCount) * Math.PI * 2;
+            const radius = 1.9;
+            flare.position.set(
+                Math.cos(angle) * radius,
+                Math.sin(angle) * radius,
+                0
+            );
+            flare.rotation.z = angle - Math.PI / 2;
+            const flareScale = 2.5 + Math.random() * 2;
+            flare.scale.set(flareScale, flareScale * 1.8, 1);
+            flare.userData = { baseAngle: angle, baseScale: flareScale, phase: Math.random() * Math.PI * 2 };
+            solarFlaresGroup.add(flare);
+        }
+        sunGroup.add(solarFlaresGroup);
+
+        // Point light from Sun
+        const sunLight = new THREE.PointLight(0xfff0b0, 3.5, 1200); 
+        sunGroup.add(sunLight);
+
         solarSystemGroup.add(sunGroup);
+
         const PLANET_DATA = [
             { name:'Mercury', r:0.20, o:6,   fb:['#7a7168', '80,70,60'],   spd:0.42, rotSpd:0.005 },
             { name:'Venus',   r:0.30, o:9,   fb:['#c9a262', '240,220,180'], spd:0.32, rotSpd:-0.003 },
@@ -761,7 +852,7 @@
             const pts = []; for (let i = 0; i <= 160; i++) { const a = (i / 160) * Math.PI * 2; pts.push(new THREE.Vector3(Math.cos(a) * p.o, 0, Math.sin(a) * p.o)); }
             const og = new THREE.BufferGeometry().setFromPoints(pts); const om = new THREE.LineBasicMaterial({ color: 0x8b5cf6, transparent: true, opacity: 0.2 }); solarSystemGroup.add(new THREE.Line(og, om));
             const moons = []; if (p.moons) { for (const m of p.moons) { const moonGrp = new THREE.Group(); const moonCanvas = _canvas(512, 256); const mctx = moonCanvas.getContext('2d'); mctx.fillStyle = '#a0a0a0'; mctx.fillRect(0, 0, 512, 256); for (let i = 0; i < 400; i++) { mctx.fillStyle = `rgba(70,70,70,${0.2 + Math.random()*0.4})`; mctx.beginPath(); mctx.arc(Math.random()*512, Math.random()*256, 2 + Math.random()*12, 0, Math.PI*2); mctx.fill(); } const moonMesh = new THREE.Mesh(new THREE.SphereGeometry(m.r, 32, 32), new THREE.MeshPhongMaterial({ map: new THREE.CanvasTexture(moonCanvas), shininess: 5 })); moonMesh.position.x = m.o; moonMesh.userData.isMoon = true; moonGrp.add(moonMesh); grp.add(moonGrp); moons.push({ grp: moonGrp, speed: m.spd, angle: Math.random() * Math.PI * 2 }); } }
-            const startAngle = Math.random() * Math.PI * 2; grp.userData = { name: p.name, orbit: p.o, speed: p.spd, angle: startAngle, earth: p.name === 'Earth', sphere, moons, radius: p.r }; grp.position.set(Math.cos(startAngle) * p.o, 0, Math.sin(startAngle) * p.o); planetObjs.push(grp); solarSystemGroup.add(grp);
+            const startAngle = Math.random() * Math.PI * 2; grp.userData = { name: p.name, orbit: p.o, speed: p.spd, angle: startAngle, earth: p.name === 'Earth', sphere, moons }; grp.position.set(Math.cos(startAngle) * p.o, 0, Math.sin(startAngle) * p.o); planetObjs.push(grp); solarSystemGroup.add(grp);
         }
         const earthObj = planetObjs.find(g => g.userData.earth);
 
@@ -817,195 +908,26 @@
         if (earthObj) { const earthSphere = earthObj.userData.sphere; loadRealTex('EarthBump', (tex) => { earthSphere.material.bumpMap = tex; earthSphere.material.bumpScale = 0.06; earthSphere.material.needsUpdate = true; }); for (const child of earthObj.children) { if (child.userData && child.userData.isCloud) { loadRealTex('EarthClouds', (tex) => { child.material.map = tex; child.material.opacity = 0.85; child.material.needsUpdate = true; }); break; } } }
         if (earthObj && earthObj.userData.moons) { for (const m of earthObj.userData.moons) { loadRealTex('Moon', (tex) => { m.grp.traverse((c) => { if (c.userData && c.userData.isMoon && c.material) { c.material.map = tex; c.material.needsUpdate = true; } }); }); } }
 
-        // === REAL SKY MODE (Constellations) ===
-        const realSkyGroup = new THREE.Group();
-        realSkyGroup.visible = false;
-        scene.add(realSkyGroup);
-
-        const STAR_DATA = [
-            [5.919, 7.407, 0.18], [5.242, -8.202, 0.13], [5.418, 6.350, 1.64], [5.533, -0.299, 1.69], [5.603, -1.202, 1.74], [5.679, -1.943, 2.25], [5.795, -9.670, 2.07], [5.585, 9.934, 3.39],
-            [11.062, 61.751, 1.79], [11.031, 56.382, 2.37], [11.897, 53.695, 2.44], [12.257, 57.033, 3.31], [12.900, 55.960, 1.77], [13.399, 54.925, 2.27], [13.792, 49.313, 1.86],
-            [2.530, 89.264, 1.97], [14.845, 74.156, 2.08], [15.734, 77.794, 3.05], [16.291, 75.755, 4.36],
-            [0.153, 59.150, 2.27], [0.675, 56.537, 2.24], [0.945, 60.717, 2.47], [1.430, 60.235, 2.68], [1.906, 63.670, 3.38],
-            [16.490, -26.432, 1.06], [16.090, -19.805, 2.62], [16.353, -25.593, 2.90], [16.598, -28.216, 2.89], [16.836, -34.293, 2.29], [17.708, -39.030, 2.41],
-            [20.690, 45.280, 1.25], [20.371, 40.257, 2.23], [20.770, 33.970, 2.48], [19.750, 45.131, 2.87], [20.589, 42.495, 3.79],
-            [10.139, 11.967, 1.36], [11.235, 20.524, 2.56], [10.332, 19.841, 2.01], [11.237, 15.430, 3.33], [11.140, 20.523, 3.49],
-            [4.599, 16.509, 0.87], [5.438, 28.608, 1.65], [4.330, 15.628, 3.40], [4.477, 19.180, 3.53],
-            [7.755, 28.026, 1.58], [7.577, 31.888, 1.90], [6.629, 16.399, 2.98], [6.383, 22.514, 3.06],
-            [6.752, -16.716, -1.46], [6.977, -28.972, 1.83], [7.140, -26.393, 1.98], [6.378, -17.956, 2.45],
-            [18.615, 38.784, 0.03], [18.746, 37.605, 4.30], [18.834, 33.363, 4.34],
-            [19.921, 8.868, 0.76], [19.770, 10.613, 2.72], [19.090, 13.863, 3.71],
-            [12.443, -63.099, 0.77], [12.795, -59.689, 1.25], [12.519, -57.113, 2.79], [12.252, -58.749, 3.59],
-            [23.079, 15.205, 2.49], [23.063, 28.083, 2.42], [0.221, 15.184, 2.83], [22.717, 30.221, 2.44],
-            [14.261, 19.182, -0.05], [14.749, 27.074, 3.49], [15.032, 24.839, 4.35], [13.912, 18.398, 3.03],
-            [2.097, 29.091, 2.07], [3.405, 49.861, 1.79], [3.136, 40.956, 2.12], [1.162, 35.621, 2.07],
-            [14.661, -60.835, -0.27], [14.064, -60.373, 0.61], [6.399, -52.696, -0.72], [5.278, 45.998, 0.08],
-            [7.655, 5.225, 0.34], [13.420, -11.161, 0.98], [22.961, -29.622, 1.16]
-        ];
-
-        const CONSTELLATION_LINES = [
-            [0, 2], [2, 3], [3, 4], [4, 5], [5, 1], [1, 6], [6, 5], [0, 3], [3, 5], [5, 7], [7, 2],
-            [8, 9], [9, 10], [10, 11], [11, 8], [11, 12], [12, 13], [13, 14],
-            [15, 16], [16, 17], [17, 18],
-            [19, 20], [20, 21], [21, 22], [22, 23],
-            [24, 25], [25, 26], [26, 24], [26, 27], [27, 28], [28, 29],
-            [30, 31], [31, 32], [31, 33], [33, 34],
-            [35, 36], [36, 37], [37, 38], [38, 39], [35, 39], [37, 39],
-            [40, 41], [40, 42], [42, 43],
-            [44, 45], [45, 46], [44, 47],
-            [48, 49], [48, 50], [48, 51],
-            [52, 53], [53, 54], [54, 52],
-            [55, 56], [55, 57],
-            [58, 59], [59, 60], [60, 61], [58, 61],
-            [62, 63], [63, 64], [64, 65], [65, 62], [62, 64], [63, 65],
-            [66, 67], [67, 68], [66, 69], [69, 68]
-        ];
-
-        let realSkyStarsMesh = null;
-        let realSkyLinesMesh = null;
-        let milkyWayBandMesh = null;
-
-        function buildRealSky() {
-            if (realSkyStarsMesh) return;
-            const R = 1500;
-            const starPositions = [];
-            const starColors = [];
-            
-            for (const star of STAR_DATA) {
-                const ra = star[0] * 15 * Math.PI / 180;
-                const dec = star[1] * Math.PI / 180;
-                const mag = star[2];
-                const x = R * Math.cos(dec) * Math.cos(ra);
-                const y = R * Math.sin(dec);
-                const z = R * Math.cos(dec) * Math.sin(ra);
-                starPositions.push(x, y, z);
-                const brightness = Math.max(0.3, Math.min(1.0, (2.5 - mag) / 3));
-                starColors.push(brightness, brightness, brightness);
-            }
-            
-            const starsGeo = new THREE.BufferGeometry();
-            starsGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPositions, 3));
-            starsGeo.setAttribute('color', new THREE.Float32BufferAttribute(starColors, 3));
-            
-            const starsMat = new THREE.PointsMaterial({
-                size: 10,
-                map: makeCircularStarTexture('rgba(255,255,255,0.95)'),
-                transparent: true,
-                opacity: 0.95,
-                depthWrite: false,
-                blending: THREE.AdditiveBlending,
-                vertexColors: true,
-                sizeAttenuation: true
-            });
-            
-            realSkyStarsMesh = new THREE.Points(starsGeo, starsMat);
-            realSkyGroup.add(realSkyStarsMesh);
-            
-            const linePositions = [];
-            for (const [i, j] of CONSTELLATION_LINES) {
-                const s1 = STAR_DATA[i];
-                const s2 = STAR_DATA[j];
-                if (!s1 || !s2) continue;
-                const ra1 = s1[0] * 15 * Math.PI / 180;
-                const dec1 = s1[1] * Math.PI / 180;
-                const ra2 = s2[0] * 15 * Math.PI / 180;
-                const dec2 = s2[1] * Math.PI / 180;
-                linePositions.push(
-                    R * Math.cos(dec1) * Math.cos(ra1), R * Math.sin(dec1), R * Math.cos(dec1) * Math.sin(ra1),
-                    R * Math.cos(dec2) * Math.cos(ra2), R * Math.sin(dec2), R * Math.cos(dec2) * Math.sin(ra2)
-                );
-            }
-            
-            const linesGeo = new THREE.BufferGeometry();
-            linesGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
-            const linesMat = new THREE.LineBasicMaterial({ color: 0x8b5cf6, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending });
-            realSkyLinesMesh = new THREE.LineSegments(linesGeo, linesMat);
-            realSkyGroup.add(realSkyLinesMesh);
-
-            const bandCanvas = _canvas(1024, 256);
-            const bctx = bandCanvas.getContext('2d');
-            const bg = bctx.createLinearGradient(0, 0, 0, 256);
-            bg.addColorStop(0, 'rgba(0,0,0,0)');
-            bg.addColorStop(0.4, 'rgba(180,180,200,0.15)');
-            bg.addColorStop(0.5, 'rgba(220,220,240,0.25)');
-            bg.addColorStop(0.6, 'rgba(180,180,200,0.15)');
-            bg.addColorStop(1, 'rgba(0,0,0,0)');
-            bctx.fillStyle = bg;
-            bctx.fillRect(0, 0, 1024, 256);
-            for (let i = 0; i < 3000; i++) {
-                bctx.fillStyle = `rgba(255,255,255,${Math.random()*0.3})`;
-                bctx.fillRect(Math.random()*1024, Math.random()*256, 1, 1);
-            }
-            const bandTex = new THREE.CanvasTexture(bandCanvas);
-            
-            const bandGeo = new THREE.PlaneGeometry(6000, 1500);
-            const bandMat = new THREE.MeshBasicMaterial({ map: bandTex, transparent: true, opacity: 0.6, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
-            milkyWayBandMesh = new THREE.Mesh(bandGeo, bandMat);
-            milkyWayBandMesh.rotation.x = Math.PI * 0.35;
-            milkyWayBandMesh.rotation.z = -0.4;
-            realSkyGroup.add(milkyWayBandMesh);
-        }
-
-        function toggleRealSky() {
-            realSkyEnabled = !realSkyEnabled;
-            const btn = document.getElementById('realsky-btn');
-            if (realSkyEnabled) {
-                buildRealSky();
-                realSkyGroup.visible = true;
-                milkyWayGroup.visible = false;
-                skybox.visible = false;
-                btn.classList.add('active');
-                btn.innerHTML = '<span>🌌</span> Cosmic';
-                updateRealSkyRotation();
-            } else {
-                realSkyGroup.visible = false;
-                btn.classList.remove('active');
-                btn.innerHTML = '<span>🌌</span> Real Sky';
-            }
-        }
-
-        function updateRealSkyRotation() {
-            if (!realSkyEnabled || !realSkyGroup) return;
-            const now = new Date();
-            const J2000 = new Date('2000-01-01T12:00:00Z').getTime();
-            const daysSinceJ2000 = (now.getTime() - J2000) / 86400000;
-            let gmst = 18.697374558 + 24.06570982441908 * daysSinceJ2000;
-            gmst = ((gmst % 24) + 24) % 24;
-            const longitudeEast = 76.37;
-            const lst = gmst + longitudeEast / 15;
-            const lstRad = (lst % 24) * 15 * Math.PI / 180;
-            realSkyGroup.rotation.y = lstRad;
-            const latitude = 10.77 * Math.PI / 180;
-            realSkyGroup.rotation.x = latitude * 0.6;
-        }
-        
-        setInterval(updateRealSkyRotation, 60000);
-
-        // === END REAL SKY MODE ===
-
         const BASE_CAM_Z = 6; const SPACE_CAM_Z = 3000;
         let cameraTheta = 0; let cameraPhi = 0.55; let cameraRadius = SPACE_CAM_Z; let targetCameraZ = BASE_CAM_Z; let solarAlpha = 0; let milkyAlpha = 1; let earthFocusAmount = 0;
         let spaceState = 'core'; let spaceProgress = 0; const SPACE_FULL_MS = 3500; let spacePhaseStart = 0;
         let lastInteractionTime = Date.now(); const IDLE_COLLAPSE_MS = 5 * 60 * 1000;
         function resetIdleTimer() { lastInteractionTime = Date.now(); }
-        function triggerSpaceExpand() { if (spaceState === 'expanding' || spaceState === 'space' || spaceState === 'iss_view') return; spaceState = 'expanding'; spacePhaseStart = Date.now(); spaceProgress = 0; cameraTheta = 0; cameraPhi = 0.55; cameraRadius = SPACE_CAM_Z; targetCameraZ = SPACE_CAM_Z; solarAlpha = 0; milkyAlpha = 1; earthFocusAmount = 0; currentZoomIndex = 0; resetIdleTimer(); }
+        function triggerSpaceExpand() { if (spaceState === 'expanding' || spaceState === 'space') return; spaceState = 'expanding'; spacePhaseStart = Date.now(); spaceProgress = 0; cameraTheta = 0; cameraPhi = 0.55; cameraRadius = SPACE_CAM_Z; targetCameraZ = SPACE_CAM_Z; solarAlpha = 0; milkyAlpha = 1; earthFocusAmount = 0; currentZoomIndex = 0; resetIdleTimer(); }
         function triggerSpaceCollapse() { if (spaceState === 'collapsing' || spaceState === 'core') return; spaceState = 'collapsing'; spacePhaseStart = Date.now(); spaceProgress = 1; resetIdleTimer(); }
 
-        // Simple ISS view state — only Earth can trigger it, escape anytime
-        let issView = false;
         let landingState = 'none';
         let landingTarget = new THREE.Vector3();
-        let focusedPlanet = null;
-
+        
         function triggerISSView() {
-            if (!earthObj) return;
-            issView = true;
+            if (spaceState !== 'space' || landingState !== 'none') return;
+            spaceState = 'iss_view';
             targetCameraZ = 1.8;
             cameraRadius = camera.position.length();
         }
 
         function triggerEarthLanding() {
-            if (landingState !== 'none') return;
+            if (spaceState !== 'iss_view' || landingState !== 'none') return;
             landingState = 'diving';
             if (earthObj) earthObj.getWorldPosition(landingTarget);
             document.getElementById('map-overlay').style.background = 'radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.9) 100%)';
@@ -1020,14 +942,20 @@
                 document.getElementById('map-overlay').style.display = 'none';
                 if (map) { map.remove(); map = null; }
                 landingState = 'none';
-                issView = false;
+                spaceState = 'space';
                 cameraRadius = 3000; targetCameraZ = 3000;
             }, 1500);
         }
 
+        const issHint = document.createElement('div');
+        issHint.id = 'iss-hint';
+        issHint.style.cssText = 'position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.8); color:white; padding:10px 20px; border-radius:20px; font-family:Inter, sans-serif; font-size:12px; letter-spacing:0.1em; text-transform:uppercase; opacity:0; transition:opacity 0.5s; z-index:100; border:1px solid rgba(139,92,246,0.5); pointer-events:none;';
+        issHint.innerText = 'Drag to look around · Tap Earth to descend';
+        document.body.appendChild(issHint);
+
         let lastTapTime = 0; let lastTapX = 0, lastTapY = 0;
         const zoomMilestones = []; for (let i = 0; i <= 450; i++) { const t = i / 450; const dist = 3000 * Math.pow(0.0004, t); zoomMilestones.push(dist); } zoomMilestones.reverse(); let currentZoomIndex = 0;
-        container.addEventListener('wheel', (e) => { if (landingState !== 'none') return; if (spaceState === 'space' || spaceState === 'expanding' || spaceState === 'iss_view' || issView) { e.preventDefault(); resetIdleTimer(); if (e.deltaY > 0) { currentZoomIndex = Math.max(0, currentZoomIndex - 1); } else { currentZoomIndex = Math.min(zoomMilestones.length - 1, currentZoomIndex + 1); } targetCameraZ = zoomMilestones[currentZoomIndex]; cameraRadius = targetCameraZ; } }, { passive: false });
+        container.addEventListener('wheel', (e) => { if (landingState !== 'none') return; if (spaceState === 'space' || spaceState === 'expanding' || spaceState === 'iss_view') { e.preventDefault(); resetIdleTimer(); if (e.deltaY > 0) { currentZoomIndex = Math.max(0, currentZoomIndex - 1); } else { currentZoomIndex = Math.min(zoomMilestones.length - 1, currentZoomIndex + 1); } targetCameraZ = zoomMilestones[currentZoomIndex]; cameraRadius = targetCameraZ; } }, { passive: false });
 
         const BOLT_COUNT = 12; const boltPool = [];
         for (let i = 0; i < BOLT_COUNT; i++) { const boltMat = new THREE.LineBasicMaterial({ color: 0xffe066, transparent: true, opacity: 0 }); const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(24 * 3), 3)); const line = new THREE.Line(geo, boltMat); line.visible = false; scene.add(line); boltPool.push({ line, life: 0 }); }
@@ -1043,7 +971,6 @@
 
         const raycaster = new THREE.Raycaster();
         const pointer = new THREE.Vector2();
-        
         function checkEarthTap(e) {
             if (!earthObj) return false;
             const rect = renderer.domElement.getBoundingClientRect();
@@ -1052,11 +979,9 @@
             raycaster.setFromCamera(pointer, camera);
             const intersects = raycaster.intersectObject(earthObj, true);
             if (intersects.length > 0) {
-                if (!issView) {
-                    // First tap: fly to ISS view
+                if (spaceState === 'space') {
                     triggerISSView();
-                } else {
-                    // Second tap: cinematic landing
+                } else if (spaceState === 'iss_view') {
                     triggerEarthLanding();
                 }
                 return true;
@@ -1064,21 +989,15 @@
             return false;
         }
 
-        container.addEventListener('pointerdown', (e) => { try { container.setPointerCapture(e.pointerId); } catch(err) {} initAudio(); resetIdleTimer(); if (landingState !== 'none') return; const now = Date.now(); if (now - lastTapTime < 400) { const dx = e.clientX - lastTapX; const dy = e.clientY - lastTapY; if (Math.sqrt(dx*dx + dy*dy) < 60) { 
-            // Double tap: escape to core
-            if (spaceState === 'space' || issView) { triggerSpaceCollapse(); issView = false; lastTapTime = 0; return; }
-        } } lastTapTime = now; lastTapX = e.clientX; lastTapY = e.clientY; activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); container.classList.add('touched'); if (activePointers.size === 1) { isDragging = true; pointerVelocity = { x: 0, y: 0 }; isOnCenter = isPointerOnCenter(e); if (isOnCenter && spaceState === 'core') { longPressTimer = setTimeout(() => { if (isDragging && activePointers.size === 1 && isOnCenter) { longPressActive = true; isCharging = true; chargeStartTime = Date.now(); startChargeSound(); if (navigator.vibrate) navigator.vibrate(20); } }, CHARGE_START_MS); } } else if (activePointers.size === 2) { const pts = Array.from(activePointers.values()); pinchStartDist = getDistance(pts[0], pts[1]); pinchStartScale = coreScale; clearTimeout(longPressTimer); isCharging = false; longPressActive = false; chargeLevel = 0; fadeOutChargeSound(0.2); } });
-        
-        container.addEventListener('pointermove', (e) => { if (landingState !== 'none') return; if (!activePointers.has(e.pointerId)) return; resetIdleTimer(); const prev = activePointers.get(e.pointerId); activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (activePointers.size === 1 && isDragging) { const dx = e.clientX - prev.x; const dy = e.clientY - prev.y; if (spaceState === 'space' || spaceState === 'expanding' || issView) { cameraTheta -= dx * 0.008; cameraPhi = Math.max(-1.5, Math.min(1.5, cameraPhi + dy * 0.008)); } else { coreRotVelY += dx * 0.0009; coreRotVelX += dy * 0.0009; } pointerVelocity.x = dx; pointerVelocity.y = dy; if (Math.abs(dx) + Math.abs(dy) > 5 && !longPressActive) clearTimeout(longPressTimer); if (longPressActive && isCharging && !isPointerOnCenter(e)) { isCharging = false; longPressActive = false; fadeOutChargeSound(0.4); } } else if (activePointers.size === 2) { const pts = Array.from(activePointers.values()); const dist = getDistance(pts[0], pts[1]); if (pinchStartDist > 0) { const ratio = dist / pinchStartDist; if (spaceState === 'space' || spaceState === 'expanding' || issView) { cameraRadius = Math.max(1.2, Math.min(3000, cameraRadius / ratio)); targetCameraZ = cameraRadius; if (issView && cameraRadius > 50) { issView = false; } } else { coreScale = Math.max(0.6, Math.min(2.2, pinchStartScale * ratio)); } } } });
-        
+        container.addEventListener('pointerdown', (e) => { try { container.setPointerCapture(e.pointerId); } catch(err) {} initAudio(); resetIdleTimer(); if (landingState !== 'none') return; const now = Date.now(); if (now - lastTapTime < 400 && spaceState === 'space') { const dx = e.clientX - lastTapX; const dy = e.clientY - lastTapY; if (Math.sqrt(dx*dx + dy*dy) < 60) { triggerSpaceCollapse(); lastTapTime = 0; return; } } lastTapTime = now; lastTapX = e.clientX; lastTapY = e.clientY; activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); container.classList.add('touched'); if (activePointers.size === 1) { isDragging = true; pointerVelocity = { x: 0, y: 0 }; isOnCenter = isPointerOnCenter(e); if (isOnCenter && spaceState === 'core') { longPressTimer = setTimeout(() => { if (isDragging && activePointers.size === 1 && isOnCenter) { longPressActive = true; isCharging = true; chargeStartTime = Date.now(); startChargeSound(); if (navigator.vibrate) navigator.vibrate(20); } }, CHARGE_START_MS); } } else if (activePointers.size === 2) { const pts = Array.from(activePointers.values()); pinchStartDist = getDistance(pts[0], pts[1]); pinchStartScale = coreScale; clearTimeout(longPressTimer); isCharging = false; longPressActive = false; chargeLevel = 0; fadeOutChargeSound(0.2); } });
+        container.addEventListener('pointermove', (e) => { if (landingState !== 'none') return; if (!activePointers.has(e.pointerId)) return; resetIdleTimer(); const prev = activePointers.get(e.pointerId); activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (activePointers.size === 1 && isDragging) { const dx = e.clientX - prev.x; const dy = e.clientY - prev.y; if (spaceState === 'space' || spaceState === 'expanding' || spaceState === 'iss_view') { cameraTheta -= dx * 0.008; cameraPhi = Math.max(-1.5, Math.min(1.5, cameraPhi + dy * 0.008)); } else { coreRotVelY += dx * 0.0009; coreRotVelX += dy * 0.0009; } pointerVelocity.x = dx; pointerVelocity.y = dy; if (Math.abs(dx) + Math.abs(dy) > 5 && !longPressActive) clearTimeout(longPressTimer); if (longPressActive && isCharging && !isPointerOnCenter(e)) { isCharging = false; longPressActive = false; fadeOutChargeSound(0.4); } } else if (activePointers.size === 2) { const pts = Array.from(activePointers.values()); const dist = getDistance(pts[0], pts[1]); if (pinchStartDist > 0) { const ratio = dist / pinchStartDist; if (spaceState === 'space' || spaceState === 'expanding' || spaceState === 'iss_view') { cameraRadius = Math.max(1.2, Math.min(3000, cameraRadius / ratio)); targetCameraZ = cameraRadius; } else { coreScale = Math.max(0.6, Math.min(2.2, pinchStartScale * ratio)); } } } });
         function endPointer(e) { if (landingState !== 'none') return; activePointers.delete(e.pointerId); if (activePointers.size === 0) { isDragging = false; container.classList.remove('touched'); clearTimeout(longPressTimer); const speed = Math.sqrt(pointerVelocity.x**2 + pointerVelocity.y**2); 
             
-            if (!longPressActive && speed < 3) {
-                if (checkEarthTap(e)) return;
+            if (!longPressActive && speed < 3 && checkEarthTap(e)) {
+                return;
             }
 
             if (longPressActive && chargeLevel >= 0.95) { stopChargeSound(); playExplosionSound(); spawnExplosion(); touchBoost = 4.0; coreScaleVel += 0.9; coreRotVelY += 1.2; coreRotVelX -= 0.8; if (navigator.vibrate) navigator.vibrate([80, 40, 100, 40, 150, 40, 200]); setTimeout(() => { triggerSpaceExpand(); }, 700); } else if (longPressActive && chargeLevel > 0.3) { fadeOutChargeSound(0.5); touchBoost = 0.8; spawnRipple(0xf59e0b); coreScaleVel += 0.2; if (navigator.vibrate) navigator.vibrate(15); } else if (!longPressActive && speed < 3) { stopChargeSound(); touchBoost = 1.0; coreScaleVel += 0.15; spawnRipple(); if (navigator.vibrate) navigator.vibrate(15); } else { fadeOutChargeSound(0.3); } longPressActive = false; isCharging = false; isOnCenter = false; chargeLevel = 0; pointerVelocity = { x: 0, y: 0 }; } else if (activePointers.size === 1) { pinchStartDist = 0; } }
-        
         container.addEventListener('pointerup', endPointer); container.addEventListener('pointercancel', endPointer); container.addEventListener('touchstart', (e) => { if (landingState !== 'none') return; e.preventDefault(); }, { passive: false }); container.addEventListener('touchmove', (e) => { if (landingState !== 'none') return; e.preventDefault(); }, { passive: false });
 
         const _earthWorld = new THREE.Vector3(0, 0, 0); const _lookTarget = new THREE.Vector3(0, 0, 0);
@@ -1118,7 +1037,7 @@
             const ep = spaceProgress < 0.5 ? 4 * spaceProgress * spaceProgress * spaceProgress : 1 - Math.pow(-2 * spaceProgress + 2, 3) / 2;
             const camDist = camera.position.length();
             
-            if (spaceState === 'space' || spaceState === 'expanding' || issView) {
+            if (spaceState === 'space' || spaceState === 'expanding' || spaceState === 'iss_view') {
                 if (camDist >= 150) solarAlpha = 0; else if (camDist <= 60) solarAlpha = 1; else solarAlpha = (150 - camDist) / 90; solarAlpha = Math.max(0, Math.min(1, solarAlpha));
                 milkyAlpha = Math.max(0, Math.min(1, camDist / 300));
                 if (camDist >= 20) earthFocusAmount = 0; else if (camDist <= 2.2) earthFocusAmount = 1; else earthFocusAmount = (20 - camDist) / 17.8; earthFocusAmount = Math.max(0, Math.min(1, earthFocusAmount));
@@ -1126,31 +1045,68 @@
                 solarAlpha = 0; milkyAlpha = 1; earthFocusAmount = 0;
             }
 
-            if (milkyAlpha > 0.001 && !realSkyEnabled) {
+            if (milkyAlpha > 0.001) {
                 skybox.visible = true;
                 skybox.material.opacity = milkyAlpha;
             } else {
                 skybox.visible = false;
             }
 
-            if (spaceProgress > 0.001 && !realSkyEnabled) { milkyWayGroup.visible = true; milkyWayGroup.scale.setScalar(Math.max(0.001, ep)); milkyWayGroup.rotation.y += 0.0005; milkyWayGroup.traverse((o) => { if (o.material && o.material.opacity !== undefined) { if (o.userData.baseOpacity === undefined) o.userData.baseOpacity = o.material.opacity; o.material.opacity = o.userData.baseOpacity * milkyAlpha; } }); } else if (!realSkyEnabled) { milkyWayGroup.visible = false; }
-            
+            if (spaceProgress > 0.001) { milkyWayGroup.visible = true; milkyWayGroup.scale.setScalar(Math.max(0.001, ep)); milkyWayGroup.rotation.y += 0.0005; milkyWayGroup.traverse((o) => { if (o.material && o.material.opacity !== undefined) { if (o.userData.baseOpacity === undefined) o.userData.baseOpacity = o.material.opacity; o.material.opacity = o.userData.baseOpacity * milkyAlpha; } }); } else { milkyWayGroup.visible = false; }
             const solarFinal = ep * solarAlpha;
-            if (solarFinal > 0.001) { solarSystemGroup.visible = true; solarSystemGroup.scale.setScalar(Math.max(0.001, solarFinal)); sunLight.intensity = 2.2 * solarAlpha; solarSystemGroup.traverse((o) => { if (o === sunCorona) return; if (o.material && o.material.transparent) { if (o.userData.baseOpacity === undefined) o.userData.baseOpacity = o.material.opacity; o.material.opacity = o.userData.baseOpacity * solarAlpha; } }); sunCorona.material.opacity = (0.85 + Math.sin(nowMs * 0.0015) * 0.15) * solarAlpha; } else { solarSystemGroup.visible = false; sunLight.intensity = 0; }
+            if (solarFinal > 0.001) { solarSystemGroup.visible = true; solarSystemGroup.scale.setScalar(Math.max(0.001, solarFinal)); sunLight.intensity = 3.5 * solarAlpha; solarSystemGroup.traverse((o) => { if (o === sunCorona || o === sunOuterCorona) return; if (o.material && o.material.transparent) { if (o.userData.baseOpacity === undefined) o.userData.baseOpacity = o.material.opacity; o.material.opacity = o.userData.baseOpacity * solarAlpha; } }); 
+            // Sun animation
+            sunCorona.material.opacity = (0.85 + Math.sin(nowMs * 0.0015) * 0.15) * solarAlpha;
+            sunOuterCorona.material.opacity = (0.7 + Math.sin(nowMs * 0.0008) * 0.15) * solarAlpha;
+            } else { solarSystemGroup.visible = false; sunLight.intensity = 0; }
             
-            if (solarAlpha > 0.02) { const ts = nowMs * 0.001; for (const grp of planetObjs) { const ud = grp.userData; const a = ud.angle + ts * ud.speed * 0.04; grp.position.set(Math.cos(a) * ud.orbit, 0, Math.sin(a) * ud.orbit); for (const child of grp.children) { if (child.userData && child.userData.rotSpd) child.rotation.y += child.userData.rotSpd * 0.1; } if (ud.moons) { for (const m of ud.moons) { m.angle += m.speed * 0.0015; m.grp.rotation.y = m.angle; } } } for (const ast of asteroidMeshes) { ast.userData.angle += ast.userData.speed * 0.008; const ra = ast.userData.angle; const r = ast.userData.dist; ast.position.x = Math.cos(ra) * r; ast.position.z = Math.sin(ra) * r; ast.rotation.x += ast.userData.rotSpd.x; ast.rotation.y += ast.userData.rotSpd.y; } sunMesh.rotation.y += 0.0008; const cs = 14 + Math.sin(ts * 2) * 0.4; sunCorona.scale.set(cs, cs, 1); }
-            if (satelliteGroup) { const ts = nowMs * 0.001; for (const sat of satelliteGroup.children) { sat.userData.angle += sat.userData.speed * 0.01; const ra = sat.userData.angle; const r = sat.userData.orbitRadius; sat.position.set(Math.cos(ra) * r, Math.sin(ra) * r * Math.sin(sat.userData.incl), Math.sin(ra) * r * Math.cos(sat.userData.incl)); sat.rotation.y = -ra; } }
-            if (spaceProgress > 0.01 && milkyAlpha > 0.05 && !realSkyEnabled) { travelCometTimer -= 1; if (travelCometTimer <= 0 && travelComets.length < 4) { spawnTravelComet(); travelCometTimer = 200 + Math.floor(Math.random() * 100); } for (let i = travelComets.length - 1; i >= 0; i--) { const c = travelComets[i]; c.grp.position.addScaledVector(c.dir, c.speed); c.grp.lookAt(new THREE.Vector3(c.grp.position.x + c.dir.x, c.grp.position.y + c.dir.y, c.grp.position.z + c.dir.z)); c.life -= 0.003; if (c.life <= 0 || c.grp.position.length() > 3500) { milkyWayGroup.remove(c.grp); travelComets.splice(i, 1); } } for (const m of meteoroids) { m.grp.rotation.x += m.rotSpd.x; m.grp.rotation.y += m.rotSpd.y; m.grp.rotation.z += m.rotSpd.z; } }
-            
-            // Free camera logic
-            if (spaceState === 'space' || issView) {
-                cameraRadius += (targetCameraZ - cameraRadius) * 0.1;
-                if (earthObj && issView) {
-                    earthObj.getWorldPosition(_earthWorld);
-                } else {
-                    _earthWorld.set(0, 0, 0);
+            if (solarAlpha > 0.02) { 
+                const ts = nowMs * 0.001; 
+                for (const grp of planetObjs) { const ud = grp.userData; const a = ud.angle + ts * ud.speed * 0.04; grp.position.set(Math.cos(a) * ud.orbit, 0, Math.sin(a) * ud.orbit); for (const child of grp.children) { if (child.userData && child.userData.rotSpd) child.rotation.y += child.userData.rotSpd * 0.1; } if (ud.moons) { for (const m of ud.moons) { m.angle += m.speed * 0.0015; m.grp.rotation.y = m.angle; } } } 
+                for (const ast of asteroidMeshes) { ast.userData.angle += ast.userData.speed * 0.008; const ra = ast.userData.angle; const r = ast.userData.dist; ast.position.x = Math.cos(ra) * r; ast.position.z = Math.sin(ra) * r; ast.rotation.x += ast.userData.rotSpd.x; ast.rotation.y += ast.userData.rotSpd.y; } 
+                
+                // Sun rotation
+                sunMesh.rotation.y += 0.0012; 
+                sunInnerGlow.rotation.y -= 0.0008;
+
+                // Corona pulsing (breathing effect)
+                const cs = 16 + Math.sin(ts * 1.5) * 0.6; 
+                sunCorona.scale.set(cs, cs, 1);
+                const ocs = 26 + Math.sin(ts * 0.8) * 1.2;
+                sunOuterCorona.scale.set(ocs, ocs, 1);
+
+                // Rotate solar flares around the sun
+                solarFlaresGroup.rotation.z = ts * 0.15;
+
+                // Animate each solar flare (pulsing + flickering)
+                for (const flare of solarFlaresGroup.children) {
+                    const pulse = 1 + Math.sin(ts * 3 + flare.userData.phase) * 0.25;
+                    flare.scale.set(
+                        flare.userData.baseScale * pulse, 
+                        flare.userData.baseScale * 1.8 * pulse, 
+                        1
+                    );
+                    flare.material.opacity = 0.4 + Math.sin(ts * 4 + flare.userData.phase) * 0.25;
                 }
+            }
+            if (satelliteGroup) { const ts = nowMs * 0.001; for (const sat of satelliteGroup.children) { sat.userData.angle += sat.userData.speed * 0.01; const ra = sat.userData.angle; const r = sat.userData.orbitRadius; sat.position.set(Math.cos(ra) * r, Math.sin(ra) * r * Math.sin(sat.userData.incl), Math.sin(ra) * r * Math.cos(sat.userData.incl)); sat.rotation.y = -ra; } }
+            if (spaceProgress > 0.01 && milkyAlpha > 0.05) { travelCometTimer -= 1; if (travelCometTimer <= 0 && travelComets.length < 4) { spawnTravelComet(); travelCometTimer = 200 + Math.floor(Math.random() * 100); } for (let i = travelComets.length - 1; i >= 0; i--) { const c = travelComets[i]; c.grp.position.addScaledVector(c.dir, c.speed); c.grp.lookAt(new THREE.Vector3(c.grp.position.x + c.dir.x, c.grp.position.y + c.dir.y, c.grp.position.z + c.dir.z)); c.life -= 0.003; if (c.life <= 0 || c.grp.position.length() > 3500) { milkyWayGroup.remove(c.grp); travelComets.splice(i, 1); } } for (const m of meteoroids) { m.grp.rotation.x += m.rotSpd.x; m.grp.rotation.y += m.rotSpd.y; m.grp.rotation.z += m.rotSpd.z; } }
+            
+            if (spaceState === 'space') {
+                cameraRadius += (targetCameraZ - cameraRadius) * 0.1;
+                if (earthObj) earthObj.getWorldPosition(_earthWorld);
+                else _earthWorld.set(0, 0, 0);
                 _lookTarget.set(_earthWorld.x * earthFocusAmount, _earthWorld.y * earthFocusAmount, _earthWorld.z * earthFocusAmount);
+                const x = _lookTarget.x + cameraRadius * Math.cos(cameraPhi) * Math.sin(cameraTheta);
+                const y = _lookTarget.y + cameraRadius * Math.sin(cameraPhi);
+                const z = _lookTarget.z + cameraRadius * Math.cos(cameraPhi) * Math.cos(cameraTheta);
+                camera.position.lerp(new THREE.Vector3(x, y, z), 0.1);
+                camera.lookAt(_lookTarget);
+            } else if (spaceState === 'iss_view') {
+                cameraRadius += (targetCameraZ - cameraRadius) * 0.08;
+                if (earthObj) earthObj.getWorldPosition(_earthWorld);
+                else _earthWorld.set(0, 0, 0);
+                _lookTarget.set(_earthWorld.x, _earthWorld.y, _earthWorld.z);
                 const x = _lookTarget.x + cameraRadius * Math.cos(cameraPhi) * Math.sin(cameraTheta);
                 const y = _lookTarget.y + cameraRadius * Math.sin(cameraPhi);
                 const z = _lookTarget.z + cameraRadius * Math.cos(cameraPhi) * Math.cos(cameraTheta);
