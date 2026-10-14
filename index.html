@@ -246,7 +246,7 @@ setInterval(updateISTClock,1000);
 function loadWisdom(){const el=document.getElementById('wise-words');if(!el)return;let pool=[];if(personalContext&&Array.isArray(personalContext.quotes)&&personalContext.quotes.length>0){pool=personalContext.quotes.map(q=>`"${q}"`)}else{pool=[...LOCAL_QUOTES.map(q=>`"${q}"`),...LOCAL_JOKES.map(j=>j)]}el.innerText=pool[Math.floor(Math.random()*pool.length)]}
 async function searchWeb(query){try{const cm=query.match(/([A-Z]{3})\s*(?:to|in|for|of)\s*([A-Z]{3})/i);if(cm){const from=cm[1].toUpperCase();const to=cm[2].toUpperCase();const res=await fetch(`https://open.er-api.com/v6/latest/${from}`,{signal:AbortSignal.timeout(10000)});if(res.ok){const d=await res.json();if(d.rates&&d.rates[to]){return `The current exchange rate is 1 ${from} = ${d.rates[to].toFixed(4)} ${to}.`}}}const ddgUrl=`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1`;const res=await fetch(ddgUrl,{signal:AbortSignal.timeout(10000)});if(res.ok){const d=await res.json();let rt="";if(d.Answer)rt+=`Answer: ${d.Answer}\n`;if(d.AbstractText)rt+=`Summary: ${d.AbstractText}\n`;if(d.Definition)rt+=`Definition: ${d.Definition}\n`;if(d.RelatedTopics&&d.RelatedTopics.length>0){d.RelatedTopics.slice(0,2).forEach(t=>{if(t.Text)rt+=`- ${t.Text}\n`})}if(rt)return rt.trim()}const searchUrl=`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;const proxyUrl=`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(searchUrl)}`;const sr=await fetch(proxyUrl,{signal:AbortSignal.timeout(15000)});if(sr.ok){const html=await sr.text();const sr1=/<a class="result__snippet"[^>]*>(.*?)<\/a>/g;const tr1=/<a class="result__a"[^>]*>(.*?)<\/a>/g;let m;let sn=[];let ti=[];while((m=sr1.exec(html))!==null){sn.push(m[1].replace(/<[^>]*>?/gm,'').trim())}while((m=tr1.exec(html))!==null){ti.push(m[1].replace(/<[^>]*>?/gm,'').trim())}if(sn.length>0){let f="Here are the latest web search results:\n\n";for(let i=0;i<Math.min(sn.length,3);i++){f+=`${i+1}. ${ti[i]||'Result'}\n${sn[i]}\n\n`}return f.trim()}}return "I couldn't find a specific instant answer for that, Boss."}catch(e){console.error("Web search error:",e);return "I couldn't reach the internet right now, Boss."}}
 
-// === THREE.JS REALISTIC EARTH GLOBE ===
+// === REALISTIC EARTH GLOBE ===
 const container=document.getElementById('canvas-container');
 const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(45,container.clientWidth/container.clientHeight,0.1,1000);
@@ -258,13 +258,11 @@ container.appendChild(renderer.domElement);
 
 const GLOBE_R=2.4;
 const earthGroup=new THREE.Group();
-earthGroup.rotation.y = -Math.PI/2; // face UK toward camera initially
+earthGroup.rotation.y=-Math.PI/2;
 scene.add(earthGroup);
 
-// --- Sun direction (fixed "light" coming from the right) ---
-const sunDirection=new THREE.Vector3(1, 0.3, 0.5).normalize();
+const sunDirection=new THREE.Vector3(1,0.3,0.5).normalize();
 
-// --- Earth shader (day + night blend) ---
 const earthUniforms={
   dayTexture:{value:null},
   nightTexture:{value:null},
@@ -293,19 +291,21 @@ const earthMat=new THREE.ShaderMaterial({
     void main(){
       if(hasTextures>0.5){
         float intensity=dot(normalize(vNormal),sunDirection);
-        float mixAmount=smoothstep(-0.15,0.25,intensity);
+        float mixAmount=smoothstep(-0.08,0.18,intensity);
         vec3 dayColor=texture2D(dayTexture,vUv).rgb;
         vec3 nightColor=texture2D(nightTexture,vUv).rgb;
-        // Boost city lights (yellowish-orange tint)
-        vec3 litNight = nightColor * vec3(1.3, 1.15, 0.85);
-        vec3 finalColor = mix(litNight, dayColor, mixAmount);
-        // Slight rim lighting
-        float rim = pow(1.0 - abs(dot(vNormal, vec3(0.0,0.0,1.0))), 3.0);
-        finalColor += vec3(0.3, 0.2, 0.6) * rim * 0.4;
+        float lum=dot(nightColor,vec3(0.299,0.587,0.114));
+        float lightMask=smoothstep(0.04,0.28,lum);
+        vec3 enhancedNight=nightColor*1.6;
+        enhancedNight+=vec3(1.0,0.72,0.30)*lightMask*3.2;
+        float bloom=smoothstep(0.15,0.45,lum);
+        enhancedNight+=vec3(1.0,0.85,0.55)*bloom*1.5;
+        vec3 finalColor=mix(enhancedNight,dayColor,mixAmount);
+        float rim=pow(1.0-abs(dot(vNormal,vec3(0.0,0.0,1.0))),3.0);
+        finalColor+=vec3(0.30,0.20,0.60)*rim*0.4;
         gl_FragColor=vec4(finalColor,1.0);
       } else {
-        // Fallback: procedural deep blue earth
-        gl_FragColor=vec4(0.15, 0.25, 0.55, 1.0);
+        gl_FragColor=vec4(0.15,0.25,0.55,1.0);
       }
     }
   `
@@ -313,7 +313,6 @@ const earthMat=new THREE.ShaderMaterial({
 const earth=new THREE.Mesh(new THREE.SphereGeometry(GLOBE_R,64,64),earthMat);
 earthGroup.add(earth);
 
-// --- Atmosphere glow shell ---
 const atmoMat=new THREE.ShaderMaterial({
   uniforms:{},
   vertexShader:`
@@ -326,8 +325,8 @@ const atmoMat=new THREE.ShaderMaterial({
   fragmentShader:`
     varying vec3 vNormal;
     void main(){
-      float intensity=pow(0.72 - dot(vNormal, vec3(0.0,0.0,1.0)), 3.0);
-      gl_FragColor=vec4(0.45, 0.55, 1.0, 1.0) * intensity;
+      float intensity=pow(0.72-dot(vNormal,vec3(0.0,0.0,1.0)),3.0);
+      gl_FragColor=vec4(0.45,0.55,1.0,1.0)*intensity;
     }
   `,
   blending:THREE.AdditiveBlending,
@@ -337,26 +336,12 @@ const atmoMat=new THREE.ShaderMaterial({
 const atmosphere=new THREE.Mesh(new THREE.SphereGeometry(GLOBE_R*1.18,48,48),atmoMat);
 earthGroup.add(atmosphere);
 
-// --- Load textures ---
 const loader=new THREE.TextureLoader();
 loader.setCrossOrigin('anonymous');
-loader.load('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg',
-  tex=>{tex.minFilter=THREE.LinearFilter;earthUniforms.dayTexture.value=tex;checkTextures();},
-  undefined,
-  err=>console.warn('Day texture failed:',err)
-);
-loader.load('https://unpkg.com/three-globe/example/img/earth-night.jpg',
-  tex=>{tex.minFilter=THREE.LinearFilter;earthUniforms.nightTexture.value=tex;checkTextures();},
-  undefined,
-  err=>console.warn('Night texture failed:',err)
-);
-function checkTextures(){
-  if(earthUniforms.dayTexture.value && earthUniforms.nightTexture.value){
-    earthUniforms.hasTextures.value=1;
-  }
-}
+loader.load('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg',tex=>{tex.minFilter=THREE.LinearFilter;earthUniforms.dayTexture.value=tex;checkTextures()},undefined,err=>console.warn('Day texture failed:',err));
+loader.load('https://unpkg.com/three-globe/example/img/earth-night.jpg',tex=>{tex.minFilter=THREE.LinearFilter;earthUniforms.nightTexture.value=tex;checkTextures()},undefined,err=>console.warn('Night texture failed:',err));
+function checkTextures(){if(earthUniforms.dayTexture.value&&earthUniforms.nightTexture.value){earthUniforms.hasTextures.value=1}}
 
-// --- Star field (small particles in background) ---
 const STAR_COUNT=1200;
 const starGeo=new THREE.BufferGeometry();
 const starPos=new Float32Array(STAR_COUNT*3);
@@ -375,21 +360,11 @@ for(let i=0;i<STAR_COUNT;i++){
 }
 starGeo.setAttribute('position',new THREE.BufferAttribute(starPos,3));
 starGeo.setAttribute('color',new THREE.BufferAttribute(starCol,3));
-function makeStarTex(){
-  const s=32;const c=document.createElement('canvas');c.width=s;c.height=s;
-  const ctx=c.getContext('2d');
-  const g=ctx.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);
-  g.addColorStop(0,'rgba(255,255,255,1)');
-  g.addColorStop(0.4,'rgba(220,220,255,0.6)');
-  g.addColorStop(1,'rgba(150,150,255,0)');
-  ctx.fillStyle=g;ctx.fillRect(0,0,s,s);
-  return new THREE.CanvasTexture(c);
-}
+function makeStarTex(){const s=32;const c=document.createElement('canvas');c.width=s;c.height=s;const ctx=c.getContext('2d');const g=ctx.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(0.4,'rgba(220,220,255,0.6)');g.addColorStop(1,'rgba(150,150,255,0)');ctx.fillStyle=g;ctx.fillRect(0,0,s,s);return new THREE.CanvasTexture(c)}
 const starMat=new THREE.PointsMaterial({size:0.14,map:makeStarTex(),vertexColors:true,transparent:true,opacity:0.9,blending:THREE.AdditiveBlending,depthWrite:false,sizeAttenuation:true});
 const stars=new THREE.Points(starGeo,starMat);
 scene.add(stars);
 
-// --- Market session highlight ---
 const SESSIONS=[
   {name:'London / NY Overlap',lat:51.5,lng:-0.1,color:0xfbbf24,test:h=>h>=12&&h<16},
   {name:'London Session',lat:51.5,lng:-0.1,color:0x10b981,test:h=>h>=7&&h<16},
@@ -397,32 +372,14 @@ const SESSIONS=[
   {name:'Tokyo Session',lat:35.7,lng:139.7,color:0xa78bfa,test:h=>h>=0&&h<9},
   {name:'Sydney Session',lat:-33.9,lng:151.2,color:0xf472b6,test:h=>h>=22||h<7}
 ];
-function getActiveSession(){
-  const h=new Date().getUTCHours();
-  for(const s of SESSIONS){if(s.test(h))return s}
-  return {name:'Off-Session',lat:0,lng:0,color:0x8b95a5};
-}
-function latLngToXYZ(lat,lng,r){
-  const phi=(90-lat)*Math.PI/180;
-  const theta=(lng+180)*Math.PI/180;
-  return new THREE.Vector3(-r*Math.sin(phi)*Math.cos(theta),r*Math.cos(phi),r*Math.sin(phi)*Math.sin(theta));
-}
+function getActiveSession(){const h=new Date().getUTCHours();for(const s of SESSIONS){if(s.test(h))return s}return{name:'Off-Session',lat:0,lng:0,color:0x8b95a5}}
+function latLngToXYZ(lat,lng,r){const phi=(90-lat)*Math.PI/180;const theta=(lng+180)*Math.PI/180;return new THREE.Vector3(-r*Math.sin(phi)*Math.cos(theta),r*Math.cos(phi),r*Math.sin(phi)*Math.sin(theta))}
 
-// Session highlight ring + halo (hidden until session set)
 const ringGeo=new THREE.RingGeometry(0.35,0.5,48);
 const ringMat=new THREE.MeshBasicMaterial({color:0x10b981,transparent:true,opacity:0.55,side:THREE.DoubleSide});
 const sessionRing=new THREE.Mesh(ringGeo,ringMat);
 earthGroup.add(sessionRing);
-const haloTex=(()=>{
-  const s=128;const c=document.createElement('canvas');c.width=s;c.height=s;
-  const ctx=c.getContext('2d');
-  const g=ctx.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);
-  g.addColorStop(0,'rgba(255,255,255,0.9)');
-  g.addColorStop(0.3,'rgba(160,255,210,0.6)');
-  g.addColorStop(1,'rgba(80,200,140,0)');
-  ctx.fillStyle=g;ctx.fillRect(0,0,s,s);
-  return new THREE.CanvasTexture(c);
-})();
+const haloTex=(()=>{const s=128;const c=document.createElement('canvas');c.width=s;c.height=s;const ctx=c.getContext('2d');const g=ctx.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);g.addColorStop(0,'rgba(255,255,255,0.9)');g.addColorStop(0.3,'rgba(160,255,210,0.6)');g.addColorStop(1,'rgba(80,200,140,0)');ctx.fillStyle=g;ctx.fillRect(0,0,s,s);return new THREE.CanvasTexture(c)})();
 const sessionHalo=new THREE.Sprite(new THREE.SpriteMaterial({map:haloTex,color:0x10b981,transparent:true,opacity:0.85,blending:THREE.AdditiveBlending,depthWrite:false}));
 earthGroup.add(sessionHalo);
 let currentSession=getActiveSession();
@@ -435,19 +392,14 @@ function updateSessionVisuals(){
   const c=new THREE.Color(currentSession.color);
   ringMat.color.copy(c);
   sessionHalo.material.color.copy(c);
-  // Update badge
   const badge=document.getElementById('session-name');
   const dot=document.getElementById('session-dot');
   if(badge)badge.innerText=currentSession.name;
   if(dot){dot.style.background='#'+c.getHexString();dot.style.color='#'+c.getHexString()}
 }
 updateSessionVisuals();
-setInterval(()=>{
-  const s=getActiveSession();
-  if(s.name!==currentSession.name){currentSession=s;updateSessionVisuals()}
-},60000);
+setInterval(()=>{const s=getActiveSession();if(s.name!==currentSession.name){currentSession=s;updateSessionVisuals()}},60000);
 
-// --- Interaction (rotation only) ---
 let isDragging=false;
 let prevPointer={x:0,y:0};
 let rotVelY=0,rotVelX=0;
@@ -455,92 +407,38 @@ let pinchStartDist=0;
 let pinchStartScale=1;
 let globeScale=1;
 const activePointers=new Map();
-
 function getDist(t1,t2){const dx=t1.x-t2.x,dy=t1.y-t2.y;return Math.sqrt(dx*dx+dy*dy)}
 
-container.addEventListener('pointerdown',(e)=>{
-  try{container.setPointerCapture(e.pointerId)}catch(err){}
-  activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
-  if(activePointers.size===1){
-    isDragging=true;
-    prevPointer={x:e.clientX,y:e.clientY};
-  } else if(activePointers.size===2){
-    const pts=Array.from(activePointers.values());
-    pinchStartDist=getDist(pts[0],pts[1]);
-    pinchStartScale=globeScale;
-    isDragging=false;
-  }
-});
-
-container.addEventListener('pointermove',(e)=>{
-  if(!activePointers.has(e.pointerId))return;
-  const prev=activePointers.get(e.pointerId);
-  activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
-  if(activePointers.size===1&&isDragging){
-    const dx=e.clientX-prev.x;
-    const dy=e.clientY-prev.y;
-    rotVelY+=dx*0.0035;
-    rotVelX+=dy*0.0035;
-  } else if(activePointers.size===2){
-    const pts=Array.from(activePointers.values());
-    const d=getDist(pts[0],pts[1]);
-    if(pinchStartDist>0){
-      const ratio=d/pinchStartDist;
-      globeScale=Math.max(0.6,Math.min(2.0,pinchStartScale*ratio));
-    }
-  }
-});
-
-function endPointer(e){
-  activePointers.delete(e.pointerId);
-  if(activePointers.size===0){isDragging=false}
-  else if(activePointers.size===1){isDragging=true;pinchStartDist=0;const r=Array.from(activePointers.values())[0];prevPointer={x:r.x,y:r.y}}
-}
+container.addEventListener('pointerdown',(e)=>{try{container.setPointerCapture(e.pointerId)}catch(err){}activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(activePointers.size===1){isDragging=true;prevPointer={x:e.clientX,y:e.clientY}}else if(activePointers.size===2){const pts=Array.from(activePointers.values());pinchStartDist=getDist(pts[0],pts[1]);pinchStartScale=globeScale;isDragging=false}});
+container.addEventListener('pointermove',(e)=>{if(!activePointers.has(e.pointerId))return;const prev=activePointers.get(e.pointerId);activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(activePointers.size===1&&isDragging){const dx=e.clientX-prev.x;const dy=e.clientY-prev.y;rotVelY+=dx*0.0035;rotVelX+=dy*0.0035}else if(activePointers.size===2){const pts=Array.from(activePointers.values());const d=getDist(pts[0],pts[1]);if(pinchStartDist>0){const ratio=d/pinchStartDist;globeScale=Math.max(0.6,Math.min(2.0,pinchStartScale*ratio))}}});
+function endPointer(e){activePointers.delete(e.pointerId);if(activePointers.size===0){isDragging=false}else if(activePointers.size===1){isDragging=true;pinchStartDist=0;const r=Array.from(activePointers.values())[0];prevPointer={x:r.x,y:r.y}}}
 container.addEventListener('pointerup',endPointer);
 container.addEventListener('pointercancel',endPointer);
 container.addEventListener('touchstart',(e)=>e.preventDefault(),{passive:false});
 container.addEventListener('touchmove',(e)=>e.preventDefault(),{passive:false});
 
-// --- Animation loop ---
 let time=0;
 function animate(){
   requestAnimationFrame(animate);
   time+=0.01;
-  // Auto-rotate
-  if(!isDragging){
-    earthGroup.rotation.y+=0.0008;
-  }
-  // Apply drag momentum
+  if(!isDragging){earthGroup.rotation.y+=0.0008}
   earthGroup.rotation.y+=rotVelY;
   earthGroup.rotation.x+=rotVelX;
   rotVelY*=0.94;
   rotVelX*=0.94;
-  // Clamp x rotation to keep north pole up-ish
   earthGroup.rotation.x=Math.max(-1.2,Math.min(1.2,earthGroup.rotation.x));
-  // Scale
   earthGroup.scale.setScalar(globeScale);
-  // Stars slow drift
   stars.rotation.y+=0.0002;
-  // Session halo pulse
   const pulse=1+Math.sin(time*2.5)*0.2;
   sessionHalo.scale.set(0.8*pulse,0.8*pulse,1);
   sessionHalo.material.opacity=0.65+Math.sin(time*2.5)*0.25;
   sessionRing.material.opacity=0.4+Math.sin(time*2.5)*0.2;
-  // Sun direction - slow orbit for realism
-  sunDirection.set(Math.cos(time*0.03)*1.0,0.35,Math.sin(time*0.03)*0.8).normalize();
+  sunDirection.set(Math.cos(time*0.03+2.4)*1.0,0.30,Math.sin(time*0.03+2.4)*0.9).normalize();
   renderer.render(scene,camera);
 }
 animate();
+window.addEventListener('resize',()=>{camera.aspect=container.clientWidth/container.clientHeight;camera.updateProjectionMatrix();renderer.setSize(container.clientWidth,container.clientHeight)});
 
-window.addEventListener('resize',()=>{
-  camera.aspect=container.clientWidth/container.clientHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(container.clientWidth,container.clientHeight);
-});
-
-function updateCoreColor(signal){}
-
-// === MARKET DATA ===
 function safeNum(val,fallback=0){return(isNaN(val)||val===undefined||val===null||!isFinite(val))?fallback:val}
 async function fetchBiquoteCandles(interval,limit){try{const url=`https://biquote.io/api/EURUSD/ohlc?interval=${interval}&limit=${limit}`;const res=await fetch(url);if(!res.ok)return[];const data=await res.json();if(!data.bars||data.bars.length===0)return[];return data.bars.filter(b=>!b.isOpen).reverse().map(b=>({time:new Date(b.openTime).getTime(),open:parseFloat(b.open),high:parseFloat(b.high),low:parseFloat(b.low),close:parseFloat(b.close)}))}catch(e){console.error("Biquote fetch error:",e);return[]}}
 function calculateEMA(data,period){if(data.length<period)return[data[data.length-1]||0];const k=2/(period+1);let ema=data[0];const arr=[ema];for(let i=1;i<data.length;i++){ema=(data[i]*k)+(ema*(1-k));arr.push(ema)}return arr}
