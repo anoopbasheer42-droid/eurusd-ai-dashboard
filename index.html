@@ -136,18 +136,6 @@
         .alert-log-item:last-child { border-bottom: none; }
         .reasoning-text { font-family: 'Inter', sans-serif; font-size: 0.85rem; line-height: 1.8; color: var(--text-body); }
 
-        /* FOOTBALL GAME */
-        #football-pitch { position: relative; width: 100%; height: 160px; background: linear-gradient(180deg, rgba(16,185,129,0.08) 0%, rgba(16,185,129,0.02) 100%); border-radius: 14px; border: 1px solid rgba(16,185,129,0.2); overflow: hidden; cursor: crosshair; touch-action: none; }
-        #football-pitch::before { content: ''; position: absolute; inset: 0; background-image: linear-gradient(rgba(16,185,129,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(16,185,129,0.06) 1px, transparent 1px); background-size: 20px 20px; }
-        #goal-post { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); width: 60px; height: 90px; border: 3px solid rgba(255,255,255,0.7); border-left: none; border-radius: 0 8px 8px 0; box-shadow: inset 0 0 20px rgba(255,255,255,0.15), 0 0 15px rgba(255,255,255,0.3); }
-        #goal-post::before { content: ''; position: absolute; inset: -1px; background-image: linear-gradient(rgba(255,255,255,0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.15) 1px, transparent 1px); background-size: 12px 12px; }
-        #football { position: absolute; width: 22px; height: 22px; background: radial-gradient(circle at 30% 30%, #ffffff, #cccccc 70%, #888888); border-radius: 50%; box-shadow: 0 0 15px rgba(255,255,255,0.5), inset -3px -3px 8px rgba(0,0,0,0.4); pointer-events: none; transition: none; }
-        #football::before { content: ''; position: absolute; inset: 4px; border-radius: 50%; background-image: radial-gradient(circle, #333 1px, transparent 1.5px); background-size: 6px 6px; opacity: 0.7; }
-        #football-score { position: absolute; top: 8px; left: 12px; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: #10b981; font-weight: 600; letter-spacing: 0.1em; text-shadow: 0 0 8px rgba(16,185,129,0.6); }
-        #football-hint { position: absolute; bottom: 8px; right: 12px; font-family: 'Inter', sans-serif; font-size: 0.62rem; color: var(--text-subtle); letter-spacing: 0.05em; }
-        .goal-flash { animation: goalFlash 0.6s ease-out; }
-        @keyframes goalFlash { 0% { box-shadow: 0 0 0 rgba(16,185,129,0); } 30% { box-shadow: 0 0 40px rgba(16,185,129,0.9), inset 0 0 40px rgba(16,185,129,0.5); } 100% { box-shadow: inset 0 0 20px rgba(255,255,255,0.15), 0 0 15px rgba(255,255,255,0.3); } }
-
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .fade-in { animation: fadeIn 0.3s ease-in; }
         
@@ -306,19 +294,6 @@
         </div>
         
         <div class="card">
-            <div class="card-title">Stress Relief — Finger Football</div>
-            <div id="football-pitch">
-                <div id="football-score">GOALS: <span id="score-count">0</span></div>
-                <div id="goal-post"></div>
-                <div id="football"></div>
-                <div id="football-hint">Tap to kick →</div>
-            </div>
-            <div style="text-align:center; margin-top:12px;">
-                <button class="btn" onclick="resetFootball()">Reset Ball</button>
-            </div>
-        </div>
-        
-        <div class="card">
             <div class="card-title">AI Trader's Reasoning</div>
             <div class="reasoning-text" id="val-reason">Engine scanning. AI auto-analyzes hourly.</div>
         </div>
@@ -441,7 +416,7 @@
             }
         }
 
-        // === THREE.JS NEURAL CORE (10s CHARGE + OUTER ELECTRIC) ===
+        // === THREE.JS NEURAL CORE (10s CHARGE → RED → BIG EXPLOSION) ===
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
@@ -461,8 +436,8 @@
         coreGroup.add(glowSphere, innerBright, innerCore, midShell, outerShell);
         scene.add(coreGroup);
 
-        // === ELECTRIC ARCS (reach outer shell) ===
-        const BOLT_COUNT = 8;
+        // === ELECTRIC ARCS ===
+        const BOLT_COUNT = 12;
         const boltPool = [];
         for (let i = 0; i < BOLT_COUNT; i++) {
             const boltMat = new THREE.LineBasicMaterial({ color: 0xffe066, transparent: true, opacity: 0 });
@@ -479,19 +454,18 @@
             if (!bolt) return;
             const startAngle = Math.random() * Math.PI * 2;
             const startR = 0.3 + Math.random() * 0.35;
-            const endAngle = startAngle + (Math.random() - 0.5) * Math.PI * 1.2;
-            // Extend to OUTER shell (2.2) sometimes
-            const endR = 1.9 + Math.random() * 0.5;  // reaches outer shell
+            const endAngle = startAngle + (Math.random() - 0.5) * Math.PI * 1.4;
+            const endR = 2.0 + Math.random() * 0.55;
 
             const points = [];
             const segments = 14;
             for (let i = 0; i <= segments; i++) {
                 const t = i / segments;
-                const r = startR + (endR - startR) * t + (Math.random() - 0.5) * 0.4;
-                const a = startAngle + (endAngle - startAngle) * t + (Math.random() - 0.5) * 0.5;
+                const r = startR + (endR - startR) * t + (Math.random() - 0.5) * 0.5;
+                const a = startAngle + (endAngle - startAngle) * t + (Math.random() - 0.5) * 0.6;
                 const x = Math.cos(a) * r;
                 const y = Math.sin(a) * r;
-                const z = (Math.random() - 0.5) * 0.7;
+                const z = (Math.random() - 0.5) * 0.8;
                 points.push(x, y, z);
             }
             const arr = bolt.line.geometry.attributes.position.array;
@@ -500,7 +474,9 @@
             bolt.line.geometry.attributes.position.needsUpdate = true;
             bolt.line.geometry.computeBoundingSphere();
 
-            const c = new THREE.Color().setHSL(0.13 + Math.random() * 0.03, 1, 0.75);
+            // Bolt color shifts toward red as charge grows
+            const hue = 0.13 - chargeLevel * 0.13;   // yellow → red
+            const c = new THREE.Color().setHSL(hue, 1, 0.7);
             bolt.line.material.color.copy(c);
             bolt.line.material.opacity = 0.9 + Math.random() * 0.1;
             bolt.line.visible = true;
@@ -568,9 +544,8 @@
         let boltTimer = 0;
         let smokeTimer = 0;
 
-        // 10-second charge to explode
-        const CHARGE_START_MS = 400;       // begins charging after 0.4s
-        const CHARGE_FULL_MS = 10000;      // reaches full charge (explosion power) at 10s
+        const CHARGE_START_MS = 300;       // begins charging after 0.3s
+        const CHARGE_FULL_MS = 10000;      // 10 seconds to full explosion
 
         function spawnRipple(color = 0xa78bfa) {
             const geo = new THREE.RingGeometry(0.5, 0.6, 48);
@@ -581,10 +556,11 @@
             ripples.push({ mesh: ring, life: 1 });
         }
 
-        function spawnExplosion(color = 0xf59e0b) {
-            for (let i = 0; i < 6; i++) setTimeout(() => spawnRipple(color), i * 60);
-            for (let i = 0; i < 20; i++) setTimeout(spawnBolt, i * 30);
-            for (let i = 0; i < 35; i++) setTimeout(spawnSmoke, i * 25);
+        function spawnExplosion() {
+            // Massive red-hot explosion
+            for (let i = 0; i < 10; i++) setTimeout(() => spawnRipple(0xff3b30), i * 50);
+            for (let i = 0; i < 30; i++) setTimeout(spawnBolt, i * 20);
+            for (let i = 0; i < 60; i++) setTimeout(spawnSmoke, i * 18);
         }
 
         function getDistance(t1, t2) {
@@ -631,7 +607,6 @@
                 coreRotVelX += dy * 0.0009;
                 pointerVelocity.x = dx;
                 pointerVelocity.y = dy;
-                // Movement cancels charge IF still in the pre-charge window
                 if (Math.abs(dx) + Math.abs(dy) > 5 && !longPressActive) {
                     clearTimeout(longPressTimer);
                 }
@@ -654,23 +629,23 @@
 
                 const speed = Math.sqrt(pointerVelocity.x**2 + pointerVelocity.y**2);
 
-                // ONLY explode if charge was full (held ~10 seconds)
+                // FULL CHARGE → massive explosion
                 if (longPressActive && chargeLevel >= 0.95) {
-                    spawnExplosion(0xf59e0b);
-                    touchBoost = 2.5;
-                    coreScaleVel += 0.45;
-                    coreRotVelY += 0.5;
-                    coreRotVelX -= 0.35;
-                    if (navigator.vibrate) navigator.vibrate([60, 40, 80, 40, 100]);
+                    spawnExplosion();
+                    touchBoost = 4.0;
+                    coreScaleVel += 0.9;
+                    coreRotVelY += 1.2;
+                    coreRotVelX -= 0.8;
+                    if (navigator.vibrate) navigator.vibrate([80, 40, 100, 40, 150, 40, 200]);
                 }
-                // Released early (before full charge) — just a soft release, no boom
+                // Partial release — soft orange ripple, no boom
                 else if (longPressActive && chargeLevel > 0.3) {
                     touchBoost = 0.8;
                     spawnRipple(0xf59e0b);
                     coreScaleVel += 0.2;
                     if (navigator.vibrate) navigator.vibrate(15);
                 }
-                // Quick tap — normal pulse
+                // Quick tap
                 else if (!longPressActive && speed < 3) {
                     touchBoost = 1.0;
                     coreScaleVel += 0.15;
@@ -702,14 +677,16 @@
                 chargeLevel = Math.min(1, elapsed / CHARGE_FULL_MS);
             }
 
-            const spin = 1 + chargeLevel * 9 + touchBoost * 0.5;
+            // Spin speed — MUCH more aggressive as charge grows
+            const spin = 1 + chargeLevel * 15 + touchBoost * 0.5;   // was *9, now *15
             pulseTime += 0.04 * spin;
             touchBoost *= 0.94;
 
-            const chargeScale = 1 + chargeLevel * 0.7;
+            // Core scales and pulses harder as it charges
+            const chargeScale = 1 + chargeLevel * 1.1;   // was 0.7, now bigger swell
             const brightScale = (1 + Math.sin(pulseTime * 1.5) * 0.15 + touchBoost * 0.25) * chargeScale;
             innerBright.scale.set(brightScale, brightScale, brightScale);
-            innerBright.material.opacity = 0.3 + Math.sin(pulseTime * 1.5) * 0.1 + touchBoost * 0.2 + chargeLevel * 0.5;
+            innerBright.material.opacity = 0.3 + Math.sin(pulseTime * 1.5) * 0.1 + touchBoost * 0.2 + chargeLevel * 0.6;
 
             innerCore.rotation.x += 0.008 * spin;
             innerCore.rotation.y += 0.012 * spin;
@@ -729,7 +706,8 @@
             coreScale += coreScaleVel;
             coreGroup.scale.set(coreScale, coreScale, coreScale);
 
-            const rumble = touchBoost * 0.08 + chargeLevel * 0.22;
+            // Rumble intensity — stronger with charge
+            const rumble = touchBoost * 0.08 + chargeLevel * 0.35;
             if (rumble > 0.01) {
                 coreGroup.position.x = (Math.random() - 0.5) * rumble;
                 coreGroup.position.y = (Math.random() - 0.5) * rumble;
@@ -738,14 +716,17 @@
                 coreGroup.position.y *= 0.9;
             }
 
-            glowSphere.material.opacity = 0.08 + Math.sin(pulseTime * 0.6) * 0.04 + touchBoost * 0.15 + chargeLevel * 0.5;
+            glowSphere.material.opacity = 0.08 + Math.sin(pulseTime * 0.6) * 0.04 + touchBoost * 0.15 + chargeLevel * 0.6;
 
+            // === COLOR SHIFTS: PURPLE → ORANGE → RED as charge grows ===
             if (chargeLevel > 0.01) {
                 const c = new THREE.Color();
-                if (chargeLevel < 0.6) {
-                    c.lerpColors(new THREE.Color(0x8b5cf6), new THREE.Color(0xf59e0b), chargeLevel / 0.6);
+                if (chargeLevel < 0.5) {
+                    // purple → orange
+                    c.lerpColors(new THREE.Color(0x8b5cf6), new THREE.Color(0xf59e0b), chargeLevel / 0.5);
                 } else {
-                    c.lerpColors(new THREE.Color(0xf59e0b), new THREE.Color(0xfde047), (chargeLevel - 0.6) / 0.4);
+                    // orange → deep red
+                    c.lerpColors(new THREE.Color(0xf59e0b), new THREE.Color(0xef4444), (chargeLevel - 0.5) / 0.5);
                 }
                 glowSphere.material.color.copy(c);
                 innerBright.material.color.copy(c);
@@ -754,13 +735,15 @@
                 outerShell.material.color.copy(c);
             }
 
-            if (isCharging && chargeLevel > 0.1) {
+            // === ELECTRIC ARCS — MORE OFTEN AND MORE OF THEM AS CHARGE GROWS ===
+            if (isCharging && chargeLevel > 0.08) {
                 boltTimer -= 1;
-                const boltInterval = Math.max(1, Math.floor(12 - chargeLevel * 11));
+                const boltInterval = Math.max(1, Math.floor(14 - chargeLevel * 13));
                 if (boltTimer <= 0) {
                     spawnBolt();
-                    if (chargeLevel > 0.4 && Math.random() < 0.5) spawnBolt();
-                    if (chargeLevel > 0.7 && Math.random() < 0.6) spawnBolt();
+                    if (chargeLevel > 0.3 && Math.random() < 0.6) spawnBolt();
+                    if (chargeLevel > 0.6 && Math.random() < 0.7) spawnBolt();
+                    if (chargeLevel > 0.85 && Math.random() < 0.8) spawnBolt();
                     boltTimer = boltInterval;
                 }
             }
@@ -776,12 +759,14 @@
                 }
             }
 
-            if (isCharging && chargeLevel > 0.15) {
+            // === SMOKE — MORE PUFFS AS CHARGE GROWS ===
+            if (isCharging && chargeLevel > 0.12) {
                 smokeTimer -= 1;
-                const smokeInterval = Math.max(1, Math.floor(10 - chargeLevel * 9));
+                const smokeInterval = Math.max(1, Math.floor(12 - chargeLevel * 11));
                 if (smokeTimer <= 0) {
                     spawnSmoke();
-                    if (chargeLevel > 0.5) spawnSmoke();
+                    if (chargeLevel > 0.4) spawnSmoke();
+                    if (chargeLevel > 0.7) spawnSmoke();
                     smokeTimer = smokeInterval;
                 }
             }
@@ -831,116 +816,6 @@
             glowSphere.material.color.setHex(color); innerBright.material.color.setHex(color);
             innerCore.material.color.setHex(color); midShell.material.color.setHex(color); outerShell.material.color.setHex(color);
         }
-
-        // === FOOTBALL MINI-GAME ===
-        const pitch = document.getElementById('football-pitch');
-        const ball = document.getElementById('football');
-        const goalPost = document.getElementById('goal-post');
-        const scoreCountEl = document.getElementById('score-count');
-
-        const pitchRect = () => pitch.getBoundingClientRect();
-        let ballX = 40, ballY = 60;
-        let ballVX = 0, ballVY = 0;
-        const BALL_R = 11;
-        const FRICTION = 0.985;
-        const WALL_BOUNCE = 0.75;
-        let score = 0;
-
-        function setBallPos() {
-            ball.style.left = (ballX - BALL_R) + 'px';
-            ball.style.top  = (ballY - BALL_R) + 'px';
-        }
-
-        function resetFootball() {
-            const r = pitchRect();
-            ballX = 40;
-            ballY = r.height / 2;
-            ballVX = 0;
-            ballVY = 0;
-            setBallPos();
-        }
-
-        function pitchDim() {
-            const r = pitchRect();
-            return { w: r.width, h: r.height };
-        }
-
-        // Kick the ball toward the goal (right side)
-        function kickBall(clickX, clickY) {
-            const { w, h } = pitchDim();
-            // Vector from ball → click point, but always push toward the goal
-            let dirX = clickX - ballX;
-            let dirY = clickY - ballY;
-            const len = Math.sqrt(dirX*dirX + dirY*dirY) || 1;
-            dirX /= len; dirY /= len;
-
-            // Force mostly-rightward push so the ball heads to the goal
-            const power = 11;
-            ballVX = Math.abs(dirX) * power + 4;
-            ballVY = dirY * power * 0.7;
-
-            if (navigator.vibrate) navigator.vibrate(12);
-        }
-
-        pitch.addEventListener('pointerdown', (e) => {
-            const r = pitchRect();
-            const x = e.clientX - r.left;
-            const y = e.clientY - r.top;
-            kickBall(x, y);
-        });
-
-        function footballLoop() {
-            requestAnimationFrame(footballLoop);
-            const { w, h } = pitchDim();
-            if (w === 0) return;
-
-            // Apply velocity + friction
-            ballX += ballVX;
-            ballY += ballVY;
-            ballVX *= FRICTION;
-            ballVY *= FRICTION;
-
-            // Stop micro-drift
-            if (Math.abs(ballVX) < 0.05) ballVX = 0;
-            if (Math.abs(ballVY) < 0.05) ballVY = 0;
-
-            // Goal detection (right side opening, before the right wall)
-            const goalLeft = w - 74;
-            const goalTop = h/2 - 45;
-            const goalBottom = h/2 + 45;
-
-            if (ballX + BALL_R > goalLeft && ballY > goalTop && ballY < goalBottom) {
-                // GOAL!
-                score++;
-                scoreCountEl.innerText = score;
-                goalPost.classList.remove('goal-flash');
-                void goalPost.offsetWidth;
-                goalPost.classList.add('goal-flash');
-                if (navigator.vibrate) navigator.vibrate([30, 20, 30]);
-                // Reset
-                ballX = 40;
-                ballY = h / 2;
-                ballVX = 0;
-                ballVY = 0;
-            } else {
-                // Wall bounces
-                if (ballX - BALL_R < 0) { ballX = BALL_R; ballVX = -ballVX * WALL_BOUNCE; }
-                if (ballX + BALL_R > w) {
-                    // Only bounce off right wall if NOT in goal zone
-                    if (!(ballY > goalTop && ballY < goalBottom)) {
-                        ballX = w - BALL_R; ballVX = -ballVX * WALL_BOUNCE;
-                    }
-                }
-                if (ballY - BALL_R < 0) { ballY = BALL_R; ballVY = -ballVY * WALL_BOUNCE; }
-                if (ballY + BALL_R > h) { ballY = h - BALL_R; ballVY = -ballVY * WALL_BOUNCE; }
-            }
-
-            setBallPos();
-        }
-
-        // Init ball after layout
-        setTimeout(() => { resetFootball(); footballLoop(); }, 100);
-        window.addEventListener('resize', () => { setTimeout(resetFootball, 100); });
 
         // === MARKET DATA (BIQUOTE) ===
         function safeNum(val, fallback = 0) { return (isNaN(val) || val === undefined || val === null || !isFinite(val)) ? fallback : val; }
