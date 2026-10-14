@@ -545,7 +545,7 @@
         scene.add(coreGroup);
 
         // ═══════════════════════════════════════════════════════
-        // SPACE SCENE — Milky Way → Solar System (zoom in) → Earth
+        // SPACE SCENE — explode shows full solar system → zoom to Earth
         // ═══════════════════════════════════════════════════════
 
         function makeGlowTex(color, size = 128) {
@@ -563,7 +563,6 @@
         }
         function _canvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
 
-        // Procedural fallbacks (used while real textures are downloading)
         function makeSunTexFallback() {
             const c = _canvas(512, 256);
             const ctx = c.getContext('2d');
@@ -611,7 +610,6 @@
             return new THREE.CanvasTexture(c);
         }
 
-        // ─── MILKY WAY GROUP ───
         const milkyWayGroup = new THREE.Group();
         milkyWayGroup.visible = false;
         scene.add(milkyWayGroup);
@@ -696,12 +694,10 @@
             }
         })();
 
-        // ─── SOLAR SYSTEM GROUP ───
         const solarSystemGroup = new THREE.Group();
         solarSystemGroup.visible = false;
         scene.add(solarSystemGroup);
 
-        // Sun
         const sunGroup = new THREE.Group();
         const sunMesh = new THREE.Mesh(new THREE.SphereGeometry(1.6, 64, 64), new THREE.MeshBasicMaterial({ map: makeSunTexFallback() }));
         sunGroup.add(sunMesh);
@@ -722,7 +718,6 @@
         sunGroup.add(sunLight);
         solarSystemGroup.add(sunGroup);
 
-        // Planets — only Earth gets a Moon (as requested)
         const PLANET_DATA = [
             { name:'Mercury', r:0.20, o:6,   fb:['#7a7168', '80,70,60'],   spd:0.42, rotSpd:0.005 },
             { name:'Venus',   r:0.30, o:9,   fb:['#c9a262', '240,220,180'], spd:0.32, rotSpd:-0.003 },
@@ -789,7 +784,6 @@
                 ring2.rotation.x = Math.PI / 2.2;
                 grp.add(ring2);
             }
-            // orbit line
             const pts = [];
             for (let i = 0; i <= 160; i++) {
                 const a = (i / 160) * Math.PI * 2;
@@ -829,7 +823,7 @@
 
         const earthObj = planetObjs.find(g => g.userData.earth);
 
-        // ─── REAL NASA TEXTURES — loaded async, swap in when ready ───
+        // Real NASA textures — loaded async
         const TEX_BASE = 'https://raw.githubusercontent.com/jeromeetienne/threex.planets/master/images/';
         const texLoader = new THREE.TextureLoader();
         texLoader.setCrossOrigin('anonymous');
@@ -896,7 +890,6 @@
             }
         }
 
-        // Comets — only 2, subtle
         const comets = [];
         function makeCometTailTex(rgb) {
             const c = _canvas(256, 64);
@@ -925,7 +918,6 @@
             solarSystemGroup.add(cg);
         }
 
-        // Asteroid belt
         (function buildAsteroidBelt() {
             const N = 1000;
             const pos = new Float32Array(N * 3);
@@ -948,7 +940,6 @@
             solarSystemGroup.add(belt);
         })();
 
-        // Meteors
         const meteors = [];
         function spawnMeteor() {
             const grp = new THREE.Group();
@@ -982,13 +973,13 @@
         }
         let meteorTimer = 0;
 
-        // ─── STATE ───
+        // ─── STATE — explode → full solar system (78u); zoom → Earth ───
         const BASE_CAM_Z = 6;
-        const SPACE_CAM_Z = 260;      // Milky Way view
-        const SOLAR_ENTRY_FAR = 180;  // begin showing solar system
-        const SOLAR_ENTRY_NEAR = 60;  // fully visible
-        const EARTH_FOCUS_FAR = 45;   // begin biasing toward Earth
-        const EARTH_FOCUS_NEAR = 12;  // full Earth focus
+        const SPACE_CAM_Z = 78;       // full solar system view after explode
+        const SOLAR_ENTRY_FAR = 100;  // begin showing solar system
+        const SOLAR_ENTRY_NEAR = 70;  // fully visible
+        const EARTH_FOCUS_FAR = 30;   // begin biasing toward Earth
+        const EARTH_FOCUS_NEAR = 8;   // full Earth focus
 
         let cameraTheta = 0;
         let cameraPhi = 0.35;
@@ -1355,23 +1346,23 @@
                 const ts = nowMs * 0.001;
                 for (const grp of planetObjs) {
                     const ud = grp.userData;
-                    const a = ud.angle + ts * ud.speed * 0.12;
+                    const a = ud.angle + ts * ud.speed * 0.04;
                     grp.position.set(Math.cos(a) * ud.orbit, 0, Math.sin(a) * ud.orbit);
                     for (const child of grp.children) {
-                        if (child.userData && child.userData.rotSpd) child.rotation.y += child.userData.rotSpd * 0.3;
+                        if (child.userData && child.userData.rotSpd) child.rotation.y += child.userData.rotSpd * 0.1;
                     }
                     if (ud.moons) {
                         for (const m of ud.moons) {
-                            m.angle += m.speed * 0.005;
+                            m.angle += m.speed * 0.0015;
                             m.grp.rotation.y = m.angle;
                         }
                     }
                 }
-                sunMesh.rotation.y += 0.002;
+                sunMesh.rotation.y += 0.0008;
                 sunCorona.material.opacity = 0.85 + Math.sin(ts * 1.5) * 0.15;
                 const cs = 14 + Math.sin(ts * 2) * 0.4;
                 sunCorona.scale.set(cs, cs, 1);
-                if (solarSystemGroup.userData.asteroidBelt) solarSystemGroup.userData.asteroidBelt.rotation.y += 0.0008;
+                if (solarSystemGroup.userData.asteroidBelt) solarSystemGroup.userData.asteroidBelt.rotation.y += 0.0003;
                 for (const c of comets) {
                     const t2 = ts * c.speed + c.phase;
                     const x = Math.cos(t2) * c.a;
