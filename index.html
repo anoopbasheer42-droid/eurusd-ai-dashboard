@@ -529,7 +529,7 @@
 
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 3000);
+        const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 5000);
         camera.position.z = 6;
         const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
         renderer.setSize(container.clientWidth, container.clientHeight);
@@ -545,7 +545,7 @@
         scene.add(coreGroup);
 
         // ═══════════════════════════════════════════════════════
-        // SPACE SCENE — explode shows full solar system → zoom to Earth
+        // SPACE SCENE — Milky Way → travel through stars → Solar System
         // ═══════════════════════════════════════════════════════
 
         function makeGlowTex(color, size = 128) {
@@ -610,16 +610,18 @@
             return new THREE.CanvasTexture(c);
         }
 
+        // ─── MILKY WAY — very 3D, stars at all radii for travel effect ───
         const milkyWayGroup = new THREE.Group();
         milkyWayGroup.visible = false;
         scene.add(milkyWayGroup);
 
-        (function buildStars() {
-            const N = 6000;
+        // Far background stars (distant, don't move)
+        (function buildFarStars() {
+            const N = 7000;
             const pos = new Float32Array(N * 3);
             const col = new Float32Array(N * 3);
             for (let i = 0; i < N; i++) {
-                const r = 400 + Math.random() * 600;
+                const r = 900 + Math.random() * 800;
                 const theta = Math.random() * Math.PI * 2;
                 const phi = Math.acos(2 * Math.random() - 1);
                 pos[i*3] = r * Math.sin(phi) * Math.cos(theta);
@@ -633,25 +635,51 @@
             const g = new THREE.BufferGeometry();
             g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
             g.setAttribute('color', new THREE.BufferAttribute(col, 3));
-            const m = new THREE.PointsMaterial({ size: 2.0, vertexColors: true, transparent: true, opacity: 0.9, sizeAttenuation: true });
+            const m = new THREE.PointsMaterial({ size: 2.5, vertexColors: true, transparent: true, opacity: 0.9, sizeAttenuation: true });
             milkyWayGroup.add(new THREE.Points(g, m));
         })();
 
+        // Mid-field drifting stars — these rush past when you zoom
+        (function buildDriftStars() {
+            const N = 3000;
+            const pos = new Float32Array(N * 3);
+            const col = new Float32Array(N * 3);
+            for (let i = 0; i < N; i++) {
+                const r = 40 + Math.random() * 260;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                pos[i*3] = r * Math.sin(phi) * Math.cos(theta);
+                pos[i*3+1] = r * Math.sin(phi) * Math.sin(theta) * 0.7;
+                pos[i*3+2] = r * Math.cos(phi);
+                const t = Math.random();
+                if (t < 0.75) { col[i*3]=1; col[i*3+1]=1; col[i*3+2]=1; }
+                else if (t < 0.9) { col[i*3]=1; col[i*3+1]=0.9; col[i*3+2]=0.75; }
+                else { col[i*3]=0.8; col[i*3+1]=0.85; col[i*3+2]=1; }
+            }
+            const g = new THREE.BufferGeometry();
+            g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+            const m = new THREE.PointsMaterial({ size: 1.8, vertexColors: true, transparent: true, opacity: 0.85, sizeAttenuation: true });
+            milkyWayGroup.add(new THREE.Points(g, m));
+        })();
+
+        // Galaxy spiral arms — thicker 3D disc
         (function buildMilkyWay() {
-            const N = 18000;
+            const N = 22000;
             const pos = new Float32Array(N * 3);
             const col = new Float32Array(N * 3);
             for (let i = 0; i < N; i++) {
                 const arm = Math.floor(Math.random() * 4);
                 const t = Math.random();
                 const angle = t * Math.PI * 4 + (arm * Math.PI) / 2;
-                const radius = 150 + t * 350;
-                const spread = 12 + t * 30;
+                const radius = 60 + t * 280;
+                const spread = 15 + t * 30;
                 const scatter = Math.pow(Math.random(), 2) * spread;
                 const angleScatter = Math.random() * Math.PI * 2;
                 const x = Math.cos(angle) * radius + Math.cos(angleScatter) * scatter;
                 const z = Math.sin(angle) * radius + Math.sin(angleScatter) * scatter;
-                const y = (Math.random() - 0.5) * (5 + Math.random() * 8) * (1 + t * 3);
+                // THICKER vertical spread — much more 3D
+                const y = (Math.random() - 0.5) * (15 + Math.random() * 45) * (1 + t * 2);
                 pos[i*3] = x; pos[i*3+1] = y; pos[i*3+2] = z;
                 const mix = Math.random();
                 if (mix < 0.5) { col[i*3]=0.85; col[i*3+1]=0.80; col[i*3+2]=1.0; }
@@ -661,16 +689,17 @@
             const g = new THREE.BufferGeometry();
             g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
             g.setAttribute('color', new THREE.BufferAttribute(col, 3));
-            const m = new THREE.PointsMaterial({ size: 1.5, vertexColors: true, transparent: true, opacity: 0.6, sizeAttenuation: true });
+            const m = new THREE.PointsMaterial({ size: 1.8, vertexColors: true, transparent: true, opacity: 0.7, sizeAttenuation: true });
             const pts = new THREE.Points(g, m);
             pts.rotation.x = Math.PI * 0.15;
             pts.rotation.z = Math.PI * 0.1;
             milkyWayGroup.add(pts);
         })();
 
+        // Nebula sprites
         (function buildNebula() {
             const colors = [0x8b5cf6, 0x3b82f6, 0xa78bfa, 0x6366f1, 0xc4b5fd];
-            for (let i = 0; i < 40; i++) {
+            for (let i = 0; i < 60; i++) {
                 const color = colors[Math.floor(Math.random()*colors.length)];
                 const canvas = document.createElement('canvas');
                 canvas.width = canvas.height = 256;
@@ -684,16 +713,17 @@
                 ctx.fillRect(0, 0, 256, 256);
                 const tex = new THREE.CanvasTexture(canvas);
                 const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0.4, depthWrite: false, blending: THREE.AdditiveBlending }));
-                const r = 250 + Math.random()*350;
+                const r = 120 + Math.random()*320;
                 const theta = Math.random()*Math.PI*2;
                 const phi = Math.acos(2*Math.random()-1);
-                spr.position.set(r*Math.sin(phi)*Math.cos(theta), r*Math.sin(phi)*Math.sin(theta)*0.4, r*Math.cos(phi));
+                spr.position.set(r*Math.sin(phi)*Math.cos(theta), r*Math.sin(phi)*Math.sin(theta)*0.6, r*Math.cos(phi));
                 const s = 160 + Math.random()*280;
                 spr.scale.set(s, s, 1);
                 milkyWayGroup.add(spr);
             }
         })();
 
+        // ─── SOLAR SYSTEM GROUP ───
         const solarSystemGroup = new THREE.Group();
         solarSystemGroup.visible = false;
         scene.add(solarSystemGroup);
@@ -823,7 +853,7 @@
 
         const earthObj = planetObjs.find(g => g.userData.earth);
 
-        // Real NASA textures — loaded async
+        // Real NASA textures
         const TEX_BASE = 'https://raw.githubusercontent.com/jeromeetienne/threex.planets/master/images/';
         const texLoader = new THREE.TextureLoader();
         texLoader.setCrossOrigin('anonymous');
@@ -890,25 +920,76 @@
             }
         }
 
+        // ─── COMETS — realistic long diffuse tails ───
         const comets = [];
-        function makeCometTailTex(rgb) {
-            const c = _canvas(256, 64);
+        function makeCometTailTex(colorStr) {
+            const w = 512, h = 128;
+            const c = _canvas(w, h);
             const ctx = c.getContext('2d');
-            const g = ctx.createLinearGradient(0, 32, 256, 32);
-            g.addColorStop(0, 'rgba(255,255,255,0.9)');
-            g.addColorStop(0.2, `rgba(${rgb},0.6)`);
-            g.addColorStop(1, `rgba(${rgb},0)`);
-            ctx.fillStyle = g; ctx.fillRect(0, 0, 256, 64);
+            // Horizontal gradient — white hot at head, fading to color, then transparent
+            const gx = ctx.createLinearGradient(0, 0, w, 0);
+            gx.addColorStop(0.0, 'rgba(255,255,255,1)');
+            gx.addColorStop(0.08, 'rgba(255,255,255,0.95)');
+            gx.addColorStop(0.25, `rgba(${colorStr},0.75)`);
+            gx.addColorStop(0.55, `rgba(${colorStr},0.35)`);
+            gx.addColorStop(0.85, `rgba(${colorStr},0.10)`);
+            gx.addColorStop(1.0, `rgba(${colorStr},0)`);
+            ctx.fillStyle = gx;
+            ctx.fillRect(0, 0, w, h);
+            // Vertical falloff — mask out top and bottom to make it a beam
+            const gy = ctx.createLinearGradient(0, 0, 0, h);
+            gy.addColorStop(0.0, 'rgba(0,0,0,0)');
+            gy.addColorStop(0.25, 'rgba(0,0,0,1)');
+            gy.addColorStop(0.5, 'rgba(0,0,0,1)');
+            gy.addColorStop(0.75, 'rgba(0,0,0,1)');
+            gy.addColorStop(1.0, 'rgba(0,0,0,0)');
+            ctx.globalCompositeOperation = 'destination-in';
+            ctx.fillStyle = gy;
+            ctx.fillRect(0, 0, w, h);
+            ctx.globalCompositeOperation = 'source-over';
             return new THREE.CanvasTexture(c);
         }
+        function makeCometHeadTex() {
+            const size = 128;
+            const c = _canvas(size, size);
+            const ctx = c.getContext('2d');
+            const g = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+            g.addColorStop(0, 'rgba(255,255,255,1)');
+            g.addColorStop(0.2, 'rgba(200,240,255,0.9)');
+            g.addColorStop(0.5, 'rgba(140,200,255,0.4)');
+            g.addColorStop(1, 'rgba(100,150,255,0)');
+            ctx.fillStyle = g;
+            ctx.fillRect(0, 0, size, size);
+            return new THREE.CanvasTexture(c);
+        }
+        const cometHeadTex = makeCometHeadTex();
         for (let i = 0; i < 2; i++) {
             const cg = new THREE.Group();
-            const nucleus = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 12), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+            // Solid nucleus (bright white core)
+            const nucleus = new THREE.Mesh(new THREE.SphereGeometry(0.09, 20, 20), new THREE.MeshBasicMaterial({ color: 0xffffff }));
             cg.add(nucleus);
-            const rgb = i === 0 ? '180,220,255' : '220,200,255';
-            const tail = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeCometTailTex(rgb), transparent: true, opacity: 0.85, depthWrite: false, blending: THREE.AdditiveBlending }));
-            tail.scale.set(6, 1.2, 1); tail.position.x = -3;
-            cg.add(tail);
+            // Head glow
+            const headGlow = new THREE.Sprite(new THREE.SpriteMaterial({
+                map: cometHeadTex, transparent: true, opacity: 1,
+                depthWrite: false, blending: THREE.AdditiveBlending
+            }));
+            headGlow.scale.set(1.4, 1.4, 1);
+            cg.add(headGlow);
+            // Tail — 3 layered sprites for volume + diffuse look
+            const colorStr = i === 0 ? '180,220,255' : '210,190,255';
+            const tailTex = makeCometTailTex(colorStr);
+            for (let layer = 0; layer < 3; layer++) {
+                const tail = new THREE.Sprite(new THREE.SpriteMaterial({
+                    map: tailTex, transparent: true,
+                    opacity: 0.75 - layer * 0.15,
+                    depthWrite: false, blending: THREE.AdditiveBlending
+                }));
+                const scaleY = 1.6 - layer * 0.35;
+                tail.scale.set(14 - layer * 1.5, scaleY, 1);
+                tail.position.x = -5 + layer * 0.4;
+                tail.position.y = (layer - 1) * 0.15;
+                cg.add(tail);
+            }
             const a = 40 + Math.random() * 30;
             const b = 40 + Math.random() * 30;
             const cVal = 25 + Math.random() * 30;
@@ -918,6 +999,7 @@
             solarSystemGroup.add(cg);
         }
 
+        // Asteroid belt
         (function buildAsteroidBelt() {
             const N = 1000;
             const pos = new Float32Array(N * 3);
@@ -940,6 +1022,7 @@
             solarSystemGroup.add(belt);
         })();
 
+        // Meteors
         const meteors = [];
         function spawnMeteor() {
             const grp = new THREE.Group();
@@ -973,19 +1056,25 @@
         }
         let meteorTimer = 0;
 
-        // ─── STATE — explode → full solar system (78u); zoom → Earth ───
+        // ─── STATE — explode → Milky Way (280u). Zoom in → travel through stars → solar system ───
         const BASE_CAM_Z = 6;
-        const SPACE_CAM_Z = 78;       // full solar system view after explode
-        const SOLAR_ENTRY_FAR = 100;  // begin showing solar system
-        const SOLAR_ENTRY_NEAR = 70;  // fully visible
-        const EARTH_FOCUS_FAR = 30;   // begin biasing toward Earth
-        const EARTH_FOCUS_NEAR = 8;   // full Earth focus
+        const SPACE_CAM_Z = 280;       // explode: Milky Way wide view
+        // Milky Way stays visible until camera is very close to solar system
+        const MILKY_FADE_OUT = 35;     // milky gone below this
+        const MILKY_FADE_IN = 80;      // milky full above this
+        // Solar system fades in as we approach
+        const SOLAR_ENTRY_FAR = 80;
+        const SOLAR_ENTRY_NEAR = 45;
+        // Earth focus within solar system
+        const EARTH_FOCUS_FAR = 22;
+        const EARTH_FOCUS_NEAR = 8;
 
         let cameraTheta = 0;
-        let cameraPhi = 0.35;
+        let cameraPhi = 0.55;           // steeper angle for more dramatic travel
         let cameraRadius = SPACE_CAM_Z;
         let targetCameraZ = BASE_CAM_Z;
         let solarAlpha = 0;
+        let milkyAlpha = 1;
         let earthFocusAmount = 0;
 
         let spaceState = 'core';
@@ -1003,10 +1092,11 @@
             spacePhaseStart = Date.now();
             spaceProgress = 0;
             cameraTheta = 0;
-            cameraPhi = 0.35;
+            cameraPhi = 0.55;
             cameraRadius = SPACE_CAM_Z;
             targetCameraZ = SPACE_CAM_Z;
             solarAlpha = 0;
+            milkyAlpha = 1;
             earthFocusAmount = 0;
             resetIdleTimer();
         }
@@ -1024,7 +1114,7 @@
             if (spaceState === 'space' || spaceState === 'expanding') {
                 e.preventDefault();
                 resetIdleTimer();
-                cameraRadius = Math.max(2, Math.min(400, cameraRadius + e.deltaY * 0.2));
+                cameraRadius = Math.max(2, Math.min(700, cameraRadius + e.deltaY * 0.25));
                 targetCameraZ = cameraRadius;
             }
         }, { passive: false });
@@ -1213,7 +1303,7 @@
                 const dy = e.clientY - prev.y;
                 if (spaceState === 'space' || spaceState === 'expanding') {
                     cameraTheta -= dx * 0.008;
-                    cameraPhi = Math.max(-1.4, Math.min(1.4, cameraPhi + dy * 0.008));
+                    cameraPhi = Math.max(-1.5, Math.min(1.5, cameraPhi + dy * 0.008));
                 } else {
                     coreRotVelY += dx * 0.0009;
                     coreRotVelX += dy * 0.0009;
@@ -1232,7 +1322,7 @@
                 if (pinchStartDist > 0) {
                     const ratio = dist / pinchStartDist;
                     if (spaceState === 'space' || spaceState === 'expanding') {
-                        cameraRadius = Math.max(2, Math.min(400, cameraRadius / ratio));
+                        cameraRadius = Math.max(2, Math.min(700, cameraRadius / ratio));
                         targetCameraZ = cameraRadius;
                     } else {
                         coreScale = Math.max(0.6, Math.min(2.2, pinchStartScale * ratio));
@@ -1317,18 +1407,34 @@
                 else if (camDist <= SOLAR_ENTRY_NEAR) solarAlpha = 1;
                 else solarAlpha = (SOLAR_ENTRY_FAR - camDist) / (SOLAR_ENTRY_FAR - SOLAR_ENTRY_NEAR);
                 solarAlpha = Math.max(0, Math.min(1, solarAlpha));
+
+                if (camDist >= MILKY_FADE_IN) milkyAlpha = 1;
+                else if (camDist <= MILKY_FADE_OUT) milkyAlpha = 0;
+                else milkyAlpha = (camDist - MILKY_FADE_OUT) / (MILKY_FADE_IN - MILKY_FADE_OUT);
+                milkyAlpha = Math.max(0, Math.min(1, milkyAlpha));
+
                 if (camDist >= EARTH_FOCUS_FAR) earthFocusAmount = 0;
                 else if (camDist <= EARTH_FOCUS_NEAR) earthFocusAmount = 1;
                 else earthFocusAmount = (EARTH_FOCUS_FAR - camDist) / (EARTH_FOCUS_FAR - EARTH_FOCUS_NEAR);
                 earthFocusAmount = Math.max(0, Math.min(1, earthFocusAmount));
             } else {
                 solarAlpha = 0;
+                milkyAlpha = 1;
                 earthFocusAmount = 0;
             }
 
-            if (spaceProgress > 0.001) {
+            const milkyFinal = ep * milkyAlpha;
+            if (milkyFinal > 0.001) {
                 milkyWayGroup.visible = true;
                 milkyWayGroup.scale.setScalar(Math.max(0.001, ep));
+                milkyWayGroup.traverse((o) => {
+                    if (o.material && o.material.opacity !== undefined && o.userData.baseOpacity === undefined) {
+                        o.userData.baseOpacity = o.material.opacity;
+                    }
+                    if (o.material && o.userData.baseOpacity !== undefined) {
+                        o.material.opacity = o.userData.baseOpacity * milkyAlpha;
+                    }
+                });
             } else {
                 milkyWayGroup.visible = false;
             }
@@ -1337,6 +1443,14 @@
                 solarSystemGroup.visible = true;
                 solarSystemGroup.scale.setScalar(Math.max(0.001, solarFinal));
                 sunLight.intensity = 2.2 * solarAlpha;
+                solarSystemGroup.traverse((o) => {
+                    if (o.material && o.material.transparent && o.userData.baseOpacity === undefined) {
+                        o.userData.baseOpacity = o.material.opacity;
+                    }
+                    if (o.material && o.userData.baseOpacity !== undefined && o !== sunCorona) {
+                        o.material.opacity = o.userData.baseOpacity * solarAlpha;
+                    }
+                });
             } else {
                 solarSystemGroup.visible = false;
                 sunLight.intensity = 0;
@@ -1359,7 +1473,7 @@
                     }
                 }
                 sunMesh.rotation.y += 0.0008;
-                sunCorona.material.opacity = 0.85 + Math.sin(ts * 1.5) * 0.15;
+                sunCorona.material.opacity = (0.85 + Math.sin(ts * 1.5) * 0.15) * solarAlpha;
                 const cs = 14 + Math.sin(ts * 2) * 0.4;
                 sunCorona.scale.set(cs, cs, 1);
                 if (solarSystemGroup.userData.asteroidBelt) solarSystemGroup.userData.asteroidBelt.rotation.y += 0.0003;
@@ -1369,6 +1483,10 @@
                     const z = Math.sin(t2) * c.b;
                     const y = Math.sin(t2 * 2) * c.c * 0.3;
                     c.grp.position.set(x, y, z);
+                    // Tail points away from sun
+                    const dirOut = new THREE.Vector3(x, y, z).normalize();
+                    const tailAngle = Math.atan2(dirOut.x, dirOut.z);
+                    c.grp.rotation.y = tailAngle;
                 }
                 meteorTimer -= 1;
                 if (meteorTimer <= 0 && meteors.length < 4) {
@@ -1401,9 +1519,9 @@
                 camera.position.lerp(new THREE.Vector3(x, y, z), 0.1);
                 camera.lookAt(_lookTarget);
             } else if (spaceState === 'expanding' || spaceState === 'collapsing') {
-                const sX = SPACE_CAM_Z * Math.cos(0.35) * Math.sin(0);
-                const sY = SPACE_CAM_Z * Math.sin(0.35);
-                const sZ = SPACE_CAM_Z * Math.cos(0.35) * Math.cos(0);
+                const sX = SPACE_CAM_Z * Math.cos(0.55) * Math.sin(0);
+                const sY = SPACE_CAM_Z * Math.sin(0.55);
+                const sZ = SPACE_CAM_Z * Math.cos(0.55) * Math.cos(0);
                 const t = ep;
                 camera.position.lerp(new THREE.Vector3(sX * t, sY * t, BASE_CAM_Z * (1-t) + sZ * t), 0.1);
                 camera.lookAt(0, 0, 0);
