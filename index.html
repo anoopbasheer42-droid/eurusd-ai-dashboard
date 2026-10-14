@@ -570,6 +570,10 @@
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
         
+        // Add Ambient Light so planets aren't pitch black on one side
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+        scene.add(ambientLight);
+
         const glowSphere = new THREE.Mesh(new THREE.SphereGeometry(1.15, 48, 48), new THREE.MeshBasicMaterial({ color: 0x8b5cf6, transparent: true, opacity: 0.10 }));
         const innerBright = new THREE.Mesh(new THREE.SphereGeometry(0.55, 32, 32), new THREE.MeshBasicMaterial({ color: 0xa78bfa, transparent: true, opacity: 0.35 }));
         const innerCore = new THREE.Mesh(new THREE.IcosahedronGeometry(1.0, 1), new THREE.MeshBasicMaterial({ color: 0xa78bfa, wireframe: true, transparent: true, opacity: 0.75 }));
@@ -731,7 +735,7 @@
         for (const p of PLANET_DATA) {
             const grp = new THREE.Group(); const baseTex = p.name === 'Earth' ? makeEarthTexFallback() : makeSimpleTex(p.fb[0], p.fb[1]); const mat = new THREE.MeshPhongMaterial({ map: baseTex, shininess: 25, specular: 0x555555 }); const sphere = new THREE.Mesh(new THREE.SphereGeometry(p.r, 64, 64), mat); sphere.userData.rotSpd = p.rotSpd; grp.add(sphere);
             if (p.clouds) { const cloudCanvas = _canvas(1024, 512); const cctx = cloudCanvas.getContext('2d'); for (let i = 0; i < 220; i++) { const x = Math.random()*1024, y = Math.random()*512, r = 10 + Math.random()*45; const g = cctx.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, `rgba(255,255,255,${0.4 + Math.random()*0.4})`); g.addColorStop(1, 'rgba(255,255,255,0)'); cctx.fillStyle = g; cctx.beginPath(); cctx.arc(x, y, r, 0, Math.PI*2); cctx.fill(); } const cloudMesh = new THREE.Mesh(new THREE.SphereGeometry(p.r * 1.015, 64, 64), new THREE.MeshPhongMaterial({ map: new THREE.CanvasTexture(cloudCanvas), transparent: true, opacity: 0.8, depthWrite: false })); cloudMesh.userData.rotSpd = p.rotSpd * 1.3; cloudMesh.userData.isCloud = true; grp.add(cloudMesh); }
-            if (p.atmo) { const aCanvas = _canvas(256, 256); const actx = aCanvas.getContext('2d'); const ag = actx.createRadialGradient(128,128,20,128,128,128); const ahex = '#' + p.atmo.toString(16).padStart(6,'0'); ag.addColorStop(0, ahex + 'ff'); ag.addColorStop(0.5, ahex + '40'); ag.addColorStop(1, ahex + '00'); actx.fillStyle = ag; actx.fillRect(0, 0, 256, 256); const atmo = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(aCanvas), transparent: true, opacity: 0.7, depthWrite: false, blending: THREE.AdditiveBlending })); atmo.scale.set(p.r * 5.5, p.r * 5.5, 1); grp.add(atmo); }
+            if (p.atmo) { const aCanvas = _canvas(256, 256); const actx = aCanvas.getContext('2d'); const ag = actx.createRadialGradient(128,128,20,128,128,128); const ahex = '#' + p.atmo.toString(16).padStart(6,'0'); ag.addColorStop(0, ahex + 'ff'); ag.addColorStop(0.5, ahex + '40'); ag.addColorStop(1, ahex + '00'); actx.fillStyle = ag; actx.fillRect(0, 0, 256, 256); const atmo = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(aCanvas), transparent: true, opacity: 0.4, depthWrite: false, blending: THREE.AdditiveBlending })); atmo.scale.set(p.r * 2.5, p.r * 2.5, 1); grp.add(atmo); }
             if (p.ring) { const ringColor = p.ringColor || 0xd9c89a; const rg1 = new THREE.RingGeometry(p.r * 1.35, p.r * 2.0, 128); const rm1 = new THREE.MeshBasicMaterial({ color: ringColor, side: THREE.DoubleSide, transparent: true, opacity: 0.8 }); const ring1 = new THREE.Mesh(rg1, rm1); ring1.rotation.x = Math.PI / 2.2; grp.add(ring1); const rg2 = new THREE.RingGeometry(p.r * 2.05, p.r * 2.5, 128); const rm2 = new THREE.MeshBasicMaterial({ color: ringColor, side: THREE.DoubleSide, transparent: true, opacity: 0.4 }); const ring2 = new THREE.Mesh(rg2, rm2); ring2.rotation.x = Math.PI / 2.2; grp.add(ring2); }
             const pts = []; for (let i = 0; i <= 160; i++) { const a = (i / 160) * Math.PI * 2; pts.push(new THREE.Vector3(Math.cos(a) * p.o, 0, Math.sin(a) * p.o)); }
             const og = new THREE.BufferGeometry().setFromPoints(pts); const om = new THREE.LineBasicMaterial({ color: 0x8b5cf6, transparent: true, opacity: 0.2 }); solarSystemGroup.add(new THREE.Line(og, om));
@@ -747,29 +751,29 @@
         const satelliteGroup = new THREE.Group();
         if (earthObj) { earthObj.add(satelliteGroup); const satGeo = new THREE.BoxGeometry(0.015, 0.015, 0.04); const satMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.9, roughness: 0.1 }); const panelMat = new THREE.MeshBasicMaterial({ color: 0x1e3a8a, side: THREE.DoubleSide }); for (let i = 0; i < 3; i++) { const sat = new THREE.Group(); const body = new THREE.Mesh(satGeo, satMat); sat.add(body); const panelL = new THREE.Mesh(new THREE.PlaneGeometry(0.08, 0.03), panelMat); panelL.position.x = 0.05; sat.add(panelL); const panelR = new THREE.Mesh(new THREE.PlaneGeometry(0.08, 0.03), panelMat); panelR.position.x = -0.05; sat.add(panelR); sat.userData = { orbitRadius: 0.6 + i * 0.18, speed: 0.8 + i * 0.4, angle: (i * Math.PI * 2) / 3, incl: (Math.random() - 0.5) * 1.2 }; satelliteGroup.add(sat); } }
 
-        // === NASA GRADE HIGH-RES TEXTURES ===
-        const TEX_BASE = 'https://www.solarsystemscope.com/textures/download/2k_';
+        // === NASA GRADE HIGH-RES TEXTURES (CORS-FRIENDLY) ===
+        const TEX_BASE = 'https://threejs.org/examples/textures/planets/';
         const REAL_TEX = {
-            Sun: 'sun.jpg',
-            Mercury: 'mercury.jpg',
-            Venus: 'venus_surface.jpg',
-            Earth: 'earth_daymap.jpg',
-            EarthClouds: 'earth_clouds.jpg',
-            EarthBump: 'earth_normal_map.jpg',
-            Moon: 'moon.jpg',
-            Mars: 'mars.jpg',
-            Jupiter: 'jupiter.jpg',
-            Saturn: 'saturn.jpg',
-            Uranus: 'uranus.jpg',
-            Neptune: 'neptune.jpg',
-            Pluto: 'plutomap1k.jpg'
+            Sun: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/sun_2k.jpg',
+            Mercury: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/mercury_1k.jpg',
+            Venus: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/venus_1k.jpg',
+            Earth: 'earth_atmos_2048.jpg',
+            EarthClouds: 'earth_clouds_1024.png',
+            EarthBump: 'earth_normal_2048.jpg',
+            Moon: 'moon_1024.jpg',
+            Mars: 'mars_1k_color.jpg',
+            Jupiter: 'jupiter_2k.jpg',
+            Saturn: 'saturn_2k.jpg',
+            Uranus: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/uranus_1k.jpg',
+            Neptune: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/neptune_1k.jpg',
+            Pluto: 'https://raw.githubusercontent.com/jeromeetienne/threex.planets/master/images/plutomap1k.jpg'
         };
         const texLoader = new THREE.TextureLoader(); texLoader.setCrossOrigin('anonymous');
         
         // Milky Way Skybox for realistic space background
         const skyboxGeo = new THREE.SphereGeometry(4000, 64, 64);
         const skyboxMat = new THREE.MeshBasicMaterial({ 
-            map: texLoader.load('https://www.solarsystemscope.com/textures/download/2k_stars_milky_way.jpg'), 
+            map: texLoader.load('https://threejs.org/examples/textures/planets/starfield.png'), 
             side: THREE.BackSide, 
             transparent: true, 
             opacity: 0 
@@ -778,12 +782,9 @@
         scene.add(skybox);
 
         function loadRealTex(name, onLoad) {
-            let file = REAL_TEX[name];
-            if (!file) return;
-            let url = TEX_BASE + file;
-            if (name === 'Pluto') {
-                url = 'https://raw.githubusercontent.com/jeromeetienne/threex.planets/master/images/plutomap1k.jpg';
-            }
+            let url = REAL_TEX[name];
+            if (!url) return;
+            if (!url.startsWith('http')) url = TEX_BASE + url;
             texLoader.load(url, (tex) => {
                 tex.anisotropy = 8;
                 tex.minFilter = THREE.LinearMipmapLinearFilter;
@@ -814,13 +815,11 @@
             spaceState = 'iss_view';
             targetCameraZ = 1.8; // ISS orbit distance
             cameraRadius = camera.position.length();
-            document.getElementById('iss-hint').style.opacity = '1';
         }
 
         function triggerEarthLanding() {
             if (spaceState !== 'iss_view' || landingState !== 'none') return;
             landingState = 'diving';
-            document.getElementById('iss-hint').style.opacity = '0';
             if (earthObj) earthObj.getWorldPosition(landingTarget);
             document.getElementById('map-overlay').style.background = 'radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.9) 100%)';
         }
@@ -833,16 +832,8 @@
                 landingState = 'none';
                 spaceState = 'iss_view';
                 cameraRadius = 1.8; targetCameraZ = 1.8;
-                document.getElementById('iss-hint').style.opacity = '1';
             }, 1500);
         }
-
-        // Dynamically create ISS Hint element (to not touch the HTML)
-        const issHint = document.createElement('div');
-        issHint.id = 'iss-hint';
-        issHint.style.cssText = 'position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.8); color:white; padding:10px 20px; border-radius:20px; font-family:Inter, sans-serif; font-size:12px; letter-spacing:0.1em; text-transform:uppercase; opacity:0; transition:opacity 0.5s; z-index:100; border:1px solid rgba(139,92,246,0.5); pointer-events:none;';
-        issHint.innerText = 'Drag to look around · Tap Earth to descend';
-        document.body.appendChild(issHint);
 
         let lastTapTime = 0; let lastTapX = 0, lastTapY = 0;
         const zoomMilestones = []; for (let i = 0; i <= 450; i++) { const t = i / 450; const dist = 3000 * Math.pow(0.0004, t); zoomMilestones.push(dist); } zoomMilestones.reverse(); let currentZoomIndex = 0;
@@ -900,16 +891,13 @@
             
             // Handle Cinematic Landing Sequence
             if (landingState === 'diving') {
-                // Move camera rapidly towards Earth
                 if (earthObj) {
                     earthObj.getWorldPosition(_earthWorld);
                     camera.position.lerp(_earthWorld, 0.15);
-                    // Add a slight shake for cinematic effect
                     camera.position.x += (Math.random() - 0.5) * 0.5;
                     camera.position.y += (Math.random() - 0.5) * 0.5;
                     camera.lookAt(_earthWorld);
                 }
-                // Once we are very close, trigger the map overlay
                 if (camera.position.distanceTo(_earthWorld) < 2.5) {
                     landingState = 'landed';
                     const overlay = document.getElementById('map-overlay');
@@ -925,7 +913,6 @@
             }
             
             if (landingState === 'landed') {
-                // Keep rendering the scene in the background, but the overlay is on top
                 renderer.render(scene, camera);
                 return;
             }
@@ -994,7 +981,7 @@
             }
 
             if (isCharging) { const elapsed = Date.now() - chargeStartTime; chargeLevel = Math.min(1, elapsed / CHARGE_FULL_MS); updateChargeSound(chargeLevel); }
-            const spin = 1 + chargeLevel * 15 + touchBoost * 0.5; pulseTime += 0.04 * spin; touchBoost *= 0.94; const chargeScale = 1 + chargeLevel * 1.1; const brightScale = (1 + Math.sin(pulseTime * 1.5) * 0.15 + touchBoost * 0.25) * chargeScale; innerBright.scale.set(brightScale, brightScale, brightScale); innerBright.material.opacity = 0.3 + Math.sin(pulseTime * 1.5) * 0.1 + touchBoost * 0.2 + chargeLevel * 0.6; innerCore.rotation.x += 0.008 * spin; innerCore.rotation.y += 0.012 * spin; midShell.rotation.x -= 0.004 * spin; midShell.rotation.y -= 0.006 * spin; outerShell.rotation.x += 0.002 * spin; outerShell.rotation.y -= 0.003 * spin; coreGroup.rotation.y += coreRotVelY; coreGroup.rotation.x += coreRotVelX; coreRotVelY *= 0.92; coreRotVelX *= 0.92; const scaleForce = (1 - coreScale) * 0.15; coreScaleVel += scaleForce; coreScaleVel *= 0.85; coreScale += coreScaleVel; const _coreSpaceScale = coreScale * (1 - ep * 0.85); coreGroup.scale.set(_coreSpaceScale, _coreSpaceScale, _coreSpaceScale); coreGroup.visible = spaceProgress < 0.98; const rumble = touchBoost * 0.08 + chargeLevel * 0.35; if (rumble > 0.01) { coreGroup.position.x = (Math.random() - 0.5) * rumble; coreGroup.position.y = (Math.random() - 0.5) * rumble; } else { coreGroup.position.x *= 0.9; coreGroup.position.y *= 0.9; } glowSphere.material.opacity = 0.08 + Math.sin(pulseTime * 0.6) * 0.04 + touchBoost * 0.15 + chargeLevel * 0.6; if (chargeLevel > 0.01) { const c = new THREE.Color(); if (chargeLevel < 0.5) c.lerpColors(new THREE.Color(0x8b5cf6), new THREE.Color(0xf59e0b), chargeLevel / 0.5); else c.lerpColors(new THREE.Color(0xf59e0b), new THREE.Color(0xef4444), (chargeLevel - 0.5) / 0.5); glowSphere.material.color.copy(c); innerBright.material.color.copy(c); innerCore.material.color.copy(c); midShell.material.color.copy(c); outerShell.material.color.copy(c); } if (isCharging && chargeLevel > 0.08) { boltTimer -= 1; const boltInterval = Math.max(1, Math.floor(14 - chargeLevel * 13)); if (boltTimer <= 0) { spawnBolt(); if (chargeLevel > 0.3 && Math.random() < 0.6) spawnBolt(); if (chargeLevel > 0.6 && Math.random() < 0.7) spawnBolt(); if (chargeLevel > 0.85 && Math.random() < 0.8) spawnBolt(); boltTimer = boltInterval; } } for (const b of boltPool) { if (b.life > 0) { b.life -= 0.12 + chargeLevel * 0.08; b.line.material.opacity = Math.max(0, b.life * 1.2); if (b.life <= 0) { b.line.visible = false; b.line.material.opacity = 0; } } } for (let i = ripples.length - 1; i >= 0; i--) { const r = ripples[i]; r.life -= 0.03; r.mesh.scale.setScalar(1 + (1 - r.life) * 4); r.mesh.material.opacity = r.life * 0.8; if (r.life <= 0) { scene.remove(r.mesh); r.mesh.geometry.dispose(); r.mesh.material.dispose(); ripples.splice(i, 1); } } renderer.render(scene, camera);
+            const spin = 1 + chargeLevel * 15 + touchBoost * 0.5; pulseTime += 0.04 * spin; touchBoost *= 0.94; const chargeScale = 1 + chargeLevel * 1.1; const brightScale = (1 + Math.sin(pulseTime * 1.5) * 0.15 + touchBoost * 0.25) * chargeScale; innerBright.scale.set(brightScale, brightScale, brightScale); innerBright.material.opacity = 0.3 + Math.sin(pulseTime * 1.5) * 0.1 + touchBoost * 0.2 + chargeLevel * 0.6; innerCore.rotation.x += 0.008 * spin; innerCore.rotation.y += 0.012 * spin; midShell.rotation.x -= 0.004 * spin; midShell.rotation.y -= 0.006 * spin; outerShell.rotation.x += 0.002 * spin; outerShell.rotation.y -= 0.003 * spin; coreGroup.rotation.y += coreRotVelY; coreGroup.rotation.x += coreRotVelX; coreRotVelY *= 0.92; coreRotVelX *= 0.92; const scaleForce = (1 - coreScale) * 0.15; coreScaleVel += scaleForce; coreScaleVel *= 0.85; coreScale += coreScaleVel; const _coreSpaceScale = coreScale * (1 - ep * 0.85); coreGroup.scale.set(_coreSpaceScale, _coreSpaceScale, _coreSpaceScale); coreGroup.visible = (spaceState === 'core' || spaceState === 'collapsing') && spaceProgress < 0.98; const rumble = touchBoost * 0.08 + chargeLevel * 0.35; if (rumble > 0.01) { coreGroup.position.x = (Math.random() - 0.5) * rumble; coreGroup.position.y = (Math.random() - 0.5) * rumble; } else { coreGroup.position.x *= 0.9; coreGroup.position.y *= 0.9; } glowSphere.material.opacity = 0.08 + Math.sin(pulseTime * 0.6) * 0.04 + touchBoost * 0.15 + chargeLevel * 0.6; if (chargeLevel > 0.01) { const c = new THREE.Color(); if (chargeLevel < 0.5) c.lerpColors(new THREE.Color(0x8b5cf6), new THREE.Color(0xf59e0b), chargeLevel / 0.5); else c.lerpColors(new THREE.Color(0xf59e0b), new THREE.Color(0xef4444), (chargeLevel - 0.5) / 0.5); glowSphere.material.color.copy(c); innerBright.material.color.copy(c); innerCore.material.color.copy(c); midShell.material.color.copy(c); outerShell.material.color.copy(c); } if (isCharging && chargeLevel > 0.08) { boltTimer -= 1; const boltInterval = Math.max(1, Math.floor(14 - chargeLevel * 13)); if (boltTimer <= 0) { spawnBolt(); if (chargeLevel > 0.3 && Math.random() < 0.6) spawnBolt(); if (chargeLevel > 0.6 && Math.random() < 0.7) spawnBolt(); if (chargeLevel > 0.85 && Math.random() < 0.8) spawnBolt(); boltTimer = boltInterval; } } for (const b of boltPool) { if (b.life > 0) { b.life -= 0.12 + chargeLevel * 0.08; b.line.material.opacity = Math.max(0, b.life * 1.2); if (b.life <= 0) { b.line.visible = false; b.line.material.opacity = 0; } } } for (let i = ripples.length - 1; i >= 0; i--) { const r = ripples[i]; r.life -= 0.03; r.mesh.scale.setScalar(1 + (1 - r.life) * 4); r.mesh.material.opacity = r.life * 0.8; if (r.life <= 0) { scene.remove(r.mesh); r.mesh.geometry.dispose(); r.mesh.material.dispose(); ripples.splice(i, 1); } } renderer.render(scene, camera);
         }
         animate();
         window.addEventListener('resize', () => { camera.aspect = container.clientWidth / container.clientHeight; camera.updateProjectionMatrix(); renderer.setSize(container.clientWidth, container.clientHeight); });
@@ -1549,8 +1536,7 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
         let map = null;
         function initMap() {
             if (map) return;
-            map = L.map('map', { zoomControl: false, attributionControl: false }).setView([20.5937, 78.9629], 4); // India
-            // Using Esri World Imagery (Satellite) - Free, No API Key Required, perfect for cinematic landing
+            map = L.map('map', { zoomControl: false, attributionControl: false }).setView([20.0, 100.0], 3); // Full Earth / Asia
             L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
                 maxZoom: 19,
                 attribution: 'Tiles &copy; Esri'
@@ -1558,13 +1544,16 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
             
             // Cinematic flythrough
             setTimeout(() => {
-                map.flyTo([10.8505, 76.2711], 8, { duration: 3 }); // Kerala
+                map.flyTo([20.5937, 78.9629], 5, { duration: 3 }); // India
                 setTimeout(() => {
-                    map.flyTo([10.7867, 76.6548], 11, { duration: 3 }); // Palakkad
+                    map.flyTo([10.8505, 76.2711], 8, { duration: 3 }); // Kerala
                     setTimeout(() => {
-                        map.flyTo([10.7717, 76.3839], 14, { duration: 3 }); // Ottapalam
+                        map.flyTo([10.7867, 76.6548], 11, { duration: 3 }); // Palakkad
                         setTimeout(() => {
-                            map.flyTo([10.7717, 76.3839], 17, { duration: 4 }); // NSS College
+                            map.flyTo([10.7717, 76.3839], 14, { duration: 3 }); // Ottapalam
+                            setTimeout(() => {
+                                map.flyTo([10.7717, 76.3839], 17, { duration: 4 }); // NSS College
+                            }, 3500);
                         }, 3500);
                     }, 3500);
                 }, 3500);
