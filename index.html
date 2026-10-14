@@ -67,7 +67,6 @@
         #canvas-container.touched { filter: drop-shadow(0 0 25px rgba(167,139,250,0.7)); transition: filter 0.3s ease; }
         .subtitle { text-align: center; font-family: 'Space Grotesk', sans-serif; font-size: 0.6rem; letter-spacing: 0.3em; color: var(--text-subtle); margin-top: 10px; font-weight: 500; text-transform: uppercase; }
         
-        /* Cinematic Map Overlay */
         #map-overlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             z-index: 99999; opacity: 0; pointer-events: none; transition: opacity 1.5s ease;
@@ -386,7 +385,6 @@
             }
         }
 
-        // === AUDIO ENGINE ===
         let audioCtx = null;
         let chargeOsc1 = null, chargeOsc2 = null, chargeGain = null, chargeTickGain = null, chargeTickOsc = null;
         function initAudio() {
@@ -567,7 +565,6 @@
             }, 350);
         }
 
-        // === THREE.JS COSMIC ENGINE ===
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 8000);
@@ -718,41 +715,54 @@
         solarSystemGroup.visible = false;
         scene.add(solarSystemGroup);
 
-        // === ULTRA-REALISTIC FIREBALL SUN ===
+        // === REALISTIC ROUND FIREBALL SUN ===
         const sunGroup = new THREE.Group();
 
-        // Core sun surface with high-res texture
+        // Core sun surface with high-res texture (round fireball)
         const sunSurfaceTex = makeSunTexFallback();
         const sunMesh = new THREE.Mesh(
             new THREE.SphereGeometry(1.6, 128, 128),
-            new THREE.MeshBasicMaterial({ map: sunSurfaceTex, color: 0xfff5c0 })
+            new THREE.MeshBasicMaterial({ map: sunSurfaceTex, color: 0xfff0a0 })
         );
         sunGroup.add(sunMesh);
 
-        // Inner hot glow (bright yellow-white)
+        // Bright inner glow just above the surface
         const sunInnerGlow = new THREE.Mesh(
             new THREE.SphereGeometry(1.68, 64, 64),
             new THREE.MeshBasicMaterial({ 
-                color: 0xfff0b0, 
+                color: 0xffd870, 
                 transparent: true, 
-                opacity: 0.35, 
+                opacity: 0.55, 
                 blending: THREE.AdditiveBlending,
                 depthWrite: false
             })
         );
         sunGroup.add(sunInnerGlow);
 
-        // Mid corona (orange)
+        // Sharp bright ring at the edge (defines round shape)
+        const sunEdgeGlow = new THREE.Mesh(
+            new THREE.SphereGeometry(1.78, 64, 64),
+            new THREE.MeshBasicMaterial({ 
+                color: 0xffb040, 
+                transparent: true, 
+                opacity: 0.4, 
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+                side: THREE.BackSide
+            })
+        );
+        sunGroup.add(sunEdgeGlow);
+
+        // Soft inner corona (tight, close to sun)
         const sunCoronaCanvas = _canvas(1024, 1024);
         { 
             const ctx = sunCoronaCanvas.getContext('2d'); 
-            const g = ctx.createRadialGradient(512, 512, 80, 512, 512, 512); 
-            g.addColorStop(0, 'rgba(255,250,220,1)'); 
-            g.addColorStop(0.15, 'rgba(255,230,140,0.9)'); 
-            g.addColorStop(0.35, 'rgba(255,180,70,0.55)'); 
-            g.addColorStop(0.6, 'rgba(255,120,40,0.25)'); 
-            g.addColorStop(0.85, 'rgba(255,80,30,0.08)'); 
-            g.addColorStop(1, 'rgba(255,50,20,0)'); 
+            const g = ctx.createRadialGradient(512, 512, 180, 512, 512, 512); 
+            g.addColorStop(0, 'rgba(255,245,200,0.85)'); 
+            g.addColorStop(0.25, 'rgba(255,210,110,0.5)'); 
+            g.addColorStop(0.55, 'rgba(255,150,60,0.2)'); 
+            g.addColorStop(0.85, 'rgba(255,90,30,0.05)'); 
+            g.addColorStop(1, 'rgba(255,60,20,0)'); 
             ctx.fillStyle = g; 
             ctx.fillRect(0, 0, 1024, 1024); 
         }
@@ -762,16 +772,16 @@
             depthWrite: false, 
             blending: THREE.AdditiveBlending 
         }));
-        sunCorona.scale.set(16, 16, 1); 
+        sunCorona.scale.set(9, 9, 1); 
         sunGroup.add(sunCorona);
 
-        // Outer soft corona (deep orange halo)
+        // Wide outer corona halo (subtle)
         const sunOuterCoronaCanvas = _canvas(1024, 1024);
         { 
             const ctx = sunOuterCoronaCanvas.getContext('2d'); 
-            const g = ctx.createRadialGradient(512, 512, 200, 512, 512, 512); 
-            g.addColorStop(0, 'rgba(255,160,60,0.5)'); 
-            g.addColorStop(0.5, 'rgba(255,100,40,0.15)'); 
+            const g = ctx.createRadialGradient(512, 512, 320, 512, 512, 512); 
+            g.addColorStop(0, 'rgba(255,170,70,0.25)'); 
+            g.addColorStop(0.5, 'rgba(255,110,40,0.08)'); 
             g.addColorStop(1, 'rgba(255,60,20,0)'); 
             ctx.fillStyle = g; 
             ctx.fillRect(0, 0, 1024, 1024); 
@@ -782,26 +792,23 @@
             depthWrite: false, 
             blending: THREE.AdditiveBlending 
         }));
-        sunOuterCorona.scale.set(26, 26, 1); 
+        sunOuterCorona.scale.set(18, 18, 1); 
         sunGroup.add(sunOuterCorona);
 
-        // Solar flares (rotating spiky rays)
+        // Small solar flares hugging the sun's edge (tongues of flame)
         const solarFlaresGroup = new THREE.Group();
-        const flareCount = 24;
+        const flareCount = 18;
         for (let i = 0; i < flareCount; i++) {
-            const flareCanvas = _canvas(64, 256);
+            const flareCanvas = _canvas(64, 128);
             const fctx = flareCanvas.getContext('2d');
-            const fg = fctx.createLinearGradient(0, 0, 0, 256);
-            fg.addColorStop(0, 'rgba(255,240,180,0.95)');
-            fg.addColorStop(0.4, 'rgba(255,180,80,0.6)');
-            fg.addColorStop(0.8, 'rgba(255,100,40,0.15)');
-            fg.addColorStop(1, 'rgba(255,60,20,0)');
+            const fg = fctx.createRadialGradient(32, 64, 2, 32, 64, 60);
+            fg.addColorStop(0, 'rgba(255,250,220,0.95)');
+            fg.addColorStop(0.3, 'rgba(255,210,120,0.7)');
+            fg.addColorStop(0.7, 'rgba(255,140,50,0.2)');
+            fg.addColorStop(1, 'rgba(255,80,20,0)');
             fctx.fillStyle = fg;
             fctx.beginPath();
-            fctx.moveTo(32, 0);
-            fctx.lineTo(48, 256);
-            fctx.lineTo(16, 256);
-            fctx.closePath();
+            fctx.ellipse(32, 64, 22, 55, 0, 0, Math.PI * 2);
             fctx.fill();
             const flareTex = new THREE.CanvasTexture(flareCanvas);
             const flare = new THREE.Sprite(new THREE.SpriteMaterial({
@@ -809,25 +816,25 @@
                 transparent: true,
                 depthWrite: false,
                 blending: THREE.AdditiveBlending,
-                opacity: 0.5 + Math.random() * 0.3
+                opacity: 0.6
             }));
             const angle = (i / flareCount) * Math.PI * 2;
-            const radius = 1.9;
+            const radius = 1.85;
             flare.position.set(
                 Math.cos(angle) * radius,
                 Math.sin(angle) * radius,
                 0
             );
             flare.rotation.z = angle - Math.PI / 2;
-            const flareScale = 2.5 + Math.random() * 2;
-            flare.scale.set(flareScale, flareScale * 1.8, 1);
+            const flareScale = 1.1 + Math.random() * 0.5;
+            flare.scale.set(flareScale * 0.7, flareScale * 1.5, 1);
             flare.userData = { baseAngle: angle, baseScale: flareScale, phase: Math.random() * Math.PI * 2 };
             solarFlaresGroup.add(flare);
         }
         sunGroup.add(solarFlaresGroup);
 
         // Point light from Sun
-        const sunLight = new THREE.PointLight(0xfff0b0, 3.5, 1200); 
+        const sunLight = new THREE.PointLight(0xffe090, 3.0, 1100); 
         sunGroup.add(sunLight);
 
         solarSystemGroup.add(sunGroup);
@@ -1054,10 +1061,9 @@
 
             if (spaceProgress > 0.001) { milkyWayGroup.visible = true; milkyWayGroup.scale.setScalar(Math.max(0.001, ep)); milkyWayGroup.rotation.y += 0.0005; milkyWayGroup.traverse((o) => { if (o.material && o.material.opacity !== undefined) { if (o.userData.baseOpacity === undefined) o.userData.baseOpacity = o.material.opacity; o.material.opacity = o.userData.baseOpacity * milkyAlpha; } }); } else { milkyWayGroup.visible = false; }
             const solarFinal = ep * solarAlpha;
-            if (solarFinal > 0.001) { solarSystemGroup.visible = true; solarSystemGroup.scale.setScalar(Math.max(0.001, solarFinal)); sunLight.intensity = 3.5 * solarAlpha; solarSystemGroup.traverse((o) => { if (o === sunCorona || o === sunOuterCorona) return; if (o.material && o.material.transparent) { if (o.userData.baseOpacity === undefined) o.userData.baseOpacity = o.material.opacity; o.material.opacity = o.userData.baseOpacity * solarAlpha; } }); 
-            // Sun animation
-            sunCorona.material.opacity = (0.85 + Math.sin(nowMs * 0.0015) * 0.15) * solarAlpha;
-            sunOuterCorona.material.opacity = (0.7 + Math.sin(nowMs * 0.0008) * 0.15) * solarAlpha;
+            if (solarFinal > 0.001) { solarSystemGroup.visible = true; solarSystemGroup.scale.setScalar(Math.max(0.001, solarFinal)); sunLight.intensity = 3.0 * solarAlpha; solarSystemGroup.traverse((o) => { if (o === sunCorona || o === sunOuterCorona) return; if (o.material && o.material.transparent) { if (o.userData.baseOpacity === undefined) o.userData.baseOpacity = o.material.opacity; o.material.opacity = o.userData.baseOpacity * solarAlpha; } }); 
+                sunCorona.material.opacity = (0.85 + Math.sin(nowMs * 0.0015) * 0.15) * solarAlpha;
+                sunOuterCorona.material.opacity = (0.7 + Math.sin(nowMs * 0.0008) * 0.15) * solarAlpha;
             } else { solarSystemGroup.visible = false; sunLight.intensity = 0; }
             
             if (solarAlpha > 0.02) { 
@@ -1065,28 +1071,24 @@
                 for (const grp of planetObjs) { const ud = grp.userData; const a = ud.angle + ts * ud.speed * 0.04; grp.position.set(Math.cos(a) * ud.orbit, 0, Math.sin(a) * ud.orbit); for (const child of grp.children) { if (child.userData && child.userData.rotSpd) child.rotation.y += child.userData.rotSpd * 0.1; } if (ud.moons) { for (const m of ud.moons) { m.angle += m.speed * 0.0015; m.grp.rotation.y = m.angle; } } } 
                 for (const ast of asteroidMeshes) { ast.userData.angle += ast.userData.speed * 0.008; const ra = ast.userData.angle; const r = ast.userData.dist; ast.position.x = Math.cos(ra) * r; ast.position.z = Math.sin(ra) * r; ast.rotation.x += ast.userData.rotSpd.x; ast.rotation.y += ast.userData.rotSpd.y; } 
                 
-                // Sun rotation
                 sunMesh.rotation.y += 0.0012; 
                 sunInnerGlow.rotation.y -= 0.0008;
 
-                // Corona pulsing (breathing effect)
-                const cs = 16 + Math.sin(ts * 1.5) * 0.6; 
+                const cs = 9 + Math.sin(ts * 1.5) * 0.3; 
                 sunCorona.scale.set(cs, cs, 1);
-                const ocs = 26 + Math.sin(ts * 0.8) * 1.2;
+                const ocs = 18 + Math.sin(ts * 0.8) * 0.5;
                 sunOuterCorona.scale.set(ocs, ocs, 1);
 
-                // Rotate solar flares around the sun
-                solarFlaresGroup.rotation.z = ts * 0.15;
+                solarFlaresGroup.rotation.z = ts * 0.08;
 
-                // Animate each solar flare (pulsing + flickering)
                 for (const flare of solarFlaresGroup.children) {
-                    const pulse = 1 + Math.sin(ts * 3 + flare.userData.phase) * 0.25;
+                    const pulse = 1 + Math.sin(ts * 3 + flare.userData.phase) * 0.18;
                     flare.scale.set(
-                        flare.userData.baseScale * pulse, 
-                        flare.userData.baseScale * 1.8 * pulse, 
+                        flare.userData.baseScale * 0.7 * pulse, 
+                        flare.userData.baseScale * 1.5 * pulse, 
                         1
                     );
-                    flare.material.opacity = 0.4 + Math.sin(ts * 4 + flare.userData.phase) * 0.25;
+                    flare.material.opacity = 0.5 + Math.sin(ts * 4 + flare.userData.phase) * 0.2;
                 }
             }
             if (satelliteGroup) { const ts = nowMs * 0.001; for (const sat of satelliteGroup.children) { sat.userData.angle += sat.userData.speed * 0.01; const ra = sat.userData.angle; const r = sat.userData.orbitRadius; sat.position.set(Math.cos(ra) * r, Math.sin(ra) * r * Math.sin(sat.userData.incl), Math.sin(ra) * r * Math.cos(sat.userData.incl)); sat.rotation.y = -ra; } }
