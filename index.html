@@ -9,7 +9,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <!-- Leaflet Map for Cinematic Landing -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
@@ -84,6 +83,7 @@
             z-index: 100000; display: none; gap: 12px;
         }
         #map-exit.active { display: flex; animation: fadeIn 0.5s ease; }
+        .plane-icon { background: transparent; font-size: 20px; text-align: center; line-height: 20px; }
 
         .signal-card { text-align: center; padding: 30px 24px; }
         #signal-text { font-family: 'Space Grotesk', sans-serif; font-size: 2.8rem; font-weight: 700; letter-spacing: 0.08em; color: var(--text-subtle); transition: all 0.4s ease; margin-bottom: 12px; line-height: 1; text-shadow: 0 0 30px currentColor; }
@@ -956,7 +956,7 @@
                 skybox.visible = false;
             }
 
-            if (spaceProgress > 0.001) { milkyWayGroup.visible = true; milkyWayGroup.scale.setScalar(Math.max(0.001, ep)); milkyWayGroup.traverse((o) => { if (o.material && o.material.opacity !== undefined) { if (o.userData.baseOpacity === undefined) o.userData.baseOpacity = o.material.opacity; o.material.opacity = o.userData.baseOpacity * milkyAlpha; } }); } else { milkyWayGroup.visible = false; }
+            if (spaceProgress > 0.001) { milkyWayGroup.visible = true; milkyWayGroup.scale.setScalar(Math.max(0.001, ep)); milkyWayGroup.rotation.y += 0.0005; milkyWayGroup.traverse((o) => { if (o.material && o.material.opacity !== undefined) { if (o.userData.baseOpacity === undefined) o.userData.baseOpacity = o.material.opacity; o.material.opacity = o.userData.baseOpacity * milkyAlpha; } }); } else { milkyWayGroup.visible = false; }
             const solarFinal = ep * solarAlpha;
             if (solarFinal > 0.001) { solarSystemGroup.visible = true; solarSystemGroup.scale.setScalar(Math.max(0.001, solarFinal)); sunLight.intensity = 2.2 * solarAlpha; solarSystemGroup.traverse((o) => { if (o === sunCorona) return; if (o.material && o.material.transparent) { if (o.userData.baseOpacity === undefined) o.userData.baseOpacity = o.material.opacity; o.material.opacity = o.userData.baseOpacity * solarAlpha; } }); sunCorona.material.opacity = (0.85 + Math.sin(nowMs * 0.0015) * 0.15) * solarAlpha; } else { solarSystemGroup.visible = false; sunLight.intensity = 0; }
             if (solarAlpha > 0.02) { const ts = nowMs * 0.001; for (const grp of planetObjs) { const ud = grp.userData; const a = ud.angle + ts * ud.speed * 0.04; grp.position.set(Math.cos(a) * ud.orbit, 0, Math.sin(a) * ud.orbit); for (const child of grp.children) { if (child.userData && child.userData.rotSpd) child.rotation.y += child.userData.rotSpd * 0.1; } if (ud.moons) { for (const m of ud.moons) { m.angle += m.speed * 0.0015; m.grp.rotation.y = m.angle; } } } for (const ast of asteroidMeshes) { ast.userData.angle += ast.userData.speed * 0.008; const ra = ast.userData.angle; const r = ast.userData.dist; ast.position.x = Math.cos(ra) * r; ast.position.z = Math.sin(ra) * r; ast.rotation.x += ast.userData.rotSpd.x; ast.rotation.y += ast.userData.rotSpd.y; } sunMesh.rotation.y += 0.0008; const cs = 14 + Math.sin(ts * 2) * 0.4; sunCorona.scale.set(cs, cs, 1); }
@@ -1571,20 +1571,22 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
                     setTimeout(() => {
                         map.flyTo([10.7867, 76.6548], 11, { duration: 3 }); // Palakkad
                         setTimeout(() => {
-                            map.flyTo([10.7717, 76.3839], 15, { duration: 3 }); // Ottapalam
+                            map.flyTo([10.7728, 76.3721], 17, { duration: 4 }); // Palappuram NSS College
                             setTimeout(() => {
-                                map.flyTo([10.7717, 76.3839], 19, { duration: 4 }); // NSS College
-                                setTimeout(() => {
-                                    // Show Street View after reaching NSS College
-                                    document.getElementById('street-view-iframe').src = "https://www.google.com/maps/embed?pb=!4v1700000000000!6m8!1m7!1sSOME_ID!2m2!1d10.7717!2d76.3839!3f0!4f0!5f0.78";
-                                    document.getElementById('street-view-container').style.display = 'block';
-                                    document.getElementById('btn-dubai').style.display = 'block'; // Show Dubai button
-                                }, 4000);
-                            }, 3500);
+                                // Show Street View after reaching Palappuram NSS College
+                                showStreetView(10.7728, 76.3721);
+                                document.getElementById('btn-dubai').style.display = 'block'; // Show Dubai button
+                            }, 4000);
                         }, 3500);
                     }, 3500);
                 }, 3500);
             }, 1000);
+        }
+
+        function showStreetView(lat, lng) {
+            const iframe = document.getElementById('street-view-iframe');
+            iframe.src = `https://maps.google.com/maps?q=&layer=c&cbll=${lat},${lng}&cbp=11,0,0,0,0&output=svembed`;
+            document.getElementById('street-view-container').style.display = 'block';
         }
 
         function closeStreetView() {
@@ -1593,20 +1595,39 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
 
         function flyToDubai() {
             document.getElementById('street-view-container').style.display = 'none';
-            document.getElementById('btn-dubai').style.display = 'none'; // Hide Dubai button during flight
-            document.getElementById('map-exit').style.display = 'none'; // Hide exit buttons during flight
-            
-            // Flight sequence: NSS College -> Cochin Airport -> Dubai Airport -> Al Qusais
-            map.flyTo([10.1520, 76.4000], 12, { duration: 2 }); // Cochin Airport
+            document.getElementById('btn-dubai').style.display = 'none';
+            document.getElementById('map-exit').style.display = 'none';
+
+            // Create flight path
+            const flightPath = [
+                [10.7728, 76.3721], // Palappuram
+                [10.1520, 76.4000], // Cochin Airport
+                [15.0000, 65.0000], // Mid-ocean
+                [25.2532, 55.3657], // Dubai Airport
+                [25.2854, 55.3742]  // Al Qusais Metro
+            ];
+
+            const polyline = L.polyline(flightPath, { color: '#8b5cf6', weight: 3, dashArray: '5, 10' }).addTo(map);
+            const planeIcon = L.divIcon({ html: '✈️', className: 'plane-icon', iconSize: [20, 20] });
+            const planeMarker = L.marker(flightPath[0], { icon: planeIcon }).addTo(map);
+
+            let i = 0;
+            const interval = setInterval(() => {
+                if (i >= flightPath.length - 1) { clearInterval(interval); return; }
+                i++;
+                const end = flightPath[i];
+                map.flyTo(end, 8, { duration: 2 });
+                planeMarker.setLatLng(end);
+            }, 3000);
+
+            // Final step: Al Qusais
             setTimeout(() => {
-                map.flyTo([25.2532, 55.3657], 8, { duration: 5 }); // Dubai Airport (Flight across ocean)
+                map.flyTo([25.2854, 55.3742], 17, { duration: 3 });
                 setTimeout(() => {
-                    map.flyTo([25.2854, 55.3742], 15, { duration: 3 }); // Al Qusais
-                    setTimeout(() => {
-                        document.getElementById('map-exit').style.display = 'flex'; // Show exit buttons at end
-                    }, 3000);
-                }, 5000);
-            }, 2000);
+                    showStreetView(25.2854, 55.3742); // Show Street View at Al Qusais
+                    document.getElementById('map-exit').style.display = 'flex';
+                }, 3000);
+            }, 12000);
         }
 
         window.onload = () => {
