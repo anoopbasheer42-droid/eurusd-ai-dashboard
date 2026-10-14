@@ -249,7 +249,7 @@
             <div class="card-title">AI Trader's Reasoning</div>
             <div class="reasoning-text" id="val-reason">Engine scanning. AI auto-analyzes hourly.</div>
         </div>
-    </div> 
+    </div>
       <script>
         const GROQ_MODELS = ['meta-llama/llama-4-scout-17b-16e-instruct','llama-3.3-70b-versatile','openai/gpt-oss-120b'];
         const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
@@ -331,12 +331,8 @@
                     let match;
                     let snippets = [];
                     let titles = [];
-                    while ((match = snippetRegex.exec(html)) !== null) {
-                        snippets.push(match[1].replace(/<[^>]*>?/gm, '').trim());
-                    }
-                    while ((match = titleRegex.exec(html)) !== null) {
-                        titles.push(match[1].replace(/<[^>]*>?/gm, '').trim());
-                    }
+                    while ((match = snippetRegex.exec(html)) !== null) snippets.push(match[1].replace(/<[^>]*>?/gm, '').trim());
+                    while ((match = titleRegex.exec(html)) !== null) titles.push(match[1].replace(/<[^>]*>?/gm, '').trim());
                     if (snippets.length > 0) {
                         let formatted = "Here are the latest web search results:\n\n";
                         for (let i = 0; i < Math.min(snippets.length, 3); i++) {
@@ -416,80 +412,161 @@
                 setTimeout(() => { stopChargeSound(); }, durationSec * 1000 + 60);
             } catch(e) { stopChargeSound(); }
         }
+
+        // ═══════════════════════════════════════════════════════
+        // BIG BANG EXPLOSION SOUND — dramatic, layered, ~13s
+        // ═══════════════════════════════════════════════════════
         function playExplosionSound() {
             const ctx = initAudio();
             if (!ctx) return;
             const now = ctx.currentTime;
-            const master = ctx.createGain(); master.gain.value = 0.9; master.connect(ctx.destination);
-            const bassOsc = ctx.createOscillator(); const bassGain = ctx.createGain();
-            bassOsc.type = 'sine';
-            bassOsc.frequency.setValueAtTime(220, now);
-            bassOsc.frequency.exponentialRampToValueAtTime(28, now + 0.8);
-            bassGain.gain.setValueAtTime(0.95, now);
-            bassGain.gain.exponentialRampToValueAtTime(0.001, now + 1.8);
-            bassOsc.connect(bassGain); bassGain.connect(master); bassOsc.start(now); bassOsc.stop(now + 2.0);
-            const subOsc = ctx.createOscillator(); const subGain = ctx.createGain();
-            subOsc.type = 'sine';
-            subOsc.frequency.setValueAtTime(60, now);
-            subOsc.frequency.linearRampToValueAtTime(18, now + 0.5);
-            subGain.gain.setValueAtTime(0.8, now);
-            subGain.gain.exponentialRampToValueAtTime(0.001, now + 1.4);
-            subOsc.connect(subGain); subGain.connect(master); subOsc.start(now); subOsc.stop(now + 1.5);
-            const crackBuffer = ctx.createBuffer(1, ctx.sampleRate * 0.15, ctx.sampleRate);
+            const master = ctx.createGain();
+            master.gain.setValueAtTime(1.1, now);
+            master.connect(ctx.destination);
+
+            // 1. RISING WHOOSH (0 → 2s) — the charge winding up
+            const whooshBuffer = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+            const wd = whooshBuffer.getChannelData(0);
+            for (let i = 0; i < wd.length; i++) {
+                const t = i / wd.length;
+                wd[i] = (Math.random() * 2 - 1) * Math.pow(t, 2.2);
+            }
+            const whooshSrc = ctx.createBufferSource();
+            whooshSrc.buffer = whooshBuffer;
+            const whooshFilter = ctx.createBiquadFilter();
+            whooshFilter.type = 'bandpass';
+            whooshFilter.frequency.setValueAtTime(180, now);
+            whooshFilter.frequency.exponentialRampToValueAtTime(3200, now + 2.0);
+            whooshFilter.Q.value = 3;
+            const whooshGain = ctx.createGain();
+            whooshGain.gain.setValueAtTime(0.001, now);
+            whooshGain.gain.linearRampToValueAtTime(0.65, now + 1.85);
+            whooshGain.gain.exponentialRampToValueAtTime(0.001, now + 2.15);
+            whooshSrc.connect(whooshFilter).connect(whooshGain).connect(master);
+            whooshSrc.start(now);
+            whooshSrc.stop(now + 2.2);
+
+            // 2. BIG BASS DROP — the moment of the BANG (2s → 8s)
+            const bigBass = ctx.createOscillator();
+            const bigBassGain = ctx.createGain();
+            bigBass.type = 'sine';
+            bigBass.frequency.setValueAtTime(520, now + 2.0);
+            bigBass.frequency.exponentialRampToValueAtTime(14, now + 6.5);
+            bigBassGain.gain.setValueAtTime(0.001, now + 2.0);
+            bigBassGain.gain.linearRampToValueAtTime(1.0, now + 2.05);
+            bigBassGain.gain.exponentialRampToValueAtTime(0.001, now + 8.0);
+            bigBass.connect(bigBassGain).connect(master);
+            bigBass.start(now + 2.0);
+            bigBass.stop(now + 8.5);
+
+            // 3. SUB-BASS PUNCH — physical feel
+            const sub = ctx.createOscillator();
+            const subGain = ctx.createGain();
+            sub.type = 'sine';
+            sub.frequency.setValueAtTime(38, now + 2.0);
+            sub.frequency.linearRampToValueAtTime(9, now + 5.5);
+            subGain.gain.setValueAtTime(0.001, now + 2.0);
+            subGain.gain.linearRampToValueAtTime(0.95, now + 2.1);
+            subGain.gain.exponentialRampToValueAtTime(0.001, now + 6.5);
+            sub.connect(subGain).connect(master);
+            sub.start(now + 2.0);
+            sub.stop(now + 7.0);
+
+            // 4. INITIAL CRACK — the flash
+            const crackBuffer = ctx.createBuffer(1, ctx.sampleRate * 0.3, ctx.sampleRate);
             const crackData = crackBuffer.getChannelData(0);
             for (let i = 0; i < crackData.length; i++) {
                 const t = i / crackData.length;
-                crackData[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, 6);
+                crackData[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, 4);
             }
-            const crackSrc = ctx.createBufferSource(); crackSrc.buffer = crackBuffer;
-            const crackFilter = ctx.createBiquadFilter(); crackFilter.type = 'highpass'; crackFilter.frequency.value = 800;
+            const crackSrc = ctx.createBufferSource();
+            crackSrc.buffer = crackBuffer;
+            const crackHpf = ctx.createBiquadFilter();
+            crackHpf.type = 'highpass';
+            crackHpf.frequency.value = 900;
             const crackGain = ctx.createGain();
-            crackGain.gain.setValueAtTime(0.9, now);
-            crackGain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-            crackSrc.connect(crackFilter); crackFilter.connect(crackGain); crackGain.connect(master); crackSrc.start(now); crackSrc.stop(now + 0.2);
-            const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 1.4, ctx.sampleRate);
-            const ndata = noiseBuffer.getChannelData(0);
-            for (let i = 0; i < ndata.length; i++) ndata[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / ndata.length, 1.8);
-            const noiseSrc = ctx.createBufferSource(); noiseSrc.buffer = noiseBuffer;
-            const noiseFilter = ctx.createBiquadFilter(); noiseFilter.type = 'lowpass';
-            noiseFilter.frequency.setValueAtTime(6000, now);
-            noiseFilter.frequency.exponentialRampToValueAtTime(180, now + 1.2);
-            const noiseGain = ctx.createGain();
-            noiseGain.gain.setValueAtTime(0.7, now);
-            noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 1.4);
-            noiseSrc.connect(noiseFilter); noiseFilter.connect(noiseGain); noiseGain.connect(master); noiseSrc.start(now); noiseSrc.stop(now + 1.4);
-            for (let k = 0; k < 3; k++) {
-                const ringOsc = ctx.createOscillator(); const ringGain = ctx.createGain();
-                ringOsc.type = 'triangle';
-                const freq = 1800 + k * 900 + Math.random() * 400;
-                ringOsc.frequency.setValueAtTime(freq, now);
-                ringOsc.frequency.exponentialRampToValueAtTime(freq * 0.6, now + 0.9);
-                ringGain.gain.setValueAtTime(0.12, now + k * 0.02);
-                ringGain.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
-                ringOsc.connect(ringGain); ringGain.connect(master); ringOsc.start(now + k * 0.02); ringOsc.stop(now + 1.1);
-            }
-            const rumbleBuffer = ctx.createBuffer(1, ctx.sampleRate * 2.5, ctx.sampleRate);
-            const rdata = rumbleBuffer.getChannelData(0);
-            for (let i = 0; i < rdata.length; i++) rdata[i] = (Math.random() * 2 - 1);
-            const rumbleSrc = ctx.createBufferSource(); rumbleSrc.buffer = rumbleBuffer;
-            const rumbleFilter = ctx.createBiquadFilter(); rumbleFilter.type = 'lowpass'; rumbleFilter.frequency.value = 90;
+            crackGain.gain.setValueAtTime(1.0, now + 2.0);
+            crackGain.gain.exponentialRampToValueAtTime(0.001, now + 2.35);
+            crackSrc.connect(crackHpf).connect(crackGain).connect(master);
+            crackSrc.start(now + 2.0);
+            crackSrc.stop(now + 2.4);
+
+            // 5. LONG COSMIC RUMBLE — 10s tail
+            const rumbleBuffer = ctx.createBuffer(1, ctx.sampleRate * 10, ctx.sampleRate);
+            const rd = rumbleBuffer.getChannelData(0);
+            for (let i = 0; i < rd.length; i++) rd[i] = (Math.random() * 2 - 1);
+            const rumbleSrc = ctx.createBufferSource();
+            rumbleSrc.buffer = rumbleBuffer;
+            const rumbleLpf = ctx.createBiquadFilter();
+            rumbleLpf.type = 'lowpass';
+            rumbleLpf.frequency.setValueAtTime(420, now + 2.0);
+            rumbleLpf.frequency.exponentialRampToValueAtTime(45, now + 12.0);
             const rumbleGain = ctx.createGain();
-            rumbleGain.gain.setValueAtTime(0, now + 0.05);
-            rumbleGain.gain.linearRampToValueAtTime(0.55, now + 0.35);
-            rumbleGain.gain.exponentialRampToValueAtTime(0.001, now + 2.4);
-            rumbleSrc.connect(rumbleFilter); rumbleFilter.connect(rumbleGain); rumbleGain.connect(master); rumbleSrc.start(now + 0.05); rumbleSrc.stop(now + 2.5);
+            rumbleGain.gain.setValueAtTime(0.001, now + 2.0);
+            rumbleGain.gain.linearRampToValueAtTime(0.65, now + 2.35);
+            rumbleGain.gain.exponentialRampToValueAtTime(0.001, now + 12.0);
+            rumbleSrc.connect(rumbleLpf).connect(rumbleGain).connect(master);
+            rumbleSrc.start(now + 2.0);
+            rumbleSrc.stop(now + 12.0);
+
+            // 6. HIGH CRACKLES — debris scattering
+            for (let k = 0; k < 10; k++) {
+                setTimeout(() => {
+                    if (!audioCtx) return;
+                    const t2 = audioCtx.currentTime;
+                    const nbuf = audioCtx.createBuffer(1, Math.floor(audioCtx.sampleRate * 0.14), audioCtx.sampleRate);
+                    const nd = nbuf.getChannelData(0);
+                    for (let i = 0; i < nd.length; i++) nd[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / nd.length, 3);
+                    const src = audioCtx.createBufferSource();
+                    src.buffer = nbuf;
+                    const hpf = audioCtx.createBiquadFilter();
+                    hpf.type = 'highpass';
+                    hpf.frequency.value = 2200 + Math.random() * 3500;
+                    const g = audioCtx.createGain();
+                    g.gain.setValueAtTime(0.35 + Math.random() * 0.3, t2);
+                    g.gain.exponentialRampToValueAtTime(0.001, t2 + 0.16);
+                    src.connect(hpf).connect(g).connect(master);
+                    src.start(t2);
+                    src.stop(t2 + 0.18);
+                }, 2050 + Math.random() * 3800);
+            }
+
+            // 7. AFTERSHOCK BOOMS
+            for (let k = 0; k < 3; k++) {
+                setTimeout(() => {
+                    if (!audioCtx) return;
+                    const t2 = audioCtx.currentTime;
+                    const osc = audioCtx.createOscillator();
+                    const g = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(85, t2);
+                    osc.frequency.exponentialRampToValueAtTime(22, t2 + 1.0);
+                    g.gain.setValueAtTime(0.55, t2);
+                    g.gain.exponentialRampToValueAtTime(0.001, t2 + 1.6);
+                    osc.connect(g).connect(master);
+                    osc.start(t2);
+                    osc.stop(t2 + 1.7);
+                }, 3200 + k * 1300);
+            }
+
+            // 8. FINAL COSMIC ECHO
             setTimeout(() => {
                 if (!audioCtx) return;
                 const t2 = audioCtx.currentTime;
-                const aftOsc = audioCtx.createOscillator(); const aftGain = audioCtx.createGain();
-                aftOsc.type = 'sine';
-                aftOsc.frequency.setValueAtTime(90, t2);
-                aftOsc.frequency.exponentialRampToValueAtTime(35, t2 + 0.4);
-                aftGain.gain.setValueAtTime(0.35, t2);
-                aftGain.gain.exponentialRampToValueAtTime(0.001, t2 + 0.7);
-                aftOsc.connect(aftGain); aftGain.connect(master); aftOsc.start(t2); aftOsc.stop(t2 + 0.8);
-            }, 350);
+                const osc = audioCtx.createOscillator();
+                const g = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(40, t2);
+                osc.frequency.exponentialRampToValueAtTime(12, t2 + 3);
+                g.gain.setValueAtTime(0.4, t2);
+                g.gain.exponentialRampToValueAtTime(0.001, t2 + 4);
+                osc.connect(g).connect(master);
+                osc.start(t2);
+                osc.stop(t2 + 4.2);
+            }, 7500);
         }
+
+        // === THREE.JS NEURAL CORE ===
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 4000);
@@ -508,8 +585,7 @@
         scene.add(coreGroup);
 
         // ═══════════════════════════════════════════════════════
-        // SPACE SCENE — Animated Solar System + Milky Way
-        // Camera orbits EARTH by default. Tap any planet to focus.
+        // SPACE SCENE — Milky Way + Solar System (split for zoom)
         // ═══════════════════════════════════════════════════════
 
         function makeGlowTex(color, size = 128) {
@@ -543,34 +619,42 @@
                 ctx.beginPath(); ctx.arc(Math.random()*w, Math.random()*h, r, 0, Math.PI*2); ctx.fill();
             }
         }
+
         function makeSunTex() {
-            const c = _canvas(512, 256), ctx = c.getContext('2d');
-            ctx.fillStyle = '#ffb840'; ctx.fillRect(0, 0, 512, 256);
-            _noise(ctx, 512, 256, '255,200,80', 400, 8, 32, 0.05, 0.25);
-            _noise(ctx, 512, 256, '255,140,40', 300, 5, 20, 0.05, 0.2);
+            const c = _canvas(1024, 512), ctx = c.getContext('2d');
+            ctx.fillStyle = '#ffb840'; ctx.fillRect(0, 0, 1024, 512);
+            for (let i = 0; i < 30; i++) {
+                ctx.fillStyle = `rgba(255,${160 + Math.random()*40|0},${30 + Math.random()*30|0},${0.15 + Math.random()*0.15})`;
+                ctx.fillRect(0, i*17 + Math.random()*8, 1024, 3 + Math.random()*6);
+            }
+            _noise(ctx, 1024, 512, '255,200,80', 800, 6, 30, 0.08, 0.25);
+            _noise(ctx, 1024, 512, '255,140,40', 500, 5, 22, 0.05, 0.18);
+            _noise(ctx, 1024, 512, '255,240,180', 300, 4, 14, 0.05, 0.15);
             return _tex(c);
         }
         function makeMercuryTex() {
             const c = _canvas(512, 256), ctx = c.getContext('2d');
             ctx.fillStyle = '#7a7168'; ctx.fillRect(0, 0, 512, 256);
-            for (let i = 0; i < 300; i++) {
-                const x = Math.random()*512, y = Math.random()*256, r = 3 + Math.random()*15;
+            for (let i = 0; i < 350; i++) {
+                const x = Math.random()*512, y = Math.random()*256, r = 2 + Math.random()*16;
                 const g = ctx.createRadialGradient(x-r*0.3, y-r*0.3, 0, x, y, r);
-                g.addColorStop(0, 'rgba(60,55,50,0.55)');
+                g.addColorStop(0, 'rgba(60,55,50,0.6)');
                 g.addColorStop(1, 'rgba(60,55,50,0)');
                 ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
             }
             _noise(ctx, 512, 256, '255,255,255', 400, 1, 3, 0.05, 0.2);
+            _noise(ctx, 512, 256, '160,150,140', 200, 3, 10, 0.1, 0.25);
             return _tex(c);
         }
         function makeVenusTex() {
             const c = _canvas(512, 256), ctx = c.getContext('2d');
             ctx.fillStyle = '#c9a262'; ctx.fillRect(0, 0, 512, 256);
-            for (let i = 0; i < 80; i++) {
-                ctx.fillStyle = `rgba(240,220,180,${0.1 + Math.random()*0.2})`;
-                ctx.fillRect(0, Math.random()*256, 512, 8 + Math.random()*30);
+            for (let i = 0; i < 100; i++) {
+                ctx.fillStyle = `rgba(240,220,180,${0.08 + Math.random()*0.22})`;
+                ctx.fillRect(0, Math.random()*256, 512, 6 + Math.random()*35);
             }
-            _noise(ctx, 512, 256, '255,240,200', 300, 4, 16, 0.05, 0.15);
+            _noise(ctx, 512, 256, '255,240,200', 400, 4, 18, 0.05, 0.18);
+            _noise(ctx, 512, 256, '180,140,80', 200, 5, 20, 0.05, 0.15);
             return _tex(c);
         }
         function makeEarthTex() {
@@ -605,8 +689,8 @@
         function makeEarthCloudsTex() {
             const W = 1024, H = 512;
             const c = _canvas(W, H), ctx = c.getContext('2d');
-            for (let i = 0; i < 220; i++) {
-                const x = Math.random()*W, y = Math.random()*H, r = 10 + Math.random()*45;
+            for (let i = 0; i < 250; i++) {
+                const x = Math.random()*W, y = Math.random()*H, r = 10 + Math.random()*48;
                 const g = ctx.createRadialGradient(x, y, 0, x, y, r);
                 g.addColorStop(0, `rgba(255,255,255,${0.4 + Math.random()*0.4})`);
                 g.addColorStop(1, 'rgba(255,255,255,0)');
@@ -617,8 +701,9 @@
         function makeMarsTex() {
             const c = _canvas(512, 256), ctx = c.getContext('2d');
             ctx.fillStyle = '#b85a34'; ctx.fillRect(0, 0, 512, 256);
-            _noise(ctx, 512, 256, '90,40,25', 120, 8, 30, 0.15, 0.4);
-            _noise(ctx, 512, 256, '220,150,110', 80, 5, 18, 0.1, 0.3);
+            _noise(ctx, 512, 256, '90,40,25', 150, 8, 32, 0.15, 0.4);
+            _noise(ctx, 512, 256, '220,150,110', 100, 5, 18, 0.1, 0.3);
+            _noise(ctx, 512, 256, '60,30,20', 60, 15, 40, 0.1, 0.25);
             ctx.fillStyle = 'rgba(240,240,250,0.85)';
             ctx.beginPath(); ctx.ellipse(256, 12, 80, 18, 0, 0, Math.PI*2); ctx.fill();
             ctx.beginPath(); ctx.ellipse(256, 244, 60, 14, 0, 0, Math.PI*2); ctx.fill();
@@ -628,59 +713,74 @@
             const c = _canvas(1024, 512), ctx = c.getContext('2d');
             ctx.fillStyle = '#d9b88a'; ctx.fillRect(0, 0, 1024, 512);
             const bands = [
-                { y:40, h:30, c:'160,120,80', a:0.6 }, { y:100, h:50, c:'200,170,130', a:0.5 },
-                { y:175, h:40, c:'140,100,70', a:0.65 }, { y:235, h:55, c:'220,190,150', a:0.45 },
-                { y:310, h:35, c:'150,110,80', a:0.6 }, { y:370, h:45, c:'200,170,130', a:0.5 },
-                { y:435, h:40, c:'170,130,90', a:0.55 }
+                { y:20, h:35, c:'150,110,75', a:0.65 },
+                { y:75, h:45, c:'200,170,130', a:0.5 },
+                { y:135, h:30, c:'120,85,55', a:0.7 },
+                { y:180, h:55, c:'220,190,150', a:0.45 },
+                { y:250, h:35, c:'150,110,80', a:0.65 },
+                { y:300, h:60, c:'200,170,130', a:0.5 },
+                { y:375, h:40, c:'130,90,60', a:0.6 },
+                { y:430, h:45, c:'220,190,150', a:0.45 },
+                { y:485, h:25, c:'160,120,85', a:0.5 }
             ];
             for (const b of bands) {
                 ctx.fillStyle = `rgba(${b.c},${b.a})`; ctx.fillRect(0, b.y, 1024, b.h);
-                for (let i = 0; i < 40; i++) {
+                for (let i = 0; i < 60; i++) {
                     ctx.fillStyle = `rgba(${b.c},${b.a * 0.4})`;
-                    ctx.beginPath(); ctx.ellipse(Math.random()*1024, b.y + b.h/2, 15 + Math.random()*40, b.h*0.4, 0, 0, Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.ellipse(Math.random()*1024, b.y + b.h/2, 20 + Math.random()*50, b.h*0.4, 0, 0, Math.PI*2); ctx.fill();
                 }
             }
-            const gx = 300, gy = 320, gr = 40;
+            const gx = 340, gy = 340, gr = 50;
             const gg = ctx.createRadialGradient(gx, gy, 5, gx, gy, gr);
-            gg.addColorStop(0, 'rgba(200,80,50,0.9)');
-            gg.addColorStop(0.7, 'rgba(180,90,60,0.5)');
+            gg.addColorStop(0, 'rgba(200,70,45,0.95)');
+            gg.addColorStop(0.6, 'rgba(180,85,55,0.6)');
             gg.addColorStop(1, 'rgba(180,90,60,0)');
             ctx.fillStyle = gg;
-            ctx.beginPath(); ctx.ellipse(gx, gy, gr*1.3, gr*0.9, 0, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(gx, gy, gr*1.4, gr*0.9, 0, 0, Math.PI*2); ctx.fill();
+            _noise(ctx, 1024, 512, '255,230,200', 300, 2, 8, 0.05, 0.15);
             return _tex(c);
         }
         function makeSaturnTex() {
             const c = _canvas(1024, 512), ctx = c.getContext('2d');
             ctx.fillStyle = '#e8d5a0'; ctx.fillRect(0, 0, 1024, 512);
             const bands = [
-                { y:60, h:40, c:'210,190,150', a:0.5 }, { y:150, h:60, c:'230,210,170', a:0.4 },
-                { y:260, h:50, c:'200,180,140', a:0.55 }, { y:350, h:55, c:'225,205,165', a:0.45 },
-                { y:440, h:35, c:'210,190,150', a:0.5 }
+                { y:30, h:45, c:'200,180,140', a:0.55 },
+                { y:100, h:70, c:'230,210,170', a:0.4 },
+                { y:195, h:55, c:'195,170,130', a:0.6 },
+                { y:275, h:65, c:'225,205,165', a:0.45 },
+                { y:365, h:55, c:'210,190,150', a:0.55 },
+                { y:445, h:50, c:'230,210,170', a:0.4 }
             ];
             for (const b of bands) {
                 ctx.fillStyle = `rgba(${b.c},${b.a})`; ctx.fillRect(0, b.y, 1024, b.h);
+                for (let i = 0; i < 40; i++) {
+                    ctx.fillStyle = `rgba(${b.c},${b.a * 0.3})`;
+                    ctx.beginPath(); ctx.ellipse(Math.random()*1024, b.y + b.h/2, 25 + Math.random()*60, b.h*0.35, 0, 0, Math.PI*2); ctx.fill();
+                }
             }
             return _tex(c);
         }
         function makeUranusTex() {
             const c = _canvas(512, 256), ctx = c.getContext('2d');
             ctx.fillStyle = '#9fd9e0'; ctx.fillRect(0, 0, 512, 256);
-            for (let i = 0; i < 40; i++) {
-                ctx.fillStyle = `rgba(180,230,235,${0.1 + Math.random()*0.15})`;
-                ctx.fillRect(0, Math.random()*256, 512, 4 + Math.random()*10);
+            for (let i = 0; i < 50; i++) {
+                ctx.fillStyle = `rgba(180,230,235,${0.1 + Math.random()*0.18})`;
+                ctx.fillRect(0, Math.random()*256, 512, 4 + Math.random()*12);
             }
+            _noise(ctx, 512, 256, '140,200,210', 200, 3, 14, 0.05, 0.15);
             return _tex(c);
         }
         function makeNeptuneTex() {
             const c = _canvas(512, 256), ctx = c.getContext('2d');
             ctx.fillStyle = '#2b52a0'; ctx.fillRect(0, 0, 512, 256);
-            for (let i = 0; i < 50; i++) {
-                ctx.fillStyle = `rgba(80,120,200,${0.1 + Math.random()*0.2})`;
-                ctx.fillRect(0, Math.random()*256, 512, 5 + Math.random()*12);
+            for (let i = 0; i < 60; i++) {
+                ctx.fillStyle = `rgba(80,120,200,${0.08 + Math.random()*0.2})`;
+                ctx.fillRect(0, Math.random()*256, 512, 5 + Math.random()*14);
             }
+            _noise(ctx, 512, 256, '40,70,140', 200, 3, 15, 0.05, 0.2);
             const g = ctx.createRadialGradient(200, 140, 5, 200, 140, 40);
-            g.addColorStop(0, 'rgba(20,40,90,0.7)');
-            g.addColorStop(1, 'rgba(20,40,90,0)');
+            g.addColorStop(0, 'rgba(15,30,80,0.8)');
+            g.addColorStop(1, 'rgba(15,30,80,0)');
             ctx.fillStyle = g;
             ctx.beginPath(); ctx.ellipse(200, 140, 40, 25, 0, 0, Math.PI*2); ctx.fill();
             return _tex(c);
@@ -688,8 +788,8 @@
         function makePlutoTex() {
             const c = _canvas(512, 256), ctx = c.getContext('2d');
             ctx.fillStyle = '#8a7868'; ctx.fillRect(0, 0, 512, 256);
-            _noise(ctx, 512, 256, '200,180,150', 200, 4, 20, 0.15, 0.4);
-            _noise(ctx, 512, 256, '60,50,40', 150, 5, 22, 0.15, 0.35);
+            _noise(ctx, 512, 256, '200,180,150', 250, 4, 22, 0.15, 0.4);
+            _noise(ctx, 512, 256, '60,50,40', 200, 5, 25, 0.15, 0.35);
             const g = ctx.createRadialGradient(340, 140, 10, 340, 140, 60);
             g.addColorStop(0, 'rgba(230,220,200,0.7)');
             g.addColorStop(1, 'rgba(230,220,200,0)');
@@ -700,28 +800,29 @@
         function makeMoonTex() {
             const c = _canvas(512, 256), ctx = c.getContext('2d');
             ctx.fillStyle = '#a0a0a0'; ctx.fillRect(0, 0, 512, 256);
-            _noise(ctx, 512, 256, '70,70,70', 400, 3, 14, 0.2, 0.5);
-            _noise(ctx, 512, 256, '220,220,220', 200, 2, 10, 0.15, 0.35);
-            for (let i = 0; i < 20; i++) {
-                const x = Math.random()*512, y = Math.random()*256, r = 8 + Math.random()*20;
+            _noise(ctx, 512, 256, '70,70,70', 500, 3, 16, 0.2, 0.5);
+            _noise(ctx, 512, 256, '220,220,220', 250, 2, 10, 0.15, 0.35);
+            for (let i = 0; i < 25; i++) {
+                const x = Math.random()*512, y = Math.random()*256, r = 8 + Math.random()*25;
                 const g = ctx.createRadialGradient(x, y, 2, x, y, r);
-                g.addColorStop(0, 'rgba(50,50,50,0.5)');
+                g.addColorStop(0, 'rgba(50,50,50,0.55)');
                 g.addColorStop(1, 'rgba(50,50,50,0)');
                 ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
             }
             return _tex(c);
         }
 
+        // ─── MILKY WAY GROUP (stars, galaxy, nebula) ───
         const milkyWayGroup = new THREE.Group();
         milkyWayGroup.visible = false;
         scene.add(milkyWayGroup);
 
         (function buildStars() {
-            const N = 5000;
+            const N = 6000;
             const pos = new Float32Array(N * 3);
             const col = new Float32Array(N * 3);
             for (let i = 0; i < N; i++) {
-                const r = 300 + Math.random() * 800;
+                const r = 300 + Math.random() * 900;
                 const theta = Math.random() * Math.PI * 2;
                 const phi = Math.acos(2 * Math.random() - 1);
                 pos[i*3] = r * Math.sin(phi) * Math.cos(theta);
@@ -735,25 +836,25 @@
             const g = new THREE.BufferGeometry();
             g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
             g.setAttribute('color', new THREE.BufferAttribute(col, 3));
-            const m = new THREE.PointsMaterial({ size: 1.5, vertexColors: true, transparent: true, opacity: 0.85, sizeAttenuation: true });
+            const m = new THREE.PointsMaterial({ size: 1.6, vertexColors: true, transparent: true, opacity: 0.9, sizeAttenuation: true });
             milkyWayGroup.add(new THREE.Points(g, m));
         })();
 
         (function buildMilkyWay() {
-            const N = 15000;
+            const N = 18000;
             const pos = new Float32Array(N * 3);
             const col = new Float32Array(N * 3);
             for (let i = 0; i < N; i++) {
                 const arm = Math.floor(Math.random() * 4);
                 const t = Math.random();
                 const angle = t * Math.PI * 4 + (arm * Math.PI) / 2;
-                const radius = 150 + t * 350;
-                const spread = 12 + t * 30;
+                const radius = 150 + t * 380;
+                const spread = 14 + t * 35;
                 const scatter = Math.pow(Math.random(), 2) * spread;
                 const angleScatter = Math.random() * Math.PI * 2;
                 const x = Math.cos(angle) * radius + Math.cos(angleScatter) * scatter;
                 const z = Math.sin(angle) * radius + Math.sin(angleScatter) * scatter;
-                const y = (Math.random() - 0.5) * (5 + Math.random() * 8) * (1 + t * 3);
+                const y = (Math.random() - 0.5) * (6 + Math.random() * 10) * (1 + t * 3);
                 pos[i*3] = x; pos[i*3+1] = y; pos[i*3+2] = z;
                 const mix = Math.random();
                 if (mix < 0.5) { col[i*3]=0.85; col[i*3+1]=0.80; col[i*3+2]=1.0; }
@@ -763,7 +864,7 @@
             const g = new THREE.BufferGeometry();
             g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
             g.setAttribute('color', new THREE.BufferAttribute(col, 3));
-            const m = new THREE.PointsMaterial({ size: 1.2, vertexColors: true, transparent: true, opacity: 0.55, sizeAttenuation: true });
+            const m = new THREE.PointsMaterial({ size: 1.3, vertexColors: true, transparent: true, opacity: 0.6, sizeAttenuation: true });
             const pts = new THREE.Points(g, m);
             pts.rotation.x = Math.PI * 0.15;
             pts.rotation.z = Math.PI * 0.1;
@@ -772,7 +873,7 @@
 
         (function buildNebula() {
             const colors = [0x8b5cf6, 0x3b82f6, 0xa78bfa, 0x6366f1, 0xc4b5fd];
-            for (let i = 0; i < 40; i++) {
+            for (let i = 0; i < 45; i++) {
                 const color = colors[Math.floor(Math.random()*colors.length)];
                 const c = _canvas(256, 256), ctx = c.getContext('2d');
                 const grd = ctx.createRadialGradient(128,128,0,128,128,128);
@@ -782,16 +883,21 @@
                 grd.addColorStop(1, hex + '00');
                 ctx.fillStyle = grd; ctx.fillRect(0, 0, 256, 256);
                 const tex = new THREE.CanvasTexture(c);
-                const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending }));
-                const r = 200 + Math.random()*350;
+                const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0.4, depthWrite: false, blending: THREE.AdditiveBlending }));
+                const r = 220 + Math.random()*380;
                 const theta = Math.random()*Math.PI*2;
                 const phi = Math.acos(2*Math.random()-1);
                 spr.position.set(r*Math.sin(phi)*Math.cos(theta), r*Math.sin(phi)*Math.sin(theta)*0.4, r*Math.cos(phi));
-                const s = 120 + Math.random()*260;
+                const s = 140 + Math.random()*280;
                 spr.scale.set(s, s, 1);
                 milkyWayGroup.add(spr);
             }
         })();
+
+        // ─── SOLAR SYSTEM GROUP (Sun, planets, moons, rings, belt) ───
+        const solarSystemGroup = new THREE.Group();
+        solarSystemGroup.visible = false;
+        scene.add(solarSystemGroup);
 
         const sunGroup = new THREE.Group();
         const sunMesh = new THREE.Mesh(new THREE.SphereGeometry(1.6, 64, 64), new THREE.MeshBasicMaterial({ map: makeSunTex() }));
@@ -800,9 +906,9 @@
         {
             const ctx = sunCoronaCanvas.getContext('2d');
             const g = ctx.createRadialGradient(256, 256, 60, 256, 256, 256);
-            g.addColorStop(0, 'rgba(255,240,180,0.9)');
-            g.addColorStop(0.3, 'rgba(255,200,100,0.5)');
-            g.addColorStop(0.6, 'rgba(255,140,60,0.15)');
+            g.addColorStop(0, 'rgba(255,240,180,0.95)');
+            g.addColorStop(0.3, 'rgba(255,200,100,0.55)');
+            g.addColorStop(0.6, 'rgba(255,140,60,0.18)');
             g.addColorStop(1, 'rgba(255,100,40,0)');
             ctx.fillStyle = g; ctx.fillRect(0, 0, 512, 512);
         }
@@ -811,25 +917,20 @@
         sunGroup.add(sunCorona);
         const sunLight = new THREE.PointLight(0xfff2c4, 2.2, 800);
         sunGroup.add(sunLight);
-        milkyWayGroup.add(sunGroup);
+        solarSystemGroup.add(sunGroup);
 
+        // No satellites — only Earth has a Moon
         const PLANET_DATA = [
             { name:'Mercury', r:0.20, o:6,   tex:makeMercuryTex(), spd:0.42, rotSpd:0.005 },
             { name:'Venus',   r:0.30, o:9,   tex:makeVenusTex(),   spd:0.32, rotSpd:-0.003 },
             { name:'Earth',   r:0.34, o:13,  tex:makeEarthTex(),   spd:0.24, rotSpd:0.01, clouds:makeEarthCloudsTex(), atmo:0x3b82f6,
               moons:[{ r:0.09, o:0.75, tex:makeMoonTex(), spd:1.8 }] },
-            { name:'Mars',    r:0.26, o:17,  tex:makeMarsTex(),    spd:0.19, rotSpd:0.009,
-              moons:[{ r:0.04, o:0.55, tex:makeMoonTex(), spd:3.2 },{ r:0.03, o:0.85, tex:makeMoonTex(), spd:2.1 }] },
-            { name:'Jupiter', r:1.10, o:25,  tex:makeJupiterTex(), spd:0.11, rotSpd:0.02,
-              moons:[{ r:0.08, o:1.8, tex:makeMoonTex(), spd:1.6 },{ r:0.075, o:2.2, tex:makeMoonTex(), spd:1.2 },{ r:0.11, o:2.7, tex:makeMoonTex(), spd:0.9 },{ r:0.10, o:3.3, tex:makeMoonTex(), spd:0.6 }] },
-            { name:'Saturn',  r:0.95, o:34,  tex:makeSaturnTex(),  spd:0.08, rotSpd:0.018, ring:true,
-              moons:[{ r:0.10, o:1.9, tex:makeMoonTex(), spd:0.8 },{ r:0.05, o:1.4, tex:makeMoonTex(), spd:1.3 }] },
-            { name:'Uranus',  r:0.62, o:43,  tex:makeUranusTex(),  spd:0.055, rotSpd:0.012, ring:true, ringColor:0x88ccee,
-              moons:[{ r:0.06, o:1.2, tex:makeMoonTex(), spd:1.0 }] },
-            { name:'Neptune', r:0.60, o:52,  tex:makeNeptuneTex(), spd:0.042, rotSpd:0.011,
-              moons:[{ r:0.07, o:1.2, tex:makeMoonTex(), spd:-1.2 }] },
-            { name:'Pluto',   r:0.15, o:62,  tex:makePlutoTex(),   spd:0.028, rotSpd:0.005,
-              moons:[{ r:0.06, o:0.45, tex:makeMoonTex(), spd:1.5 }] }
+            { name:'Mars',    r:0.26, o:17,  tex:makeMarsTex(),    spd:0.19, rotSpd:0.009 },
+            { name:'Jupiter', r:1.10, o:25,  tex:makeJupiterTex(), spd:0.11, rotSpd:0.02 },
+            { name:'Saturn',  r:0.95, o:34,  tex:makeSaturnTex(),  spd:0.08, rotSpd:0.018, ring:true },
+            { name:'Uranus',  r:0.62, o:43,  tex:makeUranusTex(),  spd:0.055, rotSpd:0.012, ring:true, ringColor:0x88ccee },
+            { name:'Neptune', r:0.60, o:52,  tex:makeNeptuneTex(), spd:0.042, rotSpd:0.011 },
+            { name:'Pluto',   r:0.15, o:62,  tex:makePlutoTex(),   spd:0.028, rotSpd:0.005 }
         ];
 
         const planetObjs = [];
@@ -840,7 +941,6 @@
             const sphere = new THREE.Mesh(new THREE.SphereGeometry(p.r, 64, 64), mat);
             sphere.userData.rotSpd = p.rotSpd;
             grp.add(sphere);
-
             if (p.clouds) {
                 const cloudSphere = new THREE.Mesh(
                     new THREE.SphereGeometry(p.r * 1.015, 64, 64),
@@ -849,7 +949,6 @@
                 cloudSphere.userData.rotSpd = p.rotSpd * 1.3;
                 grp.add(cloudSphere);
             }
-
             if (p.atmo) {
                 const aCanvas = _canvas(256, 256);
                 const actx = aCanvas.getContext('2d');
@@ -863,11 +962,10 @@
                 atmo.scale.set(p.r * 5, p.r * 5, 1);
                 grp.add(atmo);
             }
-
             if (p.ring) {
                 const ringColor = p.ringColor || 0xd9c89a;
                 const rg1 = new THREE.RingGeometry(p.r * 1.35, p.r * 2.0, 128);
-                const rm1 = new THREE.MeshBasicMaterial({ color: ringColor, side: THREE.DoubleSide, transparent: true, opacity: 0.75 });
+                const rm1 = new THREE.MeshBasicMaterial({ color: ringColor, side: THREE.DoubleSide, transparent: true, opacity: 0.78 });
                 const ring1 = new THREE.Mesh(rg1, rm1);
                 ring1.rotation.x = Math.PI / 2.2;
                 grp.add(ring1);
@@ -877,7 +975,6 @@
                 ring2.rotation.x = Math.PI / 2.2;
                 grp.add(ring2);
             }
-
             const pts = [];
             for (let i = 0; i <= 160; i++) {
                 const a = (i / 160) * Math.PI * 2;
@@ -885,8 +982,7 @@
             }
             const og = new THREE.BufferGeometry().setFromPoints(pts);
             const om = new THREE.LineBasicMaterial({ color: 0x8b5cf6, transparent: true, opacity: 0.15 });
-            milkyWayGroup.add(new THREE.Line(og, om));
-
+            solarSystemGroup.add(new THREE.Line(og, om));
             const moons = [];
             if (p.moons) {
                 for (const m of p.moons) {
@@ -909,95 +1005,72 @@
                     moons.push({ grp: moonGrp, speed: m.spd, angle: Math.random() * Math.PI * 2 });
                 }
             }
-
             const startAngle = Math.random() * Math.PI * 2;
             grp.userData = { name: p.name, orbit: p.o, speed: p.spd, angle: startAngle, earth: p.name === 'Earth', sphere, moons };
             grp.position.set(Math.cos(startAngle) * p.o, 0, Math.sin(startAngle) * p.o);
             planetObjs.push(grp);
-            milkyWayGroup.add(grp);
+            solarSystemGroup.add(grp);
         }
 
-        // ─── Focus system: which body the camera orbits ───
-        let focusTargetObj = null;              // Object3D or null (= Sun at origin)
-        let focusTargetName = 'Sun';
-        const focusTarget = new THREE.Vector3(0, 0, 0);
-        const smoothedLookAt = new THREE.Vector3(0, 0, 0);
-
-        // Focus label overlay (injected into canvas container)
-        const focusLabel = document.createElement('div');
-        focusLabel.style.cssText = 'position:absolute;top:10px;left:50%;transform:translateX(-50%);font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:0.25em;color:#c4b5fd;pointer-events:none;text-transform:uppercase;opacity:0;transition:opacity 0.4s ease;background:rgba(0,0,0,0.5);padding:4px 12px;border-radius:8px;border:1px solid rgba(139,92,246,0.3);';
-        container.appendChild(focusLabel);
-
-        function findBodyAtScreen(clientX, clientY) {
-            const rect = container.getBoundingClientRect();
-            const px = clientX - rect.left;
-            const py = clientY - rect.top;
-            const bodies = [{ obj: sunGroup, name: 'Sun' }];
-            for (const grp of planetObjs) bodies.push({ obj: grp, name: grp.userData.name });
-            let best = null, bestDist = Infinity;
-            const threshold = 55;
-            for (const b of bodies) {
-                const v = new THREE.Vector3();
-                b.obj.getWorldPosition(v);
-                v.project(camera);
-                if (v.z > 1) continue;
-                const sx = (v.x + 1) / 2 * rect.width;
-                const sy = (-v.y + 1) / 2 * rect.height;
-                const d = Math.sqrt((px - sx)**2 + (py - sy)**2);
-                if (d < threshold && d < bestDist) { bestDist = d; best = b; }
-            }
-            return best;
-        }
-
-        // Comets
-        const comets = [];
-        function makeCometTailTex(rgb) {
-            const c = _canvas(256, 64), ctx = c.getContext('2d');
-            const g = ctx.createLinearGradient(0, 32, 256, 32);
-            g.addColorStop(0, 'rgba(255,255,255,0.9)');
-            g.addColorStop(0.2, `rgba(${rgb},0.6)`);
-            g.addColorStop(1, `rgba(${rgb},0)`);
-            ctx.fillStyle = g; ctx.fillRect(0, 0, 256, 64);
-            return new THREE.CanvasTexture(c);
-        }
-        for (let i = 0; i < 3; i++) {
-            const cg = new THREE.Group();
-            const nucleus = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 12), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-            cg.add(nucleus);
-            const rgb = i === 0 ? '180,220,255' : (i === 1 ? '220,200,255' : '255,220,180');
-            const tail = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeCometTailTex(rgb), transparent: true, opacity: 0.85, depthWrite: false, blending: THREE.AdditiveBlending }));
-            tail.scale.set(6, 1.2, 1); tail.position.x = -3; cg.add(tail);
-            const a = 20 + Math.random() * 20;
-            const b = 20 + Math.random() * 20;
-            const cVal = 25 + Math.random() * 30;
-            const speed = 0.06 + Math.random() * 0.04;
-            const phase = Math.random() * Math.PI * 2;
-            comets.push({ grp: cg, a, b, c: cVal, speed, phase, tail });
-            milkyWayGroup.add(cg);
-        }
-
+        // Asteroid belt
         (function buildAsteroidBelt() {
-            const N = 800;
+            const N = 1200;
             const pos = new Float32Array(N * 3);
             const col = new Float32Array(N * 3);
             for (let i = 0; i < N; i++) {
                 const a = Math.random() * Math.PI * 2;
-                const r = 20 + Math.random() * 3;
+                const r = 20 + Math.random() * 3.2;
                 pos[i*3] = Math.cos(a) * r;
-                pos[i*3+1] = (Math.random() - 0.5) * 0.6;
+                pos[i*3+1] = (Math.random() - 0.5) * 0.7;
                 pos[i*3+2] = Math.sin(a) * r;
-                const g = 0.6 + Math.random() * 0.3;
+                const g = 0.55 + Math.random() * 0.35;
                 col[i*3] = g; col[i*3+1] = g * 0.9; col[i*3+2] = g * 0.75;
             }
             const g = new THREE.BufferGeometry();
             g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
             g.setAttribute('color', new THREE.BufferAttribute(col, 3));
-            const m = new THREE.PointsMaterial({ size: 0.15, vertexColors: true, transparent: true, opacity: 0.75, sizeAttenuation: true });
+            const m = new THREE.PointsMaterial({ size: 0.18, vertexColors: true, transparent: true, opacity: 0.8, sizeAttenuation: true });
             const belt = new THREE.Points(g, m);
-            milkyWayGroup.userData.asteroidBelt = belt;
-            milkyWayGroup.add(belt);
+            solarSystemGroup.userData.asteroidBelt = belt;
+            solarSystemGroup.add(belt);
         })();
 
+        // Occasional comet (one at a time, spawns once every ~90s)
+        const activeComets = [];
+        function makeCometTailTex(rgb) {
+            const c = _canvas(256, 64), ctx = c.getContext('2d');
+            const g = ctx.createLinearGradient(0, 32, 256, 32);
+            g.addColorStop(0, 'rgba(255,255,255,0.95)');
+            g.addColorStop(0.2, `rgba(${rgb},0.7)`);
+            g.addColorStop(1, `rgba(${rgb},0)`);
+            ctx.fillStyle = g; ctx.fillRect(0, 0, 256, 64);
+            return new THREE.CanvasTexture(c);
+        }
+        function spawnComet() {
+            const cg = new THREE.Group();
+            const nucleus = new THREE.Mesh(new THREE.SphereGeometry(0.12, 14, 14), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+            cg.add(nucleus);
+            const rgbPick = Math.random();
+            const rgb = rgbPick < 0.33 ? '180,220,255' : (rgbPick < 0.66 ? '220,200,255' : '255,220,180');
+            const tail = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeCometTailTex(rgb), transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending }));
+            tail.scale.set(8, 1.6, 1);
+            tail.position.x = -4;
+            cg.add(tail);
+            const r = 220 + Math.random() * 200;
+            const theta = Math.random() * Math.PI * 2;
+            const phi = (Math.random() - 0.5) * Math.PI * 0.4;
+            cg.position.set(r*Math.cos(phi)*Math.cos(theta), r*Math.sin(phi), r*Math.cos(phi)*Math.sin(theta));
+            const dir = new THREE.Vector3(-cg.position.x, -cg.position.y, -cg.position.z).normalize();
+            dir.x += (Math.random() - 0.5) * 0.8;
+            dir.y += (Math.random() - 0.5) * 0.3;
+            dir.z += (Math.random() - 0.5) * 0.8;
+            dir.normalize();
+            const speed = 0.7 + Math.random() * 1.0;
+            activeComets.push({ grp: cg, dir, speed, life: 1 });
+            milkyWayGroup.add(cg);
+        }
+
+        // Meteors
         const meteors = [];
         function spawnMeteor() {
             const grp = new THREE.Group();
@@ -1012,7 +1085,7 @@
             tctx.fillStyle = tg; tctx.fillRect(0, 0, 128, 32);
             const trail = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(trailCanvas), transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending }));
             trail.scale.set(4, 0.6, 1); trail.position.x = -2; grp.add(trail);
-            const r = 150 + Math.random() * 80;
+            const r = 60 + Math.random() * 40;
             const theta = Math.random() * Math.PI * 2;
             const phi = (Math.random() - 0.5) * Math.PI * 0.5;
             grp.position.set(r * Math.cos(phi) * Math.cos(theta), r * Math.sin(phi), r * Math.cos(phi) * Math.sin(theta));
@@ -1021,18 +1094,24 @@
             dir.y += (Math.random() - 0.5) * 0.5;
             dir.z += (Math.random() - 0.5) * 0.5;
             dir.normalize();
-            const speed = 0.8 + Math.random() * 2.5;
+            const speed = 0.5 + Math.random() * 1.5;
             meteors.push({ grp, dir, speed, life: 1 });
-            milkyWayGroup.add(grp);
+            solarSystemGroup.add(grp);
         }
         let meteorTimer = 0;
+        let cometTimer = 200;
 
+        // ─── STATE ───
         const BASE_CAM_Z = 6;
-        const SPACE_CAM_Z = 60;
+        const SPACE_CAM_Z = 280;   // zoomed out to see full Milky Way
+        const SOLAR_FADE_FAR = 150;  // when camera >= this, solar system invisible
+        const SOLAR_FADE_NEAR = 50;  // when camera <= this, solar system fully visible
+
         let cameraTheta = 0;
         let cameraPhi = 0.35;
         let cameraRadius = SPACE_CAM_Z;
         let targetCameraZ = BASE_CAM_Z;
+        let solarAlpha = 0;
 
         let spaceState = 'core';
         let spaceProgress = 0;
@@ -1052,14 +1131,9 @@
             cameraPhi = 0.35;
             cameraRadius = SPACE_CAM_Z;
             targetCameraZ = SPACE_CAM_Z;
-            // Default focus: Earth
-            const earth = planetObjs.find(g => g.userData.earth);
-            focusTargetObj = earth || null;
-            focusTargetName = earth ? 'Earth' : 'Sun';
-            smoothedLookAt.set(0, 0, 0);
+            solarAlpha = 0;
             resetIdleTimer();
         }
-
         function triggerSpaceCollapse() {
             if (spaceState === 'collapsing' || spaceState === 'core') return;
             spaceState = 'collapsing';
@@ -1067,31 +1141,14 @@
             resetIdleTimer();
         }
 
-        function isPointerOverEarth(e) {
-            if (spaceState !== 'space') return false;
-            const earth = planetObjs.find(g => g.userData.earth);
-            if (!earth) return false;
-            const rect = container.getBoundingClientRect();
-            const px = e.clientX - rect.left;
-            const py = e.clientY - rect.top;
-            const v = new THREE.Vector3();
-            earth.getWorldPosition(v);
-            v.project(camera);
-            const sx = (v.x + 1) / 2 * rect.width;
-            const sy = (-v.y + 1) / 2 * rect.height;
-            const d = Math.sqrt((px - sx)**2 + (py - sy)**2);
-            return d < 60;
-        }
-
         let lastTapTime = 0;
         let lastTapX = 0, lastTapY = 0;
-        let tapStartX = 0, tapStartY = 0, tapStartTime = 0;
 
         container.addEventListener('wheel', (e) => {
             if (spaceState === 'space' || spaceState === 'expanding') {
                 e.preventDefault();
                 resetIdleTimer();
-                cameraRadius = Math.max(0.4, Math.min(400, cameraRadius + e.deltaY * 0.15));
+                cameraRadius = Math.max(0.5, Math.min(400, cameraRadius + e.deltaY * 0.15));
                 targetCameraZ = cameraRadius;
             }
         }, { passive: false });
@@ -1146,8 +1203,7 @@
             grad.addColorStop(0, 'rgba(180,180,200,0.55)');
             grad.addColorStop(0.5, 'rgba(120,120,140,0.25)');
             grad.addColorStop(1, 'rgba(60,60,80,0)');
-            ctx.fillStyle = grad;
-            ctx.fillRect(0, 0, size, size);
+            ctx.fillStyle = grad; ctx.fillRect(0, 0, size, size);
             return new THREE.CanvasTexture(canvas);
         }
         const smokeTexture = makeSmokeTexture();
@@ -1228,12 +1284,12 @@
             try { container.setPointerCapture(e.pointerId); } catch(err) {}
             initAudio();
             resetIdleTimer();
-
             const now = Date.now();
+            // Double-tap anywhere in space → collapse back to core
             if (now - lastTapTime < 400 && spaceState === 'space') {
                 const dx = e.clientX - lastTapX;
                 const dy = e.clientY - lastTapY;
-                if (Math.sqrt(dx*dx + dy*dy) < 60 && isPointerOverEarth(e)) {
+                if (Math.sqrt(dx*dx + dy*dy) < 80) {
                     triggerSpaceCollapse();
                     lastTapTime = 0;
                     return;
@@ -1242,16 +1298,8 @@
             lastTapTime = now;
             lastTapX = e.clientX;
             lastTapY = e.clientY;
-
-            if (activePointers.size === 0) {
-                tapStartX = e.clientX;
-                tapStartY = e.clientY;
-                tapStartTime = Date.now();
-            }
-
             activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
             container.classList.add('touched');
-
             if (activePointers.size === 1) {
                 isDragging = true;
                 pointerVelocity = { x: 0, y: 0 };
@@ -1284,7 +1332,6 @@
             resetIdleTimer();
             const prev = activePointers.get(e.pointerId);
             activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-
             if (activePointers.size === 1 && isDragging) {
                 const dx = e.clientX - prev.x;
                 const dy = e.clientY - prev.y;
@@ -1309,7 +1356,7 @@
                 if (pinchStartDist > 0) {
                     const ratio = dist / pinchStartDist;
                     if (spaceState === 'space' || spaceState === 'expanding') {
-                        cameraRadius = Math.max(0.4, Math.min(400, cameraRadius / ratio));
+                        cameraRadius = Math.max(0.5, Math.min(400, cameraRadius / ratio));
                         targetCameraZ = cameraRadius;
                     } else {
                         coreScale = Math.max(0.6, Math.min(2.2, pinchStartScale * ratio));
@@ -1325,41 +1372,6 @@
                 container.classList.remove('touched');
                 clearTimeout(longPressTimer);
                 const speed = Math.sqrt(pointerVelocity.x**2 + pointerVelocity.y**2);
-
-                // Quick-tap detection for planet focus (space mode only)
-                const tapDx = e.clientX - tapStartX;
-                const tapDy = e.clientY - tapStartY;
-                const tapDist = Math.sqrt(tapDx*tapDx + tapDy*tapDy);
-                const tapDur = Date.now() - tapStartTime;
-                const isQuickTap = tapDist < 10 && tapDur < 400 && !longPressActive;
-
-                if (isQuickTap && spaceState === 'space') {
-                    const hit = findBodyAtScreen(e.clientX, e.clientY);
-                    if (hit) {
-                        focusTargetObj = hit.name === 'Sun' ? null : hit.obj;
-                        focusTargetName = hit.name;
-                        if (targetCameraZ > 60) targetCameraZ = 30;
-                        touchBoost = 1.5;
-                        spawnRipple(0xa78bfa);
-                        if (navigator.vibrate) navigator.vibrate(10);
-                    } else {
-                        const earth = planetObjs.find(g => g.userData.earth);
-                        if (earth && focusTargetObj !== earth) {
-                            focusTargetObj = earth;
-                            focusTargetName = 'Earth';
-                            touchBoost = 1.0;
-                            spawnRipple(0xa78bfa);
-                            if (navigator.vibrate) navigator.vibrate(10);
-                        }
-                    }
-                    longPressActive = false;
-                    isCharging = false;
-                    isOnCenter = false;
-                    chargeLevel = 0;
-                    pointerVelocity = { x: 0, y: 0 };
-                    return;
-                }
-
                 if (longPressActive && chargeLevel >= 0.95) {
                     stopChargeSound();
                     playExplosionSound();
@@ -1403,7 +1415,6 @@
 
         function animate() {
             requestAnimationFrame(animate);
-
             const nowMs = Date.now();
             if (spaceState === 'expanding') {
                 const t = Math.min(1, (nowMs - spacePhaseStart) / SPACE_FULL_MS);
@@ -1414,112 +1425,125 @@
                 spaceProgress = 1 - t;
                 if (t >= 1) { spaceProgress = 0; spaceState = 'core'; }
             }
-
             if (spaceState === 'space' && (nowMs - lastInteractionTime) > IDLE_COLLAPSE_MS) {
                 triggerSpaceCollapse();
             }
-
             const ep = spaceProgress < 0.5
                 ? 4 * spaceProgress * spaceProgress * spaceProgress
                 : 1 - Math.pow(-2 * spaceProgress + 2, 3) / 2;
 
+            // ─── Solar system fade based on camera distance ───
+            if (spaceState === 'space' || spaceState === 'expanding') {
+                const camNow = camera.position.length();
+                if (camNow >= SOLAR_FADE_FAR) solarAlpha = 0;
+                else if (camNow <= SOLAR_FADE_NEAR) solarAlpha = 1;
+                else solarAlpha = (SOLAR_FADE_FAR - camNow) / (SOLAR_FADE_FAR - SOLAR_FADE_NEAR);
+                solarAlpha = Math.max(0, Math.min(1, solarAlpha));
+            } else {
+                solarAlpha = 0;
+            }
+
+            // Milky Way visibility & scale
             if (spaceProgress > 0.001) {
                 milkyWayGroup.visible = true;
                 milkyWayGroup.scale.setScalar(Math.max(0.001, ep));
             } else {
                 milkyWayGroup.visible = false;
             }
+            // Solar system visibility & scale
+            const solarFinal = ep * solarAlpha;
+            if (solarFinal > 0.001) {
+                solarSystemGroup.visible = true;
+                solarSystemGroup.scale.setScalar(solarFinal);
+                sunLight.intensity = 2.2 * solarAlpha;
+            } else {
+                solarSystemGroup.visible = false;
+                sunLight.intensity = 0;
+            }
 
             if (spaceProgress > 0.15) {
                 const ts = nowMs * 0.001;
-                for (const grp of planetObjs) {
-                    const ud = grp.userData;
-                    const a = ud.angle + ts * ud.speed * 0.12;
-                    grp.position.set(Math.cos(a) * ud.orbit, 0, Math.sin(a) * ud.orbit);
-                    for (const child of grp.children) {
-                        if (child.userData && child.userData.rotSpd) child.rotation.y += child.userData.rotSpd * 0.3;
+
+                // Planets & moons (only tick when solar system visible)
+                if (solarAlpha > 0.01) {
+                    for (const grp of planetObjs) {
+                        const ud = grp.userData;
+                        const a = ud.angle + ts * ud.speed * 0.12;
+                        grp.position.set(Math.cos(a) * ud.orbit, 0, Math.sin(a) * ud.orbit);
+                        for (const child of grp.children) {
+                            if (child.userData && child.userData.rotSpd) child.rotation.y += child.userData.rotSpd * 0.3;
+                        }
+                        if (ud.moons) {
+                            for (const m of ud.moons) {
+                                m.angle += m.speed * 0.005;
+                                m.grp.rotation.y = m.angle;
+                            }
+                        }
                     }
-                    if (ud.moons) {
-                        for (const m of ud.moons) {
-                            m.angle += m.speed * 0.005;
-                            m.grp.rotation.y = m.angle;
+                    sunMesh.rotation.y += 0.002;
+                    sunCorona.material.opacity = 0.9 + Math.sin(ts * 1.5) * 0.1;
+                    const cs = 14 + Math.sin(ts * 2) * 0.4;
+                    sunCorona.scale.set(cs, cs, 1);
+                    if (solarSystemGroup.userData.asteroidBelt) {
+                        solarSystemGroup.userData.asteroidBelt.rotation.y += 0.0009;
+                    }
+                    meteorTimer -= 1;
+                    if (meteorTimer <= 0 && meteors.length < 5) {
+                        spawnMeteor();
+                        meteorTimer = 60 + Math.floor(Math.random() * 180);
+                    }
+                    for (let i = meteors.length - 1; i >= 0; i--) {
+                        const m = meteors[i];
+                        m.grp.position.addScaledVector(m.dir, m.speed);
+                        m.life -= 0.005;
+                        if (m.life <= 0 || m.grp.position.length() > 300) {
+                            solarSystemGroup.remove(m.grp);
+                            meteors.splice(i, 1);
                         }
                     }
                 }
-                sunMesh.rotation.y += 0.002;
-                sunCorona.material.opacity = 0.85 + Math.sin(ts * 1.5) * 0.15;
-                const cs = 14 + Math.sin(ts * 2) * 0.4;
-                sunCorona.scale.set(cs, cs, 1);
-                if (milkyWayGroup.userData.asteroidBelt) milkyWayGroup.userData.asteroidBelt.rotation.y += 0.0008;
-                for (const c of comets) {
-                    const t2 = ts * c.speed + c.phase;
-                    const x = Math.cos(t2) * c.a;
-                    const z = Math.sin(t2) * c.b;
-                    const y = Math.sin(t2 * 2) * c.c * 0.3;
-                    c.grp.position.set(x, y, z);
-                    const dir = new THREE.Vector3(-x, -y, -z).normalize();
-                    c.grp.rotation.y = Math.atan2(dir.x, dir.z);
-                    c.grp.rotation.z = Math.atan2(dir.y, Math.sqrt(dir.x*dir.x + dir.z*dir.z));
+
+                // Comets — occasional, spawn once every ~90-150s
+                cometTimer -= 1;
+                if (cometTimer <= 0 && activeComets.length < 1) {
+                    spawnComet();
+                    cometTimer = 5400 + Math.floor(Math.random() * 3600); // 90-150s at 60fps
                 }
-                meteorTimer -= 1;
-                if (meteorTimer <= 0 && meteors.length < 5) {
-                    spawnMeteor();
-                    meteorTimer = 60 + Math.floor(Math.random() * 180);
-                }
-                for (let i = meteors.length - 1; i >= 0; i--) {
-                    const m = meteors[i];
-                    m.grp.position.addScaledVector(m.dir, m.speed);
-                    m.life -= 0.005;
-                    if (m.life <= 0 || m.grp.position.length() > 500) {
-                        milkyWayGroup.remove(m.grp);
-                        meteors.splice(i, 1);
+                for (let i = activeComets.length - 1; i >= 0; i--) {
+                    const c = activeComets[i];
+                    c.grp.position.addScaledVector(c.dir, c.speed);
+                    c.life -= 0.0015;
+                    if (c.life <= 0 || c.grp.position.length() > 500) {
+                        milkyWayGroup.remove(c.grp);
+                        activeComets.splice(i, 1);
                     }
                 }
             }
 
             // Camera
             if (spaceState === 'space') {
-                // Update focus target to current object's world position
-                if (focusTargetObj) focusTargetObj.getWorldPosition(focusTarget);
-                else focusTarget.set(0, 0, 0);
-
                 cameraRadius += (targetCameraZ - cameraRadius) * 0.1;
-                const x = focusTarget.x + cameraRadius * Math.cos(cameraPhi) * Math.sin(cameraTheta);
-                const y = focusTarget.y + cameraRadius * Math.sin(cameraPhi);
-                const z = focusTarget.z + cameraRadius * Math.cos(cameraPhi) * Math.cos(cameraTheta);
-                camera.position.lerp(new THREE.Vector3(x, y, z), 0.12);
-                smoothedLookAt.lerp(focusTarget, 0.1);
-                camera.lookAt(smoothedLookAt);
+                const x = cameraRadius * Math.cos(cameraPhi) * Math.sin(cameraTheta);
+                const y = cameraRadius * Math.sin(cameraPhi);
+                const z = cameraRadius * Math.cos(cameraPhi) * Math.cos(cameraTheta);
+                camera.position.lerp(new THREE.Vector3(x, y, z), 0.1);
+                camera.lookAt(0, 0, 0);
             } else if (spaceState === 'expanding' || spaceState === 'collapsing') {
-                if (focusTargetObj) focusTargetObj.getWorldPosition(focusTarget);
-                else focusTarget.set(0, 0, 0);
-                const sx = focusTarget.x + SPACE_CAM_Z * Math.cos(0.35) * Math.sin(0);
-                const sy = focusTarget.y + SPACE_CAM_Z * Math.sin(0.35);
-                const sz = focusTarget.z + SPACE_CAM_Z * Math.cos(0.35) * Math.cos(0);
+                const sX = SPACE_CAM_Z * Math.cos(0.35) * Math.sin(0);
+                const sY = SPACE_CAM_Z * Math.sin(0.35);
+                const sZ = SPACE_CAM_Z * Math.cos(0.35) * Math.cos(0);
                 const t = ep;
-                const tx = sx * t;
-                const ty = sy * t;
-                const tz = BASE_CAM_Z * (1-t) + sz * t;
+                const tx = sX * t;
+                const ty = sY * t;
+                const tz = BASE_CAM_Z * (1-t) + sZ * t;
                 camera.position.lerp(new THREE.Vector3(tx, ty, tz), 0.1);
-                smoothedLookAt.lerp(new THREE.Vector3(focusTarget.x * t, focusTarget.y * t, focusTarget.z * t), 0.1);
-                camera.lookAt(smoothedLookAt);
+                camera.lookAt(0, 0, 0);
             } else {
                 targetCameraZ += (BASE_CAM_Z - targetCameraZ) * 0.08;
                 camera.position.z += (targetCameraZ - camera.position.z) * 0.08;
                 camera.position.x *= 0.92;
                 camera.position.y *= 0.92;
-                smoothedLookAt.set(0, 0, 0);
                 camera.lookAt(0, 0, 0);
-                focusTargetObj = null;
-                focusTargetName = 'Sun';
-            }
-
-            // Focus label visibility
-            if (spaceState === 'space') {
-                if (focusLabel.innerText !== focusTargetName) focusLabel.innerText = focusTargetName;
-                focusLabel.style.opacity = '1';
-            } else {
-                focusLabel.style.opacity = '0';
             }
 
             if (isCharging) {
@@ -1642,6 +1666,7 @@
             innerCore.material.color.setHex(color); midShell.material.color.setHex(color); outerShell.material.color.setHex(color);
         }
 
+        // === MARKET DATA ===
         function safeNum(val, fallback = 0) { return (isNaN(val) || val === undefined || val === null || !isFinite(val)) ? fallback : val; }
         async function fetchBiquoteCandles(interval, limit) {
             try {
