@@ -10,9 +10,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <style>
-:root{--bg:#030408;--card-bg:rgba(10,12,20,0.75);--card-border:rgba(139,92,246,0.15);--text-main:#f8fafc;--text-body:#c8cdd6;--text-muted:#8b95a5;--text-subtle:#475569;--green:#10b981;--yellow:#f59e0b;--red:#ef4444;--blue:#3b82f6;--purple:#8b5cf6;--violet:#a78bfa;--glow:0 0 30px rgba(139,92,246,0.15)}
+:root{--bg:#030408;--card-bg:rgba(10,12,20,0.75);--card-border:rgba(139,92,246,0.15);--text-main:#f8fafc;--text-body:#c8cdd6;--text-muted:#8b95a5;--text-subtle:#475569;--green:#10b981;--yellow:#f59e0b;--red:#ef4444;--blue:#3b82f6;--purple:#8b5cf6;--violet:#a78bfa}
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility}
+html,body{-webkit-font-smoothing:antialiased}
 body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background-color:var(--bg);background-image:radial-gradient(ellipse 80% 50% at 50% -10%,rgba(139,92,246,0.15),transparent 60%),radial-gradient(ellipse 60% 40% at 80% 100%,rgba(59,130,246,0.10),transparent 60%),linear-gradient(rgba(139,92,246,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(139,92,246,0.03) 1px,transparent 1px);background-size:100% 100%,100% 100%,40px 40px,40px 40px;background-attachment:fixed;color:var(--text-main);min-height:100vh;padding:24px 16px;display:flex;flex-direction:column;align-items:center;letter-spacing:-0.011em}
 .dashboard{width:100%;max-width:680px;display:flex;flex-direction:column;gap:16px}
 header{display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0 20px 0;border-bottom:1px solid rgba(139,92,246,0.1);margin-bottom:6px}
@@ -24,32 +24,32 @@ header{display:flex;justify-content:space-between;align-items:flex-start;padding
 .price-wrap{text-align:right}
 .price-ticker{font-family:'JetBrains Mono',monospace;font-size:1.5rem;font-weight:700;color:var(--green);letter-spacing:-0.02em;line-height:1;text-shadow:0 0 25px rgba(16,185,129,0.4);font-variant-numeric:tabular-nums}
 .last-updated{font-size:0.58rem;color:var(--text-subtle);font-family:'JetBrains Mono',monospace;margin-top:8px;letter-spacing:0.1em;text-transform:uppercase}
-.card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:20px;padding:22px 24px;backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);position:relative;overflow:hidden;box-shadow:var(--glow),inset 0 1px 0 rgba(255,255,255,0.05);transition:transform 0.2s ease,box-shadow 0.2s ease}
-.card:hover{box-shadow:0 0 40px rgba(139,92,246,0.25),inset 0 1px 0 rgba(255,255,255,0.08)}
+.card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:20px;padding:22px 24px;backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);position:relative;overflow:hidden;box-shadow:0 0 30px rgba(139,92,246,0.15),inset 0 1px 0 rgba(255,255,255,0.05)}
 .card::before{content:'';position:absolute;top:0;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,rgba(167,139,250,0.4),transparent)}
 .card-title{font-family:'Space Grotesk',sans-serif;font-size:0.68rem;font-weight:600;color:var(--text-muted);letter-spacing:0.2em;text-transform:uppercase;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center}
-#canvas-container{width:100%;height:280px;position:relative;z-index:1;display:flex;justify-content:center;align-items:center;touch-action:none;cursor:grab;overflow:hidden}
+#canvas-container{width:100%;height:320px;position:relative;z-index:1;display:flex;justify-content:center;align-items:center;touch-action:none;cursor:grab;overflow:hidden}
 #canvas-container:active{cursor:grabbing}
 .subtitle{text-align:center;font-family:'Space Grotesk',sans-serif;font-size:0.6rem;letter-spacing:0.3em;color:var(--text-subtle);margin-top:10px;font-weight:500;text-transform:uppercase}
 #session-badge{position:absolute;top:10px;left:12px;font-family:'JetBrains Mono',monospace;font-size:0.62rem;font-weight:600;letter-spacing:0.1em;padding:4px 10px;border-radius:8px;background:rgba(0,0,0,0.6);border:1px solid rgba(139,92,246,0.3);color:var(--text-body);z-index:2;display:flex;align-items:center;gap:6px}
 #session-dot{width:6px;height:6px;border-radius:50%;box-shadow:0 0 8px currentColor}
+#utc-clock{position:absolute;top:10px;right:12px;font-family:'JetBrains Mono',monospace;font-size:0.58rem;font-weight:500;padding:4px 10px;border-radius:8px;background:rgba(0,0,0,0.6);border:1px solid rgba(139,92,246,0.2);color:var(--text-subtle);z-index:2;letter-spacing:0.08em}
+#zoom-hint{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);font-family:'JetBrains Mono',monospace;font-size:0.55rem;font-weight:500;padding:4px 10px;border-radius:8px;background:rgba(0,0,0,0.6);border:1px solid rgba(139,92,246,0.2);color:var(--text-subtle);z-index:2;letter-spacing:0.08em;transition:opacity 0.4s ease}
 .signal-card{text-align:center;padding:30px 24px}
 #signal-text{font-family:'Space Grotesk',sans-serif;font-size:2.8rem;font-weight:700;letter-spacing:0.08em;color:var(--text-subtle);transition:all 0.4s ease;margin-bottom:12px;line-height:1;text-shadow:0 0 30px currentColor}
 .signal-status-line{font-family:'JetBrains Mono',monospace;font-size:0.66rem;color:var(--text-subtle);letter-spacing:0.15em;margin-bottom:24px;text-transform:uppercase;font-weight:500}
 .alert-box{background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.3);border-radius:14px;padding:16px 18px;margin-bottom:18px;font-size:0.78rem;color:#fbbf24;text-align:left;line-height:1.6;display:none;font-weight:500}
-.alert-box.active{display:block;animation:fadeIn 0.4s ease-in}
+.alert-box.active{display:block}
 .signal-details{display:grid;grid-template-columns:1fr 1fr;gap:16px;font-family:'JetBrains Mono',monospace;font-size:0.78rem;text-align:left;padding:18px 0;border-top:1px solid rgba(139,92,246,0.1);border-bottom:1px solid rgba(139,92,246,0.1);margin-top:10px;font-variant-numeric:tabular-nums}
 .signal-details div{display:flex;justify-content:space-between}
 .signal-details span:first-child{color:var(--text-muted);font-weight:500;letter-spacing:0.05em}
 .signal-details span:last-child{color:var(--text-body);font-weight:600}
 .signal-hint{font-family:'Inter',sans-serif;font-size:0.68rem;color:var(--text-subtle);margin-top:16px;line-height:1.5}
 .btn{font-family:'Inter',sans-serif;background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.2);color:var(--text-body);padding:8px 16px;border-radius:10px;font-size:0.72rem;font-weight:500;cursor:pointer;transition:all 0.2s ease}
-.btn:hover{background:rgba(139,92,246,0.15);border-color:rgba(139,92,246,0.4);color:var(--text-main);box-shadow:0 0 15px rgba(139,92,246,0.2)}
+.btn:hover{background:rgba(139,92,246,0.15);border-color:rgba(139,92,246,0.4);color:var(--text-main)}
 .btn.active{background:rgba(59,130,246,0.15);border-color:rgba(59,130,246,0.4);color:#93c5fd}
 .btn.active.deep{background:rgba(139,92,246,0.2);border-color:rgba(139,92,246,0.5);color:#c4b5fd}
 .btn.danger{background:rgba(239,68,68,0.08);border-color:rgba(239,68,68,0.25);color:#fca5a5}
 .btn.primary{font-family:'Space Grotesk',sans-serif;background:linear-gradient(135deg,#7c3aed 0%,#6366f1 50%,#3b82f6 100%);border:none;font-weight:600;color:white;box-shadow:0 4px 25px rgba(124,58,237,0.4)}
-.btn.primary:hover{box-shadow:0 6px 35px rgba(124,58,237,0.6);transform:translateY(-1px)}
 .chat-card{border:1px solid rgba(139,92,246,0.4);box-shadow:0 0 40px rgba(139,92,246,0.15)}
 .chat-controls{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
 .panel{display:none;background:rgba(0,0,0,0.4);padding:16px;border-radius:12px;margin-bottom:14px;font-size:0.78rem;border:1px solid rgba(139,92,246,0.1)}
@@ -59,14 +59,13 @@ header{display:flex;justify-content:space-between;align-items:flex-start;padding
 .chat-history{height:280px;overflow-y:auto;background:rgba(0,0,0,0.6);border-radius:14px;padding:14px;margin-bottom:12px;display:flex;flex-direction:column;gap:10px;border:1px solid rgba(255,255,255,0.05)}
 .chat-history::-webkit-scrollbar{width:4px}
 .chat-history::-webkit-scrollbar-thumb{background:rgba(139,92,246,0.3);border-radius:4px}
-.msg{font-family:'Inter',sans-serif;padding:10px 14px;border-radius:14px;max-width:85%;line-height:1.5;font-size:0.82rem;animation:fadeIn 0.3s ease-out}
+.msg{font-family:'Inter',sans-serif;padding:10px 14px;border-radius:14px;max-width:85%;line-height:1.5;font-size:0.82rem}
 .msg.user{background:linear-gradient(135deg,#4f46e5,#3b82f6);color:white;align-self:flex-end;border-bottom-right-radius:4px}
 .msg.ai{background:rgba(139,92,246,0.08);align-self:flex-start;border-left:3px solid var(--purple);color:var(--text-body);border-top-left-radius:4px}
 .msg.system{background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);align-self:center;font-size:0.7rem;text-align:center;color:#fbbf24;padding:6px 12px;font-family:'JetBrains Mono',monospace}
 .msg.thinking{background:rgba(139,92,246,0.1);border-left:3px solid var(--violet);font-style:italic;color:#c4b5fd}
 .chat-input-row{display:flex;gap:8px}
 .chat-input-row input{flex:1;background:rgba(0,0,0,0.7);border:1px solid rgba(139,92,246,0.2);color:var(--text-main);padding:10px 14px;border-radius:12px;outline:none;font-family:'Inter',sans-serif;font-size:0.85rem}
-.chat-input-row input:focus{border-color:rgba(139,92,246,0.6);background:rgba(0,0,0,0.9)}
 .chat-input-row input::placeholder{color:var(--text-subtle)}
 .chat-input-row button{font-family:'Space Grotesk',sans-serif;background:linear-gradient(135deg,#10b981,#059669);border:none;color:white;padding:0 18px;border-radius:12px;font-weight:600;cursor:pointer;font-size:0.85rem}
 .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:0.8rem}
@@ -76,8 +75,6 @@ header{display:flex;justify-content:space-between;align-items:flex-start;padding
 .alert-log-item{font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--text-muted);padding:8px 0;border-bottom:1px solid rgba(139,92,246,0.08);line-height:1.5}
 .alert-log-item:last-child{border-bottom:none}
 .reasoning-text{font-family:'Inter',sans-serif;font-size:0.85rem;line-height:1.8;color:var(--text-body)}
-@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
-.fade-in{animation:fadeIn 0.3s ease-in}
 .pulse-dot{display:inline-block;width:6px;height:6px;background:var(--green);border-radius:50%;margin-right:6px;box-shadow:0 0 10px var(--green);animation:pulse 2s infinite}
 @keyframes pulse{0%{opacity:1}50%{opacity:0.4}100%{opacity:1}}
 </style>
@@ -95,8 +92,12 @@ header{display:flex;justify-content:space-between;align-items:flex-start;padding
 </div>
 </header>
 <div class="card">
-<div class="card-title">Market Globe</div>
-<div id="canvas-container"><div id="session-badge"><span id="session-dot"></span><span id="session-name">Loading...</span></div></div>
+<div class="card-title">Market Globe — Real-Time</div>
+<div id="canvas-container">
+<div id="session-badge"><span id="session-dot"></span><span id="session-name">Loading...</span></div>
+<div id="utc-clock">UTC —:—:—</div>
+<div id="zoom-hint">Pinch out to zoom → see galaxy</div>
+</div>
 <div class="subtitle">Quantum Market Intelligence</div>
 </div>
 <div class="card signal-card">
@@ -159,14 +160,14 @@ header{display:flex;justify-content:space-between;align-items:flex-start;padding
 <option value="cloud">Cloud Voice (ElevenLabs - Uses Credits)</option>
 <option value="browser">Browser Voice (Robotic - Saves Credits)</option>
 </select>
-<div style="font-size:0.7rem;color:var(--text-muted);margin-top:12px;">Official ElevenLabs API Key (Free 10k chars/month)</div>
+<div style="font-size:0.7rem;color:var(--text-muted);margin-top:12px;">ElevenLabs API Key (Free 10k chars/month)</div>
 <input type="password" id="elevenlabs-api-input" placeholder="sk_..." style="width:100%;padding:10px;margin-top:6px;border-radius:8px;border:1px solid rgba(139,92,246,0.2);background:rgba(0,0,0,0.4);color:white;">
 <button class="btn" style="margin-top:10px;width:100%;" onclick="saveElevenLabsApiKey()">Save ElevenLabs Key</button>
-<div style="font-size:0.7rem;color:var(--text-muted);margin-top:12px;">ElevenLabs Voice Selection:</div>
+<div style="font-size:0.7rem;color:var(--text-muted);margin-top:12px;">ElevenLabs Voice:</div>
 <select id="elevenlabs-voice-select" onchange="saveElevenLabsVoice()" style="width:100%;padding:10px;margin-top:6px;border-radius:8px;border:1px solid rgba(139,92,246,0.2);background:rgba(0,0,0,0.4);color:white;">
-<option value="CwhRBWXzGAHq8TQ4Fs17">Roger (Laid-Back, Casual)</option>
-<option value="QIhD5ivPGEoYZQDocuHI">Adam (Deep, Professional)</option>
-<option value="TYKLc7ViOIGE13dSZYlK">Rachel (Friendly, Energetic)</option>
+<option value="CwhRBWXzGAHq8TQ4Fs17">Roger (Laid-Back)</option>
+<option value="QIhD5ivPGEoYZQDocuHI">Adam (Deep)</option>
+<option value="TYKLc7ViOIGE13dSZYlK">Rachel (Energetic)</option>
 </select>
 <button class="btn" style="margin-top:12px;width:100%;" onclick="testCloudVoice()">Test Cloud Voice</button>
 <button class="btn" style="margin-top:8px;width:100%;" onclick="fallbackSpeakText('Testing browser voice directly.')">Test Browser Voice</button>
@@ -182,7 +183,7 @@ header{display:flex;justify-content:space-between;align-items:flex-start;padding
 <button class="btn" style="margin-top:10px;" onclick="saveApiKey()">Save Gemini Key</button>
 </div>
 <div class="chat-history" id="chat-history">
-<div class="msg ai fade-in"><span class="pulse-dot"></span>Hey Boss. Good to see you. What's on your mind?</div>
+<div class="msg ai"><span class="pulse-dot"></span>Hey Boss. Good to see you. What's on your mind?</div>
 </div>
 <div class="chat-input-row">
 <input type="text" id="chat-input" placeholder="Talk to me, Boss..." onkeypress="if(event.key==='Enter') sendChat()">
@@ -241,16 +242,20 @@ let elevenLabsApiKey=localStorage.getItem('eurusd_elevenlabs_api_key')||'';
 let voiceEngineMode=localStorage.getItem('eurusd_voice_engine_mode')||'cloud';
 let currentAudio=null;
 document.body.addEventListener('click',()=>{if('speechSynthesis'in window)window.speechSynthesis.getVoices()},{once:true});
-function updateISTClock(){const t=new Date().toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour12:false});const el=document.getElementById('ist-clock');if(el)el.innerText=`IST ${t}`}
+function updateISTClock(){const t=new Date().toLocaleTimeString('en-IN',{timeZone:'Asia/Kolkata',hour12:false});const el=document.getElementById('ist-clock');if(el)el.innerText=`IST ${t}`;const u=new Date().toUTCString().split(' ')[4];const uc=document.getElementById('utc-clock');if(uc)uc.innerText=`UTC ${u}`}
 setInterval(updateISTClock,1000);
 function loadWisdom(){const el=document.getElementById('wise-words');if(!el)return;let pool=[];if(personalContext&&Array.isArray(personalContext.quotes)&&personalContext.quotes.length>0){pool=personalContext.quotes.map(q=>`"${q}"`)}else{pool=[...LOCAL_QUOTES.map(q=>`"${q}"`),...LOCAL_JOKES.map(j=>j)]}el.innerText=pool[Math.floor(Math.random()*pool.length)]}
-async function searchWeb(query){try{const cm=query.match(/([A-Z]{3})\s*(?:to|in|for|of)\s*([A-Z]{3})/i);if(cm){const from=cm[1].toUpperCase();const to=cm[2].toUpperCase();const res=await fetch(`https://open.er-api.com/v6/latest/${from}`,{signal:AbortSignal.timeout(10000)});if(res.ok){const d=await res.json();if(d.rates&&d.rates[to]){return `The current exchange rate is 1 ${from} = ${d.rates[to].toFixed(4)} ${to}.`}}}const ddgUrl=`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1`;const res=await fetch(ddgUrl,{signal:AbortSignal.timeout(10000)});if(res.ok){const d=await res.json();let rt="";if(d.Answer)rt+=`Answer: ${d.Answer}\n`;if(d.AbstractText)rt+=`Summary: ${d.AbstractText}\n`;if(d.Definition)rt+=`Definition: ${d.Definition}\n`;if(d.RelatedTopics&&d.RelatedTopics.length>0){d.RelatedTopics.slice(0,2).forEach(t=>{if(t.Text)rt+=`- ${t.Text}\n`})}if(rt)return rt.trim()}const searchUrl=`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;const proxyUrl=`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(searchUrl)}`;const sr=await fetch(proxyUrl,{signal:AbortSignal.timeout(15000)});if(sr.ok){const html=await sr.text();const sr1=/<a class="result__snippet"[^>]*>(.*?)<\/a>/g;const tr1=/<a class="result__a"[^>]*>(.*?)<\/a>/g;let m;let sn=[];let ti=[];while((m=sr1.exec(html))!==null){sn.push(m[1].replace(/<[^>]*>?/gm,'').trim())}while((m=tr1.exec(html))!==null){ti.push(m[1].replace(/<[^>]*>?/gm,'').trim())}if(sn.length>0){let f="Here are the latest web search results:\n\n";for(let i=0;i<Math.min(sn.length,3);i++){f+=`${i+1}. ${ti[i]||'Result'}\n${sn[i]}\n\n`}return f.trim()}}return "I couldn't find a specific instant answer for that, Boss."}catch(e){console.error("Web search error:",e);return "I couldn't reach the internet right now, Boss."}}
+async function searchWeb(query){try{const cm=query.match(/([A-Z]{3})\s*(?:to|in|for|of)\s*([A-Z]{3})/i);if(cm){const from=cm[1].toUpperCase();const to=cm[2].toUpperCase();const res=await fetch(`https://open.er-api.com/v6/latest/${from}`,{signal:AbortSignal.timeout(10000)});if(res.ok){const d=await res.json();if(d.rates&&d.rates[to]){return `The current exchange rate is 1 ${from} = ${d.rates[to].toFixed(4)} ${to}.`}}}const ddgUrl=`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1`;const res=await fetch(ddgUrl,{signal:AbortSignal.timeout(10000)});if(res.ok){const d=await res.json();let rt="";if(d.Answer)rt+=`Answer: ${d.Answer}\n`;if(d.AbstractText)rt+=`Summary: ${d.AbstractText}\n`;if(d.Definition)rt+=`Definition: ${d.Definition}\n`;if(rt)return rt.trim()}const searchUrl=`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;const proxyUrl=`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(searchUrl)}`;const sr=await fetch(proxyUrl,{signal:AbortSignal.timeout(15000)});if(sr.ok){const html=await sr.text();const sr1=/<a class="result__snippet"[^>]*>(.*?)<\/a>/g;const tr1=/<a class="result__a"[^>]*>(.*?)<\/a>/g;let m;let sn=[];let ti=[];while((m=sr1.exec(html))!==null){sn.push(m[1].replace(/<[^>]*>?/gm,'').trim())}while((m=tr1.exec(html))!==null){ti.push(m[1].replace(/<[^>]*>?/gm,'').trim())}if(sn.length>0){let f="Here are the latest web search results:\n\n";for(let i=0;i<Math.min(sn.length,3);i++){f+=`${i+1}. ${ti[i]||'Result'}\n${sn[i]}\n\n`}return f.trim()}}return "I couldn't find a specific instant answer for that, Boss."}catch(e){console.error("Web search error:",e);return "I couldn't reach the internet right now, Boss."}}
 
-// === REALISTIC EARTH GLOBE ===
+// === REAL-TIME EARTH + ZOOM-OUT GALAXY ===
 const container=document.getElementById('canvas-container');
 const scene=new THREE.Scene();
-const camera=new THREE.PerspectiveCamera(45,container.clientWidth/container.clientHeight,0.1,1000);
-camera.position.z=7.5;
+const camera=new THREE.PerspectiveCamera(45,container.clientWidth/container.clientHeight,0.1,2000);
+const CAMERA_DIST=7.5;
+let cameraAngle=0;
+let cameraAngleVel=0;
+camera.position.set(0,1.2,CAMERA_DIST);
+camera.lookAt(0,0,0);
 const renderer=new THREE.WebGLRenderer({alpha:true,antialias:true});
 renderer.setSize(container.clientWidth,container.clientHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
@@ -258,10 +263,11 @@ container.appendChild(renderer.domElement);
 
 const GLOBE_R=2.4;
 const earthGroup=new THREE.Group();
-earthGroup.rotation.y=-Math.PI/2;
 scene.add(earthGroup);
 
-const sunDirection=new THREE.Vector3(1,0.3,0.5).normalize();
+// Fixed sun - pointing at +Z direction (toward camera)
+// Earth rotates based on real UTC time so real day/night is always correct
+const sunDirection=new THREE.Vector3(0,0.15,1).normalize();
 
 const earthUniforms={
   dayTexture:{value:null},
@@ -274,10 +280,11 @@ const earthMat=new THREE.ShaderMaterial({
   uniforms:earthUniforms,
   vertexShader:`
     varying vec2 vUv;
-    varying vec3 vNormal;
+    varying vec3 vWorldNormal;
     void main(){
       vUv=uv;
-      vNormal=normalize(normalMatrix*normal);
+      mat3 m=mat3(modelMatrix[0].xyz,modelMatrix[1].xyz,modelMatrix[2].xyz);
+      vWorldNormal=normalize(m*normal);
       gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);
     }
   `,
@@ -287,22 +294,20 @@ const earthMat=new THREE.ShaderMaterial({
     uniform vec3 sunDirection;
     uniform float hasTextures;
     varying vec2 vUv;
-    varying vec3 vNormal;
+    varying vec3 vWorldNormal;
     void main(){
       if(hasTextures>0.5){
-        float intensity=dot(normalize(vNormal),sunDirection);
-        float mixAmount=smoothstep(-0.08,0.18,intensity);
+        float intensity=dot(normalize(vWorldNormal),sunDirection);
+        float mixAmount=smoothstep(-0.05,0.15,intensity);
         vec3 dayColor=texture2D(dayTexture,vUv).rgb;
         vec3 nightColor=texture2D(nightTexture,vUv).rgb;
         float lum=dot(nightColor,vec3(0.299,0.587,0.114));
-        float lightMask=smoothstep(0.04,0.28,lum);
-        vec3 enhancedNight=nightColor*1.6;
-        enhancedNight+=vec3(1.0,0.72,0.30)*lightMask*3.2;
-        float bloom=smoothstep(0.15,0.45,lum);
-        enhancedNight+=vec3(1.0,0.85,0.55)*bloom*1.5;
+        float lightMask=smoothstep(0.03,0.22,lum);
+        vec3 enhancedNight=nightColor*1.5;
+        enhancedNight+=vec3(1.0,0.75,0.35)*lightMask*4.5;
+        float bloom=smoothstep(0.12,0.4,lum);
+        enhancedNight+=vec3(1.0,0.88,0.6)*bloom*2.2;
         vec3 finalColor=mix(enhancedNight,dayColor,mixAmount);
-        float rim=pow(1.0-abs(dot(vNormal,vec3(0.0,0.0,1.0))),3.0);
-        finalColor+=vec3(0.30,0.20,0.60)*rim*0.4;
         gl_FragColor=vec4(finalColor,1.0);
       } else {
         gl_FragColor=vec4(0.15,0.25,0.55,1.0);
@@ -338,33 +343,101 @@ earthGroup.add(atmosphere);
 
 const loader=new THREE.TextureLoader();
 loader.setCrossOrigin('anonymous');
-loader.load('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg',tex=>{tex.minFilter=THREE.LinearFilter;earthUniforms.dayTexture.value=tex;checkTextures()},undefined,err=>console.warn('Day texture failed:',err));
-loader.load('https://unpkg.com/three-globe/example/img/earth-night.jpg',tex=>{tex.minFilter=THREE.LinearFilter;earthUniforms.nightTexture.value=tex;checkTextures()},undefined,err=>console.warn('Night texture failed:',err));
+loader.load('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg',tex=>{tex.minFilter=THREE.LinearFilter;earthUniforms.dayTexture.value=tex;checkTextures()},undefined,e=>console.warn(e));
+loader.load('https://unpkg.com/three-globe/example/img/earth-night.jpg',tex=>{tex.minFilter=THREE.LinearFilter;earthUniforms.nightTexture.value=tex;checkTextures()},undefined,e=>console.warn(e));
 function checkTextures(){if(earthUniforms.dayTexture.value&&earthUniforms.nightTexture.value){earthUniforms.hasTextures.value=1}}
 
-const STAR_COUNT=1200;
+// === GALAXY (spiral, appears on zoom-out) ===
+function makeGalaxyDotTex(){
+  const s=64;const c=document.createElement('canvas');c.width=s;c.height=s;
+  const ctx=c.getContext('2d');
+  const g=ctx.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);
+  g.addColorStop(0,'rgba(255,255,255,1)');
+  g.addColorStop(0.3,'rgba(200,200,255,0.7)');
+  g.addColorStop(0.7,'rgba(120,80,220,0.25)');
+  g.addColorStop(1,'rgba(80,40,180,0)');
+  ctx.fillStyle=g;ctx.fillRect(0,0,s,s);
+  return new THREE.CanvasTexture(c);
+}
+const GALAXY_STARS=6000;
+const galGeo=new THREE.BufferGeometry();
+const galPos=new Float32Array(GALAXY_STARS*3);
+const galCol=new Float32Array(GALAXY_STARS*3);
+const ARMS=5;
+for(let i=0;i<GALAXY_STARS;i++){
+  // Spiral arm distribution
+  const arm=i%ARMS;
+  const armAngle=(arm/ARMS)*Math.PI*2;
+  const radius=1.5+Math.pow(Math.random(),0.6)*28;
+  const spiral=radius*0.35;
+  const angle=armAngle+spiral+(Math.random()-0.5)*0.7;
+  const jitter=Math.pow(Math.random(),2)*2.5*(1+radius/20);
+  const x=Math.cos(angle)*radius+(Math.random()-0.5)*jitter;
+  const z=Math.sin(angle)*radius+(Math.random()-0.5)*jitter;
+  const y=(Math.random()-0.5)*(1.5+Math.random()*2)*(1+radius/25);
+  galPos[i*3]=x;
+  galPos[i*3+1]=y*0.5;
+  galPos[i*3+2]=z;
+  // Color: brighter near center
+  const distRatio=Math.min(1,Math.sqrt(x*x+z*z)/30);
+  const r=1-Math.random()*0.3+0.1;
+  const g=0.6-distRatio*0.35+(Math.random()-0.5)*0.15;
+  const b=0.9-distRatio*0.2+(Math.random()-0.5)*0.15;
+  galCol[i*3]=r*0.85;
+  galCol[i*3+1]=Math.max(0.2,g)*0.8;
+  galCol[i*3+2]=Math.min(1,b);
+}
+galGeo.setAttribute('position',new THREE.BufferAttribute(galPos,3));
+galGeo.setAttribute('color',new THREE.BufferAttribute(galCol,3));
+const galMat=new THREE.PointsMaterial({
+  size:0.35,
+  map:makeGalaxyDotTex(),
+  vertexColors:true,
+  transparent:true,
+  opacity:0,
+  blending:THREE.AdditiveBlending,
+  depthWrite:false,
+  sizeAttenuation:true
+});
+const galaxy=new THREE.Points(galGeo,galMat);
+galaxy.rotation.x=0.4;
+galaxy.rotation.z=0.25;
+scene.add(galaxy);
+
+// Bright galactic core glow
+const coreGlowTex=(()=>{
+  const s=256;const c=document.createElement('canvas');c.width=s;c.height=s;
+  const ctx=c.getContext('2d');
+  const g=ctx.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);
+  g.addColorStop(0,'rgba(255,240,255,0.95)');
+  g.addColorStop(0.15,'rgba(220,180,255,0.7)');
+  g.addColorStop(0.4,'rgba(160,100,240,0.3)');
+  g.addColorStop(1,'rgba(80,20,180,0)');
+  ctx.fillStyle=g;ctx.fillRect(0,0,s,s);
+  return new THREE.CanvasTexture(c);
+})();
+const galaxyCore=new THREE.Sprite(new THREE.SpriteMaterial({map:coreGlowTex,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));
+galaxyCore.scale.set(20,20,1);
+scene.add(galaxyCore);
+
+// Small distant stars (fade with galaxy)
+const STAR_COUNT=800;
 const starGeo=new THREE.BufferGeometry();
 const starPos=new Float32Array(STAR_COUNT*3);
-const starCol=new Float32Array(STAR_COUNT*3);
 for(let i=0;i<STAR_COUNT;i++){
-  const r=8+Math.random()*22;
+  const r=30+Math.random()*40;
   const theta=Math.random()*Math.PI*2;
   const phi=Math.acos(2*Math.random()-1);
   starPos[i*3]=r*Math.sin(phi)*Math.cos(theta);
   starPos[i*3+1]=r*Math.sin(phi)*Math.sin(theta);
   starPos[i*3+2]=r*Math.cos(phi);
-  const b=0.55+Math.random()*0.45;
-  starCol[i*3]=b*0.85;
-  starCol[i*3+1]=b*0.88;
-  starCol[i*3+2]=b;
 }
 starGeo.setAttribute('position',new THREE.BufferAttribute(starPos,3));
-starGeo.setAttribute('color',new THREE.BufferAttribute(starCol,3));
-function makeStarTex(){const s=32;const c=document.createElement('canvas');c.width=s;c.height=s;const ctx=c.getContext('2d');const g=ctx.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(0.4,'rgba(220,220,255,0.6)');g.addColorStop(1,'rgba(150,150,255,0)');ctx.fillStyle=g;ctx.fillRect(0,0,s,s);return new THREE.CanvasTexture(c)}
-const starMat=new THREE.PointsMaterial({size:0.14,map:makeStarTex(),vertexColors:true,transparent:true,opacity:0.9,blending:THREE.AdditiveBlending,depthWrite:false,sizeAttenuation:true});
-const stars=new THREE.Points(starGeo,starMat);
-scene.add(stars);
+const starMat=new THREE.PointsMaterial({size:0.25,color:0xffffff,transparent:true,opacity:0.15,sizeAttenuation:true,blending:THREE.AdditiveBlending,depthWrite:false});
+const farStars=new THREE.Points(starGeo,starMat);
+scene.add(farStars);
 
+// Session highlight
 const SESSIONS=[
   {name:'London / NY Overlap',lat:51.5,lng:-0.1,color:0xfbbf24,test:h=>h>=12&&h<16},
   {name:'London Session',lat:51.5,lng:-0.1,color:0x10b981,test:h=>h>=7&&h<16},
@@ -374,7 +447,6 @@ const SESSIONS=[
 ];
 function getActiveSession(){const h=new Date().getUTCHours();for(const s of SESSIONS){if(s.test(h))return s}return{name:'Off-Session',lat:0,lng:0,color:0x8b95a5}}
 function latLngToXYZ(lat,lng,r){const phi=(90-lat)*Math.PI/180;const theta=(lng+180)*Math.PI/180;return new THREE.Vector3(-r*Math.sin(phi)*Math.cos(theta),r*Math.cos(phi),r*Math.sin(phi)*Math.sin(theta))}
-
 const ringGeo=new THREE.RingGeometry(0.35,0.5,48);
 const ringMat=new THREE.MeshBasicMaterial({color:0x10b981,transparent:true,opacity:0.55,side:THREE.DoubleSide});
 const sessionRing=new THREE.Mesh(ringGeo,ringMat);
@@ -400,44 +472,126 @@ function updateSessionVisuals(){
 updateSessionVisuals();
 setInterval(()=>{const s=getActiveSession();if(s.name!==currentSession.name){currentSession=s;updateSessionVisuals()}},60000);
 
+// === REAL-TIME EARTH ORIENTATION ===
+function updateEarthOrientation(){
+  const now=new Date();
+  const utcHours=now.getUTCHours()+now.getUTCMinutes()/60+now.getUTCSeconds()/3600;
+  // At UTC noon, longitude 0 (Greenwich) faces the sun (+Z direction)
+  // Earth rotates -0.5°/min eastward → -1 full rotation per day
+  earthGroup.rotation.y=-Math.PI/2+(utcHours-12)*Math.PI/12;
+}
+updateEarthOrientation();
+setInterval(updateEarthOrientation,30000);
+
+// === INTERACTION: ORBIT CAMERA + PINCH ZOOM ===
 let isDragging=false;
 let prevPointer={x:0,y:0};
-let rotVelY=0,rotVelX=0;
 let pinchStartDist=0;
 let pinchStartScale=1;
-let globeScale=1;
+let globeScale=1.0;         // 1.0 = earth fills view
+let targetGlobeScale=1.0;
+const MIN_SCALE=0.35;       // zoomed out enough to see galaxy
+const MAX_SCALE=2.0;
 const activePointers=new Map();
 function getDist(t1,t2){const dx=t1.x-t2.x,dy=t1.y-t2.y;return Math.sqrt(dx*dx+dy*dy)}
 
-container.addEventListener('pointerdown',(e)=>{try{container.setPointerCapture(e.pointerId)}catch(err){}activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(activePointers.size===1){isDragging=true;prevPointer={x:e.clientX,y:e.clientY}}else if(activePointers.size===2){const pts=Array.from(activePointers.values());pinchStartDist=getDist(pts[0],pts[1]);pinchStartScale=globeScale;isDragging=false}});
-container.addEventListener('pointermove',(e)=>{if(!activePointers.has(e.pointerId))return;const prev=activePointers.get(e.pointerId);activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(activePointers.size===1&&isDragging){const dx=e.clientX-prev.x;const dy=e.clientY-prev.y;rotVelY+=dx*0.0035;rotVelX+=dy*0.0035}else if(activePointers.size===2){const pts=Array.from(activePointers.values());const d=getDist(pts[0],pts[1]);if(pinchStartDist>0){const ratio=d/pinchStartDist;globeScale=Math.max(0.6,Math.min(2.0,pinchStartScale*ratio))}}});
-function endPointer(e){activePointers.delete(e.pointerId);if(activePointers.size===0){isDragging=false}else if(activePointers.size===1){isDragging=true;pinchStartDist=0;const r=Array.from(activePointers.values())[0];prevPointer={x:r.x,y:r.y}}}
+container.addEventListener('pointerdown',(e)=>{
+  try{container.setPointerCapture(e.pointerId)}catch(err){}
+  activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(activePointers.size===1){isDragging=true;prevPointer={x:e.clientX,y:e.clientY}}
+  else if(activePointers.size===2){
+    const pts=Array.from(activePointers.values());
+    pinchStartDist=getDist(pts[0],pts[1]);
+    pinchStartScale=targetGlobeScale;
+    isDragging=false;
+  }
+});
+
+container.addEventListener('pointermove',(e)=>{
+  if(!activePointers.has(e.pointerId))return;
+  const prev=activePointers.get(e.pointerId);
+  activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(activePointers.size===1&&isDragging){
+    const dx=e.clientX-prev.x;
+    cameraAngleVel+=dx*0.007;
+  } else if(activePointers.size===2){
+    const pts=Array.from(activePointers.values());
+    const d=getDist(pts[0],pts[1]);
+    if(pinchStartDist>0){
+      const ratio=d/pinchStartDist;
+      targetGlobeScale=Math.max(MIN_SCALE,Math.min(MAX_SCALE,pinchStartScale*ratio));
+    }
+  }
+});
+
+function endPointer(e){
+  activePointers.delete(e.pointerId);
+  if(activePointers.size===0){isDragging=false}
+  else if(activePointers.size===1){
+    isDragging=true;
+    pinchStartDist=0;
+    const r=Array.from(activePointers.values())[0];
+    prevPointer={x:r.x,y:r.y};
+  }
+}
 container.addEventListener('pointerup',endPointer);
 container.addEventListener('pointercancel',endPointer);
 container.addEventListener('touchstart',(e)=>e.preventDefault(),{passive:false});
 container.addEventListener('touchmove',(e)=>e.preventDefault(),{passive:false});
 
+// === ANIMATION LOOP ===
 let time=0;
 function animate(){
   requestAnimationFrame(animate);
   time+=0.01;
-  if(!isDragging){earthGroup.rotation.y+=0.0008}
-  earthGroup.rotation.y+=rotVelY;
-  earthGroup.rotation.x+=rotVelX;
-  rotVelY*=0.94;
-  rotVelX*=0.94;
-  earthGroup.rotation.x=Math.max(-1.2,Math.min(1.2,earthGroup.rotation.x));
+
+  // Smooth zoom
+  globeScale+=(targetGlobeScale-globeScale)*0.12;
+
+  // Camera orbit inertia
+  cameraAngle+=cameraAngleVel;
+  cameraAngleVel*=0.94;
+
+  // Camera orbits around earth
+  const camX=Math.sin(cameraAngle)*CAMERA_DIST;
+  const camZ=Math.cos(cameraAngle)*CAMERA_DIST;
+  camera.position.set(camX,1.2,camZ);
+  camera.lookAt(0,0,0);
+
+  // Earth scales with zoom
   earthGroup.scale.setScalar(globeScale);
-  stars.rotation.y+=0.0002;
+
+  // Galaxy opacity: appears when zoomed out (scale < 0.85)
+  const zoomOutFactor=Math.max(0,Math.min(1,(0.85-globeScale)/0.5));
+  galMat.opacity=zoomOutFactor*0.95;
+  galaxyCore.material.opacity=zoomOutFactor*0.85;
+  starMat.opacity=0.15+zoomOutFactor*0.6;
+
+  // Slow galaxy rotation
+  galaxy.rotation.y+=0.0004;
+
+  // Hide earth atmosphere glow when zoomed way out (keeps galaxy clean)
+  atmosphere.material.opacity = 1.0;
+
+  // Session halo pulse
   const pulse=1+Math.sin(time*2.5)*0.2;
   sessionHalo.scale.set(0.8*pulse,0.8*pulse,1);
   sessionHalo.material.opacity=0.65+Math.sin(time*2.5)*0.25;
   sessionRing.material.opacity=0.4+Math.sin(time*2.5)*0.2;
-  sunDirection.set(Math.cos(time*0.03+2.4)*1.0,0.30,Math.sin(time*0.03+2.4)*0.9).normalize();
+
+  // Hide zoom hint when zoomed out
+  const hint=document.getElementById('zoom-hint');
+  if(hint)hint.style.opacity=zoomOutFactor>0.2?'0':'1';
+
   renderer.render(scene,camera);
 }
 animate();
-window.addEventListener('resize',()=>{camera.aspect=container.clientWidth/container.clientHeight;camera.updateProjectionMatrix();renderer.setSize(container.clientWidth,container.clientHeight)});
+
+window.addEventListener('resize',()=>{
+  camera.aspect=container.clientWidth/container.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(container.clientWidth,container.clientHeight);
+});
 
 function safeNum(val,fallback=0){return(isNaN(val)||val===undefined||val===null||!isFinite(val))?fallback:val}
 async function fetchBiquoteCandles(interval,limit){try{const url=`https://biquote.io/api/EURUSD/ohlc?interval=${interval}&limit=${limit}`;const res=await fetch(url);if(!res.ok)return[];const data=await res.json();if(!data.bars||data.bars.length===0)return[];return data.bars.filter(b=>!b.isOpen).reverse().map(b=>({time:new Date(b.openTime).getTime(),open:parseFloat(b.open),high:parseFloat(b.high),low:parseFloat(b.low),close:parseFloat(b.close)}))}catch(e){console.error("Biquote fetch error:",e);return[]}}
@@ -450,7 +604,7 @@ function addAlertToLog(alert){const time=new Date().toLocaleTimeString('en-IN',{
 function renderAlertLog(){const el=document.getElementById('alert-log');if(el)el.innerHTML=alertLog.length===0?'No alerts yet. Engine scanning...':alertLog.map(a=>`<div class="alert-log-item">${a}</div>`).join('')}
 function showSetupAlert(setup){const alertBox=document.getElementById('alert-box');const signalText=document.getElementById('signal-text');const statusEl=document.getElementById('signal-status');if(!setup){alertBox.classList.remove('active');if(!globalData){signalText.innerText="AWAITING";signalText.style.color="var(--text-subtle)";statusEl.innerText="Engine is scanning market structure..."}return}alertBox.innerHTML=`<strong>Setup Detected · ${setup.type}</strong><br>${setup.reason}<br><em>Tap "Ask AI for Signal" to confirm.</em>`;alertBox.classList.add('active');if(!globalData||globalData.signal==='WAITING'){signalText.innerText="SETUP";signalText.style.color="var(--yellow)";statusEl.innerText=`Opportunity spotted · ${setup.type}`}}
 function isMarketQuestion(text){return MARKET_KEYWORDS.some(kw=>text.toLowerCase().includes(kw))}
-async function callAI(systemPrompt,userText,conversationHistory){const messages=[{role:'system',content:systemPrompt},...conversationHistory.map(m=>({role:m.role==='ai'?'assistant':'user',content:m.text})),{role:'user',content:userText}];if(groqKey){for(const model of GROQ_MODELS){try{const res=await fetch(GROQ_URL,{method:'POST',headers:{'Authorization':`Bearer ${groqKey}`,'Content-Type':'application/json'},body:JSON.stringify({model:model,messages:messages,temperature:0.95,max_tokens:800})});if(res.ok)return(await res.json()).choices[0].message.content}catch(e){}}}if(apiKey){const contents=[{role:'user',parts:[{text:systemPrompt}]},...conversationHistory.map(m=>({role:m.role==='ai'?'model':'user',parts:[{text:m.text}]})),{role:'user',parts:[{text:userText}]}];for(const model of GEMINI_MODELS){try{const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents,generationConfig:{maxOutputTokens:800,temperature:0.95}})});if(r.ok)return(await r.json()).candidates[0].content.parts[0].text}catch(e){}}}throw new Error("All AI providers failed. Check your keys.")}
+async function callAI(systemPrompt,userText,conversationHistory){const messages=[{role:'system',content:systemPrompt},...conversationHistory.map(m=>({role:m.role==='ai'?'assistant':'user',content:m.text})),{role:'user',content:userText}];if(groqKey){for(const model of GROQ_MODELS){try{const res=await fetch(GROQ_URL,{method:'POST',headers:{'Authorization':`Bearer ${groqKey}`,'Content-Type':'application/json'},body:JSON.stringify({model:model,messages:messages,temperature:0.95,max_tokens:800})});if(res.ok)return(await res.json()).choices[0].message.content}catch(e){}}}if(apiKey){const contents=[{role:'user',parts:[{text:systemPrompt}]},...conversationHistory.map(m=>({role:m.role==='ai'?'model':'user',parts:[{text:m.text}]})),{role:'user',parts:[{text:userText}]}];for(const model of GEMINI_MODELS){try{const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents,generationConfig:{maxOutputTokens:800,temperature:0.95}})});if(r.ok)return(await r.json()).candidates[0].content.parts[0].text}catch(e){}}}throw new Error("All AI providers failed.")}
 async function askAIForSignal(){if(!groqKey&&!apiKey){alert("Please set your Groq or Gemini API Key first.");togglePanel('panel-key');return}if(!marketData){await refreshMarketData()}const signalText=document.getElementById('signal-text');const statusEl=document.getElementById('signal-status');signalText.innerText="ANALYZING";signalText.style.color="var(--purple)";statusEl.innerText="AI is analyzing all timeframes...";const md=marketData;const fmt=(arr)=>arr.slice(-20).map(c=>`O:${(c.open||0).toFixed(5)} H:${(c.high||0).toFixed(5)} L:${(c.low||0).toFixed(5)} C:${(c.close||0).toFixed(5)}`).join('\n');const dataString=`PRICE: ${md.currentPrice.toFixed(5)} | Trend: ${md.trend} | RSI 1H: ${md.rsi1H.toFixed(1)} | RSI 15m: ${md.rsi15m.toFixed(1)} | RSI 5m: ${md.rsi5m.toFixed(1)} | EMA20: ${md.ema20.toFixed(5)} | EMA50: ${md.ema50.toFixed(5)} | ATR: ${md.atr.toFixed(5)} | Support: ${md.support.toFixed(5)} | Resistance: ${md.resistance.toFixed(5)} | Session: ${md.session}\n\n5m:\n${fmt(md.candles5m)}\n\n15m:\n${fmt(md.candles15m)}\n\n1H:\n${fmt(md.candles1H)}\n\n4H:\n${fmt(md.candles4H)}`;const signalPrompt=`You are a SENIOR EUR/USD hedge fund trader with 10 years of experience. TIME: ${new Date().toLocaleString('en-IN',{timeZone:'Asia/Kolkata'})} IST.\n\n${dataString}\n\nAnalyze: Daily bias -> 1H structure -> 15m/5m alignment -> key levels.\nRespond ONLY valid JSON: {"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;try{const reply=await callAI(signalPrompt,"Give me the signal.",[]);const jsonMatch=reply.match(/\{[\s\S]*?"signal"[\s\S]*?\}/);if(!jsonMatch)throw new Error("No JSON signal returned");const sig=JSON.parse(jsonMatch[0]);globalData={price:md.currentPrice.toFixed(5),signal:sig.signal,reason:sig.reason,confidence:sig.confidence,entry:sig.entry,sl:sig.sl,tp:sig.tp,atr:md.atr.toFixed(5),support:md.support.toFixed(5),resistance:md.resistance.toFixed(5),trend:md.trend,session:md.session,valid:new Date(Date.now()+1800000).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})+" IST",wise_words:sig.wise_words};signalText.innerText=sig.signal;if(sig.signal==='BUY'){signalText.style.color='var(--green)';statusEl.innerText='Bullish setup confirmed by AI'}else if(sig.signal==='SELL'){signalText.style.color='var(--red)';statusEl.innerText='Bearish setup confirmed by AI'}else{signalText.style.color='var(--yellow)';statusEl.innerText='AI recommends waiting'}document.getElementById('val-confidence').innerText=sig.confidence;document.getElementById('val-valid').innerText=globalData.valid;document.getElementById('val-entry').innerText=sig.entry;document.getElementById('val-sl').innerText=sig.sl;document.getElementById('val-tp').innerText=sig.tp;document.getElementById('val-atr').innerText=md.atr.toFixed(5);document.getElementById('val-reason').innerText=sig.reason;if(sig.wise_words)document.getElementById('wise-words').innerText=sig.wise_words;document.getElementById('alert-box').classList.remove('active');playVoiceReport();return globalData}catch(e){signalText.innerText="ERROR";signalText.style.color="var(--red)";statusEl.innerText="AI error — "+e.message;return null}}
 const OPENINGS=["Okay, so here's the update, Boss.","Right. Let's take a look.","Alright Boss, quick brief.","Here we go, Boss.","So, quick read on the charts."];
 const TRANS=["Moving on.","Now, here's the thing.","And listen to this.","Okay, next.","Alright."];
@@ -462,7 +616,7 @@ async function speakText(text,isReminder=false){const statusEl=document.getEleme
 function testCloudVoice(){speakText("Testing the premium cloud voice. If you hear this in a natural, human-sounding tone, the system is working perfectly.")}
 function playVoiceReport(){if(!globalData)return;if(isSpeaking)stopVoice();let text=`${rnd(OPENINGS)} Price is ${globalData.price}. We've got a ${globalData.signal} signal with ${globalData.confidence} confidence. ${globalData.reason} ${rnd(TRANS)} Support sits at ${globalData.support}, resistance at ${globalData.resistance}. Entry is ${globalData.entry}. Stop loss at ${globalData.sl}. Take profit at ${globalData.tp}. ${globalData.wise_words?globalData.wise_words:''} ${rnd(CLOSINGS)}`;speakText(text)}
 function stopVoice(){if(currentAudio){currentAudio.pause();currentAudio=null}if('speechSynthesis'in window){window.speechSynthesis.cancel()}isSpeaking=false}
-function renderChat(){const el=document.getElementById('chat-history');el.innerHTML='';chatHistory.forEach(m=>{const d=document.createElement('div');d.className=`msg ${m.role} fade-in`;d.innerText=m.text;el.appendChild(d)});el.scrollTop=el.scrollHeight}
+function renderChat(){const el=document.getElementById('chat-history');el.innerHTML='';chatHistory.forEach(m=>{const d=document.createElement('div');d.className=`msg ${m.role}`;d.innerText=m.text;el.appendChild(d)});el.scrollTop=el.scrollHeight}
 function saveChatHistory(){if(chatHistory.length>40)chatHistory=chatHistory.slice(-40);localStorage.setItem('eurusd_chat_history',JSON.stringify(chatHistory))}
 function clearChat(){chatHistory=[];saveChatHistory();renderChat()}
 function toggleDeepThink(){deepThinkEnabled=!deepThinkEnabled;const b=document.getElementById('deep-think-toggle');b.classList.toggle('active',deepThinkEnabled);b.innerText=deepThinkEnabled?'Deep ON':'Deep OFF'}
@@ -497,16 +651,16 @@ Today is ${dayName}. ${isWeekend?'WEEKEND: market closed. Focus on personal.':'W
 IST: ${istTime}.
 
 ${personalBlock}${memoryBlock}${marketBlock}`;if(includeSignal){prompt+=`\nCRITICAL: Add new line with ONLY this JSON: {"signal":"BUY"|"SELL"|"HOLD","reason":"2-4 sentences","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`}return prompt}
-async function sendChat(){const input=document.getElementById('chat-input');const text=input.value.trim();if(!text)return;if(!groqKey&&!apiKey){alert("Set your Groq or Gemini API Key first.");togglePanel('panel-key');return}chatInProgress=true;input.value='';chatHistory.push({role:'user',text});renderChat();saveChatHistory();const loading=document.createElement('div');loading.className='msg ai thinking fade-in';loading.innerText='...';document.getElementById('chat-history').appendChild(loading);document.getElementById('chat-history').scrollTop=document.getElementById('chat-history').scrollHeight;try{let response;if(webSearchEnabled){const searchResults=await searchWeb(text);const searchPrompt=`Web search results:\n${searchResults}\n\nBoss's question: ${text}\n\nAnswer briefly and conversationally.`;const systemPrompt=buildPersonalityPrompt(false,text);response=await callAI(systemPrompt,searchPrompt,chatHistory.slice(-4))}else{const systemPrompt=buildPersonalityPrompt(isMarketQuestion(text),text);const recent=chatHistory.slice(-6);response=await callAI(systemPrompt,text,recent)}response=cleanResponse(response);let signalData=null;const jsonMatch=response.match(/\{[\s\S]*?"signal"[\s\S]*?\}/);if(jsonMatch){try{signalData=JSON.parse(jsonMatch[0]);response=response.replace(jsonMatch[0],'').trim()}catch(e){}}document.getElementById('chat-history').removeChild(loading);const rm=response.match(/\[REMINDER:\s*(\w{3}\s\d{2}:\d{2}|\d{2}:\d{2})\s*-\s*(.*?)\]/);if(rm){addReminder(rm[1],rm[2]);response=response.replace(/\[REMINDER:.*?\]/g,'').trim()}const ss=response.match(/\[SCHEDULE_SEARCH:\s*(\d+)\s*-\s*(.*?)\]/);if(ss){addScheduledSearch(parseInt(ss[1]),ss[2]);response=response.replace(/\[SCHEDULE_SEARCH:.*?\]/g,'').trim()}else if(webSearchEnabled&&(text.toLowerCase().includes('check')||text.toLowerCase().includes('search'))&&(text.toLowerCase().includes('min')||text.toLowerCase().includes('mints'))){const minMatch=text.match(/\b(\d+)\s*(?:min|minute|minutes|mints)\b/i);if(minMatch&&minMatch[1]){const mins=parseInt(minMatch[1]);let query=text.replace(/check|web|net|search|update|me|inform|in\s*\d+\s*(?:min|minute|minutes|mints)/gi,'').trim();query=query.replace(/[^a-zA-Z0-9\s]/g,'').replace(/\s+/g,' ').trim();if(!query)query="latest news";addScheduledSearch(mins,query);response+=` (Timer set for ${mins} minutes, Boss.)`}}const mm=response.match(/\[REMEMBER:\s*(.*?)\]/);if(mm){addLongTermMemory(mm[1]);response=response.replace(/\[REMEMBER:.*?\]/g,'').trim()}else if(text.toLowerCase().includes('remember')||text.toLowerCase().includes('don\'t forget')){addLongTermMemory(text);response+=" (Saved to memory, Boss.)"}chatHistory.push({role:'ai',text:response});renderChat();saveChatHistory();speakText(response);if(signalData&&marketData){globalData={price:marketData.currentPrice.toFixed(5),signal:signalData.signal,reason:signalData.reason,confidence:signalData.confidence,entry:signalData.entry,sl:signalData.sl,tp:signalData.tp,atr:marketData.atr.toFixed(5),support:marketData.support.toFixed(5),resistance:marketData.resistance.toFixed(5),trend:marketData.trend,session:marketData.session,valid:new Date(Date.now()+1800000).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})+" IST",wise_words:signalData.wise_words};const st=document.getElementById('signal-text');st.innerText=signalData.signal;if(signalData.signal==='BUY'){st.style.color='var(--green)'}else if(signalData.signal==='SELL'){st.style.color='var(--red)'}else{st.style.color='var(--yellow)'}document.getElementById('val-confidence').innerText=signalData.confidence;document.getElementById('val-valid').innerText=globalData.valid;document.getElementById('val-entry').innerText=signalData.entry;document.getElementById('val-sl').innerText=signalData.sl;document.getElementById('val-tp').innerText=signalData.tp;document.getElementById('val-atr').innerText=marketData.atr.toFixed(5);document.getElementById('val-reason').innerText=signalData.reason;if(signalData.wise_words)document.getElementById('wise-words').innerText=signalData.wise_words}}catch(e){if(document.getElementById('chat-history').contains(loading))document.getElementById('chat-history').removeChild(loading);chatHistory.push({role:'ai',text:`Error: ${e.message}`});renderChat()}finally{chatInProgress=false}}
+async function sendChat(){const input=document.getElementById('chat-input');const text=input.value.trim();if(!text)return;if(!groqKey&&!apiKey){alert("Set your Groq or Gemini API Key first.");togglePanel('panel-key');return}chatInProgress=true;input.value='';chatHistory.push({role:'user',text});renderChat();saveChatHistory();const loading=document.createElement('div');loading.className='msg ai thinking';loading.innerText='...';document.getElementById('chat-history').appendChild(loading);document.getElementById('chat-history').scrollTop=document.getElementById('chat-history').scrollHeight;try{let response;if(webSearchEnabled){const searchResults=await searchWeb(text);const searchPrompt=`Web search results:\n${searchResults}\n\nBoss's question: ${text}\n\nAnswer briefly and conversationally.`;const systemPrompt=buildPersonalityPrompt(false,text);response=await callAI(systemPrompt,searchPrompt,chatHistory.slice(-4))}else{const systemPrompt=buildPersonalityPrompt(isMarketQuestion(text),text);const recent=chatHistory.slice(-6);response=await callAI(systemPrompt,text,recent)}response=cleanResponse(response);let signalData=null;const jsonMatch=response.match(/\{[\s\S]*?"signal"[\s\S]*?\}/);if(jsonMatch){try{signalData=JSON.parse(jsonMatch[0]);response=response.replace(jsonMatch[0],'').trim()}catch(e){}}document.getElementById('chat-history').removeChild(loading);const rm=response.match(/\[REMINDER:\s*(\w{3}\s\d{2}:\d{2}|\d{2}:\d{2})\s*-\s*(.*?)\]/);if(rm){addReminder(rm[1],rm[2]);response=response.replace(/\[REMINDER:.*?\]/g,'').trim()}const ss=response.match(/\[SCHEDULE_SEARCH:\s*(\d+)\s*-\s*(.*?)\]/);if(ss){addScheduledSearch(parseInt(ss[1]),ss[2]);response=response.replace(/\[SCHEDULE_SEARCH:.*?\]/g,'').trim()}else if(webSearchEnabled&&(text.toLowerCase().includes('check')||text.toLowerCase().includes('search'))&&(text.toLowerCase().includes('min')||text.toLowerCase().includes('mints'))){const minMatch=text.match(/\b(\d+)\s*(?:min|minute|minutes|mints)\b/i);if(minMatch&&minMatch[1]){const mins=parseInt(minMatch[1]);let query=text.replace(/check|web|net|search|update|me|inform|in\s*\d+\s*(?:min|minute|minutes|mints)/gi,'').trim();query=query.replace(/[^a-zA-Z0-9\s]/g,'').replace(/\s+/g,' ').trim();if(!query)query="latest news";addScheduledSearch(mins,query);response+=` (Timer set for ${mins} minutes, Boss.)`}}const mm=response.match(/\[REMEMBER:\s*(.*?)\]/);if(mm){addLongTermMemory(mm[1]);response=response.replace(/\[REMEMBER:.*?\]/g,'').trim()}else if(text.toLowerCase().includes('remember')||text.toLowerCase().includes('don\'t forget')){addLongTermMemory(text);response+=" (Saved to memory, Boss.)"}chatHistory.push({role:'ai',text:response});renderChat();saveChatHistory();speakText(response);if(signalData&&marketData){globalData={price:marketData.currentPrice.toFixed(5),signal:signalData.signal,reason:signalData.reason,confidence:signalData.confidence,entry:signalData.entry,sl:signalData.sl,tp:signalData.tp,atr:marketData.atr.toFixed(5),support:marketData.support.toFixed(5),resistance:marketData.resistance.toFixed(5),trend:marketData.trend,session:marketData.session,valid:new Date(Date.now()+1800000).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})+" IST",wise_words:signalData.wise_words};const st=document.getElementById('signal-text');st.innerText=signalData.signal;if(signalData.signal==='BUY'){st.style.color='var(--green)'}else if(signalData.signal==='SELL'){st.style.color='var(--red)'}else{st.style.color='var(--yellow)'}document.getElementById('val-confidence').innerText=signalData.confidence;document.getElementById('val-valid').innerText=globalData.valid;document.getElementById('val-entry').innerText=signalData.entry;document.getElementById('val-sl').innerText=signalData.sl;document.getElementById('val-tp').innerText=signalData.tp;document.getElementById('val-atr').innerText=marketData.atr.toFixed(5);document.getElementById('val-reason').innerText=signalData.reason;if(signalData.wise_words)document.getElementById('wise-words').innerText=signalData.wise_words}}catch(e){if(document.getElementById('chat-history').contains(loading))document.getElementById('chat-history').removeChild(loading);chatHistory.push({role:'ai',text:`Error: ${e.message}`});renderChat()}finally{chatInProgress=false}}
 async function triggerProactiveCheckin(){if(chatInProgress)return;if(!groqKey&&!apiKey)return;const allTopics=["Ask how Sadia is doing in Dubai.","Ask about Emy and Bismah, and their Malayalam tuition.","Ask if he has taken his BP tablets today.","Ask if he has eaten.","Ask about Cookie the cat.","Ask how his day is going.","Ask if he watched any sports or movies.","Ask about the weather in Thrissur.","Ask if he has plans for the evening.","Ask about a hobby.","Ask how brothers Binu and Shanu are doing.","Ask about his goals."];let available=allTopics.filter(t=>!recentCheckinTopics.includes(t));if(available.length===0){recentCheckinTopics=[];available=allTopics}const randomTopic=available[Math.floor(Math.random()*available.length)];recentCheckinTopics.push(randomTopic);if(recentCheckinTopics.length>5)recentCheckinTopics.shift();localStorage.setItem('eurusd_recent_checkin_topics',JSON.stringify(recentCheckinTopics));const checkinPrompt=`You are Alex, Boss's best friend. Generate a short warm check-in: ${randomTopic} Make a light joke. Mention EUR/USD around ${marketData?marketData.currentPrice.toFixed(5):'the market'}. 2-3 sentences. No JSON. No emojis.`;try{let response=await callAI(checkinPrompt,"Initiate check-in.",[]);response=cleanResponse(response);chatHistory.push({role:'ai',text:response});renderChat();saveChatHistory();speakText(response)}catch(e){console.error("Check-in failed:",e)}}
-function addReminder(time,message){reminders.push({id:Math.random().toString(36).substr(2,9),time,message,voice:true,fired:false,created:new Date().toISOString()});localStorage.setItem('eurusd_reminders',JSON.stringify(reminders));renderReminders();const d=document.createElement('div');d.className='msg system fade-in';d.innerText=`Reminder set for ${time} IST — ${message}`;document.getElementById('chat-history').appendChild(d)}
-function addScheduledSearch(minutes,query){const triggerTime=Date.now()+(minutes*60000);scheduledSearches.push({id:Math.random().toString(36).substr(2,9),triggerTime,query,fired:false});localStorage.setItem('eurusd_scheduled_searches',JSON.stringify(scheduledSearches));renderReminders();const d=document.createElement('div');d.className='msg system fade-in';d.innerText=`Web Search scheduled in ${minutes} minutes: "${query}"`;document.getElementById('chat-history').appendChild(d)}
+function addReminder(time,message){reminders.push({id:Math.random().toString(36).substr(2,9),time,message,voice:true,fired:false,created:new Date().toISOString()});localStorage.setItem('eurusd_reminders',JSON.stringify(reminders));renderReminders();const d=document.createElement('div');d.className='msg system';d.innerText=`Reminder set for ${time} IST — ${message}`;document.getElementById('chat-history').appendChild(d)}
+function addScheduledSearch(minutes,query){const triggerTime=Date.now()+(minutes*60000);scheduledSearches.push({id:Math.random().toString(36).substr(2,9),triggerTime,query,fired:false});localStorage.setItem('eurusd_scheduled_searches',JSON.stringify(scheduledSearches));renderReminders();const d=document.createElement('div');d.className='msg system';d.innerText=`Web Search scheduled in ${minutes} minutes: "${query}"`;document.getElementById('chat-history').appendChild(d)}
 function renderReminders(){const l=document.getElementById('reminders-list');const ar=reminders.filter(r=>!r.fired);const as=scheduledSearches.filter(s=>!s.fired);if(ar.length===0&&as.length===0){l.innerHTML='No active reminders or scheduled searches.';return}let html='';ar.forEach(r=>{html+=`<div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span>⏰ ${r.time} · ${r.message}</span><button class="btn danger" onclick="deleteReminder('${r.id}')">X</button></div>`});as.forEach(s=>{const timeLeft=Math.round((s.triggerTime-Date.now())/60000);html+=`<div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span>🔍 in ${timeLeft}m · ${s.query}</span><button class="btn danger" onclick="deleteScheduledSearch('${s.id}')">X</button></div>`});l.innerHTML=html}
 function deleteReminder(id){reminders=reminders.filter(r=>r.id!==id);localStorage.setItem('eurusd_reminders',JSON.stringify(reminders));renderReminders()}
 function deleteScheduledSearch(id){scheduledSearches=scheduledSearches.filter(s=>s.id!==id);localStorage.setItem('eurusd_scheduled_searches',JSON.stringify(scheduledSearches));renderReminders()}
 function clearReminders(){reminders=[];scheduledSearches=[];localStorage.setItem('eurusd_reminders',JSON.stringify(reminders));localStorage.setItem('eurusd_scheduled_searches',JSON.stringify(scheduledSearches));renderReminders()}
 function testReminder(){triggerNotif("Test Reminder","This is a test reminder, Boss!")}
-function triggerNotif(title,body){if(Notification.permission==="granted"){try{new Notification(title,{body,requireInteraction:true})}catch(e){}}else if(Notification.permission!=="denied"){Notification.requestPermission()}speakText(`Hey Boss, quick reminder. ${body}`,true);const d=document.createElement('div');d.className='msg system fade-in';d.innerText=`${title}: ${body}`;document.getElementById('chat-history').appendChild(d)}
+function triggerNotif(title,body){if(Notification.permission==="granted"){try{new Notification(title,{body,requireInteraction:true})}catch(e){}}else if(Notification.permission!=="denied"){Notification.requestPermission()}speakText(`Hey Boss, quick reminder. ${body}`,true);const d=document.createElement('div');d.className='msg system';d.innerText=`${title}: ${body}`;document.getElementById('chat-history').appendChild(d)}
 function checkReminders(){const now=new Date();const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];const curDay=days[now.getDay()];const curTime=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');let updated=false;reminders.forEach(r=>{if(!r.fired){let shouldFire=false;if(r.time.includes(' ')){const[dayPart,timePart]=r.time.split(' ');if(dayPart===curDay&&timePart===curTime)shouldFire=true}else{if(r.time===curTime)shouldFire=true}if(shouldFire){r.fired=true;updated=true;triggerNotif("Boss Reminder",r.message)}}});if(updated){localStorage.setItem('eurusd_reminders',JSON.stringify(reminders));renderReminders()}}
 setInterval(checkReminders,10000);
 async function checkScheduledSearches(){const now=Date.now();let updated=false;for(let task of scheduledSearches){if(!task.fired&&now>=task.triggerTime){task.fired=true;updated=true;const results=await searchWeb(task.query);const prompt=`You are Alex. Boss asked: "${task.query}". Results:\n${results}\n\nGive a short friendly update.`;try{const summary=await callAI(buildPersonalityPrompt(false),prompt,[]);const cleanSummary=cleanResponse(summary);chatHistory.push({role:'ai',text:cleanSummary});renderChat();saveChatHistory();speakText(cleanSummary);triggerNotif("Scheduled Update",cleanSummary)}catch(e){console.error("Scheduled search AI failed:",e)}}}if(updated){scheduledSearches=scheduledSearches.filter(t=>!t.fired||(Date.now()-t.triggerTime)<3600000);localStorage.setItem('eurusd_scheduled_searches',JSON.stringify(scheduledSearches));renderReminders()}}
