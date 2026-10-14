@@ -290,8 +290,7 @@
             <div class="reasoning-text" id="val-reason">Engine scanning. AI auto-analyzes hourly.</div>
         </div>
     </div>
-
-    <script>
+        <script>
         // === CONFIGURATION ===
         const GROQ_MODELS = ['meta-llama/llama-4-scout-17b-16e-instruct','llama-3.3-70b-versatile','openai/gpt-oss-120b'];
         const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
@@ -407,7 +406,7 @@
             }
         }
 
-        // === AUDIO ENGINE (Web Audio API - Charging + Explosion sounds) ===
+        // === AUDIO ENGINE ===
         let audioCtx = null;
         let chargeOsc1 = null, chargeOsc2 = null, chargeGain = null, chargeTickGain = null, chargeTickOsc = null;
 
@@ -426,7 +425,6 @@
             if (!ctx) return;
             stopChargeSound();
 
-            // Two oscillators for a rich "charging reactor" hum
             chargeOsc1 = ctx.createOscillator();
             chargeOsc1.type = 'sawtooth';
             chargeOsc1.frequency.value = 60;
@@ -436,9 +434,8 @@
             chargeOsc2.frequency.value = 120;
 
             chargeGain = ctx.createGain();
-            chargeGain.gain.value = 0.001;   // start almost silent
+            chargeGain.gain.value = 0.001;
 
-            // Low-pass filter to soften the sawtooth
             const filter = ctx.createBiquadFilter();
             filter.type = 'lowpass';
             filter.frequency.value = 800;
@@ -448,14 +445,12 @@
             filter.connect(chargeGain);
             chargeGain.connect(ctx.destination);
 
-            // Tremolo ticking oscillator — gets faster the longer you hold
             chargeTickOsc = ctx.createOscillator();
             chargeTickOsc.type = 'square';
-            chargeTickOsc.frequency.value = 4;   // ticks per second
+            chargeTickOsc.frequency.value = 4;
             chargeTickGain = ctx.createGain();
-            chargeTickGain.gain.value = 0;       // starts silent
+            chargeTickGain.gain.value = 0;
 
-            // Tick modulates the hum's gain → creates a pulsing feel
             chargeTickOsc.connect(chargeTickGain);
             chargeTickGain.connect(chargeGain.gain);
 
@@ -466,17 +461,13 @@
         }
 
         function updateChargeSound(level) {
-            // Called from animation loop while charging
             if (!audioCtx || !chargeOsc1 || !chargeGain) return;
             const ctx = audioCtx;
             const now = ctx.currentTime;
-            // Hum volume scales with charge
             const volume = 0.02 + level * 0.25;
             chargeGain.gain.linearRampToValueAtTime(volume, now + 0.05);
-            // Pitch rises
             chargeOsc1.frequency.linearRampToValueAtTime(60 + level * 160, now + 0.05);
             chargeOsc2.frequency.linearRampToValueAtTime(120 + level * 320, now + 0.05);
-            // Ticking speeds up & becomes audible at higher charge
             if (chargeTickOsc && chargeTickGain) {
                 chargeTickOsc.frequency.linearRampToValueAtTime(4 + level * 30, now + 0.05);
                 chargeTickGain.gain.linearRampToValueAtTime(level > 0.3 ? level * 0.15 : 0, now + 0.05);
@@ -494,63 +485,155 @@
             chargeOsc1 = chargeOsc2 = chargeTickOsc = chargeGain = chargeTickGain = null;
         }
 
+        // Gently fade charging sound to silence instead of cutting abruptly
+        function fadeOutChargeSound(durationSec = 0.5) {
+            if (!audioCtx || !chargeGain) { stopChargeSound(); return; }
+            try {
+                const now = audioCtx.currentTime;
+                const gain = chargeGain.gain;
+                const currentVal = gain.value;
+                gain.cancelScheduledValues(now);
+                gain.setValueAtTime(currentVal, now);
+                gain.linearRampToValueAtTime(0.001, now + durationSec);
+                if (chargeTickGain) {
+                    const tg = chargeTickGain.gain;
+                    tg.cancelScheduledValues(now);
+                    tg.setValueAtTime(tg.value, now);
+                    tg.linearRampToValueAtTime(0.001, now + durationSec);
+                }
+                setTimeout(() => { stopChargeSound(); }, durationSec * 1000 + 60);
+            } catch(e) { stopChargeSound(); }
+        }
+
+        // DRAMATIC 7-LAYER EXPLOSION
         function playExplosionSound() {
             const ctx = initAudio();
             if (!ctx) return;
             const now = ctx.currentTime;
 
-            // --- Deep thump: low-frequency sine sweep down ---
-            const thumpOsc = ctx.createOscillator();
-            const thumpGain = ctx.createGain();
-            thumpOsc.type = 'sine';
-            thumpOsc.frequency.setValueAtTime(180, now);
-            thumpOsc.frequency.exponentialRampToValueAtTime(30, now + 0.6);
-            thumpGain.gain.setValueAtTime(0.7, now);
-            thumpGain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
-            thumpOsc.connect(thumpGain);
-            thumpGain.connect(ctx.destination);
-            thumpOsc.start(now);
-            thumpOsc.stop(now + 1.3);
+            const master = ctx.createGain();
+            master.gain.value = 0.9;
+            master.connect(ctx.destination);
 
-            // --- Noise burst: explosion "crack" ---
-            const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 1.0, ctx.sampleRate);
-            const data = noiseBuffer.getChannelData(0);
-            for (let i = 0; i < data.length; i++) {
-                data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / data.length, 2);
+            // 1. Deep bass drop
+            const bassOsc = ctx.createOscillator();
+            const bassGain = ctx.createGain();
+            bassOsc.type = 'sine';
+            bassOsc.frequency.setValueAtTime(220, now);
+            bassOsc.frequency.exponentialRampToValueAtTime(28, now + 0.8);
+            bassGain.gain.setValueAtTime(0.95, now);
+            bassGain.gain.exponentialRampToValueAtTime(0.001, now + 1.8);
+            bassOsc.connect(bassGain);
+            bassGain.connect(master);
+            bassOsc.start(now);
+            bassOsc.stop(now + 2.0);
+
+            // 2. Sub-bass punch
+            const subOsc = ctx.createOscillator();
+            const subGain = ctx.createGain();
+            subOsc.type = 'sine';
+            subOsc.frequency.setValueAtTime(60, now);
+            subOsc.frequency.linearRampToValueAtTime(18, now + 0.5);
+            subGain.gain.setValueAtTime(0.8, now);
+            subGain.gain.exponentialRampToValueAtTime(0.001, now + 1.4);
+            subOsc.connect(subGain);
+            subGain.connect(master);
+            subOsc.start(now);
+            subOsc.stop(now + 1.5);
+
+            // 3. Sharp crack
+            const crackBuffer = ctx.createBuffer(1, ctx.sampleRate * 0.15, ctx.sampleRate);
+            const crackData = crackBuffer.getChannelData(0);
+            for (let i = 0; i < crackData.length; i++) {
+                const t = i / crackData.length;
+                crackData[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, 6);
+            }
+            const crackSrc = ctx.createBufferSource();
+            crackSrc.buffer = crackBuffer;
+            const crackFilter = ctx.createBiquadFilter();
+            crackFilter.type = 'highpass';
+            crackFilter.frequency.value = 800;
+            const crackGain = ctx.createGain();
+            crackGain.gain.setValueAtTime(0.9, now);
+            crackGain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+            crackSrc.connect(crackFilter);
+            crackFilter.connect(crackGain);
+            crackGain.connect(master);
+            crackSrc.start(now);
+            crackSrc.stop(now + 0.2);
+
+            // 4. Mid noise roar
+            const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 1.4, ctx.sampleRate);
+            const ndata = noiseBuffer.getChannelData(0);
+            for (let i = 0; i < ndata.length; i++) {
+                ndata[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / ndata.length, 1.8);
             }
             const noiseSrc = ctx.createBufferSource();
             noiseSrc.buffer = noiseBuffer;
             const noiseFilter = ctx.createBiquadFilter();
             noiseFilter.type = 'lowpass';
-            noiseFilter.frequency.setValueAtTime(3000, now);
-            noiseFilter.frequency.exponentialRampToValueAtTime(200, now + 1.0);
+            noiseFilter.frequency.setValueAtTime(6000, now);
+            noiseFilter.frequency.exponentialRampToValueAtTime(180, now + 1.2);
             const noiseGain = ctx.createGain();
-            noiseGain.gain.setValueAtTime(0.6, now);
-            noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 1.1);
+            noiseGain.gain.setValueAtTime(0.7, now);
+            noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 1.4);
             noiseSrc.connect(noiseFilter);
             noiseFilter.connect(noiseGain);
-            noiseGain.connect(ctx.destination);
+            noiseGain.connect(master);
             noiseSrc.start(now);
-            noiseSrc.stop(now + 1.1);
+            noiseSrc.stop(now + 1.4);
 
-            // --- Rumble tail: low-passed noise ---
-            const rumbleBuffer = ctx.createBuffer(1, ctx.sampleRate * 1.5, ctx.sampleRate);
+            // 5. Metallic rings
+            for (let k = 0; k < 3; k++) {
+                const ringOsc = ctx.createOscillator();
+                const ringGain = ctx.createGain();
+                ringOsc.type = 'triangle';
+                const freq = 1800 + k * 900 + Math.random() * 400;
+                ringOsc.frequency.setValueAtTime(freq, now);
+                ringOsc.frequency.exponentialRampToValueAtTime(freq * 0.6, now + 0.9);
+                ringGain.gain.setValueAtTime(0.12, now + k * 0.02);
+                ringGain.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
+                ringOsc.connect(ringGain);
+                ringGain.connect(master);
+                ringOsc.start(now + k * 0.02);
+                ringOsc.stop(now + 1.1);
+            }
+
+            // 6. Long rumble tail
+            const rumbleBuffer = ctx.createBuffer(1, ctx.sampleRate * 2.5, ctx.sampleRate);
             const rdata = rumbleBuffer.getChannelData(0);
-            for (let i = 0; i < rdata.length; i++) rdata[i] = (Math.random() * 2 - 1) * 0.4;
+            for (let i = 0; i < rdata.length; i++) rdata[i] = (Math.random() * 2 - 1);
             const rumbleSrc = ctx.createBufferSource();
             rumbleSrc.buffer = rumbleBuffer;
             const rumbleFilter = ctx.createBiquadFilter();
             rumbleFilter.type = 'lowpass';
-            rumbleFilter.frequency.value = 120;
+            rumbleFilter.frequency.value = 90;
             const rumbleGain = ctx.createGain();
-            rumbleGain.gain.setValueAtTime(0, now + 0.1);
-            rumbleGain.gain.linearRampToValueAtTime(0.4, now + 0.2);
-            rumbleGain.gain.exponentialRampToValueAtTime(0.001, now + 1.6);
+            rumbleGain.gain.setValueAtTime(0, now + 0.05);
+            rumbleGain.gain.linearRampToValueAtTime(0.55, now + 0.35);
+            rumbleGain.gain.exponentialRampToValueAtTime(0.001, now + 2.4);
             rumbleSrc.connect(rumbleFilter);
             rumbleFilter.connect(rumbleGain);
-            rumbleGain.connect(ctx.destination);
-            rumbleSrc.start(now + 0.1);
-            rumbleSrc.stop(now + 1.7);
+            rumbleGain.connect(master);
+            rumbleSrc.start(now + 0.05);
+            rumbleSrc.stop(now + 2.5);
+
+            // 7. Aftershock
+            setTimeout(() => {
+                if (!audioCtx) return;
+                const t2 = audioCtx.currentTime;
+                const aftOsc = audioCtx.createOscillator();
+                const aftGain = audioCtx.createGain();
+                aftOsc.type = 'sine';
+                aftOsc.frequency.setValueAtTime(90, t2);
+                aftOsc.frequency.exponentialRampToValueAtTime(35, t2 + 0.4);
+                aftGain.gain.setValueAtTime(0.35, t2);
+                aftGain.gain.exponentialRampToValueAtTime(0.001, t2 + 0.7);
+                aftOsc.connect(aftGain);
+                aftGain.connect(master);
+                aftOsc.start(t2);
+                aftOsc.stop(t2 + 0.8);
+            }, 350);
         }
 
         // === THREE.JS NEURAL CORE ===
@@ -672,6 +755,7 @@
         let pinchStartScale = 1;
         let longPressTimer = null;
         let longPressActive = false;
+        let isOnCenter = false;
         const activePointers = new Map();
         const ripples = [];
         let boltTimer = 0;
@@ -679,6 +763,17 @@
 
         const CHARGE_START_MS = 300;
         const CHARGE_FULL_MS = 10000;
+        const CENTER_RADIUS = 85;
+
+        function isPointerOnCenter(e) {
+            const rect = container.getBoundingClientRect();
+            const px = e.clientX - rect.left;
+            const py = e.clientY - rect.top;
+            const cx = rect.width / 2;
+            const cy = rect.height / 2;
+            const dx = px - cx, dy = py - cy;
+            return Math.sqrt(dx*dx + dy*dy) <= CENTER_RADIUS;
+        }
 
         function spawnRipple(color = 0xa78bfa) {
             const geo = new THREE.RingGeometry(0.5, 0.6, 48);
@@ -702,22 +797,26 @@
 
         container.addEventListener('pointerdown', (e) => {
             try { container.setPointerCapture(e.pointerId); } catch(err) {}
-            initAudio();   // Unlock audio on first user gesture
+            initAudio();
             activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
             container.classList.add('touched');
 
             if (activePointers.size === 1) {
                 isDragging = true;
                 pointerVelocity = { x: 0, y: 0 };
-                longPressTimer = setTimeout(() => {
-                    if (isDragging && activePointers.size === 1) {
-                        longPressActive = true;
-                        isCharging = true;
-                        chargeStartTime = Date.now();
-                        startChargeSound();
-                        if (navigator.vibrate) navigator.vibrate(20);
-                    }
-                }, CHARGE_START_MS);
+                isOnCenter = isPointerOnCenter(e);
+
+                if (isOnCenter) {
+                    longPressTimer = setTimeout(() => {
+                        if (isDragging && activePointers.size === 1 && isOnCenter) {
+                            longPressActive = true;
+                            isCharging = true;
+                            chargeStartTime = Date.now();
+                            startChargeSound();
+                            if (navigator.vibrate) navigator.vibrate(20);
+                        }
+                    }, CHARGE_START_MS);
+                }
             } else if (activePointers.size === 2) {
                 const pts = Array.from(activePointers.values());
                 pinchStartDist = getDistance(pts[0], pts[1]);
@@ -726,7 +825,7 @@
                 isCharging = false;
                 longPressActive = false;
                 chargeLevel = 0;
-                stopChargeSound();
+                fadeOutChargeSound(0.2);
             }
         });
 
@@ -742,8 +841,16 @@
                 coreRotVelX += dy * 0.0009;
                 pointerVelocity.x = dx;
                 pointerVelocity.y = dy;
+
                 if (Math.abs(dx) + Math.abs(dy) > 5 && !longPressActive) {
                     clearTimeout(longPressTimer);
+                }
+
+                // Slide off center while charging → fade & stop
+                if (longPressActive && isCharging && !isPointerOnCenter(e)) {
+                    isCharging = false;
+                    longPressActive = false;
+                    fadeOutChargeSound(0.4);
                 }
             } else if (activePointers.size === 2) {
                 const pts = Array.from(activePointers.values());
@@ -764,7 +871,7 @@
 
                 const speed = Math.sqrt(pointerVelocity.x**2 + pointerVelocity.y**2);
 
-                // FULL CHARGE → massive explosion + BOOM sound
+                // FULL CHARGE → explosion + BOOM
                 if (longPressActive && chargeLevel >= 0.95) {
                     stopChargeSound();
                     playExplosionSound();
@@ -775,9 +882,9 @@
                     coreRotVelX -= 0.8;
                     if (navigator.vibrate) navigator.vibrate([80, 40, 100, 40, 150, 40, 200]);
                 }
-                // Partial release — soft ripple, no boom
+                // Partial release → sound fades out gently
                 else if (longPressActive && chargeLevel > 0.3) {
-                    stopChargeSound();
+                    fadeOutChargeSound(0.5);
                     touchBoost = 0.8;
                     spawnRipple(0xf59e0b);
                     coreScaleVel += 0.2;
@@ -791,11 +898,12 @@
                     spawnRipple();
                     if (navigator.vibrate) navigator.vibrate(15);
                 } else {
-                    stopChargeSound();
+                    fadeOutChargeSound(0.3);
                 }
 
                 longPressActive = false;
                 isCharging = false;
+                isOnCenter = false;
                 chargeLevel = 0;
                 pointerVelocity = { x: 0, y: 0 };
             } else if (activePointers.size === 1) {
@@ -1703,3 +1811,5 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
     </script>
 </body>
 </html>
+
+    <!-- ⬇️ SCRIPT WILL BE PASTED HERE — continue in Part 2 -->
