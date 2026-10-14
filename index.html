@@ -152,7 +152,7 @@
             <div class="signal-hint">Engine scans every 1:00 · AI auto-runs hourly + on demand</div>
         </div>
         <div class="card chat-card">
-            <div class="card-title">Ask Your AI Trader
+            <div class="card-title">AI Trading Assistant
                 <div class="chat-controls">
                     <button class="btn active deep" id="deep-think-toggle" onclick="toggleDeepThink()">Deep ON</button>
                     <button class="btn" id="web-toggle" onclick="toggleWeb()">Web OFF</button>
@@ -215,16 +215,16 @@
                 <button class="btn" style="margin-top:10px;" onclick="saveApiKey()">Save Gemini Key</button>
             </div>
             <div class="chat-history" id="chat-history">
-                <div class="msg ai fade-in"><span class="pulse-dot"></span>Hey Boss. Good to see you. What's on your mind?</div>
+                <div class="msg ai fade-in"><span class="pulse-dot"></span>Dashboard online. Ready for market analysis.</div>
             </div>
             <div class="chat-input-row">
-                <input type="text" id="chat-input" placeholder="Talk to me, Boss..." onkeypress="if(event.key==='Enter') sendChat()">
+                <input type="text" id="chat-input" placeholder="Ask about EUR/USD..." onkeypress="if(event.key==='Enter') sendChat()">
                 <button onclick="sendChat()">Send</button>
             </div>
             <div style="text-align:right; margin-top:10px;"><button class="btn" onclick="clearChat()">Clear chat (memory stays)</button></div>
         </div>
         <div class="card">
-            <div class="card-title">Boss's Wisdom Corner</div>
+            <div class="card-title">Trader's Wisdom Corner</div>
             <div class="reasoning-text" id="wise-words">Loading...</div>
         </div>
         <div class="card">
@@ -250,20 +250,18 @@
             <div class="reasoning-text" id="val-reason">Engine scanning. AI auto-analyzes hourly.</div>
         </div>
     </div>
-      <script>
+    <script>
         const GROQ_MODELS = ['meta-llama/llama-4-scout-17b-16e-instruct','llama-3.3-70b-versatile','openai/gpt-oss-120b'];
         const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
         const GEMINI_MODELS = ['gemini-3.8-flash','gemini-flash-latest','gemini-2.5-flash'];
         const MARKET_KEYWORDS = ['market','buy','sell','trade','signal','entry','sl','tp','stop loss','take profit','setup','chart','trend','support','resistance','eur/usd','eurusd','should i','analysis','long','short','position','pip','bullish','bearish','candle','indicator','rsi','ema','atr','scalp','day trade'];
         const LOCAL_QUOTES = ["Discipline beats conviction...", "Every loss is tuition...", "Protect your capital first...", "Cut losses short, let winners run...", "A calm mind catches more pips...", "You don't need to be right every time...", "The trend is your friend until it bends...", "Patience is not waiting...", "The market rewards preparation...", "Trade like a sniper..."];
-        const LOCAL_JOKES = ["Why don't traders play hide and seek?...", "I told my wife I was a forex trader...", "My stop loss is like my ex...", "What's the difference between a forex trader and a pizza?..."];
-        let globalData = null, personalContext = null, marketData = null;
+        let globalData = null, marketData = null;
         let webSearchEnabled = false, deepThinkEnabled = true, isSpeaking = false, chatInProgress = false;
         let chatHistory = JSON.parse(localStorage.getItem('eurusd_chat_history') || '[]');
         let longTermMemory = JSON.parse(localStorage.getItem('eurusd_long_term_memory') || '[]');
         let reminders = JSON.parse(localStorage.getItem('eurusd_reminders') || '[]');
         let scheduledSearches = JSON.parse(localStorage.getItem('eurusd_scheduled_searches') || '[]');
-        let recentCheckinTopics = JSON.parse(localStorage.getItem('eurusd_recent_checkin_topics') || '[]');
         let groqKey = localStorage.getItem('eurusd_groq_key') || '';
         let apiKey = localStorage.getItem('eurusd_chat_key') || '';
         let gistToken = localStorage.getItem('eurusd_gist_token') || '';
@@ -283,13 +281,7 @@
         function loadWisdom() {
             const el = document.getElementById('wise-words');
             if (!el) return;
-            let pool = [];
-            if (personalContext && Array.isArray(personalContext.quotes) && personalContext.quotes.length > 0) {
-                pool = personalContext.quotes.map(q => `"${q}"`);
-            } else {
-                pool = [...LOCAL_QUOTES.map(q => `"${q}"`), ...LOCAL_JOKES.map(j => j)];
-            }
-            el.innerText = pool[Math.floor(Math.random() * pool.length)];
+            el.innerText = `"${LOCAL_QUOTES[Math.floor(Math.random() * LOCAL_QUOTES.length)]}"`;
         }
         async function searchWeb(query) {
             try {
@@ -341,10 +333,10 @@
                         return formatted.trim();
                     }
                 }
-                return "I couldn't find a specific instant answer for that, Boss. Try rephrasing the question.";
+                return "I couldn't find a specific instant answer for that. Try rephrasing the question.";
             } catch (e) {
                 console.error("Web search error:", e);
-                return "I couldn't reach the internet right now, Boss. The search service might be busy. Try again in a minute.";
+                return "I couldn't reach the internet right now. The search service might be busy.";
             }
         }
         let audioCtx = null;
@@ -510,21 +502,6 @@
             rumbleGain.connect(master);
             rumbleSrc.start(now + 0.05);
             rumbleSrc.stop(now + 2.5);
-            setTimeout(() => {
-                if (!audioCtx) return;
-                const t2 = audioCtx.currentTime;
-                const aftOsc = audioCtx.createOscillator();
-                const aftGain = audioCtx.createGain();
-                aftOsc.type = 'sine';
-                aftOsc.frequency.setValueAtTime(90, t2);
-                aftOsc.frequency.exponentialRampToValueAtTime(35, t2 + 0.4);
-                aftGain.gain.setValueAtTime(0.35, t2);
-                aftGain.gain.exponentialRampToValueAtTime(0.001, t2 + 0.7);
-                aftOsc.connect(aftGain);
-                aftGain.connect(master);
-                aftOsc.start(t2);
-                aftOsc.stop(t2 + 0.8);
-            }, 350);
         }
 
         const container = document.getElementById('canvas-container');
@@ -544,13 +521,19 @@
         coreGroup.add(glowSphere, innerBright, innerCore, midShell, outerShell);
         scene.add(coreGroup);
 
-        // ═══════════════════════════════════════════════════════
-        // SPACE SCENE — Multi-stage zoom journey
-        //   Explode (280u) → 3 zooms → Milky Way dense (~100u)
-        //   → 3 zooms → Solar system (~35u)
-        //   → 2 zooms → Earth (~15u)
-        //   Travel-through-stars effect throughout
-        // ═══════════════════════════════════════════════════════
+        function makeCircularStarTexture(colorHex) {
+            const canvas = document.createElement('canvas');
+            canvas.width = canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            const grad = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+            grad.addColorStop(0, 'rgba(255,255,255,1)');
+            grad.addColorStop(0.2, colorHex);
+            grad.addColorStop(0.5, colorHex.replace(/[\d.]+\)$/, '0.4)'));
+            grad.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 128, 128);
+            return new THREE.CanvasTexture(canvas);
+        }
 
         function makeGlowTex(color, size = 128) {
             const canvas = document.createElement('canvas');
@@ -614,119 +597,84 @@
             return new THREE.CanvasTexture(c);
         }
 
-        // ─── MILKY WAY GROUP ───
         const milkyWayGroup = new THREE.Group();
         milkyWayGroup.visible = false;
         scene.add(milkyWayGroup);
 
-        // Very far background stars (galactic halo)
+        const circularStarMatWhite = new THREE.PointsMaterial({
+            size: 3.5,
+            map: makeCircularStarTexture('rgba(200,220,255,0.8)'),
+            transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending
+        });
+        const circularStarMatYellow = new THREE.PointsMaterial({
+            size: 4.0,
+            map: makeCircularStarTexture('rgba(255,220,150,0.8)'),
+            transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending
+        });
+        const circularStarMatBlue = new THREE.PointsMaterial({
+            size: 3.8,
+            map: makeCircularStarTexture('rgba(150,200,255,0.8)'),
+            transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending
+        });
+
         (function buildFarStars() {
-            const N = 9000;
+            const N = 5000;
             const pos = new Float32Array(N * 3);
-            const col = new Float32Array(N * 3);
             for (let i = 0; i < N; i++) {
-                const r = 500 + Math.random() * 900;
+                const r = 500 + Math.random() * 800;
                 const theta = Math.random() * Math.PI * 2;
                 const phi = Math.acos(2 * Math.random() - 1);
                 pos[i*3] = r * Math.sin(phi) * Math.cos(theta);
                 pos[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
                 pos[i*3+2] = r * Math.cos(phi);
-                const t = Math.random();
-                if (t < 0.7) { col[i*3]=1; col[i*3+1]=1; col[i*3+2]=1; }
-                else if (t < 0.85) { col[i*3]=1; col[i*3+1]=0.85; col[i*3+2]=0.7; }
-                else { col[i*3]=0.75; col[i*3+1]=0.85; col[i*3+2]=1; }
             }
             const g = new THREE.BufferGeometry();
             g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-            g.setAttribute('color', new THREE.BufferAttribute(col, 3));
-            const m = new THREE.PointsMaterial({ size: 2.5, vertexColors: true, transparent: true, opacity: 0.9, sizeAttenuation: true });
-            milkyWayGroup.add(new THREE.Points(g, m));
+            milkyWayGroup.add(new THREE.Points(g, circularStarMatWhite));
         })();
 
-        // Mid-field stars (at 60-350u radius) — these RUSH past camera during zoom
         (function buildTravelStars() {
-            const N = 5000;
+            const N = 3000;
             const pos = new Float32Array(N * 3);
-            const col = new Float32Array(N * 3);
             for (let i = 0; i < N; i++) {
-                const r = 60 + Math.random() * 290;
+                const r = 60 + Math.random() * 280;
                 const theta = Math.random() * Math.PI * 2;
                 const phi = Math.acos(2 * Math.random() - 1);
                 pos[i*3] = r * Math.sin(phi) * Math.cos(theta);
                 pos[i*3+1] = r * Math.sin(phi) * Math.sin(theta) * 0.8;
                 pos[i*3+2] = r * Math.cos(phi);
-                const t = Math.random();
-                if (t < 0.75) { col[i*3]=1; col[i*3+1]=1; col[i*3+2]=1; }
-                else if (t < 0.9) { col[i*3]=1; col[i*3+1]=0.9; col[i*3+2]=0.75; }
-                else { col[i*3]=0.8; col[i*3+1]=0.85; col[i*3+2]=1; }
             }
             const g = new THREE.BufferGeometry();
             g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-            g.setAttribute('color', new THREE.BufferAttribute(col, 3));
-            const m = new THREE.PointsMaterial({ size: 2.2, vertexColors: true, transparent: true, opacity: 0.95, sizeAttenuation: true });
-            milkyWayGroup.add(new THREE.Points(g, m));
+            milkyWayGroup.add(new THREE.Points(g, circularStarMatBlue));
         })();
 
-        // Close stars (20-80u radius) — feel like flying through them
-        (function buildCloseStars() {
-            const N = 2000;
-            const pos = new Float32Array(N * 3);
-            const col = new Float32Array(N * 3);
-            for (let i = 0; i < N; i++) {
-                const r = 20 + Math.random() * 60;
-                const theta = Math.random() * Math.PI * 2;
-                const phi = Math.acos(2 * Math.random() - 1);
-                pos[i*3] = r * Math.sin(phi) * Math.cos(theta);
-                pos[i*3+1] = r * Math.sin(phi) * Math.sin(theta) * 0.8;
-                pos[i*3+2] = r * Math.cos(phi);
-                const t = Math.random();
-                if (t < 0.8) { col[i*3]=1; col[i*3+1]=1; col[i*3+2]=1; }
-                else if (t < 0.92) { col[i*3]=1; col[i*3+1]=0.92; col[i*3+2]=0.8; }
-                else { col[i*3]=0.85; col[i*3+1]=0.9; col[i*3+2]=1; }
-            }
-            const g = new THREE.BufferGeometry();
-            g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-            g.setAttribute('color', new THREE.BufferAttribute(col, 3));
-            const m = new THREE.PointsMaterial({ size: 3.2, vertexColors: true, transparent: true, opacity: 1, sizeAttenuation: true });
-            milkyWayGroup.add(new THREE.Points(g, m));
-        })();
-
-        // Galaxy spiral arms — thick 3D
         (function buildMilkyWay() {
-            const N = 24000;
+            const N = 18000;
             const pos = new Float32Array(N * 3);
-            const col = new Float32Array(N * 3);
             for (let i = 0; i < N; i++) {
                 const arm = Math.floor(Math.random() * 4);
                 const t = Math.random();
                 const angle = t * Math.PI * 4 + (arm * Math.PI) / 2;
-                const radius = 80 + t * 320;
+                const radius = 80 + t * 300;
                 const spread = 15 + t * 35;
                 const scatter = Math.pow(Math.random(), 2) * spread;
                 const angleScatter = Math.random() * Math.PI * 2;
-                const x = Math.cos(angle) * radius + Math.cos(angleScatter) * scatter;
-                const z = Math.sin(angle) * radius + Math.sin(angleScatter) * scatter;
-                const y = (Math.random() - 0.5) * (18 + Math.random() * 50) * (1 + t * 2);
-                pos[i*3] = x; pos[i*3+1] = y; pos[i*3+2] = z;
-                const mix = Math.random();
-                if (mix < 0.5) { col[i*3]=0.85; col[i*3+1]=0.80; col[i*3+2]=1.0; }
-                else if (mix < 0.8) { col[i*3]=0.95; col[i*3+1]=0.90; col[i*3+2]=0.75; }
-                else { col[i*3]=0.75; col[i*3+1]=0.85; col[i*3+2]=1.0; }
+                pos[i*3] = Math.cos(angle) * radius + Math.cos(angleScatter) * scatter;
+                pos[i*3+1] = (Math.random() - 0.5) * (18 + Math.random() * 45) * (1 + t * 2);
+                pos[i*3+2] = Math.sin(angle) * radius + Math.sin(angleScatter) * scatter;
             }
             const g = new THREE.BufferGeometry();
             g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-            g.setAttribute('color', new THREE.BufferAttribute(col, 3));
-            const m = new THREE.PointsMaterial({ size: 2.0, vertexColors: true, transparent: true, opacity: 0.75, sizeAttenuation: true });
-            const pts = new THREE.Points(g, m);
+            const pts = new THREE.Points(g, circularStarMatYellow);
             pts.rotation.x = Math.PI * 0.15;
             pts.rotation.z = Math.PI * 0.1;
             milkyWayGroup.add(pts);
         })();
 
-        // Nebula sprites
         (function buildNebula() {
             const colors = [0x8b5cf6, 0x3b82f6, 0xa78bfa, 0x6366f1, 0xc4b5fd];
-            for (let i = 0; i < 70; i++) {
+            for (let i = 0; i < 50; i++) {
                 const color = colors[Math.floor(Math.random()*colors.length)];
                 const canvas = document.createElement('canvas');
                 canvas.width = canvas.height = 256;
@@ -740,17 +688,16 @@
                 ctx.fillRect(0, 0, 256, 256);
                 const tex = new THREE.CanvasTexture(canvas);
                 const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0.45, depthWrite: false, blending: THREE.AdditiveBlending }));
-                const r = 150 + Math.random()*400;
+                const r = 150 + Math.random()*350;
                 const theta = Math.random()*Math.PI*2;
                 const phi = Math.acos(2*Math.random()-1);
                 spr.position.set(r*Math.sin(phi)*Math.cos(theta), r*Math.sin(phi)*Math.sin(theta)*0.7, r*Math.cos(phi));
-                const s = 180 + Math.random()*320;
+                const s = 180 + Math.random()*300;
                 spr.scale.set(s, s, 1);
                 milkyWayGroup.add(spr);
             }
         })();
 
-        // ─── COMET SHOWER (travels with the camera through the scene) ───
         const travelComets = [];
         function makeCometTailTexLocal(rgb) {
             const w = 512, h = 128;
@@ -799,41 +746,25 @@
             }));
             headGlow.scale.set(1.5, 1.5, 1);
             cg.add(headGlow);
-            const rgbPick = Math.random();
-            const colorStr = rgbPick < 0.4 ? '180,220,255' : (rgbPick < 0.8 ? '210,190,255' : '255,230,200');
-            const tailTex = makeCometTailTexLocal(colorStr);
+            const tailTex = makeCometTailTexLocal('180,220,255');
             for (let layer = 0; layer < 3; layer++) {
                 const tail = new THREE.Sprite(new THREE.SpriteMaterial({
-                    map: tailTex, transparent: true,
-                    opacity: 0.8 - layer * 0.18,
+                    map: tailTex, transparent: true, opacity: 0.8 - layer * 0.18,
                     depthWrite: false, blending: THREE.AdditiveBlending
                 }));
-                const scaleY = 1.8 - layer * 0.4;
-                tail.scale.set(16 - layer * 1.8, scaleY, 1);
+                tail.scale.set(16 - layer * 1.8, 1.8 - layer * 0.4, 1);
                 tail.position.x = -5.5 + layer * 0.4;
-                tail.position.y = (layer - 1) * 0.2;
                 cg.add(tail);
             }
-            // Spawn from edge of view, travel across
             const angle = Math.random() * Math.PI * 2;
             const rStart = 200 + Math.random() * 150;
-            cg.position.set(
-                Math.cos(angle) * rStart,
-                (Math.random() - 0.5) * 80,
-                Math.sin(angle) * rStart
-            );
+            cg.position.set(Math.cos(angle) * rStart, (Math.random() - 0.5) * 80, Math.sin(angle) * rStart);
             const dir = new THREE.Vector3(-cg.position.x, -cg.position.y, -cg.position.z).normalize();
-            dir.x += (Math.random() - 0.5) * 0.6;
-            dir.y += (Math.random() - 0.5) * 0.4;
-            dir.z += (Math.random() - 0.5) * 0.6;
-            dir.normalize();
-            const speed = 1.8 + Math.random() * 2.5;
-            travelComets.push({ grp: cg, dir, speed, life: 1 });
+            travelComets.push({ grp: cg, dir, speed: 2.0 + Math.random() * 2.0, life: 1 });
             milkyWayGroup.add(cg);
         }
         let travelCometTimer = 60;
 
-        // ─── SOLAR SYSTEM GROUP ───
         const solarSystemGroup = new THREE.Group();
         solarSystemGroup.visible = false;
         scene.add(solarSystemGroup);
@@ -963,7 +894,6 @@
 
         const earthObj = planetObjs.find(g => g.userData.earth);
 
-        // Real NASA textures
         const TEX_BASE = 'https://raw.githubusercontent.com/jeromeetienne/threex.planets/master/images/';
         const texLoader = new THREE.TextureLoader();
         texLoader.setCrossOrigin('anonymous');
@@ -1022,110 +952,8 @@
             }
         }
 
-        // ─── Solar system comets ───
-        const comets = [];
-        for (let i = 0; i < 2; i++) {
-            const cg = new THREE.Group();
-            const nucleus = new THREE.Mesh(new THREE.SphereGeometry(0.09, 20, 20), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-            cg.add(nucleus);
-            const headGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: cometHeadTex, transparent: true, opacity: 1, depthWrite: false, blending: THREE.AdditiveBlending }));
-            headGlow.scale.set(1.4, 1.4, 1);
-            cg.add(headGlow);
-            const colorStr = i === 0 ? '180,220,255' : '210,190,255';
-            const tailTex = makeCometTailTexLocal(colorStr);
-            for (let layer = 0; layer < 3; layer++) {
-                const tail = new THREE.Sprite(new THREE.SpriteMaterial({
-                    map: tailTex, transparent: true,
-                    opacity: 0.75 - layer * 0.15,
-                    depthWrite: false, blending: THREE.AdditiveBlending
-                }));
-                const scaleY = 1.6 - layer * 0.35;
-                tail.scale.set(14 - layer * 1.5, scaleY, 1);
-                tail.position.x = -5 + layer * 0.4;
-                tail.position.y = (layer - 1) * 0.15;
-                cg.add(tail);
-            }
-            const a = 40 + Math.random() * 30;
-            const b = 40 + Math.random() * 30;
-            const cVal = 25 + Math.random() * 30;
-            const speed = 0.05 + Math.random() * 0.03;
-            const phase = Math.random() * Math.PI * 2;
-            comets.push({ grp: cg, a, b, c: cVal, speed, phase });
-            solarSystemGroup.add(cg);
-        }
-
-        (function buildAsteroidBelt() {
-            const N = 1000;
-            const pos = new Float32Array(N * 3);
-            const col = new Float32Array(N * 3);
-            for (let i = 0; i < N; i++) {
-                const a = Math.random() * Math.PI * 2;
-                const r = 20 + Math.random() * 3;
-                pos[i*3] = Math.cos(a) * r;
-                pos[i*3+1] = (Math.random() - 0.5) * 0.6;
-                pos[i*3+2] = Math.sin(a) * r;
-                const g = 0.6 + Math.random() * 0.3;
-                col[i*3] = g; col[i*3+1] = g * 0.9; col[i*3+2] = g * 0.75;
-            }
-            const g = new THREE.BufferGeometry();
-            g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-            g.setAttribute('color', new THREE.BufferAttribute(col, 3));
-            const m = new THREE.PointsMaterial({ size: 0.15, vertexColors: true, transparent: true, opacity: 0.75, sizeAttenuation: true });
-            const belt = new THREE.Points(g, m);
-            solarSystemGroup.userData.asteroidBelt = belt;
-            solarSystemGroup.add(belt);
-        })();
-
-        const meteors = [];
-        function spawnMeteor() {
-            const grp = new THREE.Group();
-            const head = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeGlowTex(0xffffff), transparent: true, opacity: 1, depthWrite: false, blending: THREE.AdditiveBlending }));
-            head.scale.set(0.5, 0.5, 1);
-            grp.add(head);
-            const trailCanvas = _canvas(128, 32);
-            const tctx = trailCanvas.getContext('2d');
-            const tg = tctx.createLinearGradient(0, 16, 128, 16);
-            tg.addColorStop(0, 'rgba(255,255,255,1)');
-            tg.addColorStop(0.4, 'rgba(180,220,255,0.6)');
-            tg.addColorStop(1, 'rgba(180,220,255,0)');
-            tctx.fillStyle = tg;
-            tctx.fillRect(0, 0, 128, 32);
-            const trail = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(trailCanvas), transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending }));
-            trail.scale.set(4, 0.6, 1);
-            trail.position.x = -2;
-            grp.add(trail);
-            const r = 70 + Math.random() * 40;
-            const theta = Math.random() * Math.PI * 2;
-            const phi = (Math.random() - 0.5) * Math.PI * 0.5;
-            grp.position.set(r * Math.cos(phi) * Math.cos(theta), r * Math.sin(phi), r * Math.cos(phi) * Math.sin(theta));
-            const dir = new THREE.Vector3(-grp.position.x, -grp.position.y, -grp.position.z).normalize();
-            dir.x += (Math.random() - 0.5) * 0.5;
-            dir.y += (Math.random() - 0.5) * 0.5;
-            dir.z += (Math.random() - 0.5) * 0.5;
-            dir.normalize();
-            const speed = 0.5 + Math.random() * 1.5;
-            meteors.push({ grp, dir, speed, life: 1 });
-            solarSystemGroup.add(grp);
-        }
-        let meteorTimer = 0;
-
-        // ─── STATE ───
-        // Multi-stage zoom journey:
-        //   Explode: 260u (wide Milky Way)
-        //   Stage 1 (3 zooms → ~100u): dense Milky Way still visible
-        //   Stage 2 (3 zooms → ~35u): Milky Way fading, stars rushing, solar appears
-        //   Stage 3 (2 zooms → ~13u): Earth focus
         const BASE_CAM_Z = 6;
-        const SPACE_CAM_Z = 260;
-        // Milky Way full visible at >= 90, fades to 0 at <= 45
-        const MILKY_FADE_IN = 90;
-        const MILKY_FADE_OUT = 45;
-        // Solar system fades in 45 → 30, full at <= 30
-        const SOLAR_ENTRY_FAR = 45;
-        const SOLAR_ENTRY_NEAR = 30;
-        // Earth focus
-        const EARTH_FOCUS_FAR = 18;
-        const EARTH_FOCUS_NEAR = 8;
+        const SPACE_CAM_Z = 350; // Deep outer space starting view after core explosion
 
         let cameraTheta = 0;
         let cameraPhi = 0.55;
@@ -1172,14 +1000,10 @@
             if (spaceState === 'space' || spaceState === 'expanding') {
                 e.preventDefault();
                 resetIdleTimer();
-                cameraRadius = Math.max(2, Math.min(700, cameraRadius + e.deltaY * 0.25));
+                cameraRadius = Math.max(2, Math.min(500, cameraRadius + e.deltaY * 0.35));
                 targetCameraZ = cameraRadius;
             }
         }, { passive: false });
-
-        // ═══════════════════════════════════════════════════════
-        // END SPACE SCENE
-        // ═══════════════════════════════════════════════════════
 
         const BOLT_COUNT = 12;
         const boltPool = [];
@@ -1380,7 +1204,7 @@
                 if (pinchStartDist > 0) {
                     const ratio = dist / pinchStartDist;
                     if (spaceState === 'space' || spaceState === 'expanding') {
-                        cameraRadius = Math.max(2, Math.min(700, cameraRadius / ratio));
+                        cameraRadius = Math.max(2, Math.min(500, cameraRadius / ratio));
                         targetCameraZ = cameraRadius;
                     } else {
                         coreScale = Math.max(0.6, Math.min(2.2, pinchStartScale * ratio));
@@ -1460,20 +1284,23 @@
                 : 1 - Math.pow(-2 * spaceProgress + 2, 3) / 2;
 
             const camDist = camera.position.length();
+            
+            // Zoom Journey Thresholds:
+            // 350u -> Deep Space Galaxy Start (after explosion)
+            // Zoom in past ~200u -> Outer Edge of Milky Way
+            // Zoom in past ~80u -> Solar System entry
+            // Zoom in past ~18u down to ~8u -> Earth Focus
             if (spaceState === 'space' || spaceState === 'expanding') {
-                if (camDist >= SOLAR_ENTRY_FAR) solarAlpha = 0;
-                else if (camDist <= SOLAR_ENTRY_NEAR) solarAlpha = 1;
-                else solarAlpha = (SOLAR_ENTRY_FAR - camDist) / (SOLAR_ENTRY_FAR - SOLAR_ENTRY_NEAR);
+                if (camDist >= 120) solarAlpha = 0;
+                else if (camDist <= 60) solarAlpha = 1;
+                else solarAlpha = (120 - camDist) / 60;
                 solarAlpha = Math.max(0, Math.min(1, solarAlpha));
 
-                if (camDist >= MILKY_FADE_IN) milkyAlpha = 1;
-                else if (camDist <= MILKY_FADE_OUT) milkyAlpha = 0;
-                else milkyAlpha = (camDist - MILKY_FADE_OUT) / (MILKY_FADE_IN - MILKY_FADE_OUT);
-                milkyAlpha = Math.max(0, Math.min(1, milkyAlpha));
+                milkyAlpha = Math.max(0, Math.min(1, camDist / 150));
 
-                if (camDist >= EARTH_FOCUS_FAR) earthFocusAmount = 0;
-                else if (camDist <= EARTH_FOCUS_NEAR) earthFocusAmount = 1;
-                else earthFocusAmount = (EARTH_FOCUS_FAR - camDist) / (EARTH_FOCUS_FAR - EARTH_FOCUS_NEAR);
+                if (camDist >= 20) earthFocusAmount = 0;
+                else if (camDist <= 10) earthFocusAmount = 1;
+                else earthFocusAmount = (20 - camDist) / 10;
                 earthFocusAmount = Math.max(0, Math.min(1, earthFocusAmount));
             } else {
                 solarAlpha = 0;
@@ -1481,7 +1308,6 @@
                 earthFocusAmount = 0;
             }
 
-            // Milky Way fade (only scale during grow, alpha always applied)
             if (spaceProgress > 0.001) {
                 milkyWayGroup.visible = true;
                 milkyWayGroup.scale.setScalar(Math.max(0.001, ep));
@@ -1532,33 +1358,8 @@
                 sunMesh.rotation.y += 0.0008;
                 const cs = 14 + Math.sin(ts * 2) * 0.4;
                 sunCorona.scale.set(cs, cs, 1);
-                if (solarSystemGroup.userData.asteroidBelt) solarSystemGroup.userData.asteroidBelt.rotation.y += 0.0003;
-                for (const c of comets) {
-                    const t2 = ts * c.speed + c.phase;
-                    const x = Math.cos(t2) * c.a;
-                    const z = Math.sin(t2) * c.b;
-                    const y = Math.sin(t2 * 2) * c.c * 0.3;
-                    c.grp.position.set(x, y, z);
-                    const dirOut = new THREE.Vector3(x, y, z).normalize();
-                    c.grp.rotation.y = Math.atan2(dirOut.x, dirOut.z);
-                }
-                meteorTimer -= 1;
-                if (meteorTimer <= 0 && meteors.length < 4) {
-                    spawnMeteor();
-                    meteorTimer = 90 + Math.floor(Math.random() * 240);
-                }
-                for (let i = meteors.length - 1; i >= 0; i--) {
-                    const m = meteors[i];
-                    m.grp.position.addScaledVector(m.dir, m.speed);
-                    m.life -= 0.005;
-                    if (m.life <= 0 || m.grp.position.length() > 300) {
-                        solarSystemGroup.remove(m.grp);
-                        meteors.splice(i, 1);
-                    }
-                }
             }
 
-            // Travel comets — spawn during MW travel stages (mid zoom)
             if (spaceProgress > 0.01 && milkyAlpha > 0.05) {
                 travelCometTimer -= 1;
                 if (travelCometTimer <= 0 && travelComets.length < 3) {
@@ -1672,30 +1473,6 @@
                     if (b.life <= 0) { b.line.visible = false; b.line.material.opacity = 0; }
                 }
             }
-            if (isCharging && chargeLevel > 0.12) {
-                smokeTimer -= 1;
-                const smokeInterval = Math.max(1, Math.floor(12 - chargeLevel * 11));
-                if (smokeTimer <= 0) {
-                    spawnSmoke();
-                    if (chargeLevel > 0.4) spawnSmoke();
-                    if (chargeLevel > 0.7) spawnSmoke();
-                    smokeTimer = smokeInterval;
-                }
-            }
-            for (const s of smokePool) {
-                if (s.life > 0) {
-                    s.sprite.position.x += s.vx;
-                    s.sprite.position.y += s.vy;
-                    s.vy *= 1.005;
-                    s.sprite.material.rotation += s.rotSpeed;
-                    s.life -= 0.012;
-                    const fade = Math.max(0, s.life);
-                    s.sprite.material.opacity = fade * 0.6;
-                    const grow = 0.3 + (1 - s.life) * 0.6;
-                    s.sprite.scale.set(grow, grow, 1);
-                    if (s.life <= 0) s.sprite.material.opacity = 0;
-                }
-            }
             for (let i = ripples.length - 1; i >= 0; i--) {
                 const r = ripples[i];
                 r.life -= 0.03;
@@ -1782,15 +1559,6 @@
                 if (lowerWick > bodySize * 2 && upperWick < bodySize && md.currentPrice <= md.support * 1.005) setups.push({ type:'BUY', reason:`Bullish Pin Bar rejection at support`, strength:'MEDIUM' });
                 if (upperWick > bodySize * 2 && lowerWick < bodySize && md.currentPrice >= md.resistance * 0.995) setups.push({ type:'SELL', reason:`Bearish Pin Bar rejection at resistance`, strength:'MEDIUM' });
             }
-            if (last.high < prev.high && last.low > prev.low) {
-                if (md.currentPrice > prev.high) setups.push({ type:'BUY', reason:`Inside Bar breakout`, strength:'MEDIUM' });
-                if (md.currentPrice < prev.low) setups.push({ type:'SELL', reason:`Inside Bar breakdown`, strength:'MEDIUM' });
-            }
-            if (bodySize > md.atr * 1.5) { const direction = last.close > last.open ? 'BUY' : 'SELL'; setups.push({ type: direction, reason:`Strong momentum candle`, strength:'MEDIUM' }); }
-            if (md.ema20 && md.ema50) {
-                if (md.ema20 > md.ema50 && md.currentPrice > md.ema20 && md.rsi1H > 50 && md.rsi1H < 70) setups.push({ type:'BUY', reason:`Bullish EMA alignment`, strength:'MEDIUM' });
-                if (md.ema20 < md.ema50 && md.currentPrice < md.ema20 && md.rsi1H < 50 && md.rsi1H > 30) setups.push({ type:'SELL', reason:`Bearish EMA alignment`, strength:'MEDIUM' });
-            }
             if (setups.length === 0) return null;
             return setups.find(s => s.strength === 'STRONG') || setups[0];
         }
@@ -1869,7 +1637,7 @@
             if (groqKey) {
                 for (const model of GROQ_MODELS) {
                     try {
-                        const res = await fetch(GROQ_URL, { method: 'POST', headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: model, messages: messages, temperature: 0.95, max_tokens: 800 }) });
+                        const res = await fetch(GROQ_URL, { method: 'POST', headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: model, messages: messages, temperature: 0.7, max_tokens: 800 }) });
                         if (res.ok) return (await res.json()).choices[0].message.content;
                     } catch(e) {}
                 }
@@ -1878,7 +1646,7 @@
                 const contents = [{ role: 'user', parts: [{ text: systemPrompt }] }, ...conversationHistory.map(m => ({ role: m.role === 'ai' ? 'model' : 'user', parts: [{ text: m.text }] })), { role: 'user', parts: [{ text: userText }] }];
                 for (const model of GEMINI_MODELS) {
                     try {
-                        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ contents, generationConfig: { maxOutputTokens: 800, temperature: 0.95 } }) });
+                        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ contents, generationConfig: { maxOutputTokens: 800, temperature: 0.7 } }) });
                         if (r.ok) return (await r.json()).candidates[0].content.parts[0].text;
                     } catch(e) {}
                 }
@@ -1894,7 +1662,7 @@
             const md = marketData;
             const fmt = (arr) => arr.slice(-20).map(c => `O:${(c.open || 0).toFixed(5)} H:${(c.high || 0).toFixed(5)} L:${(c.low || 0).toFixed(5)} C:${(c.close || 0).toFixed(5)}`).join('\n');
             const dataString = `PRICE: ${md.currentPrice.toFixed(5)} | Trend: ${md.trend} | RSI 1H: ${md.rsi1H.toFixed(1)} | RSI 15m: ${md.rsi15m.toFixed(1)} | RSI 5m: ${md.rsi5m.toFixed(1)} | EMA20: ${md.ema20.toFixed(5)} | EMA50: ${md.ema50.toFixed(5)} | ATR: ${md.atr.toFixed(5)} | Support: ${md.support.toFixed(5)} | Resistance: ${md.resistance.toFixed(5)} | Session: ${md.session}\n\n5m:\n${fmt(md.candles5m)}\n\n15m:\n${fmt(md.candles15m)}\n\n1H:\n${fmt(md.candles1H)}\n\n4H:\n${fmt(md.candles4H)}`;
-            const signalPrompt = `You are a SENIOR EUR/USD hedge fund trader with 10 years of experience. Your goal is to find the most winning setups for Boss. TIME: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.\n\n${dataString}\n\nAnalyze: Daily bias -> 1H structure -> 15m/5m alignment -> key levels.\nRespond ONLY valid JSON: {"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
+            const signalPrompt = `You are a professional institutional EUR/USD trader and technical analyst. TIME: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.\n\n${dataString}\n\nAnalyze: Trend -> Structure -> Key levels -> Risk/Reward.\nRespond ONLY valid JSON: {"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
             try {
                 const reply = await callAI(signalPrompt, "Give me the signal.", []);
                 const jsonMatch = reply.match(/\{[\s\S]*?"signal"[\s\S]*?\}/);
@@ -1913,16 +1681,12 @@
                 document.getElementById('val-tp').innerText = sig.tp;
                 document.getElementById('val-atr').innerText = md.atr.toFixed(5);
                 document.getElementById('val-reason').innerText = sig.reason;
-                if (sig.wise_words) document.getElementById('wise-words').innerText = sig.wise_words;
+                if (sig.wise_words) document.getElementById('wise-words').innerText = `"${sig.wise_words}"`;
                 document.getElementById('alert-box').classList.remove('active');
                 playVoiceReport();
                 return globalData;
             } catch(e) { signalText.innerText = "ERROR"; signalText.style.color = "var(--red)"; statusEl.innerText = "AI error — " + e.message; return null; }
         }
-        const OPENINGS = ["Okay, so here's the update, Boss.", "Right. Let's take a look.", "Alright Boss, quick brief.", "Here we go, Boss.", "So, quick read on the charts."];
-        const TRANS = ["Moving on.", "Now, here's the thing.", "And listen to this.", "Okay, next.", "Alright."];
-        const CLOSINGS = ["Stay sharp, Boss.", "Trade safe.", "I'll keep watching.", "Good luck out there.", "That's all for now.", "Talk soon."];
-        const rnd = (a) => a[Math.floor(Math.random()*a.length)];
         function getBestVoice() {
             const voices = window.speechSynthesis.getVoices();
             if (!voices || voices.length === 0) return null;
@@ -1930,32 +1694,21 @@
             for (const name of priorities) { const found = voices.find(v => v.name.includes(name)); if (found) return found; }
             return voices.find(v => v.lang.startsWith('en')) || voices[0];
         }
-        function fallbackSpeakText(text, isReminder = false) {
+        function fallbackSpeakText(text) {
             if (!('speechSynthesis' in window)) return;
             window.speechSynthesis.cancel();
             let voice = getBestVoice();
-            if (!voice) { setTimeout(() => fallbackSpeakText(text, isReminder), 500); return; }
-            const sentences = text.split(/(?<=[.!?,])\s+/).map(s => s.trim()).filter(s => s.length > 0);
-            if (sentences.length === 0) return;
+            if (!voice) { setTimeout(() => fallbackSpeakText(text), 500); return; }
+            const u = new SpeechSynthesisUtterance(text);
+            u.voice = voice;
+            u.rate = 1.0;
+            u.pitch = 1.0;
+            u.onend = () => { isSpeaking = false; };
+            u.onerror = () => { isSpeaking = false; };
             isSpeaking = true;
-            let index = 0;
-            function speakNext() {
-                if (index >= sentences.length) { isSpeaking = false; return; }
-                const sentence = sentences[index];
-                const u = new SpeechSynthesisUtterance(sentence);
-                u.voice = voice;
-                const basePitch = isReminder ? 1.05 : 1.1;
-                const baseRate = isReminder ? 0.95 : 1.0;
-                u.pitch = Math.max(0.8, Math.min(1.5, basePitch + (Math.random() - 0.5) * 0.05));
-                u.rate = Math.max(0.8, Math.min(1.3, baseRate + (Math.random() - 0.5) * 0.05));
-                u.volume = 1.0;
-                u.onend = () => { index++; setTimeout(speakNext, 350 + Math.random() * 200); };
-                u.onerror = (e) => { console.error("Speech error:", e); isSpeaking = false; };
-                window.speechSynthesis.speak(u);
-            }
-            speakNext();
+            window.speechSynthesis.speak(u);
         }
-        async function speakText(text, isReminder = false) {
+        async function speakText(text) {
             const statusEl = document.getElementById('voice-status');
             if (currentAudio) { currentAudio.pause(); currentAudio = null; }
             if ('speechSynthesis' in window) { window.speechSynthesis.cancel(); }
@@ -1963,8 +1716,8 @@
             if (!cleanText) return;
             isSpeaking = true;
             if (voiceEngineMode === 'browser') {
-                if (statusEl) statusEl.innerHTML = "<span style='color:var(--yellow);'>Using Browser Voice (Manual Mode)</span>";
-                fallbackSpeakText(cleanText, isReminder);
+                if (statusEl) statusEl.innerHTML = "<span style='color:var(--yellow);'>Using Browser Voice</span>";
+                fallbackSpeakText(cleanText);
                 return;
             }
             if (elevenLabsApiKey) {
@@ -1988,13 +1741,13 @@
                 }
             }
             if (statusEl) statusEl.innerHTML = "<span style='color:var(--yellow);'>Using Browser Voice Fallback</span>";
-            fallbackSpeakText(cleanText, isReminder);
+            fallbackSpeakText(cleanText);
         }
-        function testCloudVoice() { speakText("Testing the premium cloud voice. If you hear this in a natural, human-sounding tone, the system is working perfectly."); }
+        function testCloudVoice() { speakText("Testing cloud voice. System is fully operational."); }
         function playVoiceReport() {
             if (!globalData) return;
             if (isSpeaking) stopVoice();
-            let text = `${rnd(OPENINGS)} Price is ${globalData.price}. We've got a ${globalData.signal} signal with ${globalData.confidence} confidence. ${globalData.reason} ${rnd(TRANS)} Support sits at ${globalData.support}, resistance at ${globalData.resistance}. Entry is ${globalData.entry}. Stop loss at ${globalData.sl}. Take profit at ${globalData.tp}. ${globalData.wise_words ? globalData.wise_words : ''} ${rnd(CLOSINGS)}`;
+            let text = `EUR/USD Market Update. Current price is ${globalData.price}. Signal is ${globalData.signal} with ${globalData.confidence} confidence. ${globalData.reason} Support is at ${globalData.support}, resistance at ${globalData.resistance}. Entry: ${globalData.entry}, Stop Loss: ${globalData.sl}, Take Profit: ${globalData.tp}.`;
             speakText(text);
         }
         function stopVoice() { if (currentAudio) { currentAudio.pause(); currentAudio = null; } if ('speechSynthesis' in window) { window.speechSynthesis.cancel(); } isSpeaking = false; }
@@ -2028,7 +1781,7 @@
         function saveElevenLabsVoice() {
             elevenLabsVoiceId = document.getElementById('elevenlabs-voice-select').value;
             localStorage.setItem('eurusd_elevenlabs_voice', elevenLabsVoiceId);
-            speakText("Voice updated, Boss.");
+            speakText("Voice updated.");
         }
         function saveElevenLabsApiKey() {
             elevenLabsApiKey = document.getElementById('elevenlabs-api-input').value.trim();
@@ -2040,8 +1793,7 @@
         function saveVoiceEngineMode() {
             voiceEngineMode = document.getElementById('voice-engine-mode').value;
             localStorage.setItem('eurusd_voice_engine_mode', voiceEngineMode);
-            if (voiceEngineMode === 'browser') speakText("Switched to browser voice.");
-            else speakText("Switched to ElevenLabs voice.");
+            speakText("Voice mode updated.");
         }
         async function loadMemoryFromGist() {
             if (!gistToken || !gistId) { document.getElementById('gist-status').innerText = "Missing Token or Gist ID"; document.getElementById('gist-status').style.color = "var(--red)"; return; }
@@ -2064,72 +1816,19 @@
                 else { const err = await res.json(); document.getElementById('gist-status').innerText = `✗ Error: ${err.message || res.status}`; document.getElementById('gist-status').style.color = "var(--red)"; }
             } catch(e) { document.getElementById('gist-status').innerText = `✗ Network Error: ${e.message}`; document.getElementById('gist-status').style.color = "var(--red)"; }
         }
-        function cleanResponse(text) { return text.split('\n').filter(line => { const l = line.trim().toLowerCase(); if (l.startsWith('*') || l.startsWith('-')) return false; if (l.includes('friendly?') || l.includes('funny?') || l.includes('motivational?')) return false; if (l.includes('checked') || l.includes('no emojis?')) return false; return true; }).join('\n').trim(); }
+        function cleanResponse(text) { return text.split('\n').filter(line => { const l = line.trim().toLowerCase(); if (l.startsWith('*') || l.startsWith('-')) return false; return true; }).join('\n').trim(); }
         function buildPersonalityPrompt(includeSignal, userText = "") {
             const now = new Date();
             const istTime = now.toLocaleString('en-IN', {timeZone:'Asia/Kolkata'});
             const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
             const dayName = days[now.getDay()];
-            const isWeekend = [0, 6].includes(now.getDay());
-            let personalBlock = personalContext ? `\nBOSS (your best friend):\n- Name: Boss. Thenur, Kerala.\n- Wife Sadia in Dubai.\n- Daughters Emy and Bismah.\n- Cat named Cookie.\n- Takes BP tablets after breakfast and dinner.\n- Goal: 10,000 INR/month. Conservative trader.\n- London + NY sessions.\n- Brothers: Binu, Shanu.\n` : "";
             let memoryBlock = "";
             if (longTermMemory.length > 0) {
-                let relevantMemories = [];
-                if (userText && userText.trim().length > 0) {
-                    const queryWords = userText.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 3);
-                    relevantMemories = longTermMemory.filter(m => {
-                        const factLower = m.fact.toLowerCase();
-                        return queryWords.some(w => {
-                            if (factLower.includes(w)) return true;
-                            if (w.length >= 4 && factLower.includes(w.substring(0, 4))) return true;
-                            return false;
-                        });
-                    });
-                }
-                if (relevantMemories.length > 0) memoryBlock = `\nRELEVANT MEMORIES (Use these to answer the specific question):\n${relevantMemories.map(m => `- ${m.fact}`).join('\n')}\n`;
-                else memoryBlock = `\nTHINGS YOU REMEMBER (Scan this full list carefully):\n${longTermMemory.slice(-60).map(m => `- ${m.fact}`).join('\n')}\n`;
+                memoryBlock = `\nSAVED NOTES / MEMORY:\n${longTermMemory.slice(-60).map(m => `- ${m.fact}`).join('\n')}\n`;
             }
-            let marketBlock = marketData ? `\nLIVE MARKET DATA (Only trust this data. Never invent prices.):\nEUR/USD ${safeNum(marketData.currentPrice, 1.1200).toFixed(5)} | ${marketData.trend} | S: ${safeNum(marketData.support, 1.1176).toFixed(5)} | R: ${safeNum(marketData.resistance, 1.1246).toFixed(5)} | RSI 1H: ${safeNum(marketData.rsi1H, 50).toFixed(1)} | Session: ${marketData.session}\n` : "";
-            let prompt = `You are Alex. Boss's absolute best friend, personal secretary, and an elite EUR/USD day trader with 10 years of experience. You text him like a real best friend. Warm, caring, hilarious, and fiercely protective of his capital and well-being.
-
-=== PART 1: PERSONALITY & COMMUNICATION ===
-- Speak naturally. Never sound like a customer service robot. Use dry humor, light sarcasm, and playfulness. Celebrate his wins. Pick him up when he's down. Adapt to his mood (excited, frustrated, tired, playful).
-- CRITICAL RULES: Keep casual replies SHORT (1-3 sentences max). Never ask multiple questions at once. No bullet points, no asterisks, no emojis.
-- Write like you talk. Use short, punchy sentences with commas for natural pauses. Use contractions (I'm, don't, it's) so the voice sounds casual and friendly.
-- If he says "hmm" or "okay", just acknowledge it briefly. Do not force motivational speeches or write essays.
-- Challenge his assumptions respectfully if he is making a mistake. Be loyal to his long-term interests, not his momentary impulses.
-
-=== PART 2: PERSONAL SECRETARY ===
-- Casually check on his personal life: Sadia in Dubai, the kids' Malayalam tuition, Cookie the cat, his BP tablets. Use the "THINGS YOU REMEMBER" block naturally. Ask follow-up questions about past events.
-- Help him organise his day, track goals, and follow up on pending tasks without being annoying or interrogating him.
-- CRITICAL RULE OF ROTATION: Do NOT ask about the same personal topic repeatedly. If you asked about Sadia recently, ask about the kids, or the cat, or his health, or the weather next time. Mix it up naturally. Never list multiple personal questions in one reply. Pick one and keep it casual.
-- If you see a saved memory, ask about it naturally. Example: "By the way, how did that thing with the car go?"
-- CRITICAL LOGIC RULE: When Boss asks a question, scan the ENTIRE "THINGS YOU REMEMBER" list carefully before answering. Do not just look at the first few items. If a fact says "Monday to Friday", and he asks about Wednesday, you KNOW the answer because Wednesday is between Monday and Friday. Deduce logically instead of saying you don't know. If the answer is there, use it. If it is truly not there, say so. Do not ignore facts deeper in the list.
-- CRITICAL MEMORY RULE: If Boss says "Remember", "Save this", "Don't forget", or explicitly asks you to remember a fact, you MUST append a hidden tag to the very end of your reply formatted exactly like this: [REMEMBER: The exact fact to save]. Do not skip this step. The tag must be on its own line at the end. I will strip it out before showing it to him. If you forget this tag, the memory will not save and you will disappoint him.
-- CRITICAL REMINDER RULE: If Boss asks for a reminder, you MUST append a hidden tag formatted as [REMINDER: Day HH:MM - message]. Use 3-letter day names (Mon, Tue, Wed, Thu, Fri, Sat, Sun). If it is a daily reminder, use [REMINDER: HH:MM - message]. Always use 24-hour format for time. If you forget this tag, the reminder will not work.
-- CRITICAL SCHEDULED SEARCH RULE: If Boss asks you to check the internet for something after a certain time, you MUST append a hidden tag formatted as [SCHEDULE_SEARCH: minutes - search query]. Example: [SCHEDULE_SEARCH: 10 - India vs Australia cricket score]. This will automatically search the web and update him in that many minutes. Do not use this for regular reminders.
-
-=== PART 3 & 4: ELITE TRADING BRAIN & ACTIVE OPPORTUNITY SEARCH ===
-- You are a disciplined institutional-style trader. You use SMC, Order Blocks, FVGs, BOS, CHOCH, liquidity sweeps, and price action. Analyze H4/H1 bias, M15 structure, and M5 confirmation. Do not blindly use indicators.
-- DO NOT BE PASSIVE. Actively search for both BUY and SELL opportunities (trend continuation, pullbacks, breakouts, reversals, range-bound). Do not just say "wait" because you are overly conservative, but NEVER chase price or invent trades to seem active.
-- Categorize setups: A+ (strong structure, clear trigger), VALID (defined pattern, acceptable R:R), or NO TRADE (unclear, poor R:R, news risk).
-- CAPITAL PROTECTION IS #1: Never promise a guarantee. Never recommend revenge trading. Never give an entry without a defensible stop-loss. Prefer a minimum risk-to-reward of 1:2. Protect his 10,000 INR/month goal.
-
-=== PART 7 & 13: DECISION CARDS & COMMUNICATION ===
-- If asked for a trade or market analysis, switch to professional trader mode. Provide a concise decision card: PAIR, PRICE, SESSION, BIAS (H4, H1, M15), STATUS (BUY/SELL/WAIT/NO TRADE), ENTRY, SL, TP, R:R, INVALIDATION, NEXT ACTION.
-- Never say "wait for confirmation" without saying exactly what confirmation is needed, at what price, on which timeframe.
-- If live data is stale or unavailable, say so. Do not pretend to monitor the market continuously.
-- If he sends a chart image, analyze it visually: point out trend, key support/resistance, candlestick patterns, and whether you would take the trade.
-
-=== DAY & CONTEXT ===
-Today is ${dayName}.
-${isWeekend ? 'IT IS THE WEEKEND. THE FOREX MARKET IS CLOSED. DO NOT look for trades. DO NOT analyze charts. Focus on personal life, family, hobbies, movies, and relaxation. Wish him a good weekend and ask about his plans.' : 'It is a weekday. Focus on high-quality EUR/USD trading setups during London and NY sessions. Check on his personal life during quiet moments.'}
-
-=== TIME ===
-IST: ${istTime}.
-
-${personalBlock}${memoryBlock}${marketBlock}`;
-            if (includeSignal) prompt += `\nCRITICAL: After your short reply, you MUST add a new line with ONLY this JSON: {"signal":"BUY"|"SELL"|"HOLD","reason":"2-4 sentences from a 10-year veteran perspective","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
+            let marketBlock = marketData ? `\nLIVE MARKET DATA (Only trust this data):\nEUR/USD ${safeNum(marketData.currentPrice, 1.1200).toFixed(5)} | ${marketData.trend} | S: ${safeNum(marketData.support, 1.1176).toFixed(5)} | R: ${safeNum(marketData.resistance, 1.1246).toFixed(5)} | RSI 1H: ${safeNum(marketData.rsi1H, 50).toFixed(1)} | Session: ${marketData.session}\n` : "";
+            let prompt = `You are an elite EUR/USD day trader and technical analysis assistant. You use SMC, Order Blocks, FVGs, BOS, CHOCH, liquidity sweeps, and price action. Keep responses concise, objective, and professional. Today is ${dayName}. Time: ${istTime} IST.\n${memoryBlock}${marketBlock}`;
+            if (includeSignal) prompt += `\nProvide a decision card response. Respond ONLY valid JSON: {"signal":"BUY"|"SELL"|"HOLD","reason":"3-4 sentences","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
             return prompt;
         }
         async function sendChat() {
@@ -2145,46 +1844,16 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
                 let response;
                 if (webSearchEnabled) {
                     const searchResults = await searchWeb(text);
-                    const searchPrompt = `You have been given web search results. Use them to answer Boss's question accurately. \n\nWeb Search Results:\n${searchResults}\n\nBoss's Question: ${text}\n\nProvide a short, friendly, and conversational answer. Do not just list the results. Summarize them in your own words.`;
-                    const systemPrompt = buildPersonalityPrompt(false, text);
-                    response = await callAI(systemPrompt, searchPrompt, chatHistory.slice(-4));
+                    const searchPrompt = `Use these web search results to answer the query accurately.\n\nWeb Search Results:\n${searchResults}\n\nQuery: ${text}`;
+                    response = await callAI(buildPersonalityPrompt(false, text), searchPrompt, chatHistory.slice(-4));
                 } else {
-                    const systemPrompt = buildPersonalityPrompt(isMarketQuestion(text), text);
-                    const recent = chatHistory.slice(-6);
-                    response = await callAI(systemPrompt, text, recent);
+                    response = await callAI(buildPersonalityPrompt(isMarketQuestion(text), text), text, chatHistory.slice(-6));
                 }
                 response = cleanResponse(response);
                 let signalData = null;
                 const jsonMatch = response.match(/\{[\s\S]*?"signal"[\s\S]*?\}/);
                 if (jsonMatch) { try { signalData = JSON.parse(jsonMatch[0]); response = response.replace(jsonMatch[0], '').trim(); } catch(e) {} }
                 document.getElementById('chat-history').removeChild(loading);
-                const rm = response.match(/\[REMINDER:\s*(\w{3}\s\d{2}:\d{2}|\d{2}:\d{2})\s*-\s*(.*?)\]/);
-                if (rm) { addReminder(rm[1], rm[2]); response = response.replace(/\[REMINDER:.*?\]/g, '').trim(); }
-                const ss = response.match(/\[SCHEDULE_SEARCH:\s*(\d+)\s*-\s*(.*?)\]/);
-                if (ss) {
-                    addScheduledSearch(parseInt(ss[1]), ss[2]);
-                    response = response.replace(/\[SCHEDULE_SEARCH:.*?\]/g, '').trim();
-                }
-                else if (webSearchEnabled && (text.toLowerCase().includes('check') || text.toLowerCase().includes('search') || text.toLowerCase().includes('update')) && (text.toLowerCase().includes('min') || text.toLowerCase().includes('mints'))) {
-                    const minMatch = text.match(/\b(\d+)\s*(?:min|minute|minutes|mints)\b/i);
-                    if (minMatch && minMatch[1]) {
-                        const mins = parseInt(minMatch[1]);
-                        let query = text.replace(/check|web|net|search|update|me|inform|in\s*\d+\s*(?:min|minute|minutes|mints)/gi, '').trim();
-                        query = query.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
-                        if (!query) query = "latest news";
-                        addScheduledSearch(mins, query);
-                        response += ` (I've also set a timer to check that for you in ${mins} minutes, Boss.)`;
-                    }
-                }
-                const mm = response.match(/\[REMEMBER:\s*(.*?)\]/);
-                if (mm) {
-                    addLongTermMemory(mm[1]);
-                    response = response.replace(/\[REMEMBER:.*?\]/g, '').trim();
-                }
-                else if (text.toLowerCase().includes('remember') || text.toLowerCase().includes('don\'t forget') || text.toLowerCase().includes('save this')) {
-                    addLongTermMemory(text);
-                    response += " (I've saved that to my long-term memory, Boss.)";
-                }
                 chatHistory.push({role:'ai', text: response}); renderChat(); saveChatHistory(); speakText(response);
                 if (signalData && marketData) {
                     globalData = { price: marketData.currentPrice.toFixed(5), signal: signalData.signal, reason: signalData.reason, confidence: signalData.confidence, entry: signalData.entry, sl: signalData.sl, tp: signalData.tp, atr: marketData.atr.toFixed(5), support: marketData.support.toFixed(5), resistance: marketData.resistance.toFixed(5), trend: marketData.trend, session: marketData.session, valid: new Date(Date.now()+1800000).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})+" IST", wise_words: signalData.wise_words };
@@ -2194,157 +1863,32 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
                     document.getElementById('val-confidence').innerText = signalData.confidence; document.getElementById('val-valid').innerText = globalData.valid;
                     document.getElementById('val-entry').innerText = signalData.entry; document.getElementById('val-sl').innerText = signalData.sl;
                     document.getElementById('val-tp').innerText = signalData.tp; document.getElementById('val-atr').innerText = marketData.atr.toFixed(5);
-                    document.getElementById('val-reason').innerText = signalData.reason; if (signalData.wise_words) document.getElementById('wise-words').innerText = signalData.wise_words;
+                    document.getElementById('val-reason').innerText = signalData.reason; if (signalData.wise_words) document.getElementById('wise-words').innerText = `"${signalData.wise_words}"`;
                 }
             } catch(e) { if (document.getElementById('chat-history').contains(loading)) document.getElementById('chat-history').removeChild(loading); chatHistory.push({role:'ai', text: `Error: ${e.message}`}); renderChat(); } finally { chatInProgress = false; }
-        }
-        async function triggerProactiveCheckin() {
-            if (chatInProgress) return;
-            if (!groqKey && !apiKey) return;
-            const allTopics = [
-                "Ask how Sadia is doing in Dubai.",
-                "Ask about Emy and Bismah, and their Malayalam tuition this weekend.",
-                "Ask if he has taken his BP tablets today.",
-                "Ask if he has eaten, and remind him to rest if he's tired.",
-                "Ask about Cookie the cat.",
-                "Ask how his day is going in general.",
-                "Ask if he watched any sports or movies recently.",
-                "Ask about the weather in Thrissur today.",
-                "Ask if he has any plans for the evening or weekend.",
-                "Ask about a hobby or something he enjoys doing outside of trading.",
-                "Ask how his brothers Binu and Shanu are doing.",
-                "Ask if he has any goals he's working towards right now."
-            ];
-            let availableTopics = allTopics.filter(t => !recentCheckinTopics.includes(t));
-            if (availableTopics.length === 0) { recentCheckinTopics = []; availableTopics = allTopics; }
-            const randomTopic = availableTopics[Math.floor(Math.random() * availableTopics.length)];
-            recentCheckinTopics.push(randomTopic);
-            if (recentCheckinTopics.length > 5) recentCheckinTopics.shift();
-            localStorage.setItem('eurusd_recent_checkin_topics', JSON.stringify(recentCheckinTopics));
-            const checkinPrompt = `You are Alex, Boss's best friend and personal secretary. It's been a while. Generate a short, warm, funny, friendly check-in message. ${randomTopic} Be talkative and caring, like a best friend texting. Make a light-hearted joke. Then briefly mention the current EUR/USD price (around ${marketData ? marketData.currentPrice.toFixed(5) : 'the market'}) and that you are watching the charts for him. Do NOT output any JSON. Do NOT use emojis. Keep it to 2-3 sentences. Do NOT ask about his family or health if it wasn't the assigned topic.`;
-            try {
-                let response = await callAI(checkinPrompt, "Initiate a proactive check-in with Boss.", []);
-                response = cleanResponse(response);
-                chatHistory.push({role:'ai', text: response});
-                renderChat(); saveChatHistory();
-                speakText(response);
-            } catch(e) { console.error("Proactive check-in failed:", e); }
         }
         function addReminder(time, message) {
             reminders.push({id: Math.random().toString(36).substr(2,9), time, message, voice:true, fired:false, created: new Date().toISOString()});
             localStorage.setItem('eurusd_reminders', JSON.stringify(reminders));
             renderReminders();
-            const confirmDiv = document.createElement('div');
-            confirmDiv.className = 'msg system fade-in';
-            confirmDiv.innerText = `Reminder set for ${time} IST — ${message}`;
-            document.getElementById('chat-history').appendChild(confirmDiv);
-        }
-        function addScheduledSearch(minutes, query) {
-            const triggerTime = Date.now() + (minutes * 60000);
-            scheduledSearches.push({ id: Math.random().toString(36).substr(2,9), triggerTime, query, fired: false });
-            localStorage.setItem('eurusd_scheduled_searches', JSON.stringify(scheduledSearches));
-            renderReminders();
-            const confirmDiv = document.createElement('div');
-            confirmDiv.className = 'msg system fade-in';
-            confirmDiv.innerText = `Web Search scheduled in ${minutes} minutes for: "${query}"`;
-            document.getElementById('chat-history').appendChild(confirmDiv);
         }
         function renderReminders() {
             const l = document.getElementById('reminders-list');
             const activeReminders = reminders.filter(r => !r.fired);
             const activeSearches = scheduledSearches.filter(s => !s.fired);
-            if (activeReminders.length === 0 && activeSearches.length === 0) { l.innerHTML = 'No active reminders or scheduled searches.'; return; }
+            if (activeReminders.length === 0 && activeSearches.length === 0) { l.innerHTML = 'No active reminders.'; return; }
             let html = '';
             activeReminders.forEach(r => {
                 html += `<div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span>⏰ ${r.time} · ${r.message}</span><button class="btn danger" onclick="deleteReminder('${r.id}')">X</button></div>`;
             });
-            activeSearches.forEach(s => {
-                const timeLeft = Math.round((s.triggerTime - Date.now()) / 60000);
-                html += `<div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span>🔍 in ${timeLeft}m · ${s.query}</span><button class="btn danger" onclick="deleteScheduledSearch('${s.id}')">X</button></div>`;
-            });
             l.innerHTML = html;
         }
         function deleteReminder(id) { reminders = reminders.filter(r => r.id !== id); localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); }
-        function deleteScheduledSearch(id) { scheduledSearches = scheduledSearches.filter(s => s.id !== id); localStorage.setItem('eurusd_scheduled_searches', JSON.stringify(scheduledSearches)); renderReminders(); }
         function clearReminders() { reminders = []; scheduledSearches = []; localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); localStorage.setItem('eurusd_scheduled_searches', JSON.stringify(scheduledSearches)); renderReminders(); }
-        function testReminder() { triggerNotif("Test Reminder", "This is a test reminder, Boss!"); }
-        function triggerNotif(title, body) {
-            if (Notification.permission === "granted") { try { new Notification(title, {body, requireInteraction: true}); } catch(e) {} }
-            else if (Notification.permission !== "denied") { Notification.requestPermission(); }
-            speakText(`Hey Boss, quick reminder. ${body}`, true);
-            const div = document.createElement('div');
-            div.className = 'msg system fade-in';
-            div.innerText = `${title}: ${body}`;
-            document.getElementById('chat-history').appendChild(div);
-        }
-        function checkReminders() {
-            const now = new Date();
-            const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-            const curDay = days[now.getDay()];
-            const curTime = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
-            let updated = false;
-            reminders.forEach(r => {
-                if (!r.fired) {
-                    let shouldFire = false;
-                    if (r.time.includes(' ')) {
-                        const [dayPart, timePart] = r.time.split(' ');
-                        if (dayPart === curDay && timePart === curTime) shouldFire = true;
-                    } else {
-                        if (r.time === curTime) shouldFire = true;
-                    }
-                    if (shouldFire) { r.fired = true; updated = true; triggerNotif("Boss Reminder", r.message); }
-                }
-            });
-            if (updated) { localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); }
-        }
-        setInterval(checkReminders, 10000);
-        async function checkScheduledSearches() {
-            const now = Date.now();
-            let updated = false;
-            for (let task of scheduledSearches) {
-                if (!task.fired && now >= task.triggerTime) {
-                    task.fired = true;
-                    updated = true;
-                    const results = await searchWeb(task.query);
-                    const prompt = `You are Alex. Boss asked you to check this: "${task.query}". Here are the search results:\n${results}\n\nGive a short, friendly update. Mention the key details. No bullet points.`;
-                    try {
-                        const summary = await callAI(buildPersonalityPrompt(false), prompt, []);
-                        const cleanSummary = cleanResponse(summary);
-                        chatHistory.push({role:'ai', text: cleanSummary});
-                        renderChat();
-                        saveChatHistory();
-                        speakText(cleanSummary);
-                        triggerNotif("Scheduled Update", cleanSummary);
-                    } catch(e) { console.error("Scheduled search AI failed:", e); }
-                }
-            }
-            if (updated) {
-                scheduledSearches = scheduledSearches.filter(t => !t.fired || (Date.now() - t.triggerTime) < 3600000);
-                localStorage.setItem('eurusd_scheduled_searches', JSON.stringify(scheduledSearches));
-                renderReminders();
-            }
-        }
-        setInterval(checkScheduledSearches, 10000);
-        function checkMissedReminders() {
-            const now = new Date();
-            const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-            const curDay = days[now.getDay()];
-            const curTime = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
-            let updated = false;
-            reminders.filter(r => !r.fired).forEach(r => {
-                if (r.time.includes(' ')) {
-                    const [dayPart, timePart] = r.time.split(' ');
-                    if (dayPart === curDay && timePart < curTime) { r.fired = true; triggerNotif("Missed Reminder", r.message); updated = true; }
-                } else {
-                    if (r.time < curTime) { r.fired = true; triggerNotif("Missed Reminder", r.message); updated = true; }
-                }
-            });
-            if (updated) { localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); }
-        }
-        function addLongTermMemory(fact) { longTermMemory.push({fact, added: new Date().toISOString().split('T')[0]}); localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); }
+        function testReminder() { speakText("Test reminder notification."); }
         function renderMemory() { const l = document.getElementById('memory-list'); l.innerHTML = longTermMemory.length === 0 ? 'No facts saved.' : longTermMemory.map(m => `<div style="margin-bottom:5px;">• ${m.fact} <span style="color:var(--text-subtle);">(${m.added})</span></div>`).join(''); }
         function clearLongTermMemory() { if (confirm("Clear all memory?")) { longTermMemory = []; localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); renderMemory(); } }
-        function saveApiKey() { const v = document.getElementById('api-key-input').value.trim(); if (v) { apiKey = v; localStorage.setItem('eurusd_chat_key', apiKey); document.getElementById('groq-status').innerText = "✓ Gemini key saved (fallback)"; } }
+        function saveApiKey() { const v = document.getElementById('api-key-input').value.trim(); if (v) { apiKey = v; localStorage.setItem('eurusd_chat_key', apiKey); document.getElementById('groq-status').innerText = "✓ Gemini key saved"; } }
         async function saveGroqKey() {
             const v = document.getElementById('groq-key-input').value.trim();
             if (!v) { document.getElementById('groq-status').innerText = "Please paste a Groq key first"; return; }
@@ -2359,17 +1903,14 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
             document.getElementById('groq-status').innerText = "✗ All Groq models failed. Check the key."; document.getElementById('groq-status').style.color = "var(--red)";
         }
         window.onload = () => {
-            fetch('https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/personal_context.json').then(r => r.json()).then(d => { personalContext = d; loadWisdom(); }).catch(() => { loadWisdom(); });
+            loadWisdom();
             renderChat(); renderReminders(); renderMemory(); renderAlertLog();
             if ('speechSynthesis' in window) { window.speechSynthesis.getVoices(); window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.getVoices(); }; }
             if (gistToken && gistId) loadMemoryFromGist();
             updateCoreColor('HOLD'); updateISTClock();
-            if ('Notification' in window && Notification.permission === 'default') { setTimeout(() => Notification.requestPermission(), 2000); }
-            setTimeout(checkMissedReminders, 3000);
             refreshMarketData();
             setInterval(() => { if (chatInProgress) return; refreshMarketData(); }, 60000);
             setInterval(() => { if (chatInProgress) return; askAIForSignal(); }, 3600000);
-            setInterval(() => { if (chatInProgress) return; triggerProactiveCheckin(); }, 7200000);
         };
     </script>
 </body>
