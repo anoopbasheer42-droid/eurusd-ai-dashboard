@@ -65,34 +65,13 @@
         #canvas-container.touched { filter: drop-shadow(0 0 25px rgba(167,139,250,0.7)); transition: filter 0.3s ease; }
         .subtitle { text-align: center; font-family: 'Space Grotesk', sans-serif; font-size: 0.6rem; letter-spacing: 0.3em; color: var(--text-subtle); margin-top: 10px; font-weight: 500; text-transform: uppercase; }
         
-        /* Holographic Earth History Time-Machine HUD Overlay */
-        .earth-hologram-hud {
-            position: absolute;
-            inset: 0;
-            background: rgba(3, 4, 8, 0.82);
-            border: 1px solid rgba(139, 92, 246, 0.4);
-            border-radius: 16px;
-            padding: 16px 20px;
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
-            z-index: 20;
-            display: none;
-            flex-direction: column;
-            justify-content: space-between;
-            box-shadow: inset 0 0 40px rgba(139, 92, 246, 0.2), 0 0 30px rgba(139, 92, 246, 0.3);
-            animation: fadeIn 0.4s ease;
-        }
-        .earth-hologram-hud.active { display: flex; }
-        .holo-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(139,92,246,0.2); padding-bottom: 8px; }
-        .holo-title { font-family: 'Space Grotesk', sans-serif; font-size: 0.78rem; font-weight: 700; color: var(--violet); letter-spacing: 0.1em; text-shadow: 0 0 10px rgba(167,139,250,0.5); }
-        .holo-epoch-badge { font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; color: var(--yellow); background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); padding: 2px 8px; border-radius: 6px; }
-        .holo-content { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 8px; padding: 6px 0; }
-        .holo-subtitle { font-family: 'Space Grotesk', sans-serif; font-size: 0.85rem; font-weight: 600; color: var(--text-main); }
-        .holo-desc { font-family: 'Inter', sans-serif; font-size: 0.75rem; color: var(--text-body); line-height: 1.5; }
-        .holo-slider-row { display: flex; align-items: center; gap: 12px; border-top: 1px solid rgba(139,92,246,0.2); padding-top: 10px; }
-        .holo-slider-row input[type=range] { flex: 1; accent-color: var(--violet); cursor: pointer; height: 6px; border-radius: 3px; background: rgba(139,92,246,0.2); }
-        .holo-close-btn { background: rgba(239,68,68,0.2); border: 1px solid rgba(239,68,68,0.4); color: #fca5a5; font-size: 0.68rem; font-family: 'Space Grotesk', sans-serif; padding: 4px 12px; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; }
-        .holo-close-btn:hover { background: rgba(239,68,68,0.35); color: white; }
+        /* Holographic Time Machine HUD Overlay */
+        #time-machine-hud { position: absolute; bottom: 16px; left: 16px; right: 16px; background: rgba(5, 7, 15, 0.85); border: 1px solid rgba(167, 139, 250, 0.4); border-radius: 14px; padding: 12px 16px; backdrop-filter: blur(12px); display: none; z-index: 10; box-shadow: 0 0 25px rgba(139,92,246,0.3); animation: fadeIn 0.3s ease; }
+        #time-machine-hud.active { display: block; }
+        .hud-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-family: 'Space Grotesk', sans-serif; font-size: 0.72rem; color: var(--violet); letter-spacing: 0.1em; text-transform: uppercase; }
+        .epoch-slider { width: 100%; -webkit-appearance: none; background: rgba(139, 92, 246, 0.2); height: 6px; border-radius: 3px; outline: none; margin: 8px 0; }
+        .epoch-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--violet); cursor: pointer; box-shadow: 0 0 10px var(--violet); }
+        .hud-info { display: flex; justify-content: space-between; font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; color: var(--text-body); }
 
         .signal-card { text-align: center; padding: 30px 24px; }
         #signal-text { font-family: 'Space Grotesk', sans-serif; font-size: 2.8rem; font-weight: 700; letter-spacing: 0.08em; color: var(--text-subtle); transition: all 0.4s ease; margin-bottom: 12px; line-height: 1; text-shadow: 0 0 30px currentColor; }
@@ -156,27 +135,24 @@
                 <div class="last-updated" id="last-updated">AWAITING DATA</div>
             </div>
         </header>
-        <div class="card">
+
+        <div class="card" style="position: relative;">
             <div class="card-title">Cosmic Explorer</div>
-            <div id="canvas-container">
-                <!-- Holographic Earth History Time-Machine HUD -->
-                <div class="earth-hologram-hud" id="earth-hologram-hud">
-                    <div class="holo-header">
-                        <div class="holo-title">🌍 HOLOGRAPHIC EARTH TIME-MACHINE</div>
-                        <div class="holo-epoch-badge" id="holo-epoch-year">Present Day (2026 AD)</div>
-                    </div>
-                    <div class="holo-content">
-                        <div class="holo-subtitle" id="holo-epoch-title">The Anthropocene & Space Age</div>
-                        <div class="holo-desc" id="holo-epoch-desc">Modern civilization spans the globe. Satellites orbit the planet, digital AI systems process information, and humanity looks toward interplanetary expansion.</div>
-                    </div>
-                    <div class="holo-slider-row">
-                        <input type="range" id="earth-time-slider" min="0" max="100" value="100" oninput="onEarthTimeSliderChange(this.value)">
-                        <button class="holo-close-btn" onclick="closeEarthHologram()">Return to Globe</button>
-                    </div>
+            <div id="canvas-container"></div>
+            <div class="subtitle">Real Space View · Pinch / Wheel to Zoom · Tap Earth</div>
+            <div id="time-machine-hud">
+                <div class="hud-header">
+                    <span>Holographic Earth History</span>
+                    <span id="hud-close" style="cursor: pointer;" onclick="toggleTimeMachineHud(false)">✕ Close</span>
+                </div>
+                <input type="range" min="0" max="100" value="100" class="epoch-slider" id="epoch-slider" oninput="updateEarthEpoch(this.value)">
+                <div class="hud-info">
+                    <span id="epoch-label">Modern Era (Present)</span>
+                    <span>4.6B yrs — Now</span>
                 </div>
             </div>
-            <div class="subtitle" id="explorer-subtitle">Earth View · Pinch to Zoom · Tap Earth for Globe View</div>
         </div>
+
         <div class="card signal-card">
             <div class="card-title">Current Signal</div>
             <div id="signal-text">AWAITING</div>
@@ -197,6 +173,7 @@
             </div>
             <div class="signal-hint">Engine scans every 1:00 · AI auto-runs hourly + on demand</div>
         </div>
+
         <div class="card chat-card">
             <div class="card-title">AI Trading Assistant
                 <div class="chat-controls">
@@ -269,10 +246,12 @@
             </div>
             <div style="text-align:right; margin-top:10px;"><button class="btn" onclick="clearChat()">Clear chat (memory stays)</button></div>
         </div>
+
         <div class="card">
             <div class="card-title">Trader's Wisdom Corner</div>
             <div class="reasoning-text" id="wise-words">Loading...</div>
         </div>
+
         <div class="card">
             <div class="card-title">Live Market Data — No AI Quota Used</div>
             <div class="stats-grid">
@@ -287,15 +266,18 @@
                 <div id="val-candle-4h">—</div>
             </div>
         </div>
+
         <div class="card">
             <div class="card-title">Engine Alerts — Last 5</div>
             <div id="alert-log">No alerts yet. Engine scanning...</div>
         </div>
+
         <div class="card">
             <div class="card-title">AI Trader's Reasoning</div>
             <div class="reasoning-text" id="val-reason">Engine scanning. AI auto-analyzes hourly.</div>
         </div>
     </div>
+
     <script>
         const GROQ_MODELS = ['meta-llama/llama-4-scout-17b-16e-instruct','llama-3.3-70b-versatile','openai/gpt-oss-120b'];
         const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
@@ -386,6 +368,7 @@
             }
         }
         let audioCtx = null;
+        let chargeOsc1 = null, chargeOsc2 = null, chargeGain = null, chargeTickGain = null, chargeTickOsc = null;
         function initAudio() {
             if (!audioCtx) {
                 try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
@@ -394,21 +377,178 @@
             if (audioCtx.state === 'suspended') audioCtx.resume();
             return audioCtx;
         }
+        function startChargeSound() {
+            const ctx = initAudio();
+            if (!ctx) return;
+            stopChargeSound();
+            chargeOsc1 = ctx.createOscillator(); chargeOsc1.type = 'sawtooth'; chargeOsc1.frequency.value = 60;
+            chargeOsc2 = ctx.createOscillator(); chargeOsc2.type = 'sine'; chargeOsc2.frequency.value = 120;
+            chargeGain = ctx.createGain(); chargeGain.gain.value = 0.001;
+            const filter = ctx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 800;
+            chargeOsc1.connect(filter); chargeOsc2.connect(filter); filter.connect(chargeGain); chargeGain.connect(ctx.destination);
+            chargeTickOsc = ctx.createOscillator(); chargeTickOsc.type = 'square'; chargeTickOsc.frequency.value = 4;
+            chargeTickGain = ctx.createGain(); chargeTickGain.gain.value = 0;
+            chargeTickOsc.connect(chargeTickGain); chargeTickGain.connect(chargeGain.gain);
+            const now = ctx.currentTime;
+            chargeOsc1.start(now); chargeOsc2.start(now); chargeTickOsc.start(now);
+        }
+        function updateChargeSound(level) {
+            if (!audioCtx || !chargeOsc1 || !chargeGain) return;
+            const ctx = audioCtx; const now = ctx.currentTime;
+            const volume = 0.02 + level * 0.25;
+            chargeGain.gain.linearRampToValueAtTime(volume, now + 0.05);
+            chargeOsc1.frequency.linearRampToValueAtTime(60 + level * 160, now + 0.05);
+            chargeOsc2.frequency.linearRampToValueAtTime(120 + level * 320, now + 0.05);
+            if (chargeTickOsc && chargeTickGain) {
+                chargeTickOsc.frequency.linearRampToValueAtTime(4 + level * 30, now + 0.05);
+                chargeTickGain.gain.linearRampToValueAtTime(level > 0.3 ? level * 0.15 : 0, now + 0.05);
+            }
+        }
+        function stopChargeSound() {
+            try {
+                if (chargeOsc1) { chargeOsc1.stop(); chargeOsc1.disconnect(); }
+                if (chargeOsc2) { chargeOsc2.stop(); chargeOsc2.disconnect(); }
+                if (chargeTickOsc) { chargeTickOsc.stop(); chargeTickOsc.disconnect(); }
+                if (chargeTickGain) chargeTickGain.disconnect();
+                if (chargeGain) chargeGain.disconnect();
+            } catch(e) {}
+            chargeOsc1 = chargeOsc2 = chargeTickOsc = chargeGain = chargeTickGain = null;
+        }
+        function fadeOutChargeSound(durationSec = 0.5) {
+            if (!audioCtx || !chargeGain) { stopChargeSound(); return; }
+            try {
+                const now = audioCtx.currentTime;
+                const gain = chargeGain.gain;
+                const currentVal = gain.value;
+                gain.cancelScheduledValues(now);
+                gain.setValueAtTime(currentVal, now);
+                gain.linearRampToValueAtTime(0.001, now + durationSec);
+                if (chargeTickGain) {
+                    const tg = chargeTickGain.gain;
+                    tg.cancelScheduledValues(now);
+                    tg.setValueAtTime(tg.value, now);
+                    tg.linearRampToValueAtTime(0.001, now + durationSec);
+                }
+                setTimeout(() => { stopChargeSound(); }, durationSec * 1000 + 60);
+            } catch(e) { stopChargeSound(); }
+        }
+        function playExplosionSound() {
+            const ctx = initAudio();
+            if (!ctx) return;
+            const now = ctx.currentTime;
+            const master = ctx.createGain();
+            master.gain.value = 0.9;
+            master.connect(ctx.destination);
+            const bassOsc = ctx.createOscillator();
+            const bassGain = ctx.createGain();
+            bassOsc.type = 'sine';
+            bassOsc.frequency.setValueAtTime(220, now);
+            bassOsc.frequency.exponentialRampToValueAtTime(28, now + 0.8);
+            bassGain.gain.setValueAtTime(0.95, now);
+            bassGain.gain.exponentialRampToValueAtTime(0.001, now + 1.8);
+            bassOsc.connect(bassGain);
+            bassGain.connect(master);
+            bassOsc.start(now);
+            bassOsc.stop(now + 2.0);
+            const subOsc = ctx.createOscillator();
+            const subGain = ctx.createGain();
+            subOsc.type = 'sine';
+            subOsc.frequency.setValueAtTime(60, now);
+            subOsc.frequency.linearRampToValueAtTime(18, now + 0.5);
+            subGain.gain.setValueAtTime(0.8, now);
+            subGain.gain.exponentialRampToValueAtTime(0.001, now + 1.4);
+            subOsc.connect(subGain);
+            subGain.connect(master);
+            subOsc.start(now);
+            subOsc.stop(now + 1.5);
+            const crackBuffer = ctx.createBuffer(1, ctx.sampleRate * 0.15, ctx.sampleRate);
+            const crackData = crackBuffer.getChannelData(0);
+            for (let i = 0; i < crackData.length; i++) {
+                const t = i / crackData.length;
+                crackData[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, 6);
+            }
+            const crackSrc = ctx.createBufferSource();
+            crackSrc.buffer = crackBuffer;
+            const crackFilter = ctx.createBiquadFilter();
+            crackFilter.type = 'highpass';
+            crackFilter.frequency.value = 800;
+            const crackGain = ctx.createGain();
+            crackGain.gain.setValueAtTime(0.9, now);
+            crackGain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+            crackSrc.connect(crackFilter);
+            crackFilter.connect(crackGain);
+            crackGain.connect(master);
+            crackSrc.start(now);
+            crackSrc.stop(now + 0.2);
+            const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 1.4, ctx.sampleRate);
+            const ndata = noiseBuffer.getChannelData(0);
+            for (let i = 0; i < ndata.length; i++) {
+                ndata[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / ndata.length, 1.8);
+            }
+            const noiseSrc = ctx.createBufferSource();
+            noiseSrc.buffer = noiseBuffer;
+            const noiseFilter = ctx.createBiquadFilter();
+            noiseFilter.type = 'lowpass';
+            noiseFilter.frequency.setValueAtTime(6000, now);
+            noiseFilter.frequency.exponentialRampToValueAtTime(180, now + 1.2);
+            const noiseGain = ctx.createGain();
+            noiseGain.gain.setValueAtTime(0.7, now);
+            noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 1.4);
+            noiseSrc.connect(noiseFilter);
+            noiseFilter.connect(noiseGain);
+            noiseGain.connect(master);
+            noiseSrc.start(now);
+            noiseSrc.stop(now + 1.4);
+            for (let k = 0; k < 3; k++) {
+                const ringOsc = ctx.createOscillator();
+                const ringGain = ctx.createGain();
+                ringOsc.type = 'triangle';
+                const freq = 1800 + k * 900 + Math.random() * 400;
+                ringOsc.frequency.setValueAtTime(freq, now);
+                ringOsc.frequency.exponentialRampToValueAtTime(freq * 0.6, now + 0.9);
+                ringGain.gain.setValueAtTime(0.12, now + k * 0.02);
+                ringGain.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
+                ringOsc.connect(ringGain);
+                ringGain.connect(master);
+                ringOsc.start(now + k * 0.02);
+                ringOsc.stop(now + 1.1);
+            }
+            const rumbleBuffer = ctx.createBuffer(1, ctx.sampleRate * 2.5, ctx.sampleRate);
+            const rdata = rumbleBuffer.getChannelData(0);
+            for (let i = 0; i < rdata.length; i++) rdata[i] = (Math.random() * 2 - 1);
+            const rumbleSrc = ctx.createBufferSource();
+            rumbleSrc.buffer = rumbleBuffer;
+            const rumbleFilter = ctx.createBiquadFilter();
+            rumbleFilter.type = 'lowpass';
+            rumbleFilter.frequency.value = 90;
+            const rumbleGain = ctx.createGain();
+            rumbleGain.gain.setValueAtTime(0, now + 0.05);
+            rumbleGain.gain.linearRampToValueAtTime(0.55, now + 0.35);
+            rumbleGain.gain.exponentialRampToValueAtTime(0.001, now + 2.4);
+            rumbleSrc.connect(rumbleFilter);
+            rumbleFilter.connect(rumbleGain);
+            rumbleGain.connect(master);
+            rumbleSrc.start(now + 0.05);
+            rumbleSrc.stop(now + 2.5);
+        }
 
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 8000);
-        
-        // Start permanently in space mode (No core state)
-        let cameraTheta = 0;
-        let cameraPhi = 0.55;
-        let cameraRadius = 3000; // Deep cosmic void start
-        let targetCameraZ = 3000;
-
+        camera.position.z = 6;
         const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
         renderer.setSize(container.clientWidth, container.clientHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
+        
+        const glowSphere = new THREE.Mesh(new THREE.SphereGeometry(1.15, 48, 48), new THREE.MeshBasicMaterial({ color: 0x8b5cf6, transparent: true, opacity: 0.10 }));
+        const innerBright = new THREE.Mesh(new THREE.SphereGeometry(0.55, 32, 32), new THREE.MeshBasicMaterial({ color: 0xa78bfa, transparent: true, opacity: 0.35 }));
+        const innerCore = new THREE.Mesh(new THREE.IcosahedronGeometry(1.0, 1), new THREE.MeshBasicMaterial({ color: 0xa78bfa, wireframe: true, transparent: true, opacity: 0.75 }));
+        const midShell = new THREE.Mesh(new THREE.IcosahedronGeometry(1.6, 1), new THREE.MeshBasicMaterial({ color: 0x8b5cf6, wireframe: true, transparent: true, opacity: 0.4 }));
+        const outerShell = new THREE.Mesh(new THREE.IcosahedronGeometry(2.2, 1), new THREE.MeshBasicMaterial({ color: 0x7c3aed, wireframe: true, transparent: true, opacity: 0.2 }));
+        const coreGroup = new THREE.Group();
+        coreGroup.add(glowSphere, innerBright, innerCore, midShell, outerShell);
+        scene.add(coreGroup);
 
         function makeCircularStarTexture(colorHex) {
             const canvas = document.createElement('canvas');
@@ -474,6 +614,7 @@
         }
 
         const milkyWayGroup = new THREE.Group();
+        milkyWayGroup.visible = false;
         scene.add(milkyWayGroup);
 
         const circularStarMatWhite = new THREE.PointsMaterial({
@@ -687,6 +828,7 @@
         })();
 
         const solarSystemGroup = new THREE.Group();
+        solarSystemGroup.visible = false;
         scene.add(solarSystemGroup);
 
         const sunGroup = new THREE.Group();
@@ -911,63 +1053,55 @@
             }
         }
 
+        const BASE_CAM_Z = 6;
+        const SPACE_CAM_Z = 3000;
+
         let cameraTheta = 0;
         let cameraPhi = 0.55;
-        let cameraRadius = 3000;
-        let targetCameraZ = 3000;
+        let cameraRadius = SPACE_CAM_Z;
+        let targetCameraZ = BASE_CAM_Z;
         let solarAlpha = 0;
         let milkyAlpha = 1;
         let earthFocusAmount = 0;
 
-        let earthHologramActive = false;
+        let spaceState = 'core';
+        let spaceProgress = 0;
+        const SPACE_FULL_MS = 3500;
+        let spacePhaseStart = 0;
 
-        const EARTH_EPOCHS = [
-            {
-                year: "4.6 Billion Years Ago",
-                title: "The Violent Birth & Magma Oceans",
-                desc: "Accretion of dust and rocky planetesimals. Molten magma oceans cover the newborn globe under a suffocating greenhouse atmosphere of carbon dioxide and steam."
-            },
-            {
-                year: "4.4 Billion Years Ago",
-                title: "First Oceans & Crust Cooling",
-                desc: "As Earth cools, heavy continuous torrential rains fill the vast impact basins, forming Earth's first global liquid water oceans."
-            },
-            {
-                year: "3.5 Billion Years Ago",
-                title: "Dawn of Life & Stromatolites",
-                desc: "Single-celled prokaryotes and cyanobacteria emerge in shallow marine waters, generating energy via photosynthesis and releasing early oxygen."
-            },
-            {
-                year: "2.4 Billion Years Ago",
-                title: "The Great Oxidation Event",
-                desc: "Oxygen accumulates massively in the atmosphere for the first time, rusting iron-rich oceanic minerals and paving the way for complex aerobic life."
-            },
-            {
-                year: "540 Million Years Ago",
-                title: "The Cambrian Explosion",
-                desc: "A sudden burst of evolutionary diversity in the oceans yields complex multicellular life forms, trilobites, and early armored marine predators."
-            },
-            {
-                year: "250 – 65 Million Years Ago",
-                title: "Age of Dinosaurs & Impact Extinction",
-                desc: "Dinosaurs reign across lush Pangea and diverging continents until a catastrophic 10km asteroid strikes Chicxulub, wiping out 75% of species."
-            },
-            {
-                year: "1914 – 1945 AD",
-                title: "World Wars I & II Era",
-                desc: "Humanity splits into industrial global conflicts (WWI and WWII), accelerating technological evolution, aviation, rocketry, and global interconnectivity."
-            },
-            {
-                year: "Present Day (2026 AD)",
-                title: "The Anthropocene & Space Age",
-                desc: "Modern civilization spans the globe. Satellites orbit the planet, digital AI systems process information, and humanity looks toward interplanetary expansion."
-            }
-        ];
+        let lastInteractionTime = Date.now();
+        const IDLE_COLLAPSE_MS = 5 * 60 * 1000;
+        function resetIdleTimer() { lastInteractionTime = Date.now(); }
+
+        function triggerSpaceExpand() {
+            if (spaceState === 'expanding' || spaceState === 'space') return;
+            spaceState = 'expanding';
+            spacePhaseStart = Date.now();
+            spaceProgress = 0;
+            cameraTheta = 0;
+            cameraPhi = 0.55;
+            cameraRadius = SPACE_CAM_Z;
+            targetCameraZ = SPACE_CAM_Z;
+            solarAlpha = 0;
+            milkyAlpha = 1;
+            earthFocusAmount = 0;
+            currentZoomIndex = 0;
+            resetIdleTimer();
+        }
+        function triggerSpaceCollapse() {
+            if (spaceState === 'collapsing' || spaceState === 'core') return;
+            toggleTimeMachineHud(false);
+            spaceState = 'collapsing';
+            spacePhaseStart = Date.now();
+            spaceProgress = 1;
+            resetIdleTimer();
+        }
 
         let lastTapTime = 0;
         let lastTapX = 0, lastTapY = 0;
+        let earthFocusedCount = 0;
 
-        // 750 very fine zoom steps to make the transition from edge to Earth feel ultra-slow and immersive!
+        // 750 fine zoom milestones
         const zoomMilestones = [];
         for (let i = 0; i <= 750; i++) {
             const t = i / 750;
@@ -978,23 +1112,192 @@
         let currentZoomIndex = 0;
 
         container.addEventListener('wheel', (e) => {
-            e.preventDefault();
-            if (e.deltaY > 0) {
-                currentZoomIndex = Math.max(0, currentZoomIndex - 1);
-            } else {
-                currentZoomIndex = Math.min(zoomMilestones.length - 1, currentZoomIndex + 1);
-            }
-            targetCameraZ = zoomMilestones[currentZoomIndex];
-            cameraRadius = targetCameraZ;
-            if (cameraRadius > 2.5 && earthHologramActive) {
-                closeEarthHologram();
+            if (spaceState === 'space' || spaceState === 'expanding') {
+                e.preventDefault();
+                resetIdleTimer();
+                if (e.deltaY > 0) {
+                    currentZoomIndex = Math.max(0, currentZoomIndex - 1);
+                } else {
+                    currentZoomIndex = Math.min(zoomMilestones.length - 1, currentZoomIndex + 1);
+                }
+                targetCameraZ = zoomMilestones[currentZoomIndex];
+                cameraRadius = targetCameraZ;
+                checkEarthFocus();
             }
         }, { passive: false });
 
+        function checkEarthFocus() {
+            if (cameraRadius <= 3.5) {
+                earthFocusedCount++;
+                if (earthFocusedCount === 1) {
+                    // First tap/zoom locks to Globe View
+                } else if (earthFocusedCount >= 2) {
+                    toggleTimeMachineHud(true);
+                }
+            } else {
+                earthFocusedCount = 0;
+                toggleTimeMachineHud(false);
+            }
+        }
+
+        function toggleTimeMachineHud(show) {
+            const hud = document.getElementById('time-machine-hud');
+            if (hud) {
+                if (show) hud.classList.add('active');
+                else hud.classList.remove('active');
+            }
+        }
+
+        function updateEarthEpoch(val) {
+            const label = document.getElementById('epoch-label');
+            if (!label) return;
+            const num = parseInt(val);
+            if (num < 15) {
+                label.innerText = "4.6B yrs - Molten Magma Birth";
+                if (earthObj && earthObj.userData.sphere) {
+                    earthObj.userData.sphere.material.color.setHex(0xff4500);
+                }
+            } else if (num < 40) {
+                label.innerText = "3.5B yrs - Early Oceans & Volcanic Ash";
+                if (earthObj && earthObj.userData.sphere) {
+                    earthObj.userData.sphere.material.color.setHex(0x1e90ff);
+                }
+            } else if (num < 70) {
+                label.innerText = "150M yrs - Age of Dinosaurs (Pangaea)";
+                if (earthObj && earthObj.userData.sphere) {
+                    earthObj.userData.sphere.material.color.setHex(0x228b22);
+                }
+            } else if (num < 95) {
+                label.innerText = "1914-1945 - World Wars Era";
+                if (earthObj && earthObj.userData.sphere) {
+                    earthObj.userData.sphere.material.color.setHex(0x556b2f);
+                }
+            } else {
+                label.innerText = "Modern Era (Present)";
+                if (earthObj && earthObj.userData.sphere) {
+                    earthObj.userData.sphere.material.color.setHex(0xffffff);
+                }
+            }
+        }
+
+        const BOLT_COUNT = 12;
+        const boltPool = [];
+        for (let i = 0; i < BOLT_COUNT; i++) {
+            const boltMat = new THREE.LineBasicMaterial({ color: 0xffe066, transparent: true, opacity: 0 });
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(24 * 3), 3));
+            const line = new THREE.Line(geo, boltMat);
+            line.visible = false;
+            scene.add(line);
+            boltPool.push({ line, life: 0 });
+        }
+        function spawnBolt() {
+            const bolt = boltPool.find(b => b.life <= 0);
+            if (!bolt) return;
+            const startAngle = Math.random() * Math.PI * 2;
+            const startR = 0.3 + Math.random() * 0.35;
+            const endAngle = startAngle + (Math.random() - 0.5) * Math.PI * 1.4;
+            const endR = 2.0 + Math.random() * 0.55;
+            const points = [];
+            const segments = 14;
+            for (let i = 0; i <= segments; i++) {
+                const t = i / segments;
+                const r = startR + (endR - startR) * t + (Math.random() - 0.5) * 0.5;
+                const a = startAngle + (endAngle - startAngle) * t + (Math.random() - 0.5) * 0.6;
+                points.push(Math.cos(a) * r, Math.sin(a) * r, (Math.random() - 0.5) * 0.8);
+            }
+            const arr = bolt.line.geometry.attributes.position.array;
+            for (let i = 0; i < points.length; i++) arr[i] = points[i];
+            for (let i = points.length; i < arr.length; i++) arr[i] = points[points.length - 1];
+            bolt.line.geometry.attributes.position.needsUpdate = true;
+            bolt.line.geometry.computeBoundingSphere();
+            const hue = 0.13 - chargeLevel * 0.13;
+            bolt.line.material.color.setHSL(hue, 1, 0.7);
+            bolt.line.material.opacity = 0.9 + Math.random() * 0.1;
+            bolt.line.visible = true;
+            bolt.life = 1;
+        }
+        function makeSmokeTexture() {
+            const size = 128;
+            const canvas = document.createElement('canvas');
+            canvas.width = size; canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            const grad = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+            grad.addColorStop(0, 'rgba(180,180,200,0.55)');
+            grad.addColorStop(0.5, 'rgba(120,120,140,0.25)');
+            grad.addColorStop(1, 'rgba(60,60,80,0)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, size, size);
+            return new THREE.CanvasTexture(canvas);
+        }
+        const smokeTexture = makeSmokeTexture();
+        const smokePool = [];
+        const smokeGroup = new THREE.Group();
+        scene.add(smokeGroup);
+        function spawnSmoke() {
+            let p = smokePool.find(s => s.life <= 0);
+            if (!p) {
+                const mat = new THREE.SpriteMaterial({ map: smokeTexture, transparent: true, opacity: 0, depthWrite: false, color: 0x9ca3af });
+                const sprite = new THREE.Sprite(mat);
+                smokeGroup.add(sprite);
+                p = { sprite, life: 0, vx: 0, vy: 0, rotation: 0, rotSpeed: 0 };
+                smokePool.push(p);
+            }
+            const angle = Math.random() * Math.PI * 2;
+            const r = 0.6 + Math.random() * 0.7;
+            p.sprite.position.set(Math.cos(angle) * r, Math.sin(angle) * r * 0.6 - 0.3, -0.5);
+            const s = 0.3 + Math.random() * 0.4;
+            p.sprite.scale.set(s, s, 1);
+            p.sprite.material.opacity = 0.35 + Math.random() * 0.35;
+            p.sprite.material.rotation = Math.random() * Math.PI * 2;
+            p.rotSpeed = (Math.random() - 0.5) * 0.06;
+            p.vx = (Math.random() - 0.5) * 0.008;
+            p.vy = 0.006 + Math.random() * 0.01;
+            p.life = 1;
+        }
+        let pulseTime = 0;
+        let coreScale = 1;
+        let coreScaleVel = 0;
+        let coreRotVelX = 0, coreRotVelY = 0;
+        let touchBoost = 0;
+        let chargeLevel = 0;
+        let isCharging = false;
+        let chargeStartTime = 0;
         let isDragging = false;
+        let pointerVelocity = { x: 0, y: 0 };
         let pinchStartDist = 0;
         let pinchStartScale = 1;
+        let longPressTimer = null;
+        let longPressActive = false;
+        let isOnCenter = false;
         const activePointers = new Map();
+        const ripples = [];
+        let boltTimer = 0;
+        const CHARGE_START_MS = 300;
+        const CHARGE_FULL_MS = 10000;
+        const CENTER_RADIUS = 85;
+        function isPointerOnCenter(e) {
+            const rect = container.getBoundingClientRect();
+            const px = e.clientX - rect.left;
+            const py = e.clientY - rect.top;
+            const cx = rect.width / 2;
+            const cy = rect.height / 2;
+            const dx = px - cx, dy = py - cy;
+            return Math.sqrt(dx*dx + dy*dy) <= CENTER_RADIUS;
+        }
+        function spawnRipple(color = 0xa78bfa) {
+            const geo = new THREE.RingGeometry(0.5, 0.6, 48);
+            const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.8, side: THREE.DoubleSide });
+            const ring = new THREE.Mesh(geo, mat);
+            ring.position.z = 0.5;
+            scene.add(ring);
+            ripples.push({ mesh: ring, life: 1 });
+        }
+        function spawnExplosion() {
+            for (let i = 0; i < 10; i++) setTimeout(() => spawnRipple(0xff3b30), i * 50);
+            for (let i = 0; i < 30; i++) setTimeout(spawnBolt, i * 20);
+            for (let i = 0; i < 60; i++) setTimeout(spawnSmoke, i * 18);
+        }
         function getDistance(t1, t2) {
             const dx = t1.x - t2.x, dy = t1.y - t2.y;
             return Math.sqrt(dx*dx + dy*dy);
@@ -1003,7 +1306,17 @@
         container.addEventListener('pointerdown', (e) => {
             try { container.setPointerCapture(e.pointerId); } catch(err) {}
             initAudio();
+            resetIdleTimer();
             const now = Date.now();
+            if (now - lastTapTime < 400 && spaceState === 'space') {
+                const dx = e.clientX - lastTapX;
+                const dy = e.clientY - lastTapY;
+                if (Math.sqrt(dx*dx + dy*dy) < 60) {
+                    triggerSpaceCollapse();
+                    lastTapTime = 0;
+                    return;
+                }
+            }
             lastTapTime = now;
             lastTapX = e.clientX;
             lastTapY = e.clientY;
@@ -1011,39 +1324,71 @@
             container.classList.add('touched');
             if (activePointers.size === 1) {
                 isDragging = true;
-                if (cameraRadius < 2.5) {
-                    // When zoomed to Earth closeup:
-                    // 1st tap -> Shows Globe View (already there). 2nd tap -> Opens Holographic History HUD!
-                    if (!earthHologramActive) {
-                        openEarthHologram();
-                    } else {
-                        closeEarthHologram();
+                pointerVelocity = { x: 0, y: 0 };
+                isOnCenter = isPointerOnCenter(e);
+                if (isOnCenter && spaceState === 'core') {
+                    longPressTimer = setTimeout(() => {
+                        if (isDragging && activePointers.size === 1 && isOnCenter) {
+                            longPressActive = true;
+                            isCharging = true;
+                            chargeStartTime = Date.now();
+                            startChargeSound();
+                            if (navigator.vibrate) navigator.vibrate(20);
+                        }
+                    }, CHARGE_START_MS);
+                } else if (spaceState === 'space' && cameraRadius <= 4.0) {
+                    earthFocusedCount++;
+                    if (earthFocusedCount >= 2) {
+                        toggleTimeMachineHud(true);
                     }
                 }
             } else if (activePointers.size === 2) {
                 const pts = Array.from(activePointers.values());
                 pinchStartDist = getDistance(pts[0], pts[1]);
-                pinchStartScale = cameraRadius;
+                pinchStartScale = coreScale;
+                clearTimeout(longPressTimer);
+                isCharging = false;
+                longPressActive = false;
+                chargeLevel = 0;
+                fadeOutChargeSound(0.2);
             }
         });
 
         container.addEventListener('pointermove', (e) => {
             if (!activePointers.has(e.pointerId)) return;
+            resetIdleTimer();
             const prev = activePointers.get(e.pointerId);
             activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
             if (activePointers.size === 1 && isDragging) {
                 const dx = e.clientX - prev.x;
                 const dy = e.clientY - prev.y;
-                cameraTheta -= dx * 0.008;
-                cameraPhi = Math.max(-1.5, Math.min(1.5, cameraPhi + dy * 0.008));
+                if (spaceState === 'space' || spaceState === 'expanding') {
+                    cameraTheta -= dx * 0.008;
+                    cameraPhi = Math.max(-1.5, Math.min(1.5, cameraPhi + dy * 0.008));
+                } else {
+                    coreRotVelY += dx * 0.0009;
+                    coreRotVelX += dy * 0.0009;
+                }
+                pointerVelocity.x = dx;
+                pointerVelocity.y = dy;
+                if (Math.abs(dx) + Math.abs(dy) > 5 && !longPressActive) clearTimeout(longPressTimer);
+                if (longPressActive && isCharging && !isPointerOnCenter(e)) {
+                    isCharging = false;
+                    longPressActive = false;
+                    fadeOutChargeSound(0.4);
+                }
             } else if (activePointers.size === 2) {
                 const pts = Array.from(activePointers.values());
                 const dist = getDistance(pts[0], pts[1]);
                 if (pinchStartDist > 0) {
                     const ratio = dist / pinchStartDist;
-                    cameraRadius = Math.max(1.2, Math.min(3000, pinchStartScale / ratio));
-                    targetCameraZ = cameraRadius;
-                    if (cameraRadius > 2.5 && earthHologramActive) closeEarthHologram();
+                    if (spaceState === 'space' || spaceState === 'expanding') {
+                        cameraRadius = Math.max(1.2, Math.min(3000, cameraRadius / ratio));
+                        targetCameraZ = cameraRadius;
+                        checkEarthFocus();
+                    } else {
+                        coreScale = Math.max(0.6, Math.min(2.2, pinchStartScale * ratio));
+                    }
                 }
             }
         });
@@ -1053,6 +1398,40 @@
             if (activePointers.size === 0) {
                 isDragging = false;
                 container.classList.remove('touched');
+                clearTimeout(longPressTimer);
+                const speed = Math.sqrt(pointerVelocity.x**2 + pointerVelocity.y**2);
+                if (longPressActive && chargeLevel >= 0.95) {
+                    stopChargeSound();
+                    playExplosionSound();
+                    spawnExplosion();
+                    touchBoost = 4.0;
+                    coreScaleVel += 0.9;
+                    coreRotVelY += 1.2;
+                    coreRotVelX -= 0.8;
+                    if (navigator.vibrate) navigator.vibrate([80, 40, 100, 40, 150, 40, 200]);
+                    setTimeout(() => { triggerSpaceExpand(); }, 700);
+                }
+                else if (longPressActive && chargeLevel > 0.3) {
+                    fadeOutChargeSound(0.5);
+                    touchBoost = 0.8;
+                    spawnRipple(0xf59e0b);
+                    coreScaleVel += 0.2;
+                    if (navigator.vibrate) navigator.vibrate(15);
+                }
+                else if (!longPressActive && speed < 3) {
+                    stopChargeSound();
+                    touchBoost = 1.0;
+                    coreScaleVel += 0.15;
+                    spawnRipple();
+                    if (navigator.vibrate) navigator.vibrate(15);
+                } else {
+                    fadeOutChargeSound(0.3);
+                }
+                longPressActive = false;
+                isCharging = false;
+                isOnCenter = false;
+                chargeLevel = 0;
+                pointerVelocity = { x: 0, y: 0 };
             } else if (activePointers.size === 1) {
                 pinchStartDist = 0;
             }
@@ -1062,75 +1441,65 @@
         container.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
         container.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
 
-        function openEarthHologram() {
-            earthHologramActive = true;
-            document.getElementById('earth-hologram-hud').classList.add('active');
-            document.getElementById('explorer-subtitle').innerText = "🌍 Holographic Earth History Time-Machine Active";
-            onEarthTimeSliderChange(document.getElementById('earth-time-slider').value);
-        }
-        function closeEarthHologram() {
-            earthHologramActive = false;
-            document.getElementById('earth-hologram-hud').classList.remove('active');
-            document.getElementById('explorer-subtitle').innerText = "Earth View · Pinch to Zoom · Tap Earth for Globe View";
-        }
-        function onEarthTimeSliderChange(val) {
-            const idx = Math.min(EARTH_EPOCHS.length - 1, Math.floor((val / 100) * EARTH_EPOCHS.length));
-            const epoch = EARTH_EPOCHS[idx];
-            document.getElementById('holo-epoch-year').innerText = epoch.year;
-            document.getElementById('holo-epoch-title').innerText = epoch.title;
-            document.getElementById('holo-epoch-desc').innerText = epoch.desc;
-
-            if (earthObj && earthObj.userData.sphere) {
-                const mat = earthObj.userData.sphere.material;
-                if (idx === 0) {
-                    mat.color.setHex(0xff4500);
-                    mat.emissive.setHex(0xff2200);
-                    mat.emissiveIntensity = 0.6;
-                } else if (idx === 1 || idx === 2) {
-                    mat.color.setHex(0x1e90ff);
-                    mat.emissive.setHex(0x0044aa);
-                    mat.emissiveIntensity = 0.2;
-                } else {
-                    mat.color.setHex(0xffffff);
-                    mat.emissive.setHex(0x000000);
-                    mat.emissiveIntensity = 0;
-                }
-            }
-        }
-
         const _earthWorld = new THREE.Vector3(0, 0, 0);
         const _lookTarget = new THREE.Vector3(0, 0, 0);
 
         function animate() {
             requestAnimationFrame(animate);
             const nowMs = Date.now();
+            if (spaceState === 'expanding') {
+                const t = Math.min(1, (nowMs - spacePhaseStart) / SPACE_FULL_MS);
+                spaceProgress = t;
+                if (t >= 1) { spaceProgress = 1; spaceState = 'space'; currentZoomIndex = 0; }
+            } else if (spaceState === 'collapsing') {
+                const t = Math.min(1, (nowMs - spacePhaseStart) / SPACE_FULL_MS);
+                spaceProgress = 1 - t;
+                if (t >= 1) { spaceProgress = 0; spaceState = 'core'; }
+            }
+            if (spaceState === 'space' && (nowMs - lastInteractionTime) > IDLE_COLLAPSE_MS) {
+                triggerSpaceCollapse();
+            }
+            const ep = spaceProgress < 0.5
+                ? 4 * spaceProgress * spaceProgress * spaceProgress
+                : 1 - Math.pow(-2 * spaceProgress + 2, 3) / 2;
 
             const camDist = camera.position.length();
+            
+            if (spaceState === 'space' || spaceState === 'expanding') {
+                if (camDist >= 150) solarAlpha = 0;
+                else if (camDist <= 60) solarAlpha = 1;
+                else solarAlpha = (150 - camDist) / 90;
+                solarAlpha = Math.max(0, Math.min(1, solarAlpha));
 
-            if (camDist >= 150) solarAlpha = 0;
-            else if (camDist <= 60) solarAlpha = 1;
-            else solarAlpha = (150 - camDist) / 90;
-            solarAlpha = Math.max(0, Math.min(1, solarAlpha));
+                milkyAlpha = Math.max(0, Math.min(1, camDist / 300));
 
-            milkyAlpha = Math.max(0, Math.min(1, camDist / 300));
+                if (camDist >= 20) earthFocusAmount = 0;
+                else if (camDist <= 2.2) earthFocusAmount = 1;
+                else earthFocusAmount = (20 - camDist) / 17.8;
+                earthFocusAmount = Math.max(0, Math.min(1, earthFocusAmount));
+            } else {
+                solarAlpha = 0;
+                milkyAlpha = 1;
+                earthFocusAmount = 0;
+            }
 
-            if (camDist >= 20) earthFocusAmount = 0;
-            else if (camDist <= 2.2) earthFocusAmount = 1;
-            else earthFocusAmount = (20 - camDist) / 17.8;
-            earthFocusAmount = Math.max(0, Math.min(1, earthFocusAmount));
+            if (spaceProgress > 0.001) {
+                milkyWayGroup.visible = true;
+                milkyWayGroup.scale.setScalar(Math.max(0.001, ep));
+                milkyWayGroup.traverse((o) => {
+                    if (o.material && o.material.opacity !== undefined) {
+                        if (o.userData.baseOpacity === undefined) o.userData.baseOpacity = o.material.opacity;
+                        o.material.opacity = o.userData.baseOpacity * milkyAlpha;
+                    }
+                });
+            } else {
+                milkyWayGroup.visible = false;
+            }
 
-            milkyWayGroup.visible = true;
-            milkyWayGroup.scale.setScalar(1);
-            milkyWayGroup.traverse((o) => {
-                if (o.material && o.material.opacity !== undefined) {
-                    if (o.userData.baseOpacity === undefined) o.userData.baseOpacity = o.material.opacity;
-                    o.material.opacity = o.userData.baseOpacity * milkyAlpha;
-                }
-            });
-
-            if (solarAlpha > 0.001) {
+            const solarFinal = ep * solarAlpha;
+            if (solarFinal > 0.001) {
                 solarSystemGroup.visible = true;
-                solarSystemGroup.scale.setScalar(1);
+                solarSystemGroup.scale.setScalar(Math.max(0.001, solarFinal));
                 sunLight.intensity = 2.2 * solarAlpha;
                 solarSystemGroup.traverse((o) => {
                     if (o === sunCorona) return;
@@ -1186,7 +1555,7 @@
                 }
             }
 
-            if (milkyAlpha > 0.05) {
+            if (spaceProgress > 0.01 && milkyAlpha > 0.05) {
                 travelCometTimer -= 1;
                 if (travelCometTimer <= 0 && travelComets.length < 4) {
                     spawnTravelComet();
@@ -1209,20 +1578,113 @@
                 }
             }
 
-            cameraRadius += (targetCameraZ - cameraRadius) * 0.1;
-            if (earthObj) earthObj.getWorldPosition(_earthWorld);
-            else _earthWorld.set(0, 0, 0);
-            _lookTarget.set(
-                _earthWorld.x * earthFocusAmount,
-                _earthWorld.y * earthFocusAmount,
-                _earthWorld.z * earthFocusAmount
-            );
-            const x = _lookTarget.x + cameraRadius * Math.cos(cameraPhi) * Math.sin(cameraTheta);
-            const y = _lookTarget.y + cameraRadius * Math.sin(cameraPhi);
-            const z = _lookTarget.z + cameraRadius * Math.cos(cameraPhi) * Math.cos(cameraTheta);
-            camera.position.lerp(new THREE.Vector3(x, y, z), 0.1);
-            camera.lookAt(_lookTarget);
+            if (spaceState === 'space') {
+                cameraRadius += (targetCameraZ - cameraRadius) * 0.1;
+                if (earthObj) earthObj.getWorldPosition(_earthWorld);
+                else _earthWorld.set(0, 0, 0);
+                _lookTarget.set(
+                    _earthWorld.x * earthFocusAmount,
+                    _earthWorld.y * earthFocusAmount,
+                    _earthWorld.z * earthFocusAmount
+                );
+                const x = _lookTarget.x + cameraRadius * Math.cos(cameraPhi) * Math.sin(cameraTheta);
+                const y = _lookTarget.y + cameraRadius * Math.sin(cameraPhi);
+                const z = _lookTarget.z + cameraRadius * Math.cos(cameraPhi) * Math.cos(cameraTheta);
+                camera.position.lerp(new THREE.Vector3(x, y, z), 0.1);
+                camera.lookAt(_lookTarget);
+            } else if (spaceState === 'expanding' || spaceState === 'collapsing') {
+                const sX = SPACE_CAM_Z * Math.cos(0.55) * Math.sin(0);
+                const sY = SPACE_CAM_Z * Math.sin(0.55);
+                const sZ = SPACE_CAM_Z * Math.cos(0.55) * Math.cos(0);
+                const t = ep;
+                camera.position.lerp(new THREE.Vector3(sX * t, sY * t, BASE_CAM_Z * (1-t) + sZ * t), 0.1);
+                camera.lookAt(0, 0, 0);
+            } else {
+                targetCameraZ += (BASE_CAM_Z - targetCameraZ) * 0.08;
+                camera.position.z += (targetCameraZ - camera.position.z) * 0.08;
+                camera.position.x *= 0.92;
+                camera.position.y *= 0.92;
+                camera.lookAt(0, 0, 0);
+            }
 
+            if (isCharging) {
+                const elapsed = Date.now() - chargeStartTime;
+                chargeLevel = Math.min(1, elapsed / CHARGE_FULL_MS);
+                updateChargeSound(chargeLevel);
+            }
+            const spin = 1 + chargeLevel * 15 + touchBoost * 0.5;
+            pulseTime += 0.04 * spin;
+            touchBoost *= 0.94;
+            const chargeScale = 1 + chargeLevel * 1.1;
+            const brightScale = (1 + Math.sin(pulseTime * 1.5) * 0.15 + touchBoost * 0.25) * chargeScale;
+            innerBright.scale.set(brightScale, brightScale, brightScale);
+            innerBright.material.opacity = 0.3 + Math.sin(pulseTime * 1.5) * 0.1 + touchBoost * 0.2 + chargeLevel * 0.6;
+            innerCore.rotation.x += 0.008 * spin;
+            innerCore.rotation.y += 0.012 * spin;
+            midShell.rotation.x -= 0.004 * spin;
+            midShell.rotation.y -= 0.006 * spin;
+            outerShell.rotation.x += 0.002 * spin;
+            outerShell.rotation.y -= 0.003 * spin;
+            coreGroup.rotation.y += coreRotVelY;
+            coreGroup.rotation.x += coreRotVelX;
+            coreRotVelY *= 0.92;
+            coreRotVelX *= 0.92;
+            const scaleForce = (1 - coreScale) * 0.15;
+            coreScaleVel += scaleForce;
+            coreScaleVel *= 0.85;
+            coreScale += coreScaleVel;
+            const _coreSpaceScale = coreScale * (1 - ep * 0.85);
+            coreGroup.scale.set(_coreSpaceScale, _coreSpaceScale, _coreSpaceScale);
+            coreGroup.visible = spaceProgress < 0.98;
+            const rumble = touchBoost * 0.08 + chargeLevel * 0.35;
+            if (rumble > 0.01) {
+                coreGroup.position.x = (Math.random() - 0.5) * rumble;
+                coreGroup.position.y = (Math.random() - 0.5) * rumble;
+            } else {
+                coreGroup.position.x *= 0.9;
+                coreGroup.position.y *= 0.9;
+            }
+            glowSphere.material.opacity = 0.08 + Math.sin(pulseTime * 0.6) * 0.04 + touchBoost * 0.15 + chargeLevel * 0.6;
+            if (chargeLevel > 0.01) {
+                const c = new THREE.Color();
+                if (chargeLevel < 0.5) c.lerpColors(new THREE.Color(0x8b5cf6), new THREE.Color(0xf59e0b), chargeLevel / 0.5);
+                else c.lerpColors(new THREE.Color(0xf59e0b), new THREE.Color(0xef4444), (chargeLevel - 0.5) / 0.5);
+                glowSphere.material.color.copy(c);
+                innerBright.material.color.copy(c);
+                innerCore.material.color.copy(c);
+                midShell.material.color.copy(c);
+                outerShell.material.color.copy(c);
+            }
+            if (isCharging && chargeLevel > 0.08) {
+                boltTimer -= 1;
+                const boltInterval = Math.max(1, Math.floor(14 - chargeLevel * 13));
+                if (boltTimer <= 0) {
+                    spawnBolt();
+                    if (chargeLevel > 0.3 && Math.random() < 0.6) spawnBolt();
+                    if (chargeLevel > 0.6 && Math.random() < 0.7) spawnBolt();
+                    if (chargeLevel > 0.85 && Math.random() < 0.8) spawnBolt();
+                    boltTimer = boltInterval;
+                }
+            }
+            for (const b of boltPool) {
+                if (b.life > 0) {
+                    b.life -= 0.12 + chargeLevel * 0.08;
+                    b.line.material.opacity = Math.max(0, b.life * 1.2);
+                    if (b.life <= 0) { b.line.visible = false; b.line.material.opacity = 0; }
+                }
+            }
+            for (let i = ripples.length - 1; i >= 0; i--) {
+                const r = ripples[i];
+                r.life -= 0.03;
+                r.mesh.scale.setScalar(1 + (1 - r.life) * 4);
+                r.mesh.material.opacity = r.life * 0.8;
+                if (r.life <= 0) {
+                    scene.remove(r.mesh);
+                    r.mesh.geometry.dispose();
+                    r.mesh.material.dispose();
+                    ripples.splice(i, 1);
+                }
+            }
             renderer.render(scene, camera);
         }
         animate();
@@ -1234,8 +1696,11 @@
         });
 
         function updateCoreColor(signal) {
+            if (isCharging) return;
             let color = 0x8b5cf6;
             if (signal === 'BUY') color = 0x10b981; else if (signal === 'SELL') color = 0xef4444; else if (signal === 'SETUP') color = 0xf59e0b;
+            glowSphere.material.color.setHex(color); innerBright.material.color.setHex(color);
+            innerCore.material.color.setHex(color); midShell.material.color.setHex(color); outerShell.material.color.setHex(color);
         }
 
         function safeNum(val, fallback = 0) { return (isNaN(val) || val === undefined || val === null || !isFinite(val)) ? fallback : val; }
@@ -1522,7 +1987,7 @@
             elevenLabsApiKey = document.getElementById('elevenlabs-api-input').value.trim();
             localStorage.setItem('eurusd_elevenlabs_api_key', elevenLabsApiKey);
             const statusEl = document.getElementById('voice-status');
-            if (statusEl) statusEl.innerHTML = "<span style='color:var::green;'>✓ ElevenLabs API Key Saved!</span>";
+            if (statusEl) statusEl.innerHTML = "<span style='color:var(--green);'>✓ ElevenLabs API Key Saved!</span>";
             speakText("ElevenLabs API key saved.");
         }
         function saveVoiceEngineMode() {
@@ -1642,7 +2107,7 @@
             renderChat(); renderReminders(); renderMemory(); renderAlertLog();
             if ('speechSynthesis' in window) { window.speechSynthesis.getVoices(); window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.getVoices(); }; }
             if (gistToken && gistId) loadMemoryFromGist();
-            updateISTClock();
+            updateCoreColor('HOLD'); updateISTClock();
             refreshMarketData();
             setInterval(() => { if (chatInProgress) return; refreshMarketData(); }, 60000);
             setInterval(() => { if (chatInProgress) return; askAIForSignal(); }, 3600000);
