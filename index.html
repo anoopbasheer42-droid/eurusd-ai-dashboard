@@ -48,7 +48,6 @@
         }
         .dashboard { width: 100%; max-width: 680px; display: flex; flex-direction: column; gap: 16px; }
         
-        /* HEADER */
         header { display: flex; justify-content: space-between; align-items: flex-start; padding: 8px 0 20px 0; border-bottom: 1px solid rgba(139, 92, 246, 0.1); margin-bottom: 6px; }
         .logo-wrap { display: flex; flex-direction: column; gap: 6px; }
         .logo { display: flex; align-items: baseline; gap: 8px; font-family: 'Space Grotesk', sans-serif; font-size: 1.2rem; font-weight: 700; letter-spacing: -0.03em; }
@@ -59,7 +58,6 @@
         .price-ticker { font-family: 'JetBrains Mono', monospace; font-size: 1.5rem; font-weight: 700; color: var(--green); letter-spacing: -0.02em; line-height: 1; text-shadow: 0 0 25px rgba(16,185,129,0.4); font-variant-numeric: tabular-nums; }
         .last-updated { font-size: 0.58rem; color: var(--text-subtle); font-family: 'JetBrains Mono', monospace; margin-top: 8px; letter-spacing: 0.1em; text-transform: uppercase; }
 
-        /* CARDS */
         .card { 
             background: var(--card-bg); 
             border: 1px solid var(--card-border); 
@@ -76,13 +74,11 @@
         .card::before { content: ''; position: absolute; top: 0; left: 10%; right: 10%; height: 1px; background: linear-gradient(90deg, transparent, rgba(167,139,250,0.4), transparent); }
         .card-title { font-family: 'Space Grotesk', sans-serif; font-size: 0.68rem; font-weight: 600; color: var(--text-muted); letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; }
         
-        /* NEURAL CORE */
         #canvas-container { width: 100%; height: 240px; position: relative; z-index: 1; display: flex; justify-content: center; align-items: center; touch-action: none; cursor: grab; }
         #canvas-container:active { cursor: grabbing; }
         #canvas-container.touched { filter: drop-shadow(0 0 25px rgba(167,139,250,0.7)); transition: filter 0.3s ease; }
         .subtitle { text-align: center; font-family: 'Space Grotesk', sans-serif; font-size: 0.6rem; letter-spacing: 0.3em; color: var(--text-subtle); margin-top: 10px; font-weight: 500; text-transform: uppercase; }
 
-        /* SIGNAL CARD */
         .signal-card { text-align: center; padding: 30px 24px; }
         #signal-text { font-family: 'Space Grotesk', sans-serif; font-size: 2.8rem; font-weight: 700; letter-spacing: 0.08em; color: var(--text-subtle); transition: all 0.4s ease; margin-bottom: 12px; line-height: 1; text-shadow: 0 0 30px currentColor; }
         .signal-status-line { font-family: 'JetBrains Mono', monospace; font-size: 0.66rem; color: var(--text-subtle); letter-spacing: 0.15em; margin-bottom: 24px; text-transform: uppercase; font-weight: 500; }
@@ -94,7 +90,6 @@
         .signal-details span:last-child { color: var(--text-body); font-weight: 600; }
         .signal-hint { font-family: 'Inter', sans-serif; font-size: 0.68rem; color: var(--text-subtle); margin-top: 16px; line-height: 1.5; }
 
-        /* BUTTONS */
         .btn { font-family: 'Inter', sans-serif; background: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.2); color: var(--text-body); padding: 8px 16px; border-radius: 10px; font-size: 0.72rem; font-weight: 500; cursor: pointer; transition: all 0.2s ease; }
         .btn:hover { background: rgba(139, 92, 246, 0.15); border-color: rgba(139, 92, 246, 0.4); color: var(--text-main); box-shadow: 0 0 15px rgba(139, 92, 246, 0.2); }
         .btn.active { background: rgba(59,130,246,0.15); border-color: rgba(59,130,246,0.4); color: #93c5fd; }
@@ -103,7 +98,6 @@
         .btn.primary { font-family: 'Space Grotesk', sans-serif; background: linear-gradient(135deg, #7c3aed 0%, #6366f1 50%, #3b82f6 100%); border: none; font-weight: 600; color: white; box-shadow: 0 4px 25px rgba(124,58,237,0.4), 0 0 0 1px rgba(255,255,255,0.1) inset; }
         .btn.primary:hover { box-shadow: 0 6px 35px rgba(124,58,237,0.6); transform: translateY(-1px); }
 
-        /* CHAT INTERFACE */
         .chat-card { border: 1px solid rgba(139, 92, 246, 0.4); box-shadow: 0 0 40px rgba(139, 92, 246, 0.15), inset 0 1px 0 rgba(255,255,255,0.1); }
         .chat-controls { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
         .panel { display: none; background: rgba(0,0,0,0.4); padding: 16px; border-radius: 12px; margin-bottom: 14px; font-size: 0.78rem; border: 1px solid rgba(139, 92, 246, 0.1); }
@@ -127,7 +121,6 @@
         .chat-input-row button { font-family: 'Space Grotesk', sans-serif; background: linear-gradient(135deg, #10b981, #059669); border: none; color: white; padding: 0 18px; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 0.85rem; box-shadow: 0 4px 20px rgba(16,185,129,0.3); transition: all 0.2s ease; }
         .chat-input-row button:hover { box-shadow: 0 6px 30px rgba(16,185,129,0.5); transform: translateY(-1px); }
 
-        /* STATS & LOGS */
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.8rem; }
         .stat-item { background: rgba(139, 92, 246, 0.04); padding: 12px 16px; border-radius: 10px; display: flex; justify-content: space-between; border: 1px solid rgba(139, 92, 246, 0.08); }
         .stat-label { font-family: 'Space Grotesk', sans-serif; color: var(--text-muted); font-weight: 500; font-size: 0.7rem; }
@@ -139,7 +132,6 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .fade-in { animation: fadeIn 0.3s ease-in; }
         
-        /* PULSING DOT FOR AI HEADER */
         .pulse-dot { display: inline-block; width: 6px; height: 6px; background: var(--green); border-radius: 50%; margin-right: 6px; box-shadow: 0 0 10px var(--green); animation: pulse 2s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
     </style>
@@ -325,7 +317,6 @@
         let elevenLabsApiKey = localStorage.getItem('eurusd_elevenlabs_api_key') || '';
         let voiceEngineMode = localStorage.getItem('eurusd_voice_engine_mode') || 'cloud';
 
-        // === AUDIO TRACKING ===
         let currentAudio = null;
 
         document.body.addEventListener('click', () => { if ('speechSynthesis' in window) window.speechSynthesis.getVoices(); }, { once: true });
@@ -349,7 +340,7 @@
             el.innerText = pool[Math.floor(Math.random() * pool.length)];
         }
 
-        // === WEB SEARCH (FREE - NO API KEY, Dual API approach) ===
+        // === WEB SEARCH ===
         async function searchWeb(query) {
             try {
                 const currencyMatch = query.match(/([A-Z]{3})\s*(?:to|in|for|of)\s*([A-Z]{3})/i);
@@ -416,7 +407,153 @@
             }
         }
 
-        // === THREE.JS NEURAL CORE (10s CHARGE → RED → BIG EXPLOSION) ===
+        // === AUDIO ENGINE (Web Audio API - Charging + Explosion sounds) ===
+        let audioCtx = null;
+        let chargeOsc1 = null, chargeOsc2 = null, chargeGain = null, chargeTickGain = null, chargeTickOsc = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                try {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                } catch(e) { console.warn("AudioContext not supported"); return null; }
+            }
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            return audioCtx;
+        }
+
+        function startChargeSound() {
+            const ctx = initAudio();
+            if (!ctx) return;
+            stopChargeSound();
+
+            // Two oscillators for a rich "charging reactor" hum
+            chargeOsc1 = ctx.createOscillator();
+            chargeOsc1.type = 'sawtooth';
+            chargeOsc1.frequency.value = 60;
+
+            chargeOsc2 = ctx.createOscillator();
+            chargeOsc2.type = 'sine';
+            chargeOsc2.frequency.value = 120;
+
+            chargeGain = ctx.createGain();
+            chargeGain.gain.value = 0.001;   // start almost silent
+
+            // Low-pass filter to soften the sawtooth
+            const filter = ctx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.value = 800;
+
+            chargeOsc1.connect(filter);
+            chargeOsc2.connect(filter);
+            filter.connect(chargeGain);
+            chargeGain.connect(ctx.destination);
+
+            // Tremolo ticking oscillator — gets faster the longer you hold
+            chargeTickOsc = ctx.createOscillator();
+            chargeTickOsc.type = 'square';
+            chargeTickOsc.frequency.value = 4;   // ticks per second
+            chargeTickGain = ctx.createGain();
+            chargeTickGain.gain.value = 0;       // starts silent
+
+            // Tick modulates the hum's gain → creates a pulsing feel
+            chargeTickOsc.connect(chargeTickGain);
+            chargeTickGain.connect(chargeGain.gain);
+
+            const now = ctx.currentTime;
+            chargeOsc1.start(now);
+            chargeOsc2.start(now);
+            chargeTickOsc.start(now);
+        }
+
+        function updateChargeSound(level) {
+            // Called from animation loop while charging
+            if (!audioCtx || !chargeOsc1 || !chargeGain) return;
+            const ctx = audioCtx;
+            const now = ctx.currentTime;
+            // Hum volume scales with charge
+            const volume = 0.02 + level * 0.25;
+            chargeGain.gain.linearRampToValueAtTime(volume, now + 0.05);
+            // Pitch rises
+            chargeOsc1.frequency.linearRampToValueAtTime(60 + level * 160, now + 0.05);
+            chargeOsc2.frequency.linearRampToValueAtTime(120 + level * 320, now + 0.05);
+            // Ticking speeds up & becomes audible at higher charge
+            if (chargeTickOsc && chargeTickGain) {
+                chargeTickOsc.frequency.linearRampToValueAtTime(4 + level * 30, now + 0.05);
+                chargeTickGain.gain.linearRampToValueAtTime(level > 0.3 ? level * 0.15 : 0, now + 0.05);
+            }
+        }
+
+        function stopChargeSound() {
+            try {
+                if (chargeOsc1) { chargeOsc1.stop(); chargeOsc1.disconnect(); }
+                if (chargeOsc2) { chargeOsc2.stop(); chargeOsc2.disconnect(); }
+                if (chargeTickOsc) { chargeTickOsc.stop(); chargeTickOsc.disconnect(); }
+                if (chargeTickGain) chargeTickGain.disconnect();
+                if (chargeGain) chargeGain.disconnect();
+            } catch(e) {}
+            chargeOsc1 = chargeOsc2 = chargeTickOsc = chargeGain = chargeTickGain = null;
+        }
+
+        function playExplosionSound() {
+            const ctx = initAudio();
+            if (!ctx) return;
+            const now = ctx.currentTime;
+
+            // --- Deep thump: low-frequency sine sweep down ---
+            const thumpOsc = ctx.createOscillator();
+            const thumpGain = ctx.createGain();
+            thumpOsc.type = 'sine';
+            thumpOsc.frequency.setValueAtTime(180, now);
+            thumpOsc.frequency.exponentialRampToValueAtTime(30, now + 0.6);
+            thumpGain.gain.setValueAtTime(0.7, now);
+            thumpGain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+            thumpOsc.connect(thumpGain);
+            thumpGain.connect(ctx.destination);
+            thumpOsc.start(now);
+            thumpOsc.stop(now + 1.3);
+
+            // --- Noise burst: explosion "crack" ---
+            const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 1.0, ctx.sampleRate);
+            const data = noiseBuffer.getChannelData(0);
+            for (let i = 0; i < data.length; i++) {
+                data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / data.length, 2);
+            }
+            const noiseSrc = ctx.createBufferSource();
+            noiseSrc.buffer = noiseBuffer;
+            const noiseFilter = ctx.createBiquadFilter();
+            noiseFilter.type = 'lowpass';
+            noiseFilter.frequency.setValueAtTime(3000, now);
+            noiseFilter.frequency.exponentialRampToValueAtTime(200, now + 1.0);
+            const noiseGain = ctx.createGain();
+            noiseGain.gain.setValueAtTime(0.6, now);
+            noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 1.1);
+            noiseSrc.connect(noiseFilter);
+            noiseFilter.connect(noiseGain);
+            noiseGain.connect(ctx.destination);
+            noiseSrc.start(now);
+            noiseSrc.stop(now + 1.1);
+
+            // --- Rumble tail: low-passed noise ---
+            const rumbleBuffer = ctx.createBuffer(1, ctx.sampleRate * 1.5, ctx.sampleRate);
+            const rdata = rumbleBuffer.getChannelData(0);
+            for (let i = 0; i < rdata.length; i++) rdata[i] = (Math.random() * 2 - 1) * 0.4;
+            const rumbleSrc = ctx.createBufferSource();
+            rumbleSrc.buffer = rumbleBuffer;
+            const rumbleFilter = ctx.createBiquadFilter();
+            rumbleFilter.type = 'lowpass';
+            rumbleFilter.frequency.value = 120;
+            const rumbleGain = ctx.createGain();
+            rumbleGain.gain.setValueAtTime(0, now + 0.1);
+            rumbleGain.gain.linearRampToValueAtTime(0.4, now + 0.2);
+            rumbleGain.gain.exponentialRampToValueAtTime(0.001, now + 1.6);
+            rumbleSrc.connect(rumbleFilter);
+            rumbleFilter.connect(rumbleGain);
+            rumbleGain.connect(ctx.destination);
+            rumbleSrc.start(now + 0.1);
+            rumbleSrc.stop(now + 1.7);
+        }
+
+        // === THREE.JS NEURAL CORE ===
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
@@ -436,7 +573,6 @@
         coreGroup.add(glowSphere, innerBright, innerCore, midShell, outerShell);
         scene.add(coreGroup);
 
-        // === ELECTRIC ARCS ===
         const BOLT_COUNT = 12;
         const boltPool = [];
         for (let i = 0; i < BOLT_COUNT; i++) {
@@ -474,8 +610,7 @@
             bolt.line.geometry.attributes.position.needsUpdate = true;
             bolt.line.geometry.computeBoundingSphere();
 
-            // Bolt color shifts toward red as charge grows
-            const hue = 0.13 - chargeLevel * 0.13;   // yellow → red
+            const hue = 0.13 - chargeLevel * 0.13;
             const c = new THREE.Color().setHSL(hue, 1, 0.7);
             bolt.line.material.color.copy(c);
             bolt.line.material.opacity = 0.9 + Math.random() * 0.1;
@@ -483,7 +618,6 @@
             bolt.life = 1;
         }
 
-        // === SMOKE PARTICLES ===
         function makeSmokeTexture() {
             const size = 128;
             const canvas = document.createElement('canvas');
@@ -524,7 +658,6 @@
             p.life = 1;
         }
 
-        // --- INTERACTION STATE ---
         let pulseTime = 0;
         let coreScale = 1;
         let coreScaleVel = 0;
@@ -544,8 +677,8 @@
         let boltTimer = 0;
         let smokeTimer = 0;
 
-        const CHARGE_START_MS = 300;       // begins charging after 0.3s
-        const CHARGE_FULL_MS = 10000;      // 10 seconds to full explosion
+        const CHARGE_START_MS = 300;
+        const CHARGE_FULL_MS = 10000;
 
         function spawnRipple(color = 0xa78bfa) {
             const geo = new THREE.RingGeometry(0.5, 0.6, 48);
@@ -557,7 +690,6 @@
         }
 
         function spawnExplosion() {
-            // Massive red-hot explosion
             for (let i = 0; i < 10; i++) setTimeout(() => spawnRipple(0xff3b30), i * 50);
             for (let i = 0; i < 30; i++) setTimeout(spawnBolt, i * 20);
             for (let i = 0; i < 60; i++) setTimeout(spawnSmoke, i * 18);
@@ -570,6 +702,7 @@
 
         container.addEventListener('pointerdown', (e) => {
             try { container.setPointerCapture(e.pointerId); } catch(err) {}
+            initAudio();   // Unlock audio on first user gesture
             activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
             container.classList.add('touched');
 
@@ -581,6 +714,7 @@
                         longPressActive = true;
                         isCharging = true;
                         chargeStartTime = Date.now();
+                        startChargeSound();
                         if (navigator.vibrate) navigator.vibrate(20);
                     }
                 }, CHARGE_START_MS);
@@ -592,6 +726,7 @@
                 isCharging = false;
                 longPressActive = false;
                 chargeLevel = 0;
+                stopChargeSound();
             }
         });
 
@@ -629,8 +764,10 @@
 
                 const speed = Math.sqrt(pointerVelocity.x**2 + pointerVelocity.y**2);
 
-                // FULL CHARGE → massive explosion
+                // FULL CHARGE → massive explosion + BOOM sound
                 if (longPressActive && chargeLevel >= 0.95) {
+                    stopChargeSound();
+                    playExplosionSound();
                     spawnExplosion();
                     touchBoost = 4.0;
                     coreScaleVel += 0.9;
@@ -638,8 +775,9 @@
                     coreRotVelX -= 0.8;
                     if (navigator.vibrate) navigator.vibrate([80, 40, 100, 40, 150, 40, 200]);
                 }
-                // Partial release — soft orange ripple, no boom
+                // Partial release — soft ripple, no boom
                 else if (longPressActive && chargeLevel > 0.3) {
+                    stopChargeSound();
                     touchBoost = 0.8;
                     spawnRipple(0xf59e0b);
                     coreScaleVel += 0.2;
@@ -647,10 +785,13 @@
                 }
                 // Quick tap
                 else if (!longPressActive && speed < 3) {
+                    stopChargeSound();
                     touchBoost = 1.0;
                     coreScaleVel += 0.15;
                     spawnRipple();
                     if (navigator.vibrate) navigator.vibrate(15);
+                } else {
+                    stopChargeSound();
                 }
 
                 longPressActive = false;
@@ -667,23 +808,20 @@
         container.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
         container.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
 
-        // --- ANIMATION LOOP ---
         function animate() {
             requestAnimationFrame(animate);
 
-            // Charge builds over 10 seconds
             if (isCharging) {
                 const elapsed = Date.now() - chargeStartTime;
                 chargeLevel = Math.min(1, elapsed / CHARGE_FULL_MS);
+                updateChargeSound(chargeLevel);
             }
 
-            // Spin speed — MUCH more aggressive as charge grows
-            const spin = 1 + chargeLevel * 15 + touchBoost * 0.5;   // was *9, now *15
+            const spin = 1 + chargeLevel * 15 + touchBoost * 0.5;
             pulseTime += 0.04 * spin;
             touchBoost *= 0.94;
 
-            // Core scales and pulses harder as it charges
-            const chargeScale = 1 + chargeLevel * 1.1;   // was 0.7, now bigger swell
+            const chargeScale = 1 + chargeLevel * 1.1;
             const brightScale = (1 + Math.sin(pulseTime * 1.5) * 0.15 + touchBoost * 0.25) * chargeScale;
             innerBright.scale.set(brightScale, brightScale, brightScale);
             innerBright.material.opacity = 0.3 + Math.sin(pulseTime * 1.5) * 0.1 + touchBoost * 0.2 + chargeLevel * 0.6;
@@ -706,7 +844,6 @@
             coreScale += coreScaleVel;
             coreGroup.scale.set(coreScale, coreScale, coreScale);
 
-            // Rumble intensity — stronger with charge
             const rumble = touchBoost * 0.08 + chargeLevel * 0.35;
             if (rumble > 0.01) {
                 coreGroup.position.x = (Math.random() - 0.5) * rumble;
@@ -718,14 +855,11 @@
 
             glowSphere.material.opacity = 0.08 + Math.sin(pulseTime * 0.6) * 0.04 + touchBoost * 0.15 + chargeLevel * 0.6;
 
-            // === COLOR SHIFTS: PURPLE → ORANGE → RED as charge grows ===
             if (chargeLevel > 0.01) {
                 const c = new THREE.Color();
                 if (chargeLevel < 0.5) {
-                    // purple → orange
                     c.lerpColors(new THREE.Color(0x8b5cf6), new THREE.Color(0xf59e0b), chargeLevel / 0.5);
                 } else {
-                    // orange → deep red
                     c.lerpColors(new THREE.Color(0xf59e0b), new THREE.Color(0xef4444), (chargeLevel - 0.5) / 0.5);
                 }
                 glowSphere.material.color.copy(c);
@@ -735,7 +869,6 @@
                 outerShell.material.color.copy(c);
             }
 
-            // === ELECTRIC ARCS — MORE OFTEN AND MORE OF THEM AS CHARGE GROWS ===
             if (isCharging && chargeLevel > 0.08) {
                 boltTimer -= 1;
                 const boltInterval = Math.max(1, Math.floor(14 - chargeLevel * 13));
@@ -759,7 +892,6 @@
                 }
             }
 
-            // === SMOKE — MORE PUFFS AS CHARGE GROWS ===
             if (isCharging && chargeLevel > 0.12) {
                 smokeTimer -= 1;
                 const smokeInterval = Math.max(1, Math.floor(12 - chargeLevel * 11));
@@ -817,7 +949,7 @@
             innerCore.material.color.setHex(color); midShell.material.color.setHex(color); outerShell.material.color.setHex(color);
         }
 
-        // === MARKET DATA (BIQUOTE) ===
+        // === MARKET DATA ===
         function safeNum(val, fallback = 0) { return (isNaN(val) || val === undefined || val === null || !isFinite(val)) ? fallback : val; }
 
         async function fetchBiquoteCandles(interval, limit) {
@@ -973,7 +1105,6 @@
             if (!globalData || globalData.signal === 'WAITING') { signalText.innerText = "SETUP"; signalText.style.color = "var(--yellow)"; statusEl.innerText = `Opportunity spotted · ${setup.type}`; updateCoreColor('SETUP'); }
         }
 
-        // === AI INTEGRATION ===
         function isMarketQuestion(text) { return MARKET_KEYWORDS.some(kw => text.toLowerCase().includes(kw)); }
 
         async function callAI(systemPrompt, userText, conversationHistory) {
@@ -1034,7 +1165,6 @@
             } catch(e) { signalText.innerText = "ERROR"; signalText.style.color = "var(--red)"; statusEl.innerText = "AI error — " + e.message; return null; }
         }
 
-        // === VOICE, CHAT, REMINDERS ===
         const OPENINGS = ["Okay, so here's the update, Boss.", "Right. Let's take a look.", "Alright Boss, quick brief.", "Here we go, Boss.", "So, quick read on the charts."];
         const TRANS = ["Moving on.", "Now, here's the thing.", "And listen to this.", "Okay, next.", "Alright."];
         const CLOSINGS = ["Stay sharp, Boss.", "Trade safe.", "I'll keep watching.", "Good luck out there.", "That's all for now.", "Talk soon."];
@@ -1183,7 +1313,6 @@
             else speakText("Switched to ElevenLabs voice.");
         }
 
-        // === GIST MEMORY SYNC ===
         async function loadMemoryFromGist() {
             if (!gistToken || !gistId) { document.getElementById('gist-status').innerText = "Missing Token or Gist ID"; document.getElementById('gist-status').style.color = "var(--red)"; return; }
             document.getElementById('gist-status').innerText = "Pulling..."; document.getElementById('gist-status').style.color = "var(--yellow)";
@@ -1208,7 +1337,6 @@
 
         function cleanResponse(text) { return text.split('\n').filter(line => { const l = line.trim().toLowerCase(); if (l.startsWith('*') || l.startsWith('-')) return false; if (l.includes('friendly?') || l.includes('funny?') || l.includes('motivational?')) return false; if (l.includes('checked') || l.includes('no emojis?')) return false; return true; }).join('\n').trim(); }
 
-        // === ELITE TRADER PERSONALITY PROMPT ===
         function buildPersonalityPrompt(includeSignal, userText = "") {
             const now = new Date();
             const istTime = now.toLocaleString('en-IN', {timeZone:'Asia/Kolkata'});
@@ -1360,7 +1488,6 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
             } catch(e) { if (document.getElementById('chat-history').contains(loading)) document.getElementById('chat-history').removeChild(loading); chatHistory.push({role:'ai', text: `Error: ${e.message}`}); renderChat(); } finally { chatInProgress = false; }
         }
 
-        // === PROACTIVE CHECK-IN ===
         async function triggerProactiveCheckin() {
             if (chatInProgress) return;
             if (!groqKey && !apiKey) return;
