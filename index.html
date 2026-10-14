@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -2365,3 +2364,175 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
 
         function addReminder(time, message) { 
             reminders.push({id: Math.random().toString(36).substr(2,9), time, message, voice:true, fired:false, created: new Date().toISOString()}); 
+            localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); 
+            renderReminders(); 
+            const confirmDiv = document.createElement('div'); 
+            confirmDiv.className = 'msg system fade-in'; 
+            confirmDiv.innerText = `Reminder set for ${time} IST — ${message}`; 
+            document.getElementById('chat-history').appendChild(confirmDiv); 
+        }
+
+        function addScheduledSearch(minutes, query) {
+            const triggerTime = Date.now() + (minutes * 60000);
+            scheduledSearches.push({ id: Math.random().toString(36).substr(2,9), triggerTime, query, fired: false });
+            localStorage.setItem('eurusd_scheduled_searches', JSON.stringify(scheduledSearches));
+            renderReminders();
+            const confirmDiv = document.createElement('div'); 
+            confirmDiv.className = 'msg system fade-in'; 
+            confirmDiv.innerText = `Web Search scheduled in ${minutes} minutes for: "${query}"`; 
+            document.getElementById('chat-history').appendChild(confirmDiv); 
+        }
+
+        function renderReminders() { 
+            const l = document.getElementById('reminders-list'); 
+            const activeReminders = reminders.filter(r => !r.fired); 
+            const activeSearches = scheduledSearches.filter(s => !s.fired);
+            
+            if (activeReminders.length === 0 && activeSearches.length === 0) { l.innerHTML = 'No active reminders or scheduled searches.'; return; } 
+            
+            let html = '';
+            activeReminders.forEach(r => {
+                html += `<div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span>⏰ ${r.time} · ${r.message}</span><button class="btn danger" onclick="deleteReminder('${r.id}')">X</button></div>`;
+            });
+            activeSearches.forEach(s => {
+                const timeLeft = Math.round((s.triggerTime - Date.now()) / 60000);
+                html += `<div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span>🔍 in ${timeLeft}m · ${s.query}</span><button class="btn danger" onclick="deleteScheduledSearch('${s.id}')">X</button></div>`;
+            });
+            l.innerHTML = html;
+        }
+
+        function deleteReminder(id) { reminders = reminders.filter(r => r.id !== id); localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); }
+        function deleteScheduledSearch(id) { scheduledSearches = scheduledSearches.filter(s => s.id !== id); localStorage.setItem('eurusd_scheduled_searches', JSON.stringify(scheduledSearches)); renderReminders(); }
+        function clearReminders() { reminders = []; scheduledSearches = []; localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); localStorage.setItem('eurusd_scheduled_searches', JSON.stringify(scheduledSearches)); renderReminders(); }
+        function testReminder() { triggerNotif("Test Reminder", "This is a test reminder, Boss!"); }
+        
+        function triggerNotif(title, body) { 
+            if (Notification.permission === "granted") { try { new Notification(title, {body, requireInteraction: true}); } catch(e) {} } 
+            else if (Notification.permission !== "denied") { Notification.requestPermission(); } 
+            speakText(`Hey Boss, quick reminder. ${body}`, true); 
+            const div = document.createElement('div'); 
+            div.className = 'msg system fade-in'; 
+            div.innerText = `${title}: ${body}`; 
+            document.getElementById('chat-history').appendChild(div); 
+        }
+
+        function checkReminders() { 
+            const now = new Date(); 
+            const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+            const curDay = days[now.getDay()];
+            const curTime = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0'); 
+            
+            let updated = false; 
+            reminders.forEach(r => { 
+                if (!r.fired) {
+                    let shouldFire = false;
+                    if (r.time.includes(' ')) {
+                        const [dayPart, timePart] = r.time.split(' ');
+                        if (dayPart === curDay && timePart === curTime) shouldFire = true;
+                    } else {
+                        if (r.time === curTime) shouldFire = true;
+                    }
+                    
+                    if (shouldFire) { 
+                        r.fired = true; 
+                        updated = true; 
+                        triggerNotif("Boss Reminder", r.message); 
+                    } 
+                }
+            }); 
+            if (updated) { localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); } 
+        }
+        
+        setInterval(checkReminders, 10000);
+
+        async function checkScheduledSearches() {
+            const now = Date.now();
+            let updated = false;
+            for (let task of scheduledSearches) {
+                if (!task.fired && now >= task.triggerTime) {
+                    task.fired = true;
+                    updated = true;
+                    const results = await searchWeb(task.query);
+                    const prompt = `You are Alex. Boss asked you to check this: "${task.query}". Here are the search results:\n${results}\n\nGive a short, friendly update. Mention the key details. No bullet points.`;
+                    try {
+                        const summary = await callAI(buildPersonalityPrompt(false), prompt, []);
+                        const cleanSummary = cleanResponse(summary);
+                        chatHistory.push({role:'ai', text: cleanSummary});
+                        renderChat();
+                        saveChatHistory();
+                        speakText(cleanSummary);
+                        triggerNotif("Scheduled Update", cleanSummary);
+                    } catch(e) {
+                        console.error("Scheduled search AI failed:", e);
+                    }
+                }
+            }
+            if (updated) {
+                scheduledSearches = scheduledSearches.filter(t => !t.fired || (Date.now() - t.triggerTime) < 3600000);
+                localStorage.setItem('eurusd_scheduled_searches', JSON.stringify(scheduledSearches));
+                renderReminders();
+            }
+        }
+        setInterval(checkScheduledSearches, 10000);
+
+        function checkMissedReminders() { 
+            const now = new Date(); 
+            const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+            const curDay = days[now.getDay()];
+            const curTime = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0'); 
+            
+            let updated = false;
+            reminders.filter(r => !r.fired).forEach(r => { 
+                if (r.time.includes(' ')) {
+                    const [dayPart, timePart] = r.time.split(' ');
+                    if (dayPart === curDay && timePart < curTime) {
+                        r.fired = true; 
+                        triggerNotif("Missed Reminder", r.message); 
+                        updated = true;
+                    }
+                } else {
+                    if (r.time < curTime) {
+                        r.fired = true;
+                        triggerNotif("Missed Reminder", r.message);
+                        updated = true;
+                    }
+                }
+            }); 
+            if (updated) { localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); } 
+        }
+
+        function addLongTermMemory(fact) { longTermMemory.push({fact, added: new Date().toISOString().split('T')[0]}); localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); }
+        function renderMemory() { const l = document.getElementById('memory-list'); l.innerHTML = longTermMemory.length === 0 ? 'No facts saved.' : longTermMemory.map(m => `<div style="margin-bottom:5px;">• ${m.fact} <span style="color:var(--text-subtle);">(${m.added})</span></div>`).join(''); }
+        function clearLongTermMemory() { if (confirm("Clear all memory?")) { longTermMemory = []; localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); renderMemory(); } }
+        
+        function saveApiKey() { const v = document.getElementById('api-key-input').value.trim(); if (v) { apiKey = v; localStorage.setItem('eurusd_chat_key', apiKey); document.getElementById('groq-status').innerText = "✓ Gemini key saved (fallback)"; } }
+        async function saveGroqKey() {
+            const v = document.getElementById('groq-key-input').value.trim();
+            if (!v) { document.getElementById('groq-status').innerText = "Please paste a Groq key first"; return; }
+            groqKey = v; localStorage.setItem('eurusd_groq_key', groqKey);
+            document.getElementById('groq-status').innerText = "Testing key..."; document.getElementById('groq-status').style.color = "var(--yellow)";
+            for (const model of GROQ_MODELS) {
+                try {
+                    const testRes = await fetch(GROQ_URL, { method: 'POST', headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: model, messages: [{ role: 'user', content: 'Say ok' }], max_tokens: 5 }) });
+                    if (testRes.ok) { document.getElementById('groq-status').innerText = "✓ Groq works! Model: " + model; document.getElementById('groq-status').style.color = "var(--green)"; return; }
+                } catch(e) { continue; }
+            }
+            document.getElementById('groq-status').innerText = "✗ All Groq models failed. Check the key."; document.getElementById('groq-status').style.color = "var(--red)";
+        }
+
+        window.onload = () => {
+            fetch('https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/personal_context.json').then(r => r.json()).then(d => { personalContext = d; loadWisdom(); }).catch(() => { loadWisdom(); });
+            renderChat(); renderReminders(); renderMemory(); renderAlertLog();
+            if ('speechSynthesis' in window) { window.speechSynthesis.getVoices(); window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.getVoices(); }; }
+            if (gistToken && gistId) loadMemoryFromGist();
+            updateCoreColor('HOLD'); updateISTClock();
+            if ('Notification' in window && Notification.permission === 'default') { setTimeout(() => Notification.requestPermission(), 2000); }
+            setTimeout(checkMissedReminders, 3000);
+            refreshMarketData();
+            setInterval(() => { if (chatInProgress) return; refreshMarketData(); }, 60000);
+            setInterval(() => { if (chatInProgress) return; askAIForSignal(); }, 3600000);
+            setInterval(() => { if (chatInProgress) return; triggerProactiveCheckin(); }, 7200000);
+        };
+    </script>
+</body>
+</html>
