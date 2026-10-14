@@ -47,7 +47,6 @@
             letter-spacing: -0.011em; 
         }
         .dashboard { width: 100%; max-width: 680px; display: flex; flex-direction: column; gap: 16px; }
-        
         header { display: flex; justify-content: space-between; align-items: flex-start; padding: 8px 0 20px 0; border-bottom: 1px solid rgba(139, 92, 246, 0.1); margin-bottom: 6px; }
         .logo-wrap { display: flex; flex-direction: column; gap: 6px; }
         .logo { display: flex; align-items: baseline; gap: 8px; font-family: 'Space Grotesk', sans-serif; font-size: 1.2rem; font-weight: 700; letter-spacing: -0.03em; }
@@ -57,28 +56,14 @@
         .price-wrap { text-align: right; }
         .price-ticker { font-family: 'JetBrains Mono', monospace; font-size: 1.5rem; font-weight: 700; color: var(--green); letter-spacing: -0.02em; line-height: 1; text-shadow: 0 0 25px rgba(16,185,129,0.4); font-variant-numeric: tabular-nums; }
         .last-updated { font-size: 0.58rem; color: var(--text-subtle); font-family: 'JetBrains Mono', monospace; margin-top: 8px; letter-spacing: 0.1em; text-transform: uppercase; }
-
-        .card { 
-            background: var(--card-bg); 
-            border: 1px solid var(--card-border); 
-            border-radius: 20px; 
-            padding: 22px 24px; 
-            backdrop-filter: blur(30px); 
-            -webkit-backdrop-filter: blur(30px); 
-            position: relative; 
-            overflow: hidden; 
-            box-shadow: var(--glow), inset 0 1px 0 rgba(255,255,255,0.05);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
+        .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 20px; padding: 22px 24px; backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); position: relative; overflow: hidden; box-shadow: var(--glow), inset 0 1px 0 rgba(255,255,255,0.05); transition: transform 0.2s ease, box-shadow 0.2s ease; }
         .card:hover { box-shadow: 0 0 40px rgba(139, 92, 246, 0.25), inset 0 1px 0 rgba(255,255,255,0.08); }
         .card::before { content: ''; position: absolute; top: 0; left: 10%; right: 10%; height: 1px; background: linear-gradient(90deg, transparent, rgba(167,139,250,0.4), transparent); }
         .card-title { font-family: 'Space Grotesk', sans-serif; font-size: 0.68rem; font-weight: 600; color: var(--text-muted); letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; }
-        
         #canvas-container { width: 100%; height: 240px; position: relative; z-index: 1; display: flex; justify-content: center; align-items: center; touch-action: none; cursor: grab; }
         #canvas-container:active { cursor: grabbing; }
         #canvas-container.touched { filter: drop-shadow(0 0 25px rgba(167,139,250,0.7)); transition: filter 0.3s ease; }
         .subtitle { text-align: center; font-family: 'Space Grotesk', sans-serif; font-size: 0.6rem; letter-spacing: 0.3em; color: var(--text-subtle); margin-top: 10px; font-weight: 500; text-transform: uppercase; }
-
         .signal-card { text-align: center; padding: 30px 24px; }
         #signal-text { font-family: 'Space Grotesk', sans-serif; font-size: 2.8rem; font-weight: 700; letter-spacing: 0.08em; color: var(--text-subtle); transition: all 0.4s ease; margin-bottom: 12px; line-height: 1; text-shadow: 0 0 30px currentColor; }
         .signal-status-line { font-family: 'JetBrains Mono', monospace; font-size: 0.66rem; color: var(--text-subtle); letter-spacing: 0.15em; margin-bottom: 24px; text-transform: uppercase; font-weight: 500; }
@@ -89,7 +74,6 @@
         .signal-details span:first-child { color: var(--text-muted); font-weight: 500; letter-spacing: 0.05em; }
         .signal-details span:last-child { color: var(--text-body); font-weight: 600; }
         .signal-hint { font-family: 'Inter', sans-serif; font-size: 0.68rem; color: var(--text-subtle); margin-top: 16px; line-height: 1.5; }
-
         .btn { font-family: 'Inter', sans-serif; background: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.2); color: var(--text-body); padding: 8px 16px; border-radius: 10px; font-size: 0.72rem; font-weight: 500; cursor: pointer; transition: all 0.2s ease; }
         .btn:hover { background: rgba(139, 92, 246, 0.15); border-color: rgba(139, 92, 246, 0.4); color: var(--text-main); box-shadow: 0 0 15px rgba(139, 92, 246, 0.2); }
         .btn.active { background: rgba(59,130,246,0.15); border-color: rgba(59,130,246,0.4); color: #93c5fd; }
@@ -97,14 +81,12 @@
         .btn.danger { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.25); color: #fca5a5; }
         .btn.primary { font-family: 'Space Grotesk', sans-serif; background: linear-gradient(135deg, #7c3aed 0%, #6366f1 50%, #3b82f6 100%); border: none; font-weight: 600; color: white; box-shadow: 0 4px 25px rgba(124,58,237,0.4), 0 0 0 1px rgba(255,255,255,0.1) inset; }
         .btn.primary:hover { box-shadow: 0 6px 35px rgba(124,58,237,0.6); transform: translateY(-1px); }
-
         .chat-card { border: 1px solid rgba(139, 92, 246, 0.4); box-shadow: 0 0 40px rgba(139, 92, 246, 0.15), inset 0 1px 0 rgba(255,255,255,0.1); }
         .chat-controls { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
         .panel { display: none; background: rgba(0,0,0,0.4); padding: 16px; border-radius: 12px; margin-bottom: 14px; font-size: 0.78rem; border: 1px solid rgba(139, 92, 246, 0.1); }
         .panel.active { display: block; }
         .panel strong { font-family: 'Space Grotesk', sans-serif; color: var(--text-body); font-weight: 600; }
         .panel input, .panel select { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; }
-        
         .chat-history { height: 280px; overflow-y: auto; background: rgba(0,0,0,0.6); border-radius: 14px; padding: 14px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 10px; border: 1px solid rgba(255,255,255,0.05); box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
         .chat-history::-webkit-scrollbar { width: 4px; }
         .chat-history::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.3); border-radius: 4px; }
@@ -113,14 +95,12 @@
         .msg.ai { background: rgba(139, 92, 246, 0.08); align-self: flex-start; border-left: 3px solid var(--purple); color: var(--text-body); border-top-left-radius: 4px; box-shadow: 0 4px 20px rgba(139, 92, 246, 0.1); }
         .msg.system { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); align-self: center; font-size: 0.7rem; text-align: center; color: #fbbf24; padding: 6px 12px; font-family: 'JetBrains Mono', monospace; }
         .msg.thinking { background: rgba(139,92,246,0.1); border-left: 3px solid var(--violet); font-style: italic; color: #c4b5fd; }
-        
         .chat-input-row { display: flex; gap: 8px; }
         .chat-input-row input { flex: 1; background: rgba(0,0,0,0.7); border: 1px solid rgba(139, 92, 246, 0.2); color: var(--text-main); padding: 10px 14px; border-radius: 12px; outline: none; font-family: 'Inter', sans-serif; font-size: 0.85rem; transition: all 0.2s ease; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); }
         .chat-input-row input:focus { border-color: rgba(139,92,246,0.6); background: rgba(0,0,0,0.9); box-shadow: 0 0 20px rgba(139, 92, 246, 0.2), inset 0 2px 10px rgba(0,0,0,0.5); }
         .chat-input-row input::placeholder { color: var(--text-subtle); }
         .chat-input-row button { font-family: 'Space Grotesk', sans-serif; background: linear-gradient(135deg, #10b981, #059669); border: none; color: white; padding: 0 18px; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 0.85rem; box-shadow: 0 4px 20px rgba(16,185,129,0.3); transition: all 0.2s ease; }
         .chat-input-row button:hover { box-shadow: 0 6px 30px rgba(16,185,129,0.5); transform: translateY(-1px); }
-
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.8rem; }
         .stat-item { background: rgba(139, 92, 246, 0.04); padding: 12px 16px; border-radius: 10px; display: flex; justify-content: space-between; border: 1px solid rgba(139, 92, 246, 0.08); }
         .stat-label { font-family: 'Space Grotesk', sans-serif; color: var(--text-muted); font-weight: 500; font-size: 0.7rem; }
@@ -128,10 +108,8 @@
         .alert-log-item { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--text-muted); padding: 8px 0; border-bottom: 1px solid rgba(139, 92, 246, 0.08); line-height: 1.5; }
         .alert-log-item:last-child { border-bottom: none; }
         .reasoning-text { font-family: 'Inter', sans-serif; font-size: 0.85rem; line-height: 1.8; color: var(--text-body); }
-
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .fade-in { animation: fadeIn 0.3s ease-in; }
-        
         .pulse-dot { display: inline-block; width: 6px; height: 6px; background: var(--green); border-radius: 50%; margin-right: 6px; box-shadow: 0 0 10px var(--green); animation: pulse 2s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
     </style>
@@ -148,13 +126,11 @@
                 <div class="last-updated" id="last-updated">AWAITING DATA</div>
             </div>
         </header>
-        
         <div class="card">
             <div class="card-title">Neural Core</div>
             <div id="canvas-container"></div>
             <div class="subtitle">Quantum Market Intelligence</div>
         </div>
-        
         <div class="card signal-card">
             <div class="card-title">Current Signal</div>
             <div id="signal-text">AWAITING</div>
@@ -175,7 +151,6 @@
             </div>
             <div class="signal-hint">Engine scans every 1:00 · AI auto-runs hourly + on demand</div>
         </div>
-        
         <div class="card chat-card">
             <div class="card-title">Ask Your AI Trader
                 <div class="chat-controls">
@@ -188,21 +163,18 @@
                     <button class="btn" onclick="togglePanel('panel-voice')">Voice</button>
                 </div>
             </div>
-            
             <div class="panel" id="panel-reminders">
                 <div style="display:flex; justify-content:space-between; margin-bottom:8px;"><strong>Active Reminders & Scheduled Web Checks</strong>
                     <div><button class="btn" onclick="testReminder()">Test</button><button class="btn danger" onclick="clearReminders()">Clear</button></div>
                 </div>
                 <div id="reminders-list" style="font-size:0.75rem; color:var(--text-muted);">No active reminders.</div>
             </div>
-            
             <div class="panel" id="panel-memory">
                 <div style="display:flex; justify-content:space-between; margin-bottom:8px;"><strong>Long-Term Memory</strong>
                     <button class="btn danger" onclick="clearLongTermMemory()">Clear</button>
                 </div>
                 <div id="memory-list" style="font-size:0.75rem; color:var(--text-muted); max-height:120px; overflow-y:auto;">No facts saved.</div>
             </div>
-            
             <div class="panel" id="panel-gist">
                 <strong>Gist Memory Sync</strong>
                 <input type="password" id="gist-token-input" placeholder="GitHub Token" style="width:100%; padding:10px; margin-top:8px; border-radius:8px; border:1px solid rgba(139,92,246,0.2); background:rgba(0,0,0,0.4); color:white;">
@@ -211,33 +183,27 @@
                 <button class="btn" style="margin-top:10px;" onclick="loadMemoryFromGist()">Pull</button>
                 <div id="gist-status" style="font-size:0.7rem; margin-top:8px; color:var(--yellow);"></div>
             </div>
-            
             <div class="panel" id="panel-voice">
                 <strong>Voice Engine Settings</strong>
                 <div id="voice-status" style="font-size:0.75rem; color:var(--yellow); margin-top:6px;">Checking system...</div>
-                
                 <div style="font-size:0.7rem; color:var(--text-muted); margin-top:12px;">Voice Engine Mode:</div>
                 <select id="voice-engine-mode" onchange="saveVoiceEngineMode()" style="width:100%; padding:10px; margin-top:6px; border-radius:8px; border:1px solid rgba(139,92,246,0.2); background:rgba(0,0,0,0.4); color:white;">
                     <option value="cloud">Cloud Voice (ElevenLabs - Uses Credits)</option>
                     <option value="browser">Browser Voice (Robotic - Saves Credits)</option>
                 </select>
-                
                 <div style="font-size:0.7rem; color:var(--text-muted); margin-top:12px;">Official ElevenLabs API Key (Free 10k chars/month)</div>
                 <input type="password" id="elevenlabs-api-input" placeholder="sk_... (Your ElevenLabs API Key)" style="width:100%; padding:10px; margin-top:6px; border-radius:8px; border:1px solid rgba(139,92,246,0.2); background:rgba(0,0,0,0.4); color:white;">
                 <button class="btn" style="margin-top:10px; width:100%;" onclick="saveElevenLabsApiKey()">Save ElevenLabs Key</button>
-
                 <div style="font-size:0.7rem; color:var(--text-muted); margin-top:12px;">ElevenLabs Voice Selection:</div>
                 <select id="elevenlabs-voice-select" onchange="saveElevenLabsVoice()" style="width:100%; padding:10px; margin-top:6px; border-radius:8px; border:1px solid rgba(139,92,246,0.2); background:rgba(0,0,0,0.4); color:white;">
                     <option value="CwhRBWXzGAHq8TQ4Fs17">Roger (Laid-Back, Casual, Resonant)</option>
                     <option value="QIhD5ivPGEoYZQDocuHI">Adam (Deep, Professional, Narrative)</option>
                     <option value="TYKLc7ViOIGE13dSZYlK">Rachel (Friendly, Energetic & Authentic)</option>
                 </select>
-                
                 <button class="btn" style="margin-top:12px; width:100%;" onclick="testCloudVoice()">Test Cloud Voice</button>
                 <button class="btn" style="margin-top:8px; width:100%;" onclick="fallbackSpeakText('Testing browser voice directly. If you hear this, the system works perfectly.')">Test Browser Voice Directly</button>
                 <div style="font-size:0.7rem; color:var(--text-muted); margin-top:8px;">If the premium voice fails, it will immediately fall back to your device's browser voice.</div>
             </div>
-            
             <div class="panel" id="panel-key">
                 <strong>Groq API Key (primary AI)</strong>
                 <input type="password" id="groq-key-input" placeholder="gsk_..." style="width:100%; padding:10px; margin-top:8px; border-radius:8px; border:1px solid rgba(139,92,246,0.2); background:rgba(0,0,0,0.4); color:white;">
@@ -248,23 +214,19 @@
                 <input type="password" id="api-key-input" placeholder="AIzaSy..." style="width:100%; padding:10px; margin-top:8px; border-radius:8px; border:1px solid rgba(139,92,246,0.2); background:rgba(0,0,0,0.4); color:white;">
                 <button class="btn" style="margin-top:10px;" onclick="saveApiKey()">Save Gemini Key</button>
             </div>
-            
             <div class="chat-history" id="chat-history">
                 <div class="msg ai fade-in"><span class="pulse-dot"></span>Hey Boss. Good to see you. What's on your mind?</div>
             </div>
-            
             <div class="chat-input-row">
                 <input type="text" id="chat-input" placeholder="Talk to me, Boss..." onkeypress="if(event.key==='Enter') sendChat()">
                 <button onclick="sendChat()">Send</button>
             </div>
             <div style="text-align:right; margin-top:10px;"><button class="btn" onclick="clearChat()">Clear chat (memory stays)</button></div>
         </div>
-        
         <div class="card">
             <div class="card-title">Boss's Wisdom Corner</div>
             <div class="reasoning-text" id="wise-words">Loading...</div>
         </div>
-        
         <div class="card">
             <div class="card-title">Live Market Data — No AI Quota Used</div>
             <div class="stats-grid">
@@ -279,27 +241,22 @@
                 <div id="val-candle-4h">—</div>
             </div>
         </div>
-        
         <div class="card">
             <div class="card-title">Engine Alerts — Last 5</div>
             <div id="alert-log">No alerts yet. Engine scanning...</div>
         </div>
-        
         <div class="card">
             <div class="card-title">AI Trader's Reasoning</div>
             <div class="reasoning-text" id="val-reason">Engine scanning. AI auto-analyzes hourly.</div>
         </div>
     </div> 
       <script>
-        // === CONFIGURATION ===
         const GROQ_MODELS = ['meta-llama/llama-4-scout-17b-16e-instruct','llama-3.3-70b-versatile','openai/gpt-oss-120b'];
         const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
         const GEMINI_MODELS = ['gemini-3.8-flash','gemini-flash-latest','gemini-2.5-flash'];
         const MARKET_KEYWORDS = ['market','buy','sell','trade','signal','entry','sl','tp','stop loss','take profit','setup','chart','trend','support','resistance','eur/usd','eurusd','should i','analysis','long','short','position','pip','bullish','bearish','candle','indicator','rsi','ema','atr','scalp','day trade'];
-
         const LOCAL_QUOTES = ["Discipline beats conviction...", "Every loss is tuition...", "Protect your capital first...", "Cut losses short, let winners run...", "A calm mind catches more pips...", "You don't need to be right every time...", "The trend is your friend until it bends...", "Patience is not waiting...", "The market rewards preparation...", "Trade like a sniper..."];
         const LOCAL_JOKES = ["Why don't traders play hide and seek?...", "I told my wife I was a forex trader...", "My stop loss is like my ex...", "What's the difference between a forex trader and a pizza?..."];
-
         let globalData = null, personalContext = null, marketData = null;
         let webSearchEnabled = false, deepThinkEnabled = true, isSpeaking = false, chatInProgress = false;
         let chatHistory = JSON.parse(localStorage.getItem('eurusd_chat_history') || '[]');
@@ -315,18 +272,14 @@
         let elevenLabsVoiceId = localStorage.getItem('eurusd_elevenlabs_voice') || 'CwhRBWXzGAHq8TQ4Fs17';
         let elevenLabsApiKey = localStorage.getItem('eurusd_elevenlabs_api_key') || '';
         let voiceEngineMode = localStorage.getItem('eurusd_voice_engine_mode') || 'cloud';
-
         let currentAudio = null;
-
         document.body.addEventListener('click', () => { if ('speechSynthesis' in window) window.speechSynthesis.getVoices(); }, { once: true });
-
         function updateISTClock() {
             const istTime = new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false });
             const el = document.getElementById('ist-clock');
             if (el) el.innerText = `IST ${istTime}`;
         }
         setInterval(updateISTClock, 1000);
-
         function loadWisdom() {
             const el = document.getElementById('wise-words');
             if (!el) return;
@@ -338,8 +291,6 @@
             }
             el.innerText = pool[Math.floor(Math.random() * pool.length)];
         }
-
-        // === WEB SEARCH ===
         async function searchWeb(query) {
             try {
                 const currencyMatch = query.match(/([A-Z]{3})\s*(?:to|in|for|of)\s*([A-Z]{3})/i);
@@ -354,7 +305,6 @@
                         }
                     }
                 }
-
                 const ddgUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1`;
                 const res = await fetch(ddgUrl, { signal: AbortSignal.timeout(10000) });
                 if (res.ok) {
@@ -371,7 +321,6 @@
                     }
                     if (resultText) return resultText.trim();
                 }
-
                 const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
                 const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(searchUrl)}`;
                 const scrapeRes = await fetch(proxyUrl, { signal: AbortSignal.timeout(15000) });
@@ -382,14 +331,12 @@
                     let match;
                     let snippets = [];
                     let titles = [];
-                    
                     while ((match = snippetRegex.exec(html)) !== null) {
                         snippets.push(match[1].replace(/<[^>]*>?/gm, '').trim());
                     }
                     while ((match = titleRegex.exec(html)) !== null) {
                         titles.push(match[1].replace(/<[^>]*>?/gm, '').trim());
                     }
-                    
                     if (snippets.length > 0) {
                         let formatted = "Here are the latest web search results:\n\n";
                         for (let i = 0; i < Math.min(snippets.length, 3); i++) {
@@ -398,72 +345,40 @@
                         return formatted.trim();
                     }
                 }
-
                 return "I couldn't find a specific instant answer for that, Boss. Try rephrasing the question.";
             } catch (e) {
                 console.error("Web search error:", e);
                 return "I couldn't reach the internet right now, Boss. The search service might be busy. Try again in a minute.";
             }
         }
-
-        // === AUDIO ENGINE ===
         let audioCtx = null;
         let chargeOsc1 = null, chargeOsc2 = null, chargeGain = null, chargeTickGain = null, chargeTickOsc = null;
-
         function initAudio() {
             if (!audioCtx) {
-                try {
-                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                } catch(e) { console.warn("AudioContext not supported"); return null; }
+                try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+                catch(e) { console.warn("AudioContext not supported"); return null; }
             }
             if (audioCtx.state === 'suspended') audioCtx.resume();
             return audioCtx;
         }
-
         function startChargeSound() {
             const ctx = initAudio();
             if (!ctx) return;
             stopChargeSound();
-
-            chargeOsc1 = ctx.createOscillator();
-            chargeOsc1.type = 'sawtooth';
-            chargeOsc1.frequency.value = 60;
-
-            chargeOsc2 = ctx.createOscillator();
-            chargeOsc2.type = 'sine';
-            chargeOsc2.frequency.value = 120;
-
-            chargeGain = ctx.createGain();
-            chargeGain.gain.value = 0.001;
-
-            const filter = ctx.createBiquadFilter();
-            filter.type = 'lowpass';
-            filter.frequency.value = 800;
-
-            chargeOsc1.connect(filter);
-            chargeOsc2.connect(filter);
-            filter.connect(chargeGain);
-            chargeGain.connect(ctx.destination);
-
-            chargeTickOsc = ctx.createOscillator();
-            chargeTickOsc.type = 'square';
-            chargeTickOsc.frequency.value = 4;
-            chargeTickGain = ctx.createGain();
-            chargeTickGain.gain.value = 0;
-
-            chargeTickOsc.connect(chargeTickGain);
-            chargeTickGain.connect(chargeGain.gain);
-
+            chargeOsc1 = ctx.createOscillator(); chargeOsc1.type = 'sawtooth'; chargeOsc1.frequency.value = 60;
+            chargeOsc2 = ctx.createOscillator(); chargeOsc2.type = 'sine'; chargeOsc2.frequency.value = 120;
+            chargeGain = ctx.createGain(); chargeGain.gain.value = 0.001;
+            const filter = ctx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 800;
+            chargeOsc1.connect(filter); chargeOsc2.connect(filter); filter.connect(chargeGain); chargeGain.connect(ctx.destination);
+            chargeTickOsc = ctx.createOscillator(); chargeTickOsc.type = 'square'; chargeTickOsc.frequency.value = 4;
+            chargeTickGain = ctx.createGain(); chargeTickGain.gain.value = 0;
+            chargeTickOsc.connect(chargeTickGain); chargeTickGain.connect(chargeGain.gain);
             const now = ctx.currentTime;
-            chargeOsc1.start(now);
-            chargeOsc2.start(now);
-            chargeTickOsc.start(now);
+            chargeOsc1.start(now); chargeOsc2.start(now); chargeTickOsc.start(now);
         }
-
         function updateChargeSound(level) {
             if (!audioCtx || !chargeOsc1 || !chargeGain) return;
-            const ctx = audioCtx;
-            const now = ctx.currentTime;
+            const ctx = audioCtx; const now = ctx.currentTime;
             const volume = 0.02 + level * 0.25;
             chargeGain.gain.linearRampToValueAtTime(volume, now + 0.05);
             chargeOsc1.frequency.linearRampToValueAtTime(60 + level * 160, now + 0.05);
@@ -473,7 +388,6 @@
                 chargeTickGain.gain.linearRampToValueAtTime(level > 0.3 ? level * 0.15 : 0, now + 0.05);
             }
         }
-
         function stopChargeSound() {
             try {
                 if (chargeOsc1) { chargeOsc1.stop(); chargeOsc1.disconnect(); }
@@ -484,7 +398,6 @@
             } catch(e) {}
             chargeOsc1 = chargeOsc2 = chargeTickOsc = chargeGain = chargeTickGain = null;
         }
-
         function fadeOutChargeSound(durationSec = 0.5) {
             if (!audioCtx || !chargeGain) { stopChargeSound(); return; }
             try {
@@ -503,171 +416,102 @@
                 setTimeout(() => { stopChargeSound(); }, durationSec * 1000 + 60);
             } catch(e) { stopChargeSound(); }
         }
-
         function playExplosionSound() {
             const ctx = initAudio();
             if (!ctx) return;
             const now = ctx.currentTime;
-
-            const master = ctx.createGain();
-            master.gain.value = 0.9;
-            master.connect(ctx.destination);
-
-            const bassOsc = ctx.createOscillator();
-            const bassGain = ctx.createGain();
+            const master = ctx.createGain(); master.gain.value = 0.9; master.connect(ctx.destination);
+            const bassOsc = ctx.createOscillator(); const bassGain = ctx.createGain();
             bassOsc.type = 'sine';
             bassOsc.frequency.setValueAtTime(220, now);
             bassOsc.frequency.exponentialRampToValueAtTime(28, now + 0.8);
             bassGain.gain.setValueAtTime(0.95, now);
             bassGain.gain.exponentialRampToValueAtTime(0.001, now + 1.8);
-            bassOsc.connect(bassGain);
-            bassGain.connect(master);
-            bassOsc.start(now);
-            bassOsc.stop(now + 2.0);
-
-            const subOsc = ctx.createOscillator();
-            const subGain = ctx.createGain();
+            bassOsc.connect(bassGain); bassGain.connect(master); bassOsc.start(now); bassOsc.stop(now + 2.0);
+            const subOsc = ctx.createOscillator(); const subGain = ctx.createGain();
             subOsc.type = 'sine';
             subOsc.frequency.setValueAtTime(60, now);
             subOsc.frequency.linearRampToValueAtTime(18, now + 0.5);
             subGain.gain.setValueAtTime(0.8, now);
             subGain.gain.exponentialRampToValueAtTime(0.001, now + 1.4);
-            subOsc.connect(subGain);
-            subGain.connect(master);
-            subOsc.start(now);
-            subOsc.stop(now + 1.5);
-
+            subOsc.connect(subGain); subGain.connect(master); subOsc.start(now); subOsc.stop(now + 1.5);
             const crackBuffer = ctx.createBuffer(1, ctx.sampleRate * 0.15, ctx.sampleRate);
             const crackData = crackBuffer.getChannelData(0);
             for (let i = 0; i < crackData.length; i++) {
                 const t = i / crackData.length;
                 crackData[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, 6);
             }
-            const crackSrc = ctx.createBufferSource();
-            crackSrc.buffer = crackBuffer;
-            const crackFilter = ctx.createBiquadFilter();
-            crackFilter.type = 'highpass';
-            crackFilter.frequency.value = 800;
+            const crackSrc = ctx.createBufferSource(); crackSrc.buffer = crackBuffer;
+            const crackFilter = ctx.createBiquadFilter(); crackFilter.type = 'highpass'; crackFilter.frequency.value = 800;
             const crackGain = ctx.createGain();
             crackGain.gain.setValueAtTime(0.9, now);
             crackGain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-            crackSrc.connect(crackFilter);
-            crackFilter.connect(crackGain);
-            crackGain.connect(master);
-            crackSrc.start(now);
-            crackSrc.stop(now + 0.2);
-
+            crackSrc.connect(crackFilter); crackFilter.connect(crackGain); crackGain.connect(master); crackSrc.start(now); crackSrc.stop(now + 0.2);
             const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 1.4, ctx.sampleRate);
             const ndata = noiseBuffer.getChannelData(0);
-            for (let i = 0; i < ndata.length; i++) {
-                ndata[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / ndata.length, 1.8);
-            }
-            const noiseSrc = ctx.createBufferSource();
-            noiseSrc.buffer = noiseBuffer;
-            const noiseFilter = ctx.createBiquadFilter();
-            noiseFilter.type = 'lowpass';
+            for (let i = 0; i < ndata.length; i++) ndata[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / ndata.length, 1.8);
+            const noiseSrc = ctx.createBufferSource(); noiseSrc.buffer = noiseBuffer;
+            const noiseFilter = ctx.createBiquadFilter(); noiseFilter.type = 'lowpass';
             noiseFilter.frequency.setValueAtTime(6000, now);
             noiseFilter.frequency.exponentialRampToValueAtTime(180, now + 1.2);
             const noiseGain = ctx.createGain();
             noiseGain.gain.setValueAtTime(0.7, now);
             noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 1.4);
-            noiseSrc.connect(noiseFilter);
-            noiseFilter.connect(noiseGain);
-            noiseGain.connect(master);
-            noiseSrc.start(now);
-            noiseSrc.stop(now + 1.4);
-
+            noiseSrc.connect(noiseFilter); noiseFilter.connect(noiseGain); noiseGain.connect(master); noiseSrc.start(now); noiseSrc.stop(now + 1.4);
             for (let k = 0; k < 3; k++) {
-                const ringOsc = ctx.createOscillator();
-                const ringGain = ctx.createGain();
+                const ringOsc = ctx.createOscillator(); const ringGain = ctx.createGain();
                 ringOsc.type = 'triangle';
                 const freq = 1800 + k * 900 + Math.random() * 400;
                 ringOsc.frequency.setValueAtTime(freq, now);
                 ringOsc.frequency.exponentialRampToValueAtTime(freq * 0.6, now + 0.9);
                 ringGain.gain.setValueAtTime(0.12, now + k * 0.02);
                 ringGain.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
-                ringOsc.connect(ringGain);
-                ringGain.connect(master);
-                ringOsc.start(now + k * 0.02);
-                ringOsc.stop(now + 1.1);
+                ringOsc.connect(ringGain); ringGain.connect(master); ringOsc.start(now + k * 0.02); ringOsc.stop(now + 1.1);
             }
-
             const rumbleBuffer = ctx.createBuffer(1, ctx.sampleRate * 2.5, ctx.sampleRate);
             const rdata = rumbleBuffer.getChannelData(0);
             for (let i = 0; i < rdata.length; i++) rdata[i] = (Math.random() * 2 - 1);
-            const rumbleSrc = ctx.createBufferSource();
-            rumbleSrc.buffer = rumbleBuffer;
-            const rumbleFilter = ctx.createBiquadFilter();
-            rumbleFilter.type = 'lowpass';
-            rumbleFilter.frequency.value = 90;
+            const rumbleSrc = ctx.createBufferSource(); rumbleSrc.buffer = rumbleBuffer;
+            const rumbleFilter = ctx.createBiquadFilter(); rumbleFilter.type = 'lowpass'; rumbleFilter.frequency.value = 90;
             const rumbleGain = ctx.createGain();
             rumbleGain.gain.setValueAtTime(0, now + 0.05);
             rumbleGain.gain.linearRampToValueAtTime(0.55, now + 0.35);
             rumbleGain.gain.exponentialRampToValueAtTime(0.001, now + 2.4);
-            rumbleSrc.connect(rumbleFilter);
-            rumbleFilter.connect(rumbleGain);
-            rumbleGain.connect(master);
-            rumbleSrc.start(now + 0.05);
-            rumbleSrc.stop(now + 2.5);
-
+            rumbleSrc.connect(rumbleFilter); rumbleFilter.connect(rumbleGain); rumbleGain.connect(master); rumbleSrc.start(now + 0.05); rumbleSrc.stop(now + 2.5);
             setTimeout(() => {
                 if (!audioCtx) return;
                 const t2 = audioCtx.currentTime;
-                const aftOsc = audioCtx.createOscillator();
-                const aftGain = audioCtx.createGain();
+                const aftOsc = audioCtx.createOscillator(); const aftGain = audioCtx.createGain();
                 aftOsc.type = 'sine';
                 aftOsc.frequency.setValueAtTime(90, t2);
                 aftOsc.frequency.exponentialRampToValueAtTime(35, t2 + 0.4);
                 aftGain.gain.setValueAtTime(0.35, t2);
                 aftGain.gain.exponentialRampToValueAtTime(0.001, t2 + 0.7);
-                aftOsc.connect(aftGain);
-                aftGain.connect(master);
-                aftOsc.start(t2);
-                aftOsc.stop(t2 + 0.8);
+                aftOsc.connect(aftGain); aftGain.connect(master); aftOsc.start(t2); aftOsc.stop(t2 + 0.8);
             }, 350);
         }
-
-        // === THREE.JS NEURAL CORE ===
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 2000);
+        const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 4000);
         camera.position.z = 6;
         const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
         renderer.setSize(container.clientWidth, container.clientHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
-
         const glowSphere = new THREE.Mesh(new THREE.SphereGeometry(1.15, 48, 48), new THREE.MeshBasicMaterial({ color: 0x8b5cf6, transparent: true, opacity: 0.10 }));
         const innerBright = new THREE.Mesh(new THREE.SphereGeometry(0.55, 32, 32), new THREE.MeshBasicMaterial({ color: 0xa78bfa, transparent: true, opacity: 0.35 }));
         const innerCore = new THREE.Mesh(new THREE.IcosahedronGeometry(1.0, 1), new THREE.MeshBasicMaterial({ color: 0xa78bfa, wireframe: true, transparent: true, opacity: 0.75 }));
         const midShell = new THREE.Mesh(new THREE.IcosahedronGeometry(1.6, 1), new THREE.MeshBasicMaterial({ color: 0x8b5cf6, wireframe: true, transparent: true, opacity: 0.4 }));
         const outerShell = new THREE.Mesh(new THREE.IcosahedronGeometry(2.2, 1), new THREE.MeshBasicMaterial({ color: 0x7c3aed, wireframe: true, transparent: true, opacity: 0.2 }));
-
         const coreGroup = new THREE.Group();
         coreGroup.add(glowSphere, innerBright, innerCore, midShell, outerShell);
         scene.add(coreGroup);
 
         // ═══════════════════════════════════════════════════════
         // SPACE SCENE — Animated Solar System + Milky Way
+        // Camera orbits EARTH by default. Tap any planet to focus.
         // ═══════════════════════════════════════════════════════
 
-        // ── Utility: procedural textures ──
-        function makeNoiseOnCanvas(ctx, w, h, rgb, count, szMin, szMax, aMin, aMax) {
-            for (let i = 0; i < count; i++) {
-                const a = aMin + Math.random() * (aMax - aMin);
-                ctx.fillStyle = `rgba(${rgb},${a})`;
-                const r = szMin + Math.random() * (szMax - szMin);
-                ctx.beginPath();
-                ctx.arc(Math.random() * w, Math.random() * h, r, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-        function texFromCanvas(c, repeatWrap) {
-            const t = new THREE.CanvasTexture(c);
-            if (repeatWrap) { t.wrapS = THREE.RepeatWrapping; t.wrapT = THREE.RepeatWrapping; }
-            t.anisotropy = 4;
-            return t;
-        }
         function makeGlowTex(color, size = 128) {
             const canvas = document.createElement('canvas');
             canvas.width = canvas.height = size;
@@ -681,22 +525,33 @@
             ctx.fillRect(0, 0, size, size);
             return new THREE.CanvasTexture(canvas);
         }
-
-        // ── Procedural planet textures ──
-        function makeSunTex() {
-            const c = document.createElement('canvas'); c.width = 512; c.height = 256;
-            const ctx = c.getContext('2d');
-            ctx.fillStyle = '#ffb840'; ctx.fillRect(0, 0, 512, 256);
-            for (let i = 0; i < 400; i++) {
-                const a = 0.05 + Math.random() * 0.25;
-                ctx.fillStyle = `rgba(255,${180 + Math.random()*60|0},${40 + Math.random()*60|0},${a})`;
-                ctx.beginPath(); ctx.arc(Math.random()*512, Math.random()*256, 8 + Math.random()*24, 0, Math.PI*2); ctx.fill();
+        function _canvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
+        function _tex(c, wrap) {
+            const t = new THREE.CanvasTexture(c);
+            if (wrap) { t.wrapS = THREE.RepeatWrapping; t.wrapT = THREE.RepeatWrapping; }
+            t.minFilter = THREE.LinearFilter;
+            t.magFilter = THREE.LinearFilter;
+            t.anisotropy = 8;
+            t.generateMipmaps = false;
+            return t;
+        }
+        function _noise(ctx, w, h, rgb, n, rMin, rMax, aMin, aMax) {
+            for (let i = 0; i < n; i++) {
+                const a = aMin + Math.random() * (aMax - aMin);
+                ctx.fillStyle = `rgba(${rgb},${a})`;
+                const r = rMin + Math.random() * (rMax - rMin);
+                ctx.beginPath(); ctx.arc(Math.random()*w, Math.random()*h, r, 0, Math.PI*2); ctx.fill();
             }
-            return new THREE.CanvasTexture(c);
+        }
+        function makeSunTex() {
+            const c = _canvas(512, 256), ctx = c.getContext('2d');
+            ctx.fillStyle = '#ffb840'; ctx.fillRect(0, 0, 512, 256);
+            _noise(ctx, 512, 256, '255,200,80', 400, 8, 32, 0.05, 0.25);
+            _noise(ctx, 512, 256, '255,140,40', 300, 5, 20, 0.05, 0.2);
+            return _tex(c);
         }
         function makeMercuryTex() {
-            const c = document.createElement('canvas'); c.width = 512; c.height = 256;
-            const ctx = c.getContext('2d');
+            const c = _canvas(512, 256), ctx = c.getContext('2d');
             ctx.fillStyle = '#7a7168'; ctx.fillRect(0, 0, 512, 256);
             for (let i = 0; i < 300; i++) {
                 const x = Math.random()*512, y = Math.random()*256, r = 3 + Math.random()*15;
@@ -705,24 +560,22 @@
                 g.addColorStop(1, 'rgba(60,55,50,0)');
                 ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
             }
-            makeNoiseOnCanvas(ctx, 512, 256, '255,255,255', 400, 1, 3, 0.05, 0.2);
-            return new THREE.CanvasTexture(c);
+            _noise(ctx, 512, 256, '255,255,255', 400, 1, 3, 0.05, 0.2);
+            return _tex(c);
         }
         function makeVenusTex() {
-            const c = document.createElement('canvas'); c.width = 512; c.height = 256;
-            const ctx = c.getContext('2d');
+            const c = _canvas(512, 256), ctx = c.getContext('2d');
             ctx.fillStyle = '#c9a262'; ctx.fillRect(0, 0, 512, 256);
             for (let i = 0; i < 80; i++) {
                 ctx.fillStyle = `rgba(240,220,180,${0.1 + Math.random()*0.2})`;
                 ctx.fillRect(0, Math.random()*256, 512, 8 + Math.random()*30);
             }
-            makeNoiseOnCanvas(ctx, 512, 256, '255,240,200', 300, 4, 16, 0.05, 0.15);
-            return new THREE.CanvasTexture(c);
+            _noise(ctx, 512, 256, '255,240,200', 300, 4, 16, 0.05, 0.15);
+            return _tex(c);
         }
         function makeEarthTex() {
             const W = 1024, H = 512;
-            const c = document.createElement('canvas'); c.width = W; c.height = H;
-            const ctx = c.getContext('2d');
+            const c = _canvas(W, H), ctx = c.getContext('2d');
             const og = ctx.createLinearGradient(0, 0, 0, H);
             og.addColorStop(0, '#0a3d62'); og.addColorStop(0.5, '#1e5d8a'); og.addColorStop(1, '#0a3d62');
             ctx.fillStyle = og; ctx.fillRect(0, 0, W, H);
@@ -733,8 +586,7 @@
                 [[0.48,0.40],[0.56,0.38],[0.60,0.45],[0.58,0.60],[0.54,0.72],[0.50,0.75],[0.47,0.60],[0.46,0.48]],
                 [[0.55,0.18],[0.72,0.15],[0.85,0.20],[0.88,0.28],[0.82,0.38],[0.72,0.42],[0.62,0.38],[0.56,0.30]],
                 [[0.66,0.42],[0.71,0.42],[0.72,0.52],[0.68,0.55],[0.65,0.48]],
-                [[0.80,0.62],[0.90,0.60],[0.93,0.68],[0.88,0.74],[0.80,0.72],[0.78,0.66]],
-                [[0.0,0.94],[1.0,0.94],[1.0,1.0],[0.0,1.0]]
+                [[0.80,0.62],[0.90,0.60],[0.93,0.68],[0.88,0.74],[0.80,0.72],[0.78,0.66]]
             ];
             for (const poly of shapes) {
                 ctx.beginPath();
@@ -744,16 +596,15 @@
                 ctx.fillStyle = '#2e7d32'; ctx.fill();
                 ctx.fillStyle = `rgba(80,140,60,${0.2 + Math.random()*0.3})`; ctx.fill();
             }
-            makeNoiseOnCanvas(ctx, W, H, '190,160,90', 100, 5, 20, 0.15, 0.35);
+            _noise(ctx, W, H, '190,160,90', 100, 5, 20, 0.15, 0.35);
             ctx.fillStyle = 'rgba(255,255,255,0.9)';
             ctx.fillRect(0, 0, W, H*0.045);
             ctx.fillRect(0, H*0.955, W, H*0.045);
-            return new THREE.CanvasTexture(c);
+            return _tex(c);
         }
         function makeEarthCloudsTex() {
             const W = 1024, H = 512;
-            const c = document.createElement('canvas'); c.width = W; c.height = H;
-            const ctx = c.getContext('2d');
+            const c = _canvas(W, H), ctx = c.getContext('2d');
             for (let i = 0; i < 220; i++) {
                 const x = Math.random()*W, y = Math.random()*H, r = 10 + Math.random()*45;
                 const g = ctx.createRadialGradient(x, y, 0, x, y, r);
@@ -761,22 +612,20 @@
                 g.addColorStop(1, 'rgba(255,255,255,0)');
                 ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
             }
-            return new THREE.CanvasTexture(c);
+            return _tex(c);
         }
         function makeMarsTex() {
-            const c = document.createElement('canvas'); c.width = 512; c.height = 256;
-            const ctx = c.getContext('2d');
+            const c = _canvas(512, 256), ctx = c.getContext('2d');
             ctx.fillStyle = '#b85a34'; ctx.fillRect(0, 0, 512, 256);
-            makeNoiseOnCanvas(ctx, 512, 256, '90,40,25', 120, 8, 30, 0.15, 0.4);
-            makeNoiseOnCanvas(ctx, 512, 256, '220,150,110', 80, 5, 18, 0.1, 0.3);
+            _noise(ctx, 512, 256, '90,40,25', 120, 8, 30, 0.15, 0.4);
+            _noise(ctx, 512, 256, '220,150,110', 80, 5, 18, 0.1, 0.3);
             ctx.fillStyle = 'rgba(240,240,250,0.85)';
             ctx.beginPath(); ctx.ellipse(256, 12, 80, 18, 0, 0, Math.PI*2); ctx.fill();
             ctx.beginPath(); ctx.ellipse(256, 244, 60, 14, 0, 0, Math.PI*2); ctx.fill();
-            return new THREE.CanvasTexture(c);
+            return _tex(c);
         }
         function makeJupiterTex() {
-            const c = document.createElement('canvas'); c.width = 1024; c.height = 512;
-            const ctx = c.getContext('2d');
+            const c = _canvas(1024, 512), ctx = c.getContext('2d');
             ctx.fillStyle = '#d9b88a'; ctx.fillRect(0, 0, 1024, 512);
             const bands = [
                 { y:40, h:30, c:'160,120,80', a:0.6 }, { y:100, h:50, c:'200,170,130', a:0.5 },
@@ -798,11 +647,10 @@
             gg.addColorStop(1, 'rgba(180,90,60,0)');
             ctx.fillStyle = gg;
             ctx.beginPath(); ctx.ellipse(gx, gy, gr*1.3, gr*0.9, 0, 0, Math.PI*2); ctx.fill();
-            return new THREE.CanvasTexture(c);
+            return _tex(c);
         }
         function makeSaturnTex() {
-            const c = document.createElement('canvas'); c.width = 1024; c.height = 512;
-            const ctx = c.getContext('2d');
+            const c = _canvas(1024, 512), ctx = c.getContext('2d');
             ctx.fillStyle = '#e8d5a0'; ctx.fillRect(0, 0, 1024, 512);
             const bands = [
                 { y:60, h:40, c:'210,190,150', a:0.5 }, { y:150, h:60, c:'230,210,170', a:0.4 },
@@ -812,21 +660,19 @@
             for (const b of bands) {
                 ctx.fillStyle = `rgba(${b.c},${b.a})`; ctx.fillRect(0, b.y, 1024, b.h);
             }
-            return new THREE.CanvasTexture(c);
+            return _tex(c);
         }
         function makeUranusTex() {
-            const c = document.createElement('canvas'); c.width = 512; c.height = 256;
-            const ctx = c.getContext('2d');
+            const c = _canvas(512, 256), ctx = c.getContext('2d');
             ctx.fillStyle = '#9fd9e0'; ctx.fillRect(0, 0, 512, 256);
             for (let i = 0; i < 40; i++) {
                 ctx.fillStyle = `rgba(180,230,235,${0.1 + Math.random()*0.15})`;
                 ctx.fillRect(0, Math.random()*256, 512, 4 + Math.random()*10);
             }
-            return new THREE.CanvasTexture(c);
+            return _tex(c);
         }
         function makeNeptuneTex() {
-            const c = document.createElement('canvas'); c.width = 512; c.height = 256;
-            const ctx = c.getContext('2d');
+            const c = _canvas(512, 256), ctx = c.getContext('2d');
             ctx.fillStyle = '#2b52a0'; ctx.fillRect(0, 0, 512, 256);
             for (let i = 0; i < 50; i++) {
                 ctx.fillStyle = `rgba(80,120,200,${0.1 + Math.random()*0.2})`;
@@ -837,41 +683,45 @@
             g.addColorStop(1, 'rgba(20,40,90,0)');
             ctx.fillStyle = g;
             ctx.beginPath(); ctx.ellipse(200, 140, 40, 25, 0, 0, Math.PI*2); ctx.fill();
-            return new THREE.CanvasTexture(c);
+            return _tex(c);
         }
         function makePlutoTex() {
-            const c = document.createElement('canvas'); c.width = 512; c.height = 256;
-            const ctx = c.getContext('2d');
+            const c = _canvas(512, 256), ctx = c.getContext('2d');
             ctx.fillStyle = '#8a7868'; ctx.fillRect(0, 0, 512, 256);
-            makeNoiseOnCanvas(ctx, 512, 256, '200,180,150', 200, 4, 20, 0.15, 0.4);
-            makeNoiseOnCanvas(ctx, 512, 256, '60,50,40', 150, 5, 22, 0.15, 0.35);
+            _noise(ctx, 512, 256, '200,180,150', 200, 4, 20, 0.15, 0.4);
+            _noise(ctx, 512, 256, '60,50,40', 150, 5, 22, 0.15, 0.35);
             const g = ctx.createRadialGradient(340, 140, 10, 340, 140, 60);
             g.addColorStop(0, 'rgba(230,220,200,0.7)');
             g.addColorStop(1, 'rgba(230,220,200,0)');
             ctx.fillStyle = g;
             ctx.beginPath(); ctx.ellipse(340, 140, 60, 45, 0, 0, Math.PI*2); ctx.fill();
-            return new THREE.CanvasTexture(c);
+            return _tex(c);
         }
         function makeMoonTex() {
-            const c = document.createElement('canvas'); c.width = 256; c.height = 128;
-            const ctx = c.getContext('2d');
-            ctx.fillStyle = '#a0a0a0'; ctx.fillRect(0, 0, 256, 128);
-            makeNoiseOnCanvas(ctx, 256, 128, '70,70,70', 200, 2, 10, 0.2, 0.5);
-            makeNoiseOnCanvas(ctx, 256, 128, '220,220,220', 100, 2, 8, 0.15, 0.35);
-            return new THREE.CanvasTexture(c);
+            const c = _canvas(512, 256), ctx = c.getContext('2d');
+            ctx.fillStyle = '#a0a0a0'; ctx.fillRect(0, 0, 512, 256);
+            _noise(ctx, 512, 256, '70,70,70', 400, 3, 14, 0.2, 0.5);
+            _noise(ctx, 512, 256, '220,220,220', 200, 2, 10, 0.15, 0.35);
+            for (let i = 0; i < 20; i++) {
+                const x = Math.random()*512, y = Math.random()*256, r = 8 + Math.random()*20;
+                const g = ctx.createRadialGradient(x, y, 2, x, y, r);
+                g.addColorStop(0, 'rgba(50,50,50,0.5)');
+                g.addColorStop(1, 'rgba(50,50,50,0)');
+                ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
+            }
+            return _tex(c);
         }
 
         const milkyWayGroup = new THREE.Group();
         milkyWayGroup.visible = false;
         scene.add(milkyWayGroup);
 
-        // Deep star field
         (function buildStars() {
             const N = 5000;
             const pos = new Float32Array(N * 3);
             const col = new Float32Array(N * 3);
             for (let i = 0; i < N; i++) {
-                const r = 200 + Math.random() * 400;
+                const r = 300 + Math.random() * 800;
                 const theta = Math.random() * Math.PI * 2;
                 const phi = Math.acos(2 * Math.random() - 1);
                 pos[i*3] = r * Math.sin(phi) * Math.cos(theta);
@@ -885,11 +735,10 @@
             const g = new THREE.BufferGeometry();
             g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
             g.setAttribute('color', new THREE.BufferAttribute(col, 3));
-            const m = new THREE.PointsMaterial({ size: 1.2, vertexColors: true, transparent: true, opacity: 0.85, sizeAttenuation: true });
+            const m = new THREE.PointsMaterial({ size: 1.5, vertexColors: true, transparent: true, opacity: 0.85, sizeAttenuation: true });
             milkyWayGroup.add(new THREE.Points(g, m));
         })();
 
-        // Milky Way dense band
         (function buildMilkyWay() {
             const N = 15000;
             const pos = new Float32Array(N * 3);
@@ -898,13 +747,13 @@
                 const arm = Math.floor(Math.random() * 4);
                 const t = Math.random();
                 const angle = t * Math.PI * 4 + (arm * Math.PI) / 2;
-                const radius = 80 + t * 200;
-                const spread = 8 + t * 20;
+                const radius = 150 + t * 350;
+                const spread = 12 + t * 30;
                 const scatter = Math.pow(Math.random(), 2) * spread;
                 const angleScatter = Math.random() * Math.PI * 2;
                 const x = Math.cos(angle) * radius + Math.cos(angleScatter) * scatter;
                 const z = Math.sin(angle) * radius + Math.sin(angleScatter) * scatter;
-                const y = (Math.random() - 0.5) * (3 + Math.random() * 5) * (1 + t * 2);
+                const y = (Math.random() - 0.5) * (5 + Math.random() * 8) * (1 + t * 3);
                 pos[i*3] = x; pos[i*3+1] = y; pos[i*3+2] = z;
                 const mix = Math.random();
                 if (mix < 0.5) { col[i*3]=0.85; col[i*3+1]=0.80; col[i*3+2]=1.0; }
@@ -914,45 +763,40 @@
             const g = new THREE.BufferGeometry();
             g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
             g.setAttribute('color', new THREE.BufferAttribute(col, 3));
-            const m = new THREE.PointsMaterial({ size: 0.9, vertexColors: true, transparent: true, opacity: 0.55, sizeAttenuation: true });
+            const m = new THREE.PointsMaterial({ size: 1.2, vertexColors: true, transparent: true, opacity: 0.55, sizeAttenuation: true });
             const pts = new THREE.Points(g, m);
             pts.rotation.x = Math.PI * 0.15;
             pts.rotation.z = Math.PI * 0.1;
             milkyWayGroup.add(pts);
         })();
 
-        // Nebula sprites
         (function buildNebula() {
             const colors = [0x8b5cf6, 0x3b82f6, 0xa78bfa, 0x6366f1, 0xc4b5fd];
-            for (let i = 0; i < 30; i++) {
+            for (let i = 0; i < 40; i++) {
                 const color = colors[Math.floor(Math.random()*colors.length)];
-                const canvas = document.createElement('canvas');
-                canvas.width = canvas.height = 256;
-                const ctx = canvas.getContext('2d');
+                const c = _canvas(256, 256), ctx = c.getContext('2d');
                 const grd = ctx.createRadialGradient(128,128,0,128,128,128);
                 const hex = '#' + color.toString(16).padStart(6,'0');
                 grd.addColorStop(0, hex + '80');
                 grd.addColorStop(0.5, hex + '20');
                 grd.addColorStop(1, hex + '00');
-                ctx.fillStyle = grd;
-                ctx.fillRect(0, 0, 256, 256);
-                const tex = new THREE.CanvasTexture(canvas);
+                ctx.fillStyle = grd; ctx.fillRect(0, 0, 256, 256);
+                const tex = new THREE.CanvasTexture(c);
                 const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending }));
-                const r = 100 + Math.random()*180;
+                const r = 200 + Math.random()*350;
                 const theta = Math.random()*Math.PI*2;
                 const phi = Math.acos(2*Math.random()-1);
                 spr.position.set(r*Math.sin(phi)*Math.cos(theta), r*Math.sin(phi)*Math.sin(theta)*0.4, r*Math.cos(phi));
-                const s = 60 + Math.random()*140;
+                const s = 120 + Math.random()*260;
                 spr.scale.set(s, s, 1);
                 milkyWayGroup.add(spr);
             }
         })();
 
-        // Sun
         const sunGroup = new THREE.Group();
-        const sunMesh = new THREE.Mesh(new THREE.SphereGeometry(1.6, 48, 48), new THREE.MeshBasicMaterial({ map: makeSunTex() }));
+        const sunMesh = new THREE.Mesh(new THREE.SphereGeometry(1.6, 64, 64), new THREE.MeshBasicMaterial({ map: makeSunTex() }));
         sunGroup.add(sunMesh);
-        const sunCoronaCanvas = document.createElement('canvas'); sunCoronaCanvas.width = sunCoronaCanvas.height = 512;
+        const sunCoronaCanvas = _canvas(512, 512);
         {
             const ctx = sunCoronaCanvas.getContext('2d');
             const g = ctx.createRadialGradient(256, 256, 60, 256, 256, 256);
@@ -965,11 +809,10 @@
         const sunCorona = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(sunCoronaCanvas), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
         sunCorona.scale.set(14, 14, 1);
         sunGroup.add(sunCorona);
-        const sunLight = new THREE.PointLight(0xfff2c4, 2.2, 400);
+        const sunLight = new THREE.PointLight(0xfff2c4, 2.2, 800);
         sunGroup.add(sunLight);
         milkyWayGroup.add(sunGroup);
 
-        // Planets
         const PLANET_DATA = [
             { name:'Mercury', r:0.20, o:6,   tex:makeMercuryTex(), spd:0.42, rotSpd:0.005 },
             { name:'Venus',   r:0.30, o:9,   tex:makeVenusTex(),   spd:0.32, rotSpd:-0.003 },
@@ -994,13 +837,13 @@
         for (const p of PLANET_DATA) {
             const grp = new THREE.Group();
             const mat = new THREE.MeshPhongMaterial({ map: p.tex, shininess: 10, specular: 0x222222 });
-            const sphere = new THREE.Mesh(new THREE.SphereGeometry(p.r, 48, 48), mat);
+            const sphere = new THREE.Mesh(new THREE.SphereGeometry(p.r, 64, 64), mat);
             sphere.userData.rotSpd = p.rotSpd;
             grp.add(sphere);
 
             if (p.clouds) {
                 const cloudSphere = new THREE.Mesh(
-                    new THREE.SphereGeometry(p.r * 1.02, 48, 48),
+                    new THREE.SphereGeometry(p.r * 1.015, 64, 64),
                     new THREE.MeshPhongMaterial({ map: p.clouds, transparent: true, opacity: 0.75, depthWrite: false })
                 );
                 cloudSphere.userData.rotSpd = p.rotSpd * 1.3;
@@ -1008,15 +851,14 @@
             }
 
             if (p.atmo) {
-                const aCanvas = document.createElement('canvas'); aCanvas.width = aCanvas.height = 256;
+                const aCanvas = _canvas(256, 256);
                 const actx = aCanvas.getContext('2d');
                 const ag = actx.createRadialGradient(128,128,20,128,128,128);
                 const ahex = '#' + p.atmo.toString(16).padStart(6,'0');
                 ag.addColorStop(0, ahex + 'ff');
                 ag.addColorStop(0.5, ahex + '40');
                 ag.addColorStop(1, ahex + '00');
-                actx.fillStyle = ag;
-                actx.fillRect(0, 0, 256, 256);
+                actx.fillStyle = ag; actx.fillRect(0, 0, 256, 256);
                 const atmo = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(aCanvas), transparent: true, opacity: 0.65, depthWrite: false, blending: THREE.AdditiveBlending }));
                 atmo.scale.set(p.r * 5, p.r * 5, 1);
                 grp.add(atmo);
@@ -1024,12 +866,12 @@
 
             if (p.ring) {
                 const ringColor = p.ringColor || 0xd9c89a;
-                const rg1 = new THREE.RingGeometry(p.r * 1.35, p.r * 2.0, 96);
+                const rg1 = new THREE.RingGeometry(p.r * 1.35, p.r * 2.0, 128);
                 const rm1 = new THREE.MeshBasicMaterial({ color: ringColor, side: THREE.DoubleSide, transparent: true, opacity: 0.75 });
                 const ring1 = new THREE.Mesh(rg1, rm1);
                 ring1.rotation.x = Math.PI / 2.2;
                 grp.add(ring1);
-                const rg2 = new THREE.RingGeometry(p.r * 2.05, p.r * 2.5, 96);
+                const rg2 = new THREE.RingGeometry(p.r * 2.05, p.r * 2.5, 128);
                 const rm2 = new THREE.MeshBasicMaterial({ color: ringColor, side: THREE.DoubleSide, transparent: true, opacity: 0.35 });
                 const ring2 = new THREE.Mesh(rg2, rm2);
                 ring2.rotation.x = Math.PI / 2.2;
@@ -1037,8 +879,8 @@
             }
 
             const pts = [];
-            for (let i = 0; i <= 128; i++) {
-                const a = (i / 128) * Math.PI * 2;
+            for (let i = 0; i <= 160; i++) {
+                const a = (i / 160) * Math.PI * 2;
                 pts.push(new THREE.Vector3(Math.cos(a) * p.o, 0, Math.sin(a) * p.o));
             }
             const og = new THREE.BufferGeometry().setFromPoints(pts);
@@ -1050,14 +892,14 @@
                 for (const m of p.moons) {
                     const moonGrp = new THREE.Group();
                     const moonMesh = new THREE.Mesh(
-                        new THREE.SphereGeometry(m.r, 16, 16),
+                        new THREE.SphereGeometry(m.r, 32, 32),
                         new THREE.MeshPhongMaterial({ map: m.tex, shininess: 3 })
                     );
                     moonMesh.position.x = m.o;
                     moonGrp.add(moonMesh);
                     const mp = [];
-                    for (let i = 0; i <= 48; i++) {
-                        const a = (i / 48) * Math.PI * 2;
+                    for (let i = 0; i <= 64; i++) {
+                        const a = (i / 64) * Math.PI * 2;
                         mp.push(new THREE.Vector3(Math.cos(a) * m.o, 0, Math.sin(a) * m.o));
                     }
                     const mg = new THREE.BufferGeometry().setFromPoints(mp);
@@ -1075,34 +917,56 @@
             milkyWayGroup.add(grp);
         }
 
+        // ─── Focus system: which body the camera orbits ───
+        let focusTargetObj = null;              // Object3D or null (= Sun at origin)
+        let focusTargetName = 'Sun';
+        const focusTarget = new THREE.Vector3(0, 0, 0);
+        const smoothedLookAt = new THREE.Vector3(0, 0, 0);
+
+        // Focus label overlay (injected into canvas container)
+        const focusLabel = document.createElement('div');
+        focusLabel.style.cssText = 'position:absolute;top:10px;left:50%;transform:translateX(-50%);font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:0.25em;color:#c4b5fd;pointer-events:none;text-transform:uppercase;opacity:0;transition:opacity 0.4s ease;background:rgba(0,0,0,0.5);padding:4px 12px;border-radius:8px;border:1px solid rgba(139,92,246,0.3);';
+        container.appendChild(focusLabel);
+
+        function findBodyAtScreen(clientX, clientY) {
+            const rect = container.getBoundingClientRect();
+            const px = clientX - rect.left;
+            const py = clientY - rect.top;
+            const bodies = [{ obj: sunGroup, name: 'Sun' }];
+            for (const grp of planetObjs) bodies.push({ obj: grp, name: grp.userData.name });
+            let best = null, bestDist = Infinity;
+            const threshold = 55;
+            for (const b of bodies) {
+                const v = new THREE.Vector3();
+                b.obj.getWorldPosition(v);
+                v.project(camera);
+                if (v.z > 1) continue;
+                const sx = (v.x + 1) / 2 * rect.width;
+                const sy = (-v.y + 1) / 2 * rect.height;
+                const d = Math.sqrt((px - sx)**2 + (py - sy)**2);
+                if (d < threshold && d < bestDist) { bestDist = d; best = b; }
+            }
+            return best;
+        }
+
         // Comets
         const comets = [];
         function makeCometTailTex(rgb) {
-            const c = document.createElement('canvas'); c.width = 256; c.height = 64;
-            const ctx = c.getContext('2d');
+            const c = _canvas(256, 64), ctx = c.getContext('2d');
             const g = ctx.createLinearGradient(0, 32, 256, 32);
             g.addColorStop(0, 'rgba(255,255,255,0.9)');
             g.addColorStop(0.2, `rgba(${rgb},0.6)`);
             g.addColorStop(1, `rgba(${rgb},0)`);
-            ctx.fillStyle = g;
-            ctx.fillRect(0, 0, 256, 64);
+            ctx.fillStyle = g; ctx.fillRect(0, 0, 256, 64);
             return new THREE.CanvasTexture(c);
         }
         for (let i = 0; i < 3; i++) {
             const cg = new THREE.Group();
-            const nucleus = new THREE.Mesh(
-                new THREE.SphereGeometry(0.1, 12, 12),
-                new THREE.MeshBasicMaterial({ color: 0xffffff })
-            );
+            const nucleus = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 12), new THREE.MeshBasicMaterial({ color: 0xffffff }));
             cg.add(nucleus);
             const rgb = i === 0 ? '180,220,255' : (i === 1 ? '220,200,255' : '255,220,180');
-            const tail = new THREE.Sprite(new THREE.SpriteMaterial({
-                map: makeCometTailTex(rgb), transparent: true, opacity: 0.85,
-                depthWrite: false, blending: THREE.AdditiveBlending
-            }));
-            tail.scale.set(6, 1.2, 1);
-            tail.position.x = -3;
-            cg.add(tail);
+            const tail = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeCometTailTex(rgb), transparent: true, opacity: 0.85, depthWrite: false, blending: THREE.AdditiveBlending }));
+            tail.scale.set(6, 1.2, 1); tail.position.x = -3; cg.add(tail);
             const a = 20 + Math.random() * 20;
             const b = 20 + Math.random() * 20;
             const cVal = 25 + Math.random() * 30;
@@ -1112,7 +976,6 @@
             milkyWayGroup.add(cg);
         }
 
-        // Asteroid belt
         (function buildAsteroidBelt() {
             const N = 800;
             const pos = new Float32Array(N * 3);
@@ -1135,54 +998,37 @@
             milkyWayGroup.add(belt);
         })();
 
-        // Meteors
         const meteors = [];
         function spawnMeteor() {
             const grp = new THREE.Group();
-            const head = new THREE.Sprite(new THREE.SpriteMaterial({
-                map: makeGlowTex(0xffffff), transparent: true, opacity: 1,
-                depthWrite: false, blending: THREE.AdditiveBlending
-            }));
-            head.scale.set(0.5, 0.5, 1);
-            grp.add(head);
-            const trailCanvas = document.createElement('canvas'); trailCanvas.width = 128; trailCanvas.height = 32;
+            const head = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeGlowTex(0xffffff), transparent: true, opacity: 1, depthWrite: false, blending: THREE.AdditiveBlending }));
+            head.scale.set(0.5, 0.5, 1); grp.add(head);
+            const trailCanvas = _canvas(128, 32);
             const tctx = trailCanvas.getContext('2d');
             const tg = tctx.createLinearGradient(0, 16, 128, 16);
             tg.addColorStop(0, 'rgba(255,255,255,1)');
             tg.addColorStop(0.4, 'rgba(180,220,255,0.6)');
             tg.addColorStop(1, 'rgba(180,220,255,0)');
-            tctx.fillStyle = tg;
-            tctx.fillRect(0, 0, 128, 32);
-            const trail = new THREE.Sprite(new THREE.SpriteMaterial({
-                map: new THREE.CanvasTexture(trailCanvas), transparent: true, opacity: 0.9,
-                depthWrite: false, blending: THREE.AdditiveBlending
-            }));
-            trail.scale.set(4, 0.6, 1);
-            trail.position.x = -2;
-            grp.add(trail);
-            const r = 70 + Math.random() * 40;
+            tctx.fillStyle = tg; tctx.fillRect(0, 0, 128, 32);
+            const trail = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(trailCanvas), transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending }));
+            trail.scale.set(4, 0.6, 1); trail.position.x = -2; grp.add(trail);
+            const r = 150 + Math.random() * 80;
             const theta = Math.random() * Math.PI * 2;
             const phi = (Math.random() - 0.5) * Math.PI * 0.5;
-            grp.position.set(
-                r * Math.cos(phi) * Math.cos(theta),
-                r * Math.sin(phi),
-                r * Math.cos(phi) * Math.sin(theta)
-            );
+            grp.position.set(r * Math.cos(phi) * Math.cos(theta), r * Math.sin(phi), r * Math.cos(phi) * Math.sin(theta));
             const dir = new THREE.Vector3(-grp.position.x, -grp.position.y, -grp.position.z).normalize();
             dir.x += (Math.random() - 0.5) * 0.5;
             dir.y += (Math.random() - 0.5) * 0.5;
             dir.z += (Math.random() - 0.5) * 0.5;
             dir.normalize();
-            const speed = 0.5 + Math.random() * 1.5;
+            const speed = 0.8 + Math.random() * 2.5;
             meteors.push({ grp, dir, speed, life: 1 });
             milkyWayGroup.add(grp);
         }
         let meteorTimer = 0;
 
-        // Space state machine
         const BASE_CAM_Z = 6;
-        const SPACE_CAM_Z = 105;
-
+        const SPACE_CAM_Z = 60;
         let cameraTheta = 0;
         let cameraPhi = 0.35;
         let cameraRadius = SPACE_CAM_Z;
@@ -1206,6 +1052,11 @@
             cameraPhi = 0.35;
             cameraRadius = SPACE_CAM_Z;
             targetCameraZ = SPACE_CAM_Z;
+            // Default focus: Earth
+            const earth = planetObjs.find(g => g.userData.earth);
+            focusTargetObj = earth || null;
+            focusTargetName = earth ? 'Earth' : 'Sun';
+            smoothedLookAt.set(0, 0, 0);
             resetIdleTimer();
         }
 
@@ -1234,12 +1085,13 @@
 
         let lastTapTime = 0;
         let lastTapX = 0, lastTapY = 0;
+        let tapStartX = 0, tapStartY = 0, tapStartTime = 0;
 
         container.addEventListener('wheel', (e) => {
             if (spaceState === 'space' || spaceState === 'expanding') {
                 e.preventDefault();
                 resetIdleTimer();
-                cameraRadius = Math.max(2, Math.min(220, cameraRadius + e.deltaY * 0.15));
+                cameraRadius = Math.max(0.4, Math.min(400, cameraRadius + e.deltaY * 0.15));
                 targetCameraZ = cameraRadius;
             }
         }, { passive: false });
@@ -1259,7 +1111,6 @@
             scene.add(line);
             boltPool.push({ line, life: 0 });
         }
-
         function spawnBolt() {
             const bolt = boltPool.find(b => b.life <= 0);
             if (!bolt) return;
@@ -1273,10 +1124,7 @@
                 const t = i / segments;
                 const r = startR + (endR - startR) * t + (Math.random() - 0.5) * 0.5;
                 const a = startAngle + (endAngle - startAngle) * t + (Math.random() - 0.5) * 0.6;
-                const x = Math.cos(a) * r;
-                const y = Math.sin(a) * r;
-                const z = (Math.random() - 0.5) * 0.8;
-                points.push(x, y, z);
+                points.push(Math.cos(a) * r, Math.sin(a) * r, (Math.random() - 0.5) * 0.8);
             }
             const arr = bolt.line.geometry.attributes.position.array;
             for (let i = 0; i < points.length; i++) arr[i] = points[i];
@@ -1284,13 +1132,11 @@
             bolt.line.geometry.attributes.position.needsUpdate = true;
             bolt.line.geometry.computeBoundingSphere();
             const hue = 0.13 - chargeLevel * 0.13;
-            const c = new THREE.Color().setHSL(hue, 1, 0.7);
-            bolt.line.material.color.copy(c);
+            bolt.line.material.color.setHSL(hue, 1, 0.7);
             bolt.line.material.opacity = 0.9 + Math.random() * 0.1;
             bolt.line.visible = true;
             bolt.life = 1;
         }
-
         function makeSmokeTexture() {
             const size = 128;
             const canvas = document.createElement('canvas');
@@ -1308,7 +1154,6 @@
         const smokePool = [];
         const smokeGroup = new THREE.Group();
         scene.add(smokeGroup);
-
         function spawnSmoke() {
             let p = smokePool.find(s => s.life <= 0);
             if (!p) {
@@ -1330,7 +1175,6 @@
             p.vy = 0.006 + Math.random() * 0.01;
             p.life = 1;
         }
-
         let pulseTime = 0;
         let coreScale = 1;
         let coreScaleVel = 0;
@@ -1350,11 +1194,9 @@
         const ripples = [];
         let boltTimer = 0;
         let smokeTimer = 0;
-
         const CHARGE_START_MS = 300;
         const CHARGE_FULL_MS = 10000;
         const CENTER_RADIUS = 85;
-
         function isPointerOnCenter(e) {
             const rect = container.getBoundingClientRect();
             const px = e.clientX - rect.left;
@@ -1364,7 +1206,6 @@
             const dx = px - cx, dy = py - cy;
             return Math.sqrt(dx*dx + dy*dy) <= CENTER_RADIUS;
         }
-
         function spawnRipple(color = 0xa78bfa) {
             const geo = new THREE.RingGeometry(0.5, 0.6, 48);
             const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.8, side: THREE.DoubleSide });
@@ -1373,13 +1214,11 @@
             scene.add(ring);
             ripples.push({ mesh: ring, life: 1 });
         }
-
         function spawnExplosion() {
             for (let i = 0; i < 10; i++) setTimeout(() => spawnRipple(0xff3b30), i * 50);
             for (let i = 0; i < 30; i++) setTimeout(spawnBolt, i * 20);
             for (let i = 0; i < 60; i++) setTimeout(spawnSmoke, i * 18);
         }
-
         function getDistance(t1, t2) {
             const dx = t1.x - t2.x, dy = t1.y - t2.y;
             return Math.sqrt(dx*dx + dy*dy);
@@ -1404,6 +1243,12 @@
             lastTapX = e.clientX;
             lastTapY = e.clientY;
 
+            if (activePointers.size === 0) {
+                tapStartX = e.clientX;
+                tapStartY = e.clientY;
+                tapStartTime = Date.now();
+            }
+
             activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
             container.classList.add('touched');
 
@@ -1411,7 +1256,6 @@
                 isDragging = true;
                 pointerVelocity = { x: 0, y: 0 };
                 isOnCenter = isPointerOnCenter(e);
-
                 if (isOnCenter && spaceState === 'core') {
                     longPressTimer = setTimeout(() => {
                         if (isDragging && activePointers.size === 1 && isOnCenter) {
@@ -1444,7 +1288,6 @@
             if (activePointers.size === 1 && isDragging) {
                 const dx = e.clientX - prev.x;
                 const dy = e.clientY - prev.y;
-
                 if (spaceState === 'space' || spaceState === 'expanding') {
                     cameraTheta -= dx * 0.008;
                     cameraPhi = Math.max(-1.4, Math.min(1.4, cameraPhi + dy * 0.008));
@@ -1452,14 +1295,9 @@
                     coreRotVelY += dx * 0.0009;
                     coreRotVelX += dy * 0.0009;
                 }
-
                 pointerVelocity.x = dx;
                 pointerVelocity.y = dy;
-
-                if (Math.abs(dx) + Math.abs(dy) > 5 && !longPressActive) {
-                    clearTimeout(longPressTimer);
-                }
-
+                if (Math.abs(dx) + Math.abs(dy) > 5 && !longPressActive) clearTimeout(longPressTimer);
                 if (longPressActive && isCharging && !isPointerOnCenter(e)) {
                     isCharging = false;
                     longPressActive = false;
@@ -1471,7 +1309,7 @@
                 if (pinchStartDist > 0) {
                     const ratio = dist / pinchStartDist;
                     if (spaceState === 'space' || spaceState === 'expanding') {
-                        cameraRadius = Math.max(2, Math.min(220, cameraRadius / ratio));
+                        cameraRadius = Math.max(0.4, Math.min(400, cameraRadius / ratio));
                         targetCameraZ = cameraRadius;
                     } else {
                         coreScale = Math.max(0.6, Math.min(2.2, pinchStartScale * ratio));
@@ -1486,8 +1324,41 @@
                 isDragging = false;
                 container.classList.remove('touched');
                 clearTimeout(longPressTimer);
-
                 const speed = Math.sqrt(pointerVelocity.x**2 + pointerVelocity.y**2);
+
+                // Quick-tap detection for planet focus (space mode only)
+                const tapDx = e.clientX - tapStartX;
+                const tapDy = e.clientY - tapStartY;
+                const tapDist = Math.sqrt(tapDx*tapDx + tapDy*tapDy);
+                const tapDur = Date.now() - tapStartTime;
+                const isQuickTap = tapDist < 10 && tapDur < 400 && !longPressActive;
+
+                if (isQuickTap && spaceState === 'space') {
+                    const hit = findBodyAtScreen(e.clientX, e.clientY);
+                    if (hit) {
+                        focusTargetObj = hit.name === 'Sun' ? null : hit.obj;
+                        focusTargetName = hit.name;
+                        if (targetCameraZ > 60) targetCameraZ = 30;
+                        touchBoost = 1.5;
+                        spawnRipple(0xa78bfa);
+                        if (navigator.vibrate) navigator.vibrate(10);
+                    } else {
+                        const earth = planetObjs.find(g => g.userData.earth);
+                        if (earth && focusTargetObj !== earth) {
+                            focusTargetObj = earth;
+                            focusTargetName = 'Earth';
+                            touchBoost = 1.0;
+                            spawnRipple(0xa78bfa);
+                            if (navigator.vibrate) navigator.vibrate(10);
+                        }
+                    }
+                    longPressActive = false;
+                    isCharging = false;
+                    isOnCenter = false;
+                    chargeLevel = 0;
+                    pointerVelocity = { x: 0, y: 0 };
+                    return;
+                }
 
                 if (longPressActive && chargeLevel >= 0.95) {
                     stopChargeSound();
@@ -1516,7 +1387,6 @@
                 } else {
                     fadeOutChargeSound(0.3);
                 }
-
                 longPressActive = false;
                 isCharging = false;
                 isOnCenter = false;
@@ -1528,7 +1398,6 @@
         }
         container.addEventListener('pointerup', endPointer);
         container.addEventListener('pointercancel', endPointer);
-
         container.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
         container.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
 
@@ -1563,15 +1432,12 @@
 
             if (spaceProgress > 0.15) {
                 const ts = nowMs * 0.001;
-
                 for (const grp of planetObjs) {
                     const ud = grp.userData;
                     const a = ud.angle + ts * ud.speed * 0.12;
                     grp.position.set(Math.cos(a) * ud.orbit, 0, Math.sin(a) * ud.orbit);
                     for (const child of grp.children) {
-                        if (child.userData && child.userData.rotSpd) {
-                            child.rotation.y += child.userData.rotSpd * 0.3;
-                        }
+                        if (child.userData && child.userData.rotSpd) child.rotation.y += child.userData.rotSpd * 0.3;
                     }
                     if (ud.moons) {
                         for (const m of ud.moons) {
@@ -1580,16 +1446,11 @@
                         }
                     }
                 }
-
                 sunMesh.rotation.y += 0.002;
                 sunCorona.material.opacity = 0.85 + Math.sin(ts * 1.5) * 0.15;
                 const cs = 14 + Math.sin(ts * 2) * 0.4;
                 sunCorona.scale.set(cs, cs, 1);
-
-                if (milkyWayGroup.userData.asteroidBelt) {
-                    milkyWayGroup.userData.asteroidBelt.rotation.y += 0.0008;
-                }
-
+                if (milkyWayGroup.userData.asteroidBelt) milkyWayGroup.userData.asteroidBelt.rotation.y += 0.0008;
                 for (const c of comets) {
                     const t2 = ts * c.speed + c.phase;
                     const x = Math.cos(t2) * c.a;
@@ -1600,7 +1461,6 @@
                     c.grp.rotation.y = Math.atan2(dir.x, dir.z);
                     c.grp.rotation.z = Math.atan2(dir.y, Math.sqrt(dir.x*dir.x + dir.z*dir.z));
                 }
-
                 meteorTimer -= 1;
                 if (meteorTimer <= 0 && meteors.length < 5) {
                     spawnMeteor();
@@ -1610,36 +1470,56 @@
                     const m = meteors[i];
                     m.grp.position.addScaledVector(m.dir, m.speed);
                     m.life -= 0.005;
-                    if (m.life <= 0 || m.grp.position.length() > 250) {
+                    if (m.life <= 0 || m.grp.position.length() > 500) {
                         milkyWayGroup.remove(m.grp);
                         meteors.splice(i, 1);
                     }
                 }
             }
 
+            // Camera
             if (spaceState === 'space') {
+                // Update focus target to current object's world position
+                if (focusTargetObj) focusTargetObj.getWorldPosition(focusTarget);
+                else focusTarget.set(0, 0, 0);
+
                 cameraRadius += (targetCameraZ - cameraRadius) * 0.1;
-                const x = cameraRadius * Math.cos(cameraPhi) * Math.sin(cameraTheta);
-                const y = cameraRadius * Math.sin(cameraPhi);
-                const z = cameraRadius * Math.cos(cameraPhi) * Math.cos(cameraTheta);
-                camera.position.lerp(new THREE.Vector3(x, y, z), 0.1);
-                camera.lookAt(0, 0, 0);
+                const x = focusTarget.x + cameraRadius * Math.cos(cameraPhi) * Math.sin(cameraTheta);
+                const y = focusTarget.y + cameraRadius * Math.sin(cameraPhi);
+                const z = focusTarget.z + cameraRadius * Math.cos(cameraPhi) * Math.cos(cameraTheta);
+                camera.position.lerp(new THREE.Vector3(x, y, z), 0.12);
+                smoothedLookAt.lerp(focusTarget, 0.1);
+                camera.lookAt(smoothedLookAt);
             } else if (spaceState === 'expanding' || spaceState === 'collapsing') {
-                const sX = SPACE_CAM_Z * Math.cos(0.35) * Math.sin(0);
-                const sY = SPACE_CAM_Z * Math.sin(0.35);
-                const sZ = SPACE_CAM_Z * Math.cos(0.35) * Math.cos(0);
+                if (focusTargetObj) focusTargetObj.getWorldPosition(focusTarget);
+                else focusTarget.set(0, 0, 0);
+                const sx = focusTarget.x + SPACE_CAM_Z * Math.cos(0.35) * Math.sin(0);
+                const sy = focusTarget.y + SPACE_CAM_Z * Math.sin(0.35);
+                const sz = focusTarget.z + SPACE_CAM_Z * Math.cos(0.35) * Math.cos(0);
                 const t = ep;
-                const tx = sX * t;
-                const ty = sY * t;
-                const tz = BASE_CAM_Z * (1-t) + sZ * t;
+                const tx = sx * t;
+                const ty = sy * t;
+                const tz = BASE_CAM_Z * (1-t) + sz * t;
                 camera.position.lerp(new THREE.Vector3(tx, ty, tz), 0.1);
-                camera.lookAt(0, 0, 0);
+                smoothedLookAt.lerp(new THREE.Vector3(focusTarget.x * t, focusTarget.y * t, focusTarget.z * t), 0.1);
+                camera.lookAt(smoothedLookAt);
             } else {
                 targetCameraZ += (BASE_CAM_Z - targetCameraZ) * 0.08;
                 camera.position.z += (targetCameraZ - camera.position.z) * 0.08;
                 camera.position.x *= 0.92;
                 camera.position.y *= 0.92;
+                smoothedLookAt.set(0, 0, 0);
                 camera.lookAt(0, 0, 0);
+                focusTargetObj = null;
+                focusTargetName = 'Sun';
+            }
+
+            // Focus label visibility
+            if (spaceState === 'space') {
+                if (focusLabel.innerText !== focusTargetName) focusLabel.innerText = focusTargetName;
+                focusLabel.style.opacity = '1';
+            } else {
+                focusLabel.style.opacity = '0';
             }
 
             if (isCharging) {
@@ -1647,28 +1527,23 @@
                 chargeLevel = Math.min(1, elapsed / CHARGE_FULL_MS);
                 updateChargeSound(chargeLevel);
             }
-
             const spin = 1 + chargeLevel * 15 + touchBoost * 0.5;
             pulseTime += 0.04 * spin;
             touchBoost *= 0.94;
-
             const chargeScale = 1 + chargeLevel * 1.1;
             const brightScale = (1 + Math.sin(pulseTime * 1.5) * 0.15 + touchBoost * 0.25) * chargeScale;
             innerBright.scale.set(brightScale, brightScale, brightScale);
             innerBright.material.opacity = 0.3 + Math.sin(pulseTime * 1.5) * 0.1 + touchBoost * 0.2 + chargeLevel * 0.6;
-
             innerCore.rotation.x += 0.008 * spin;
             innerCore.rotation.y += 0.012 * spin;
             midShell.rotation.x -= 0.004 * spin;
             midShell.rotation.y -= 0.006 * spin;
             outerShell.rotation.x += 0.002 * spin;
             outerShell.rotation.y -= 0.003 * spin;
-
             coreGroup.rotation.y += coreRotVelY;
             coreGroup.rotation.x += coreRotVelX;
             coreRotVelY *= 0.92;
             coreRotVelX *= 0.92;
-
             const scaleForce = (1 - coreScale) * 0.15;
             coreScaleVel += scaleForce;
             coreScaleVel *= 0.85;
@@ -1676,7 +1551,6 @@
             const _coreSpaceScale = coreScale * (1 - ep * 0.85);
             coreGroup.scale.set(_coreSpaceScale, _coreSpaceScale, _coreSpaceScale);
             coreGroup.visible = spaceProgress < 0.98;
-
             const rumble = touchBoost * 0.08 + chargeLevel * 0.35;
             if (rumble > 0.01) {
                 coreGroup.position.x = (Math.random() - 0.5) * rumble;
@@ -1685,23 +1559,17 @@
                 coreGroup.position.x *= 0.9;
                 coreGroup.position.y *= 0.9;
             }
-
             glowSphere.material.opacity = 0.08 + Math.sin(pulseTime * 0.6) * 0.04 + touchBoost * 0.15 + chargeLevel * 0.6;
-
             if (chargeLevel > 0.01) {
                 const c = new THREE.Color();
-                if (chargeLevel < 0.5) {
-                    c.lerpColors(new THREE.Color(0x8b5cf6), new THREE.Color(0xf59e0b), chargeLevel / 0.5);
-                } else {
-                    c.lerpColors(new THREE.Color(0xf59e0b), new THREE.Color(0xef4444), (chargeLevel - 0.5) / 0.5);
-                }
+                if (chargeLevel < 0.5) c.lerpColors(new THREE.Color(0x8b5cf6), new THREE.Color(0xf59e0b), chargeLevel / 0.5);
+                else c.lerpColors(new THREE.Color(0xf59e0b), new THREE.Color(0xef4444), (chargeLevel - 0.5) / 0.5);
                 glowSphere.material.color.copy(c);
                 innerBright.material.color.copy(c);
                 innerCore.material.color.copy(c);
                 midShell.material.color.copy(c);
                 outerShell.material.color.copy(c);
             }
-
             if (isCharging && chargeLevel > 0.08) {
                 boltTimer -= 1;
                 const boltInterval = Math.max(1, Math.floor(14 - chargeLevel * 13));
@@ -1713,18 +1581,13 @@
                     boltTimer = boltInterval;
                 }
             }
-
             for (const b of boltPool) {
                 if (b.life > 0) {
                     b.life -= 0.12 + chargeLevel * 0.08;
                     b.line.material.opacity = Math.max(0, b.life * 1.2);
-                    if (b.life <= 0) {
-                        b.line.visible = false;
-                        b.line.material.opacity = 0;
-                    }
+                    if (b.life <= 0) { b.line.visible = false; b.line.material.opacity = 0; }
                 }
             }
-
             if (isCharging && chargeLevel > 0.12) {
                 smokeTimer -= 1;
                 const smokeInterval = Math.max(1, Math.floor(12 - chargeLevel * 11));
@@ -1735,7 +1598,6 @@
                     smokeTimer = smokeInterval;
                 }
             }
-
             for (const s of smokePool) {
                 if (s.life > 0) {
                     s.sprite.position.x += s.vx;
@@ -1750,7 +1612,6 @@
                     if (s.life <= 0) s.sprite.material.opacity = 0;
                 }
             }
-
             for (let i = ripples.length - 1; i >= 0; i--) {
                 const r = ripples[i];
                 r.life -= 0.03;
@@ -1763,7 +1624,6 @@
                     ripples.splice(i, 1);
                 }
             }
-
             renderer.render(scene, camera);
         }
         animate();
@@ -1782,9 +1642,7 @@
             innerCore.material.color.setHex(color); midShell.material.color.setHex(color); outerShell.material.color.setHex(color);
         }
 
-        // === MARKET DATA ===
         function safeNum(val, fallback = 0) { return (isNaN(val) || val === undefined || val === null || !isFinite(val)) ? fallback : val; }
-
         async function fetchBiquoteCandles(interval, limit) {
             try {
                 const url = `https://biquote.io/api/EURUSD/ohlc?interval=${interval}&limit=${limit}`;
@@ -1799,7 +1657,6 @@
                 }));
             } catch(e) { console.error("Biquote fetch error:", e); return []; }
         }
-
         function calculateEMA(data, period) {
             if (data.length < period) return [data[data.length-1] || 0];
             const k = 2 / (period + 1); let ema = data[0]; const arr = [ema];
@@ -1824,7 +1681,6 @@
             for (let i = 1; i < highs.length; i++) trs.push(Math.max(highs[i]-lows[i], Math.abs(highs[i]-closes[i-1]), Math.abs(lows[i]-closes[i-1])));
             return trs.slice(-period).reduce((a,b) => a+b, 0) / period;
         }
-
         function detectSetup(md) {
             const setups = [];
             if (!md || !md.candles1H || md.candles1H.length < 3) return null;
@@ -1834,7 +1690,6 @@
             const upperWick = last.high - Math.max(last.open, last.close);
             const lowerWick = Math.min(last.open, last.close) - last.low;
             const range = last.high - last.low;
-
             if (md.rsi1H < 30 && md.currentPrice <= md.support * 1.001) setups.push({ type:'BUY', reason:`RSI oversold (${md.rsi1H.toFixed(1)}) + price at support ${md.support.toFixed(5)}`, strength:'STRONG' });
             if (md.rsi1H > 70 && md.currentPrice >= md.resistance * 0.999) setups.push({ type:'SELL', reason:`RSI overbought (${md.rsi1H.toFixed(1)}) + price at resistance ${md.resistance.toFixed(5)}`, strength:'STRONG' });
             if (md.currentPrice > md.resistance * 1.0005) setups.push({ type:'BUY', reason:`Breakout above resistance ${md.resistance.toFixed(5)}`, strength:'STRONG' });
@@ -1855,24 +1710,17 @@
             if (setups.length === 0) return null;
             return setups.find(s => s.strength === 'STRONG') || setups[0];
         }
-
         async function refreshMarketData() {
             const statusEl = document.getElementById('signal-status');
             const livePriceEl = document.getElementById('live-price');
             const lastUpdatedEl = document.getElementById('last-updated');
-
             const [candles5m, candles15m, candles1H, candles4H] = await Promise.all([
                 fetchBiquoteCandles('5m', 50),
                 fetchBiquoteCandles('15m', 50),
                 fetchBiquoteCandles('1h', 50),
                 fetchBiquoteCandles('4h', 50)
             ]);
-
-            if (candles1H.length === 0) {
-                statusEl.innerText = "Biquote data unavailable. Retrying...";
-                return;
-            }
-
+            if (candles1H.length === 0) { statusEl.innerText = "Biquote data unavailable. Retrying..."; return; }
             const closes1H = candles1H.map(c => c.close), highs1H = candles1H.map(c => c.high), lows1H = candles1H.map(c => c.low);
             const closes5m = candles5m.map(c => c.close);
             const closes15m = candles15m.map(c => c.close);
@@ -1884,21 +1732,17 @@
             const support = safeNum(Math.min(...lows1H.slice(-50)), 1.1176);
             const resistance = safeNum(Math.max(...highs1H.slice(-50)), 1.1246);
             const currentPrice = safeNum(closes5m[closes5m.length - 1] || closes1H[closes1H.length - 1], 1.1200);
-            
             let trend = "Sideways";
             const rh = highs1H.slice(-20), rl = lows1H.slice(-20);
             if (rh[rh.length-1] > rh[0] && rl[rl.length-1] > rl[0]) trend = "Uptrend";
             if (rh[rh.length-1] < rh[0] && rl[rl.length-1] < rl[0]) trend = "Downtrend";
-            
             const hour = new Date().getUTCHours();
             let session = "Off-Session";
             if (hour >= 7 && hour < 16) session = "London Session";
             else if (hour >= 12 && hour < 21) session = "New York Session";
             else if (hour >= 0 && hour < 8) session = "Asian Session";
             if (hour >= 12 && hour < 16) session = "London / NY Overlap";
-
             marketData = { candles5m, candles15m, candles1H, candles4H, currentPrice, trend, support, resistance, session, rsi1H, rsi15m, rsi5m, ema20: ema20[ema20.length-1], ema50: ema50[ema50.length-1], atr };
-
             livePriceEl.innerText = currentPrice.toFixed(5);
             lastUpdatedEl.innerText = `BIQUOTE LIVE · ${new Date().toLocaleTimeString('en-IN',{hour12:false})}`;
             document.getElementById('val-trend').innerText = trend;
@@ -1908,11 +1752,9 @@
             document.getElementById('val-candle-current').innerText = `5m · ${currentPrice.toFixed(5)} · RSI ${rsi5m.toFixed(1)}`;
             document.getElementById('val-candle-1h').innerText = `1H · ${trend} · RSI ${rsi1H.toFixed(1)} · EMA20 ${ema20[ema20.length-1].toFixed(5)}`;
             document.getElementById('val-candle-4h').innerText = `4H bars loaded · ATR ${atr.toFixed(5)}`;
-
             const setup = detectSetup(marketData);
             if (setup) { addAlertToLog(setup); showSetupAlert(setup); } else { showSetupAlert(null); if (statusEl) statusEl.innerText = "Engine scanning — no setup detected"; }
         }
-
         function addAlertToLog(alert) {
             const time = new Date().toLocaleTimeString('en-IN', {timeZone:'Asia/Kolkata', hour:'2-digit', minute:'2-digit'});
             alertLog.unshift(`[${time}] ${alert.type} — ${alert.reason}`);
@@ -1937,9 +1779,7 @@
             alertBox.classList.add('active');
             if (!globalData || globalData.signal === 'WAITING') { signalText.innerText = "SETUP"; signalText.style.color = "var(--yellow)"; statusEl.innerText = `Opportunity spotted · ${setup.type}`; updateCoreColor('SETUP'); }
         }
-
         function isMarketQuestion(text) { return MARKET_KEYWORDS.some(kw => text.toLowerCase().includes(kw)); }
-
         async function callAI(systemPrompt, userText, conversationHistory) {
             const messages = [{ role: 'system', content: systemPrompt }, ...conversationHistory.map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text })), { role: 'user', content: userText }];
             if (groqKey) {
@@ -1961,7 +1801,6 @@
             }
             throw new Error("All AI providers failed. Check your keys.");
         }
-
         async function askAIForSignal() {
             if (!groqKey && !apiKey) { alert("Please set your Groq or Gemini API Key first."); togglePanel('panel-key'); return; }
             if (!marketData) { await refreshMarketData(); }
@@ -1972,7 +1811,6 @@
             const fmt = (arr) => arr.slice(-20).map(c => `O:${(c.open || 0).toFixed(5)} H:${(c.high || 0).toFixed(5)} L:${(c.low || 0).toFixed(5)} C:${(c.close || 0).toFixed(5)}`).join('\n');
             const dataString = `PRICE: ${md.currentPrice.toFixed(5)} | Trend: ${md.trend} | RSI 1H: ${md.rsi1H.toFixed(1)} | RSI 15m: ${md.rsi15m.toFixed(1)} | RSI 5m: ${md.rsi5m.toFixed(1)} | EMA20: ${md.ema20.toFixed(5)} | EMA50: ${md.ema50.toFixed(5)} | ATR: ${md.atr.toFixed(5)} | Support: ${md.support.toFixed(5)} | Resistance: ${md.resistance.toFixed(5)} | Session: ${md.session}\n\n5m:\n${fmt(md.candles5m)}\n\n15m:\n${fmt(md.candles15m)}\n\n1H:\n${fmt(md.candles1H)}\n\n4H:\n${fmt(md.candles4H)}`;
             const signalPrompt = `You are a SENIOR EUR/USD hedge fund trader with 10 years of experience. Your goal is to find the most winning setups for Boss. TIME: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.\n\n${dataString}\n\nAnalyze: Daily bias -> 1H structure -> 15m/5m alignment -> key levels.\nRespond ONLY valid JSON: {"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
-
             try {
                 const reply = await callAI(signalPrompt, "Give me the signal.", []);
                 const jsonMatch = reply.match(/\{[\s\S]*?"signal"[\s\S]*?\}/);
@@ -1997,12 +1835,10 @@
                 return globalData;
             } catch(e) { signalText.innerText = "ERROR"; signalText.style.color = "var(--red)"; statusEl.innerText = "AI error — " + e.message; return null; }
         }
-
         const OPENINGS = ["Okay, so here's the update, Boss.", "Right. Let's take a look.", "Alright Boss, quick brief.", "Here we go, Boss.", "So, quick read on the charts."];
         const TRANS = ["Moving on.", "Now, here's the thing.", "And listen to this.", "Okay, next.", "Alright."];
         const CLOSINGS = ["Stay sharp, Boss.", "Trade safe.", "I'll keep watching.", "Good luck out there.", "That's all for now.", "Talk soon."];
         const rnd = (a) => a[Math.floor(Math.random()*a.length)];
-
         function getBestVoice() {
             const voices = window.speechSynthesis.getVoices();
             if (!voices || voices.length === 0) return null;
@@ -2010,22 +1846,15 @@
             for (const name of priorities) { const found = voices.find(v => v.name.includes(name)); if (found) return found; }
             return voices.find(v => v.lang.startsWith('en')) || voices[0];
         }
-
         function fallbackSpeakText(text, isReminder = false) {
             if (!('speechSynthesis' in window)) return;
             window.speechSynthesis.cancel();
-            
             let voice = getBestVoice();
-            if (!voice) {
-                setTimeout(() => fallbackSpeakText(text, isReminder), 500);
-                return;
-            }
-            
+            if (!voice) { setTimeout(() => fallbackSpeakText(text, isReminder), 500); return; }
             const sentences = text.split(/(?<=[.!?,])\s+/).map(s => s.trim()).filter(s => s.length > 0);
             if (sentences.length === 0) return;
             isSpeaking = true;
             let index = 0;
-            
             function speakNext() {
                 if (index >= sentences.length) { isSpeaking = false; return; }
                 const sentence = sentences[index];
@@ -2042,7 +1871,6 @@
             }
             speakNext();
         }
-
         async function speakText(text, isReminder = false) {
             const statusEl = document.getElementById('voice-status');
             if (currentAudio) { currentAudio.pause(); currentAudio = null; }
@@ -2050,13 +1878,11 @@
             const cleanText = text.replace(/\[.*?\]/g, '').trim();
             if (!cleanText) return;
             isSpeaking = true;
-
             if (voiceEngineMode === 'browser') {
                 if (statusEl) statusEl.innerHTML = "<span style='color:var(--yellow);'>Using Browser Voice (Manual Mode)</span>";
                 fallbackSpeakText(cleanText, isReminder);
                 return;
             }
-
             if (elevenLabsApiKey) {
                 try {
                     if (statusEl) statusEl.innerHTML = "<span style='color:var(--yellow);'>Generating ElevenLabs audio...</span>";
@@ -2077,24 +1903,17 @@
                     if (statusEl) statusEl.innerHTML = `<span style='color:var(--red);'>ElevenLabs Error: ${e.message}. Using Browser Voice.</span>`;
                 }
             }
-
             if (statusEl) statusEl.innerHTML = "<span style='color:var(--yellow);'>Using Browser Voice Fallback</span>";
             fallbackSpeakText(cleanText, isReminder);
         }
-
-        function testCloudVoice() {
-            speakText("Testing the premium cloud voice. If you hear this in a natural, human-sounding tone, the system is working perfectly.");
-        }
-
+        function testCloudVoice() { speakText("Testing the premium cloud voice. If you hear this in a natural, human-sounding tone, the system is working perfectly."); }
         function playVoiceReport() {
             if (!globalData) return;
             if (isSpeaking) stopVoice();
             let text = `${rnd(OPENINGS)} Price is ${globalData.price}. We've got a ${globalData.signal} signal with ${globalData.confidence} confidence. ${globalData.reason} ${rnd(TRANS)} Support sits at ${globalData.support}, resistance at ${globalData.resistance}. Entry is ${globalData.entry}. Stop loss at ${globalData.sl}. Take profit at ${globalData.tp}. ${globalData.wise_words ? globalData.wise_words : ''} ${rnd(CLOSINGS)}`;
             speakText(text);
         }
-        
         function stopVoice() { if (currentAudio) { currentAudio.pause(); currentAudio = null; } if ('speechSynthesis' in window) { window.speechSynthesis.cancel(); } isSpeaking = false; }
-
         function renderChat() {
             const el = document.getElementById('chat-history');
             el.innerHTML = '';
@@ -2104,14 +1923,12 @@
         function saveChatHistory() { if (chatHistory.length > 40) chatHistory = chatHistory.slice(-40); localStorage.setItem('eurusd_chat_history', JSON.stringify(chatHistory)); }
         function clearChat() { chatHistory = []; saveChatHistory(); renderChat(); }
         function toggleDeepThink() { deepThinkEnabled = !deepThinkEnabled; const b = document.getElementById('deep-think-toggle'); b.classList.toggle('active', deepThinkEnabled); b.innerText = deepThinkEnabled ? 'Deep ON' : 'Deep OFF'; }
-        
-        function toggleWeb() { 
-            webSearchEnabled = !webSearchEnabled; 
-            const b = document.getElementById('web-toggle'); 
-            b.innerText = webSearchEnabled ? 'Web ON' : 'Web OFF'; 
-            b.classList.toggle('active', webSearchEnabled); 
+        function toggleWeb() {
+            webSearchEnabled = !webSearchEnabled;
+            const b = document.getElementById('web-toggle');
+            b.innerText = webSearchEnabled ? 'Web ON' : 'Web OFF';
+            b.classList.toggle('active', webSearchEnabled);
         }
-
         function togglePanel(id) { const el = document.getElementById(id); el.classList.toggle('active');
             if (id === 'panel-reminders') renderReminders();
             if (id === 'panel-memory') renderMemory();
@@ -2124,13 +1941,11 @@
             }
         }
         function saveGistConfig() { gistToken = document.getElementById('gist-token-input').value.trim(); gistId = document.getElementById('gist-id-input').value.trim(); localStorage.setItem('eurusd_gist_token', gistToken); localStorage.setItem('eurusd_gist_id', gistId); saveMemoryToGist(); }
-        
         function saveElevenLabsVoice() {
             elevenLabsVoiceId = document.getElementById('elevenlabs-voice-select').value;
             localStorage.setItem('eurusd_elevenlabs_voice', elevenLabsVoiceId);
             speakText("Voice updated, Boss.");
         }
-
         function saveElevenLabsApiKey() {
             elevenLabsApiKey = document.getElementById('elevenlabs-api-input').value.trim();
             localStorage.setItem('eurusd_elevenlabs_api_key', elevenLabsApiKey);
@@ -2138,14 +1953,12 @@
             if (statusEl) statusEl.innerHTML = "<span style='color:var(--green);'>✓ ElevenLabs API Key Saved!</span>";
             speakText("ElevenLabs API key saved.");
         }
-
         function saveVoiceEngineMode() {
             voiceEngineMode = document.getElementById('voice-engine-mode').value;
             localStorage.setItem('eurusd_voice_engine_mode', voiceEngineMode);
             if (voiceEngineMode === 'browser') speakText("Switched to browser voice.");
             else speakText("Switched to ElevenLabs voice.");
         }
-
         async function loadMemoryFromGist() {
             if (!gistToken || !gistId) { document.getElementById('gist-status').innerText = "Missing Token or Gist ID"; document.getElementById('gist-status').style.color = "var(--red)"; return; }
             document.getElementById('gist-status').innerText = "Pulling..."; document.getElementById('gist-status').style.color = "var(--yellow)";
@@ -2167,24 +1980,19 @@
                 else { const err = await res.json(); document.getElementById('gist-status').innerText = `✗ Error: ${err.message || res.status}`; document.getElementById('gist-status').style.color = "var(--red)"; }
             } catch(e) { document.getElementById('gist-status').innerText = `✗ Network Error: ${e.message}`; document.getElementById('gist-status').style.color = "var(--red)"; }
         }
-
         function cleanResponse(text) { return text.split('\n').filter(line => { const l = line.trim().toLowerCase(); if (l.startsWith('*') || l.startsWith('-')) return false; if (l.includes('friendly?') || l.includes('funny?') || l.includes('motivational?')) return false; if (l.includes('checked') || l.includes('no emojis?')) return false; return true; }).join('\n').trim(); }
-
         function buildPersonalityPrompt(includeSignal, userText = "") {
             const now = new Date();
             const istTime = now.toLocaleString('en-IN', {timeZone:'Asia/Kolkata'});
             const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
             const dayName = days[now.getDay()];
             const isWeekend = [0, 6].includes(now.getDay());
-            
             let personalBlock = personalContext ? `\nBOSS (your best friend):\n- Name: Boss. Thenur, Kerala.\n- Wife Sadia in Dubai.\n- Daughters Emy and Bismah.\n- Cat named Cookie.\n- Takes BP tablets after breakfast and dinner.\n- Goal: 10,000 INR/month. Conservative trader.\n- London + NY sessions.\n- Brothers: Binu, Shanu.\n` : "";
-            
             let memoryBlock = "";
             if (longTermMemory.length > 0) {
                 let relevantMemories = [];
                 if (userText && userText.trim().length > 0) {
                     const queryWords = userText.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 3);
-                    
                     relevantMemories = longTermMemory.filter(m => {
                         const factLower = m.fact.toLowerCase();
                         return queryWords.some(w => {
@@ -2194,23 +2002,17 @@
                         });
                     });
                 }
-                
-                if (relevantMemories.length > 0) {
-                    memoryBlock = `\nRELEVANT MEMORIES (Use these to answer the specific question):\n${relevantMemories.map(m => `- ${m.fact}`).join('\n')}\n`;
-                } else {
-                    memoryBlock = `\nTHINGS YOU REMEMBER (Scan this full list carefully):\n${longTermMemory.slice(-60).map(m => `- ${m.fact}`).join('\n')}\n`;
-                }
+                if (relevantMemories.length > 0) memoryBlock = `\nRELEVANT MEMORIES (Use these to answer the specific question):\n${relevantMemories.map(m => `- ${m.fact}`).join('\n')}\n`;
+                else memoryBlock = `\nTHINGS YOU REMEMBER (Scan this full list carefully):\n${longTermMemory.slice(-60).map(m => `- ${m.fact}`).join('\n')}\n`;
             }
-            
             let marketBlock = marketData ? `\nLIVE MARKET DATA (Only trust this data. Never invent prices.):\nEUR/USD ${safeNum(marketData.currentPrice, 1.1200).toFixed(5)} | ${marketData.trend} | S: ${safeNum(marketData.support, 1.1176).toFixed(5)} | R: ${safeNum(marketData.resistance, 1.1246).toFixed(5)} | RSI 1H: ${safeNum(marketData.rsi1H, 50).toFixed(1)} | Session: ${marketData.session}\n` : "";
-
             let prompt = `You are Alex. Boss's absolute best friend, personal secretary, and an elite EUR/USD day trader with 10 years of experience. You text him like a real best friend. Warm, caring, hilarious, and fiercely protective of his capital and well-being.
 
 === PART 1: PERSONALITY & COMMUNICATION ===
 - Speak naturally. Never sound like a customer service robot. Use dry humor, light sarcasm, and playfulness. Celebrate his wins. Pick him up when he's down. Adapt to his mood (excited, frustrated, tired, playful).
-- CRITICAL RULES: Keep casual replies SHORT (1-3 sentences max). Never ask multiple questions at once. No bullet points, no asterisks, no emojis. 
-- Write like you talk. Use short, punchy sentences with commas for natural pauses. Avoid long, complex sentences. Use contractions (I'm, don't, it's) so the voice sounds casual and friendly.
-- If he says "hmm" or "okay", just acknowledge it briefly. Do not force motivational speeches or write essays. 
+- CRITICAL RULES: Keep casual replies SHORT (1-3 sentences max). Never ask multiple questions at once. No bullet points, no asterisks, no emojis.
+- Write like you talk. Use short, punchy sentences with commas for natural pauses. Use contractions (I'm, don't, it's) so the voice sounds casual and friendly.
+- If he says "hmm" or "okay", just acknowledge it briefly. Do not force motivational speeches or write essays.
 - Challenge his assumptions respectfully if he is making a mistake. Be loyal to his long-term interests, not his momentary impulses.
 
 === PART 2: PERSONAL SECRETARY ===
@@ -2243,13 +2045,9 @@ ${isWeekend ? 'IT IS THE WEEKEND. THE FOREX MARKET IS CLOSED. DO NOT look for tr
 IST: ${istTime}.
 
 ${personalBlock}${memoryBlock}${marketBlock}`;
-            
-            if (includeSignal) { 
-                prompt += `\nCRITICAL: After your short reply, you MUST add a new line with ONLY this JSON: {"signal":"BUY"|"SELL"|"HOLD","reason":"2-4 sentences from a 10-year veteran perspective","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`; 
-            }
+            if (includeSignal) prompt += `\nCRITICAL: After your short reply, you MUST add a new line with ONLY this JSON: {"signal":"BUY"|"SELL"|"HOLD","reason":"2-4 sentences from a 10-year veteran perspective","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
             return prompt;
         }
-
         async function sendChat() {
             const input = document.getElementById('chat-input');
             const text = input.value.trim();
@@ -2271,15 +2069,13 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
                     const recent = chatHistory.slice(-6);
                     response = await callAI(systemPrompt, text, recent);
                 }
-                
                 response = cleanResponse(response);
                 let signalData = null;
                 const jsonMatch = response.match(/\{[\s\S]*?"signal"[\s\S]*?\}/);
                 if (jsonMatch) { try { signalData = JSON.parse(jsonMatch[0]); response = response.replace(jsonMatch[0], '').trim(); } catch(e) {} }
                 document.getElementById('chat-history').removeChild(loading);
-                const rm = response.match(/\[REMINDER:\s*(\w{3}\s\d{2}:\d{2}|\d{2}:\d{2})\s*-\s*(.*?)\]/); 
+                const rm = response.match(/\[REMINDER:\s*(\w{3}\s\d{2}:\d{2}|\d{2}:\d{2})\s*-\s*(.*?)\]/);
                 if (rm) { addReminder(rm[1], rm[2]); response = response.replace(/\[REMINDER:.*?\]/g, '').trim(); }
-                
                 const ss = response.match(/\[SCHEDULE_SEARCH:\s*(\d+)\s*-\s*(.*?)\]/);
                 if (ss) {
                     addScheduledSearch(parseInt(ss[1]), ss[2]);
@@ -2296,17 +2092,15 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
                         response += ` (I've also set a timer to check that for you in ${mins} minutes, Boss.)`;
                     }
                 }
-
-                const mm = response.match(/\[REMEMBER:\s*(.*?)\]/); 
-                if (mm) { 
-                    addLongTermMemory(mm[1]); 
-                    response = response.replace(/\[REMEMBER:.*?\]/g, '').trim(); 
-                } 
+                const mm = response.match(/\[REMEMBER:\s*(.*?)\]/);
+                if (mm) {
+                    addLongTermMemory(mm[1]);
+                    response = response.replace(/\[REMEMBER:.*?\]/g, '').trim();
+                }
                 else if (text.toLowerCase().includes('remember') || text.toLowerCase().includes('don\'t forget') || text.toLowerCase().includes('save this')) {
                     addLongTermMemory(text);
                     response += " (I've saved that to my long-term memory, Boss.)";
                 }
-
                 chatHistory.push({role:'ai', text: response}); renderChat(); saveChatHistory(); speakText(response);
                 if (signalData && marketData) {
                     globalData = { price: marketData.currentPrice.toFixed(5), signal: signalData.signal, reason: signalData.reason, confidence: signalData.confidence, entry: signalData.entry, sl: signalData.sl, tp: signalData.tp, atr: marketData.atr.toFixed(5), support: marketData.support.toFixed(5), resistance: marketData.resistance.toFixed(5), trend: marketData.trend, session: marketData.session, valid: new Date(Date.now()+1800000).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})+" IST", wise_words: signalData.wise_words };
@@ -2320,11 +2114,9 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
                 }
             } catch(e) { if (document.getElementById('chat-history').contains(loading)) document.getElementById('chat-history').removeChild(loading); chatHistory.push({role:'ai', text: `Error: ${e.message}`}); renderChat(); } finally { chatInProgress = false; }
         }
-
         async function triggerProactiveCheckin() {
             if (chatInProgress) return;
             if (!groqKey && !apiKey) return;
-            
             const allTopics = [
                 "Ask how Sadia is doing in Dubai.",
                 "Ask about Emy and Bismah, and their Malayalam tuition this weekend.",
@@ -2339,19 +2131,12 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
                 "Ask how his brothers Binu and Shanu are doing.",
                 "Ask if he has any goals he's working towards right now."
             ];
-            
             let availableTopics = allTopics.filter(t => !recentCheckinTopics.includes(t));
-            if (availableTopics.length === 0) {
-                recentCheckinTopics = [];
-                availableTopics = allTopics;
-            }
-            
+            if (availableTopics.length === 0) { recentCheckinTopics = []; availableTopics = allTopics; }
             const randomTopic = availableTopics[Math.floor(Math.random() * availableTopics.length)];
-            
             recentCheckinTopics.push(randomTopic);
             if (recentCheckinTopics.length > 5) recentCheckinTopics.shift();
             localStorage.setItem('eurusd_recent_checkin_topics', JSON.stringify(recentCheckinTopics));
-
             const checkinPrompt = `You are Alex, Boss's best friend and personal secretary. It's been a while. Generate a short, warm, funny, friendly check-in message. ${randomTopic} Be talkative and caring, like a best friend texting. Make a light-hearted joke. Then briefly mention the current EUR/USD price (around ${marketData ? marketData.currentPrice.toFixed(5) : 'the market'}) and that you are watching the charts for him. Do NOT output any JSON. Do NOT use emojis. Keep it to 2-3 sentences. Do NOT ask about his family or health if it wasn't the assigned topic.`;
             try {
                 let response = await callAI(checkinPrompt, "Initiate a proactive check-in with Boss.", []);
@@ -2361,35 +2146,30 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
                 speakText(response);
             } catch(e) { console.error("Proactive check-in failed:", e); }
         }
-
-        function addReminder(time, message) { 
-            reminders.push({id: Math.random().toString(36).substr(2,9), time, message, voice:true, fired:false, created: new Date().toISOString()}); 
-            localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); 
-            renderReminders(); 
-            const confirmDiv = document.createElement('div'); 
-            confirmDiv.className = 'msg system fade-in'; 
-            confirmDiv.innerText = `Reminder set for ${time} IST — ${message}`; 
-            document.getElementById('chat-history').appendChild(confirmDiv); 
+        function addReminder(time, message) {
+            reminders.push({id: Math.random().toString(36).substr(2,9), time, message, voice:true, fired:false, created: new Date().toISOString()});
+            localStorage.setItem('eurusd_reminders', JSON.stringify(reminders));
+            renderReminders();
+            const confirmDiv = document.createElement('div');
+            confirmDiv.className = 'msg system fade-in';
+            confirmDiv.innerText = `Reminder set for ${time} IST — ${message}`;
+            document.getElementById('chat-history').appendChild(confirmDiv);
         }
-
         function addScheduledSearch(minutes, query) {
             const triggerTime = Date.now() + (minutes * 60000);
             scheduledSearches.push({ id: Math.random().toString(36).substr(2,9), triggerTime, query, fired: false });
             localStorage.setItem('eurusd_scheduled_searches', JSON.stringify(scheduledSearches));
             renderReminders();
-            const confirmDiv = document.createElement('div'); 
-            confirmDiv.className = 'msg system fade-in'; 
-            confirmDiv.innerText = `Web Search scheduled in ${minutes} minutes for: "${query}"`; 
-            document.getElementById('chat-history').appendChild(confirmDiv); 
+            const confirmDiv = document.createElement('div');
+            confirmDiv.className = 'msg system fade-in';
+            confirmDiv.innerText = `Web Search scheduled in ${minutes} minutes for: "${query}"`;
+            document.getElementById('chat-history').appendChild(confirmDiv);
         }
-
-        function renderReminders() { 
-            const l = document.getElementById('reminders-list'); 
-            const activeReminders = reminders.filter(r => !r.fired); 
+        function renderReminders() {
+            const l = document.getElementById('reminders-list');
+            const activeReminders = reminders.filter(r => !r.fired);
             const activeSearches = scheduledSearches.filter(s => !s.fired);
-            
-            if (activeReminders.length === 0 && activeSearches.length === 0) { l.innerHTML = 'No active reminders or scheduled searches.'; return; } 
-            
+            if (activeReminders.length === 0 && activeSearches.length === 0) { l.innerHTML = 'No active reminders or scheduled searches.'; return; }
             let html = '';
             activeReminders.forEach(r => {
                 html += `<div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span>⏰ ${r.time} · ${r.message}</span><button class="btn danger" onclick="deleteReminder('${r.id}')">X</button></div>`;
@@ -2400,30 +2180,26 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
             });
             l.innerHTML = html;
         }
-
         function deleteReminder(id) { reminders = reminders.filter(r => r.id !== id); localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); }
         function deleteScheduledSearch(id) { scheduledSearches = scheduledSearches.filter(s => s.id !== id); localStorage.setItem('eurusd_scheduled_searches', JSON.stringify(scheduledSearches)); renderReminders(); }
         function clearReminders() { reminders = []; scheduledSearches = []; localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); localStorage.setItem('eurusd_scheduled_searches', JSON.stringify(scheduledSearches)); renderReminders(); }
         function testReminder() { triggerNotif("Test Reminder", "This is a test reminder, Boss!"); }
-        
-        function triggerNotif(title, body) { 
-            if (Notification.permission === "granted") { try { new Notification(title, {body, requireInteraction: true}); } catch(e) {} } 
-            else if (Notification.permission !== "denied") { Notification.requestPermission(); } 
-            speakText(`Hey Boss, quick reminder. ${body}`, true); 
-            const div = document.createElement('div'); 
-            div.className = 'msg system fade-in'; 
-            div.innerText = `${title}: ${body}`; 
-            document.getElementById('chat-history').appendChild(div); 
+        function triggerNotif(title, body) {
+            if (Notification.permission === "granted") { try { new Notification(title, {body, requireInteraction: true}); } catch(e) {} }
+            else if (Notification.permission !== "denied") { Notification.requestPermission(); }
+            speakText(`Hey Boss, quick reminder. ${body}`, true);
+            const div = document.createElement('div');
+            div.className = 'msg system fade-in';
+            div.innerText = `${title}: ${body}`;
+            document.getElementById('chat-history').appendChild(div);
         }
-
-        function checkReminders() { 
-            const now = new Date(); 
+        function checkReminders() {
+            const now = new Date();
             const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
             const curDay = days[now.getDay()];
-            const curTime = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0'); 
-            
-            let updated = false; 
-            reminders.forEach(r => { 
+            const curTime = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+            let updated = false;
+            reminders.forEach(r => {
                 if (!r.fired) {
                     let shouldFire = false;
                     if (r.time.includes(' ')) {
@@ -2432,19 +2208,12 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
                     } else {
                         if (r.time === curTime) shouldFire = true;
                     }
-                    
-                    if (shouldFire) { 
-                        r.fired = true; 
-                        updated = true; 
-                        triggerNotif("Boss Reminder", r.message); 
-                    } 
+                    if (shouldFire) { r.fired = true; updated = true; triggerNotif("Boss Reminder", r.message); }
                 }
-            }); 
-            if (updated) { localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); } 
+            });
+            if (updated) { localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); }
         }
-        
         setInterval(checkReminders, 10000);
-
         async function checkScheduledSearches() {
             const now = Date.now();
             let updated = false;
@@ -2462,9 +2231,7 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
                         saveChatHistory();
                         speakText(cleanSummary);
                         triggerNotif("Scheduled Update", cleanSummary);
-                    } catch(e) {
-                        console.error("Scheduled search AI failed:", e);
-                    }
+                    } catch(e) { console.error("Scheduled search AI failed:", e); }
                 }
             }
             if (updated) {
@@ -2474,37 +2241,25 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
             }
         }
         setInterval(checkScheduledSearches, 10000);
-
-        function checkMissedReminders() { 
-            const now = new Date(); 
+        function checkMissedReminders() {
+            const now = new Date();
             const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
             const curDay = days[now.getDay()];
-            const curTime = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0'); 
-            
+            const curTime = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
             let updated = false;
-            reminders.filter(r => !r.fired).forEach(r => { 
+            reminders.filter(r => !r.fired).forEach(r => {
                 if (r.time.includes(' ')) {
                     const [dayPart, timePart] = r.time.split(' ');
-                    if (dayPart === curDay && timePart < curTime) {
-                        r.fired = true; 
-                        triggerNotif("Missed Reminder", r.message); 
-                        updated = true;
-                    }
+                    if (dayPart === curDay && timePart < curTime) { r.fired = true; triggerNotif("Missed Reminder", r.message); updated = true; }
                 } else {
-                    if (r.time < curTime) {
-                        r.fired = true;
-                        triggerNotif("Missed Reminder", r.message);
-                        updated = true;
-                    }
+                    if (r.time < curTime) { r.fired = true; triggerNotif("Missed Reminder", r.message); updated = true; }
                 }
-            }); 
-            if (updated) { localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); } 
+            });
+            if (updated) { localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); }
         }
-
         function addLongTermMemory(fact) { longTermMemory.push({fact, added: new Date().toISOString().split('T')[0]}); localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); }
         function renderMemory() { const l = document.getElementById('memory-list'); l.innerHTML = longTermMemory.length === 0 ? 'No facts saved.' : longTermMemory.map(m => `<div style="margin-bottom:5px;">• ${m.fact} <span style="color:var(--text-subtle);">(${m.added})</span></div>`).join(''); }
         function clearLongTermMemory() { if (confirm("Clear all memory?")) { longTermMemory = []; localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); renderMemory(); } }
-        
         function saveApiKey() { const v = document.getElementById('api-key-input').value.trim(); if (v) { apiKey = v; localStorage.setItem('eurusd_chat_key', apiKey); document.getElementById('groq-status').innerText = "✓ Gemini key saved (fallback)"; } }
         async function saveGroqKey() {
             const v = document.getElementById('groq-key-input').value.trim();
@@ -2519,7 +2274,6 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
             }
             document.getElementById('groq-status').innerText = "✗ All Groq models failed. Check the key."; document.getElementById('groq-status').style.color = "var(--red)";
         }
-
         window.onload = () => {
             fetch('https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/personal_context.json').then(r => r.json()).then(d => { personalContext = d; loadWisdom(); }).catch(() => { loadWisdom(); });
             renderChat(); renderReminders(); renderMemory(); renderAlertLog();
