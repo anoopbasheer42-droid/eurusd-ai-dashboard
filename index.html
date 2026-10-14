@@ -67,7 +67,6 @@
         #canvas-container.touched { filter: drop-shadow(0 0 25px rgba(167,139,250,0.7)); transition: filter 0.3s ease; }
         .subtitle { text-align: center; font-family: 'Space Grotesk', sans-serif; font-size: 0.6rem; letter-spacing: 0.3em; color: var(--text-subtle); margin-top: 10px; font-weight: 500; text-transform: uppercase; }
         
-        /* Cinematic Map Overlay */
         #map-overlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             z-index: 99999; opacity: 0; pointer-events: none; transition: opacity 1.5s ease;
@@ -136,7 +135,6 @@
     </style>
 </head>
 <body>
-    <!-- Cinematic Map Overlay -->
     <div id="map-overlay">
         <div id="map"></div>
         <div id="street-view-container">
@@ -578,7 +576,6 @@
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
         
-        // Add Ambient Light so planets aren't pitch black on one side
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
         scene.add(ambientLight);
 
@@ -778,7 +775,6 @@
         };
         const texLoader = new THREE.TextureLoader(); texLoader.setCrossOrigin('anonymous');
         
-        // Milky Way Skybox for realistic space background
         const skyboxGeo = new THREE.SphereGeometry(4000, 64, 64);
         const skyboxMat = new THREE.MeshBasicMaterial({ 
             map: texLoader.load('https://threejs.org/examples/textures/planets/starfield.png'), 
@@ -815,13 +811,13 @@
         function triggerSpaceCollapse() { if (spaceState === 'collapsing' || spaceState === 'core') return; spaceState = 'collapsing'; spacePhaseStart = Date.now(); spaceProgress = 1; resetIdleTimer(); }
 
         // === CINEMATIC LANDING SEQUENCE ===
-        let landingState = 'none'; // 'none', 'diving', 'landed'
+        let landingState = 'none';
         let landingTarget = new THREE.Vector3();
         
         function triggerISSView() {
             if (spaceState !== 'space' || landingState !== 'none') return;
             spaceState = 'iss_view';
-            targetCameraZ = 1.8; // ISS orbit distance
+            targetCameraZ = 1.8;
             cameraRadius = camera.position.length();
         }
 
@@ -846,7 +842,6 @@
             }, 1500);
         }
 
-        // Dynamically create ISS Hint element (to not touch the HTML)
         const issHint = document.createElement('div');
         issHint.id = 'iss-hint';
         issHint.style.cssText = 'position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.8); color:white; padding:10px 20px; border-radius:20px; font-family:Inter, sans-serif; font-size:12px; letter-spacing:0.1em; text-transform:uppercase; opacity:0; transition:opacity 0.5s; z-index:100; border:1px solid rgba(139,92,246,0.5); pointer-events:none;';
@@ -869,37 +864,68 @@
         function spawnExplosion() { for (let i = 0; i < 10; i++) setTimeout(() => spawnRipple(0xff3b30), i * 50); for (let i = 0; i < 30; i++) setTimeout(spawnBolt, i * 20); for (let i = 0; i < 60; i++) setTimeout(spawnSmoke, i * 18); }
         function getDistance(t1, t2) { const dx = t1.x - t2.x, dy = t1.y - t2.y; return Math.sqrt(dx*dx + dy*dy); }
 
-        // === RAYCASTER FOR EARTH TAP ===
         const raycaster = new THREE.Raycaster();
         const pointer = new THREE.Vector2();
-        function checkEarthTap(e) {
-            if (!earthObj) return false;
+        let focusedPlanet = null;
+        function checkPlanetTap(e) {
+            if (!solarSystemGroup.visible) return false;
             const rect = renderer.domElement.getBoundingClientRect();
             pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
             pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
             raycaster.setFromCamera(pointer, camera);
-            const intersects = raycaster.intersectObject(earthObj, true);
+            
+            // Check all planets
+            const intersects = raycaster.intersectObjects(planetObjs, true);
             if (intersects.length > 0) {
-                if (spaceState === 'space') {
-                    triggerISSView();
-                } else if (spaceState === 'iss_view') {
-                    triggerEarthLanding();
+                let hit = intersects[0].object;
+                while (hit.parent && !hit.userData.name) { hit = hit.parent; }
+                if (hit.userData.name) {
+                    focusedPlanet = hit;
+                    spaceState = 'planet_view';
+                    targetCameraZ = hit.userData.radius * 4; // Zoom to 4x radius
+                    cameraRadius = camera.position.length();
+                    return true;
                 }
+            }
+            // Check Sun
+            const sunIntersects = raycaster.intersectObject(sunGroup, true);
+            if (sunIntersects.length > 0) {
+                focusedPlanet = sunGroup;
+                spaceState = 'planet_view';
+                targetCameraZ = 8;
+                cameraRadius = camera.position.length();
                 return true;
             }
             return false;
         }
 
         container.addEventListener('pointerdown', (e) => { try { container.setPointerCapture(e.pointerId); } catch(err) {} initAudio(); resetIdleTimer(); if (landingState !== 'none') return; const now = Date.now(); if (now - lastTapTime < 400 && spaceState === 'space') { const dx = e.clientX - lastTapX; const dy = e.clientY - lastTapY; if (Math.sqrt(dx*dx + dy*dy) < 60) { triggerSpaceCollapse(); lastTapTime = 0; return; } } lastTapTime = now; lastTapX = e.clientX; lastTapY = e.clientY; activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); container.classList.add('touched'); if (activePointers.size === 1) { isDragging = true; pointerVelocity = { x: 0, y: 0 }; isOnCenter = isPointerOnCenter(e); if (isOnCenter && spaceState === 'core') { longPressTimer = setTimeout(() => { if (isDragging && activePointers.size === 1 && isOnCenter) { longPressActive = true; isCharging = true; chargeStartTime = Date.now(); startChargeSound(); if (navigator.vibrate) navigator.vibrate(20); } }, CHARGE_START_MS); } } else if (activePointers.size === 2) { const pts = Array.from(activePointers.values()); pinchStartDist = getDistance(pts[0], pts[1]); pinchStartScale = coreScale; clearTimeout(longPressTimer); isCharging = false; longPressActive = false; chargeLevel = 0; fadeOutChargeSound(0.2); } });
-        container.addEventListener('pointermove', (e) => { if (landingState !== 'none') return; if (!activePointers.has(e.pointerId)) return; resetIdleTimer(); const prev = activePointers.get(e.pointerId); activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (activePointers.size === 1 && isDragging) { const dx = e.clientX - prev.x; const dy = e.clientY - prev.y; if (spaceState === 'space' || spaceState === 'expanding' || spaceState === 'iss_view') { cameraTheta -= dx * 0.008; cameraPhi = Math.max(-1.5, Math.min(1.5, cameraPhi + dy * 0.008)); } else { coreRotVelY += dx * 0.0009; coreRotVelX += dy * 0.0009; } pointerVelocity.x = dx; pointerVelocity.y = dy; if (Math.abs(dx) + Math.abs(dy) > 5 && !longPressActive) clearTimeout(longPressTimer); if (longPressActive && isCharging && !isPointerOnCenter(e)) { isCharging = false; longPressActive = false; fadeOutChargeSound(0.4); } } else if (activePointers.size === 2) { const pts = Array.from(activePointers.values()); const dist = getDistance(pts[0], pts[1]); if (pinchStartDist > 0) { const ratio = dist / pinchStartDist; if (spaceState === 'space' || spaceState === 'expanding' || spaceState === 'iss_view') { cameraRadius = Math.max(1.2, Math.min(3000, cameraRadius / ratio)); targetCameraZ = cameraRadius; } else { coreScale = Math.max(0.6, Math.min(2.2, pinchStartScale * ratio)); } } } });
+        container.addEventListener('pointermove', (e) => { if (landingState !== 'none') return; if (!activePointers.has(e.pointerId)) return; resetIdleTimer(); const prev = activePointers.get(e.pointerId); activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (activePointers.size === 1 && isDragging) { const dx = e.clientX - prev.x; const dy = e.clientY - prev.y; if (spaceState === 'space' || spaceState === 'expanding' || spaceState === 'iss_view' || spaceState === 'planet_view') { cameraTheta -= dx * 0.008; cameraPhi = Math.max(-1.5, Math.min(1.5, cameraPhi + dy * 0.008)); } else { coreRotVelY += dx * 0.0009; coreRotVelX += dy * 0.0009; } pointerVelocity.x = dx; pointerVelocity.y = dy; if (Math.abs(dx) + Math.abs(dy) > 5 && !longPressActive) clearTimeout(longPressTimer); if (longPressActive && isCharging && !isPointerOnCenter(e)) { isCharging = false; longPressActive = false; fadeOutChargeSound(0.4); } } else if (activePointers.size === 2) { const pts = Array.from(activePointers.values()); const dist = getDistance(pts[0], pts[1]); if (pinchStartDist > 0) { const ratio = dist / pinchStartDist; if (spaceState === 'space' || spaceState === 'expanding' || spaceState === 'iss_view' || spaceState === 'planet_view') { cameraRadius = Math.max(1.2, Math.min(3000, cameraRadius / ratio)); targetCameraZ = cameraRadius; } else { coreScale = Math.max(0.6, Math.min(2.2, pinchStartScale * ratio)); } } } });
         function endPointer(e) { if (landingState !== 'none') return; activePointers.delete(e.pointerId); if (activePointers.size === 0) { isDragging = false; container.classList.remove('touched'); clearTimeout(longPressTimer); const speed = Math.sqrt(pointerVelocity.x**2 + pointerVelocity.y**2); 
             
-            // CHECK FOR EARTH TAP HERE
-            if (!longPressActive && speed < 3 && checkEarthTap(e)) {
-                return; // Stop further processing, landing or ISS view triggered
+            if (!longPressActive && speed < 3) {
+                // Check planet tap first
+                if (checkPlanetTap(e)) return;
+                // Then check Earth tap
+                if (checkEarthTap(e)) return;
             }
 
             if (longPressActive && chargeLevel >= 0.95) { stopChargeSound(); playExplosionSound(); spawnExplosion(); touchBoost = 4.0; coreScaleVel += 0.9; coreRotVelY += 1.2; coreRotVelX -= 0.8; if (navigator.vibrate) navigator.vibrate([80, 40, 100, 40, 150, 40, 200]); setTimeout(() => { triggerSpaceExpand(); }, 700); } else if (longPressActive && chargeLevel > 0.3) { fadeOutChargeSound(0.5); touchBoost = 0.8; spawnRipple(0xf59e0b); coreScaleVel += 0.2; if (navigator.vibrate) navigator.vibrate(15); } else if (!longPressActive && speed < 3) { stopChargeSound(); touchBoost = 1.0; coreScaleVel += 0.15; spawnRipple(); if (navigator.vibrate) navigator.vibrate(15); } else { fadeOutChargeSound(0.3); } longPressActive = false; isCharging = false; isOnCenter = false; chargeLevel = 0; pointerVelocity = { x: 0, y: 0 }; } else if (activePointers.size === 1) { pinchStartDist = 0; } }
+        
+        function checkEarthTap(e) {
+            if (!earthObj || spaceState !== 'space') return false;
+            const rect = renderer.domElement.getBoundingClientRect();
+            pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+            pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+            raycaster.setFromCamera(pointer, camera);
+            const intersects = raycaster.intersectObject(earthObj, true);
+            if (intersects.length > 0) {
+                triggerISSView();
+                return true;
+            }
+            return false;
+        }
+        
         container.addEventListener('pointerup', endPointer); container.addEventListener('pointercancel', endPointer); container.addEventListener('touchstart', (e) => { if (landingState !== 'none') return; e.preventDefault(); }, { passive: false }); container.addEventListener('touchmove', (e) => { if (landingState !== 'none') return; e.preventDefault(); }, { passive: false });
 
         const _earthWorld = new THREE.Vector3(0, 0, 0); const _lookTarget = new THREE.Vector3(0, 0, 0);
@@ -907,7 +933,6 @@
             requestAnimationFrame(animate);
             const nowMs = Date.now();
             
-            // Handle Cinematic Landing Sequence
             if (landingState === 'diving') {
                 if (earthObj) {
                     earthObj.getWorldPosition(_earthWorld);
@@ -940,7 +965,7 @@
             const ep = spaceProgress < 0.5 ? 4 * spaceProgress * spaceProgress * spaceProgress : 1 - Math.pow(-2 * spaceProgress + 2, 3) / 2;
             const camDist = camera.position.length();
             
-            if (spaceState === 'space' || spaceState === 'expanding' || spaceState === 'iss_view') {
+            if (spaceState === 'space' || spaceState === 'expanding' || spaceState === 'iss_view' || spaceState === 'planet_view') {
                 if (camDist >= 150) solarAlpha = 0; else if (camDist <= 60) solarAlpha = 1; else solarAlpha = (150 - camDist) / 90; solarAlpha = Math.max(0, Math.min(1, solarAlpha));
                 milkyAlpha = Math.max(0, Math.min(1, camDist / 300));
                 if (camDist >= 20) earthFocusAmount = 0; else if (camDist <= 2.2) earthFocusAmount = 1; else earthFocusAmount = (20 - camDist) / 17.8; earthFocusAmount = Math.max(0, Math.min(1, earthFocusAmount));
@@ -948,7 +973,6 @@
                 solarAlpha = 0; milkyAlpha = 1; earthFocusAmount = 0;
             }
 
-            // Skybox opacity control
             if (milkyAlpha > 0.001) {
                 skybox.visible = true;
                 skybox.material.opacity = milkyAlpha;
@@ -959,6 +983,8 @@
             if (spaceProgress > 0.001) { milkyWayGroup.visible = true; milkyWayGroup.scale.setScalar(Math.max(0.001, ep)); milkyWayGroup.rotation.y += 0.0005; milkyWayGroup.traverse((o) => { if (o.material && o.material.opacity !== undefined) { if (o.userData.baseOpacity === undefined) o.userData.baseOpacity = o.material.opacity; o.material.opacity = o.userData.baseOpacity * milkyAlpha; } }); } else { milkyWayGroup.visible = false; }
             const solarFinal = ep * solarAlpha;
             if (solarFinal > 0.001) { solarSystemGroup.visible = true; solarSystemGroup.scale.setScalar(Math.max(0.001, solarFinal)); sunLight.intensity = 2.2 * solarAlpha; solarSystemGroup.traverse((o) => { if (o === sunCorona) return; if (o.material && o.material.transparent) { if (o.userData.baseOpacity === undefined) o.userData.baseOpacity = o.material.opacity; o.material.opacity = o.userData.baseOpacity * solarAlpha; } }); sunCorona.material.opacity = (0.85 + Math.sin(nowMs * 0.0015) * 0.15) * solarAlpha; } else { solarSystemGroup.visible = false; sunLight.intensity = 0; }
+            
+            // Update Sun
             if (solarAlpha > 0.02) { const ts = nowMs * 0.001; for (const grp of planetObjs) { const ud = grp.userData; const a = ud.angle + ts * ud.speed * 0.04; grp.position.set(Math.cos(a) * ud.orbit, 0, Math.sin(a) * ud.orbit); for (const child of grp.children) { if (child.userData && child.userData.rotSpd) child.rotation.y += child.userData.rotSpd * 0.1; } if (ud.moons) { for (const m of ud.moons) { m.angle += m.speed * 0.0015; m.grp.rotation.y = m.angle; } } } for (const ast of asteroidMeshes) { ast.userData.angle += ast.userData.speed * 0.008; const ra = ast.userData.angle; const r = ast.userData.dist; ast.position.x = Math.cos(ra) * r; ast.position.z = Math.sin(ra) * r; ast.rotation.x += ast.userData.rotSpd.x; ast.rotation.y += ast.userData.rotSpd.y; } sunMesh.rotation.y += 0.0008; const cs = 14 + Math.sin(ts * 2) * 0.4; sunCorona.scale.set(cs, cs, 1); }
             if (satelliteGroup) { const ts = nowMs * 0.001; for (const sat of satelliteGroup.children) { sat.userData.angle += sat.userData.speed * 0.01; const ra = sat.userData.angle; const r = sat.userData.orbitRadius; sat.position.set(Math.cos(ra) * r, Math.sin(ra) * r * Math.sin(sat.userData.incl), Math.sin(ra) * r * Math.cos(sat.userData.incl)); sat.rotation.y = -ra; } }
             if (spaceProgress > 0.01 && milkyAlpha > 0.05) { travelCometTimer -= 1; if (travelCometTimer <= 0 && travelComets.length < 4) { spawnTravelComet(); travelCometTimer = 200 + Math.floor(Math.random() * 100); } for (let i = travelComets.length - 1; i >= 0; i--) { const c = travelComets[i]; c.grp.position.addScaledVector(c.dir, c.speed); c.grp.lookAt(new THREE.Vector3(c.grp.position.x + c.dir.x, c.grp.position.y + c.dir.y, c.grp.position.z + c.dir.z)); c.life -= 0.003; if (c.life <= 0 || c.grp.position.length() > 3500) { milkyWayGroup.remove(c.grp); travelComets.splice(i, 1); } } for (const m of meteoroids) { m.grp.rotation.x += m.rotSpd.x; m.grp.rotation.y += m.rotSpd.y; m.grp.rotation.z += m.rotSpd.z; } }
@@ -983,6 +1009,29 @@
                 const z = _lookTarget.z + cameraRadius * Math.cos(cameraPhi) * Math.cos(cameraTheta);
                 camera.position.lerp(new THREE.Vector3(x, y, z), 0.1);
                 camera.lookAt(_lookTarget);
+            } else if (spaceState === 'planet_view' && focusedPlanet) {
+                // Smoothly move towards the focused planet
+                if (focusedPlanet === sunGroup) {
+                    // Sun
+                    targetCameraZ = 8;
+                    cameraRadius += (targetCameraZ - cameraRadius) * 0.08;
+                    const targetPos = new THREE.Vector3(0, 0, 0); // Sun is at origin
+                    const x = targetPos.x + cameraRadius * Math.cos(cameraPhi) * Math.sin(cameraTheta);
+                    const y = targetPos.y + cameraRadius * Math.sin(cameraPhi);
+                    const z = targetPos.z + cameraRadius * Math.cos(cameraPhi) * Math.cos(cameraTheta);
+                    camera.position.lerp(new THREE.Vector3(x, y, z), 0.08);
+                    camera.lookAt(targetPos);
+                } else {
+                    // Other planets
+                    focusedPlanet.getWorldPosition(_earthWorld);
+                    targetCameraZ = focusedPlanet.userData.radius * 4;
+                    cameraRadius += (targetCameraZ - cameraRadius) * 0.08;
+                    const x = _earthWorld.x + cameraRadius * Math.cos(cameraPhi) * Math.sin(cameraTheta);
+                    const y = _earthWorld.y + cameraRadius * Math.sin(cameraPhi);
+                    const z = _earthWorld.z + cameraRadius * Math.cos(cameraPhi) * Math.cos(cameraTheta);
+                    camera.position.lerp(new THREE.Vector3(x, y, z), 0.08);
+                    camera.lookAt(_earthWorld);
+                }
             } else if (spaceState === 'expanding' || spaceState === 'collapsing') {
                 const sX = SPACE_CAM_Z * Math.cos(0.55) * Math.sin(0);
                 const sY = SPACE_CAM_Z * Math.sin(0.55);
@@ -1557,25 +1606,23 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
             document.getElementById('street-view-container').style.display = 'none';
             document.getElementById('btn-dubai').style.display = 'none';
             
-            map = L.map('map', { zoomControl: false, attributionControl: false }).setView([20.0, 100.0], 3); // Full Earth / Asia
+            map = L.map('map', { zoomControl: false, attributionControl: false }).setView([20.0, 100.0], 3);
             L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
                 maxZoom: 19,
                 attribution: 'Tiles &copy; Esri'
             }).addTo(map);
             
-            // Cinematic flythrough - Start wide and zoom in
             setTimeout(() => {
-                map.flyTo([20.5937, 78.9629], 5, { duration: 3 }); // India
+                map.flyTo([20.5937, 78.9629], 5, { duration: 3 });
                 setTimeout(() => {
-                    map.flyTo([10.8505, 76.2711], 8, { duration: 3 }); // Kerala
+                    map.flyTo([10.8505, 76.2711], 8, { duration: 3 });
                     setTimeout(() => {
-                        map.flyTo([10.7867, 76.6548], 11, { duration: 3 }); // Palakkad
+                        map.flyTo([10.7867, 76.6548], 11, { duration: 3 });
                         setTimeout(() => {
-                            map.flyTo([10.7728, 76.3721], 17, { duration: 4 }); // Palappuram NSS College
+                            map.flyTo([10.7728, 76.3721], 17, { duration: 4 });
                             setTimeout(() => {
-                                // Show Street View after reaching Palappuram NSS College
                                 showStreetView(10.7728, 76.3721);
-                                document.getElementById('btn-dubai').style.display = 'block'; // Show Dubai button
+                                document.getElementById('btn-dubai').style.display = 'block';
                             }, 4000);
                         }, 3500);
                     }, 3500);
@@ -1598,13 +1645,12 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
             document.getElementById('btn-dubai').style.display = 'none';
             document.getElementById('map-exit').style.display = 'none';
 
-            // Create flight path
             const flightPath = [
-                [10.7728, 76.3721], // Palappuram
-                [10.1520, 76.4000], // Cochin Airport
-                [15.0000, 65.0000], // Mid-ocean
-                [25.2532, 55.3657], // Dubai Airport
-                [25.2854, 55.3742]  // Al Qusais Metro
+                [10.7728, 76.3721],
+                [10.1520, 76.4000],
+                [15.0000, 65.0000],
+                [25.2532, 55.3657],
+                [25.2854, 55.3742]
             ];
 
             const polyline = L.polyline(flightPath, { color: '#8b5cf6', weight: 3, dashArray: '5, 10' }).addTo(map);
@@ -1620,11 +1666,10 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
                 planeMarker.setLatLng(end);
             }, 3000);
 
-            // Final step: Al Qusais
             setTimeout(() => {
                 map.flyTo([25.2854, 55.3742], 17, { duration: 3 });
                 setTimeout(() => {
-                    showStreetView(25.2854, 55.3742); // Show Street View at Al Qusais
+                    showStreetView(25.2854, 55.3742);
                     document.getElementById('map-exit').style.display = 'flex';
                 }, 3000);
             }, 12000);
