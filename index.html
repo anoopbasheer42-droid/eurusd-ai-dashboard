@@ -9,12 +9,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
@@ -72,13 +66,24 @@
         #canvas-container:active { cursor: grabbing; }
         #canvas-container.touched { filter: drop-shadow(0 0 25px rgba(167,139,250,0.7)); transition: filter 0.3s ease; }
         .subtitle { text-align: center; font-family: 'Space Grotesk', sans-serif; font-size: 0.6rem; letter-spacing: 0.3em; color: var(--text-subtle); margin-top: 10px; font-weight: 500; text-transform: uppercase; }
-        #map-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 99999; opacity: 0; pointer-events: none; transition: opacity 1.5s ease; background: #000; display: flex; flex-direction: column; }
+        
+        #map-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 99999; opacity: 0; pointer-events: none; transition: opacity 1.5s ease;
+            background: #000; display: flex; flex-direction: column;
+        }
         #map-overlay.active { opacity: 1; pointer-events: auto; }
         #map { width: 100%; height: 100%; background: #000; flex: 1; }
-        #street-view-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; z-index: 100000; background: #000; }
-        #map-exit { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 100000; display: none; gap: 12px; }
+        #street-view-container {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; z-index: 100000; background: #000;
+        }
+        #map-exit {
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            z-index: 100000; display: none; gap: 12px;
+        }
         #map-exit.active { display: flex; animation: fadeIn 0.5s ease; }
         .plane-icon { background: transparent; font-size: 20px; text-align: center; line-height: 20px; }
+
         .signal-card { text-align: center; padding: 30px 24px; }
         #signal-text { font-family: 'Space Grotesk', sans-serif; font-size: 2.8rem; font-weight: 700; letter-spacing: 0.08em; color: var(--text-subtle); transition: all 0.4s ease; margin-bottom: 12px; line-height: 1; text-shadow: 0 0 30px currentColor; }
         .signal-status-line { font-family: 'JetBrains Mono', monospace; font-size: 0.66rem; color: var(--text-subtle); letter-spacing: 0.15em; margin-bottom: 24px; text-transform: uppercase; font-weight: 500; }
@@ -127,8 +132,6 @@
         .fade-in { animation: fadeIn 0.3s ease-in; }
         .pulse-dot { display: inline-block; width: 6px; height: 6px; background: var(--green); border-radius: 50%; margin-right: 6px; box-shadow: 0 0 10px var(--green); animation: pulse 2s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
-        body.mode-5d .card { border-color: rgba(59, 130, 246, 0.6); box-shadow: 0 0 40px rgba(59, 130, 246, 0.3); }
-        body.mode-5d #canvas-container { filter: contrast(1.25) saturate(1.6) hue-rotate(15deg); }
     </style>
 </head>
 <body>
@@ -278,12 +281,6 @@
             <div class="card-title">AI Trader's Reasoning</div>
             <div class="reasoning-text" id="val-reason">Engine scanning. AI auto-analyzes hourly.</div>
         </div>
-        
-        <!-- 5D Toggle Button -->
-        <div class="card" style="padding: 12px; text-align: center; margin-top: 10px;">
-            <button class="btn" id="btn-5d" onclick="toggle5D()">5D MODE: OFF</button>
-        </div>
-        
     </div>
     <script>
         const GROQ_MODELS = ['meta-llama/llama-4-scout-17b-16e-instruct','llama-3.3-70b-versatile','openai/gpt-oss-120b'];
@@ -309,31 +306,8 @@
         let elevenLabsApiKey = localStorage.getItem('eurusd_elevenlabs_api_key') || '';
         let voiceEngineMode = localStorage.getItem('eurusd_voice_engine_mode') || 'cloud';
         let currentAudio = null;
-        let is5DMode = false;
 
         document.body.addEventListener('click', () => { if ('speechSynthesis' in window) window.speechSynthesis.getVoices(); }, { once: true });
-
-        function toggle5D() {
-            is5DMode = !is5DMode;
-            const btn = document.getElementById('btn-5d');
-            if (is5DMode) {
-                document.body.classList.add('mode-5d');
-                btn.innerText = '5D MODE: ON';
-                btn.classList.add('active');
-            } else {
-                document.body.classList.remove('mode-5d');
-                btn.innerText = '5D MODE: OFF';
-                btn.classList.remove('active');
-            }
-            if (typeof hyperShell1 !== 'undefined') {
-                hyperShell1.visible = is5DMode;
-                hyperShell2.visible = is5DMode;
-                hyperShell3.visible = is5DMode;
-            }
-            if (typeof tesseractGroup !== 'undefined') tesseractGroup.visible = is5DMode;
-            if (typeof chromaticPass !== 'undefined' && chromaticPass) chromaticPass.uniforms.uKaleido.value = is5DMode ? 1.0 : 0.0;
-            if (typeof bloomPass !== 'undefined' && bloomPass) bloomPass.strength = is5DMode ? 1.9 : 1.1;
-        }
 
         function updateISTClock() {
             const istTime = new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false });
@@ -414,7 +388,6 @@
         // === AUDIO ENGINE ===
         let audioCtx = null;
         let chargeOsc1 = null, chargeOsc2 = null, chargeGain = null, chargeTickGain = null, chargeTickOsc = null;
-        let spaceDrone = null, spaceDroneGain = null;
         function initAudio() {
             if (!audioCtx) {
                 try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
@@ -423,40 +396,6 @@
             if (audioCtx.state === 'suspended') audioCtx.resume();
             return audioCtx;
         }
-        function startSpaceDrone() {
-            const ctx = initAudio();
-            if (!ctx || spaceDrone) return;
-            try {
-                spaceDrone = ctx.createOscillator();
-                spaceDrone.type = 'sine';
-                spaceDrone.frequency.value = 42;
-                const lfo = ctx.createOscillator();
-                lfo.type = 'sine';
-                lfo.frequency.value = 0.12;
-                const lfoGain = ctx.createGain();
-                lfoGain.gain.value = 6;
-                lfo.connect(lfoGain);
-                lfoGain.connect(spaceDrone.frequency);
-                spaceDroneGain = ctx.createGain();
-                spaceDroneGain.gain.value = 0.0001;
-                const filter = ctx.createBiquadFilter();
-                filter.type = 'lowpass';
-                filter.frequency.value = 180;
-                spaceDrone.connect(filter);
-                filter.connect(spaceDroneGain);
-                spaceDroneGain.connect(ctx.destination);
-                spaceDrone.start();
-                lfo.start();
-                spaceDrone.userData = { lfo };
-            } catch(e) { console.warn("Space drone failed:", e); }
-        }
-        function updateSpaceDrone(volume) {
-            if (!spaceDroneGain || !audioCtx) return;
-            const now = audioCtx.currentTime;
-            spaceDroneGain.gain.cancelScheduledValues(now);
-            spaceDroneGain.gain.linearRampToValueAtTime(Math.max(0.0001, volume), now + 0.5);
-        }
-
         function startChargeSound() {
             const ctx = initAudio();
             if (!ctx) return;
@@ -625,18 +564,6 @@
                 aftOsc.start(t2);
                 aftOsc.stop(t2 + 0.8);
             }, 350);
-            setTimeout(() => {
-                const ctx2 = initAudio(); if (!ctx2) return;
-                const t = ctx2.currentTime;
-                const ringOsc = ctx2.createOscillator();
-                ringOsc.type = 'sine'; ringOsc.frequency.value = 6400;
-                const rGain = ctx2.createGain();
-                rGain.gain.setValueAtTime(0.0001, t);
-                rGain.gain.linearRampToValueAtTime(0.09, t + 0.05);
-                rGain.gain.exponentialRampToValueAtTime(0.0001, t + 3.5);
-                ringOsc.connect(rGain); rGain.connect(ctx2.destination);
-                ringOsc.start(t); ringOsc.stop(t + 3.6);
-            }, 800);
         }
 
         // === THREE.JS COSMIC ENGINE ===
@@ -650,50 +577,7 @@
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
         renderer.toneMappingExposure = 1.1;
         container.appendChild(renderer.domElement);
-
-        // ===== CINEMATIC POST-PROCESSING PIPELINE =====
-        let composer = null, bloomPass = null, chromaticPass = null;
-        (function initCinematicPipeline() {
-            try {
-                if (!THREE.EffectComposer || !THREE.RenderPass || !THREE.UnrealBloomPass || !THREE.ShaderPass) return;
-                composer = new THREE.EffectComposer(renderer);
-                composer.addPass(new THREE.RenderPass(scene, camera));
-                bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(container.clientWidth, container.clientHeight), 1.1, 0.65, 0.85);
-                composer.addPass(bloomPass);
-                const CinematicShader = {
-                    uniforms: { tDiffuse:{value:null}, uTime:{value:0}, uAberration:{value:0.0015}, uVignette:{value:0.85}, uGrain:{value:0.06}, uKaleido:{value:0.0} },
-                    vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
-                    fragmentShader: `
-                        uniform sampler2D tDiffuse; uniform float uTime; uniform float uAberration; uniform float uVignette; uniform float uGrain; uniform float uKaleido;
-                        varying vec2 vUv;
-                        float rand(vec2 co){ return fract(sin(dot(co.xy, vec2(12.9898,78.233))) * 43758.5453); }
-                        void main(){
-                            vec2 uv = vUv;
-                            if (uKaleido > 0.01) {
-                                vec2 p = uv - 0.5; float a = atan(p.y, p.x); float r = length(p); float seg = 3.14159265 / 6.0;
-                                a = mod(a, seg * 2.0); a = abs(a - seg); p = vec2(cos(a), sin(a)) * r; uv = p + 0.5;
-                            }
-                            float ab = uAberration * (1.0 + uKaleido * 4.0);
-                            vec2 dir = uv - 0.5;
-                            float r = texture2D(tDiffuse, uv + dir * ab).r;
-                            float g = texture2D(tDiffuse, uv).g;
-                            float b = texture2D(tDiffuse, uv - dir * ab).b;
-                            vec3 col = vec3(r, g, b);
-                            float d = distance(uv, vec2(0.5));
-                            float v = smoothstep(0.85, 0.35, d * uVignette + 0.15);
-                            col *= mix(0.35, 1.0, v);
-                            float n = rand(uv + uTime * 0.001);
-                            col += (n - 0.5) * uGrain;
-                            gl_FragColor = vec4(col, 1.0);
-                        }
-                    `
-                };
-                chromaticPass = new THREE.ShaderPass(CinematicShader);
-                chromaticPass.renderToScreen = true;
-                composer.addPass(chromaticPass);
-            } catch(e) { console.warn("Post-processing unavailable.", e); composer = null; }
-        })();
-
+        
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.18);
         scene.add(ambientLight);
 
@@ -702,12 +586,8 @@
         const innerCore = new THREE.Mesh(new THREE.IcosahedronGeometry(1.0, 1), new THREE.MeshBasicMaterial({ color: 0xa78bfa, wireframe: true, transparent: true, opacity: 0.75 }));
         const midShell = new THREE.Mesh(new THREE.IcosahedronGeometry(1.6, 1), new THREE.MeshBasicMaterial({ color: 0x8b5cf6, wireframe: true, transparent: true, opacity: 0.4 }));
         const outerShell = new THREE.Mesh(new THREE.IcosahedronGeometry(2.2, 1), new THREE.MeshBasicMaterial({ color: 0x7c3aed, wireframe: true, transparent: true, opacity: 0.2 }));
-        const hyperShell1 = new THREE.Mesh(new THREE.IcosahedronGeometry(2.8, 1), new THREE.MeshBasicMaterial({ color: 0x06b6d4, wireframe: true, transparent: true, opacity: 0.30 }));
-        const hyperShell2 = new THREE.Mesh(new THREE.IcosahedronGeometry(3.4, 1), new THREE.MeshBasicMaterial({ color: 0xf472b6, wireframe: true, transparent: true, opacity: 0.16 }));
-        const hyperShell3 = new THREE.Mesh(new THREE.IcosahedronGeometry(4.2, 1), new THREE.MeshBasicMaterial({ color: 0x3b82f6, wireframe: true, transparent: true, opacity: 0.08 }));
-        hyperShell1.visible = false; hyperShell2.visible = false; hyperShell3.visible = false;
         const coreGroup = new THREE.Group();
-        coreGroup.add(glowSphere, innerBright, innerCore, midShell, outerShell, hyperShell1, hyperShell2, hyperShell3);
+        coreGroup.add(glowSphere, innerBright, innerCore, midShell, outerShell);
         scene.add(coreGroup);
 
         function makeCircularStarTexture(colorHex) {
@@ -831,179 +711,26 @@
             for (let i = 0; i < 15; i++) { const mg = new THREE.Group(); const geoFn = geoTypes[Math.floor(Math.random() * geoTypes.length)]; const col = colors[Math.floor(Math.random() * colors.length)]; const mMesh = new THREE.Mesh(geoFn(), new THREE.MeshStandardMaterial({ color: col, roughness: 0.85, metalness: 0.2 })); mMesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI); mg.add(mMesh); const angle = Math.random() * Math.PI * 2; const dist = 60 + Math.random() * 120; mg.position.set(Math.cos(angle) * dist, (Math.random() - 0.5) * 60, Math.sin(angle) * dist); milkyWayGroup.add(mg); meteoroids.push({ grp: mg, rotSpd: new THREE.Vector3((Math.random()-0.5)*0.025, (Math.random()-0.5)*0.025, (Math.random()-0.5)*0.025) }); }
         })();
 
-        // ===== CINEMATIC ADDITIONS =====
-        // 1. Black Hole
-        const blackHoleGroup = new THREE.Group();
-        blackHoleGroup.position.set(-550, 120, -700);
-        (function buildBlackHole() {
-            const horizon = new THREE.Mesh(new THREE.SphereGeometry(12, 48, 48), new THREE.MeshBasicMaterial({ color: 0x000000 }));
-            blackHoleGroup.add(horizon);
-            const photonRing = new THREE.Mesh(new THREE.RingGeometry(12.5, 14, 128), new THREE.MeshBasicMaterial({ color: 0xffcc88, transparent: true, opacity: 0.9, side: THREE.DoubleSide, blending: THREE.AdditiveBlending }));
-            photonRing.rotation.x = Math.PI / 2.3;
-            blackHoleGroup.add(photonRing);
-            const diskCanvas = _canvas(512, 512);
-            const dctx = diskCanvas.getContext('2d');
-            for (let i = 0; i < 1800; i++) {
-                const a = Math.random() * Math.PI * 2;
-                const r = 16 + Math.random() * 34;
-                const g = dctx.createRadialGradient(256, 256, 0, 256, 256, 256);
-                g.addColorStop(0, 'rgba(255,220,140,0.9)');
-                g.addColorStop(0.5, 'rgba(255,140,60,0.5)');
-                g.addColorStop(1, 'rgba(120,40,20,0)');
-                dctx.fillStyle = g;
-                dctx.beginPath();
-                dctx.arc(256 + Math.cos(a)*r*3, 256 + Math.sin(a)*r*3, 2 + Math.random()*3, 0, Math.PI*2);
-                dctx.fill();
-            }
-            const diskTex = new THREE.CanvasTexture(diskCanvas);
-            const disk1 = new THREE.Mesh(new THREE.RingGeometry(16, 55, 128), new THREE.MeshBasicMaterial({ map: diskTex, transparent: true, opacity: 0.85, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false }));
-            disk1.rotation.x = Math.PI / 2.5;
-            blackHoleGroup.add(disk1);
-            const disk2 = new THREE.Mesh(new THREE.RingGeometry(55, 90, 128), new THREE.MeshBasicMaterial({ color: 0xff5533, transparent: true, opacity: 0.2, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false }));
-            disk2.rotation.x = Math.PI / 2.5;
-            blackHoleGroup.add(disk2);
-            blackHoleGroup.userData = { disk1, disk2, photonRing };
-        })();
-        milkyWayGroup.add(blackHoleGroup);
-
-        // 2. Pulsars
-        const pulsars = [];
-        (function buildPulsars() {
-            for (let i = 0; i < 4; i++) {
-                const grp = new THREE.Group();
-                const core = new THREE.Mesh(new THREE.SphereGeometry(0.9, 16, 16), new THREE.MeshBasicMaterial({ color: 0x88ddff }));
-                grp.add(core);
-                for (let s = 1; s >= -1; s -= 2) {
-                    const beam = new THREE.Mesh(new THREE.ConeGeometry(2.5, 60, 24, 1, true), new THREE.MeshBasicMaterial({ color: 0x44aaff, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, depthWrite: false }));
-                    beam.position.y = s * 30;
-                    beam.rotation.x = s > 0 ? 0 : Math.PI;
-                    grp.add(beam);
-                }
-                const r = 250 + Math.random() * 400;
-                const theta = Math.random() * Math.PI * 2;
-                grp.position.set(Math.cos(theta)*r, (Math.random()-0.5)*200, Math.sin(theta)*r);
-                grp.userData = { spin: (0.02 + Math.random()*0.04) * (Math.random() > 0.5 ? 1 : -1), tilt: Math.random() * Math.PI };
-                grp.rotation.z = grp.userData.tilt;
-                milkyWayGroup.add(grp);
-                pulsars.push(grp);
-            }
-        })();
-
-        // 3. Solar Flares
-        const solarFlares = [];
-        (function buildSolarFlares() {
-            for (let i = 0; i < 6; i++) {
-                const arc = new THREE.Mesh(new THREE.TorusGeometry(1.9 + Math.random()*0.4, 0.08, 8, 40, Math.PI * (0.5 + Math.random()*0.5)), new THREE.MeshBasicMaterial({ color: 0xff8822, transparent: true, opacity: 0, blending: THREE.AdditiveBlending }));
-                arc.rotation.set(Math.random()*Math.PI, Math.random()*Math.PI, Math.random()*Math.PI);
-                sunGroup.add(arc);
-                solarFlares.push({ mesh: arc, life: 0, timer: Math.random() * 500, delay: 200 + Math.random()*400 });
-            }
-        })();
-
-        // 4. Tesseract
-        const tesseractGroup = new THREE.Group();
-        tesseractGroup.visible = false;
-        (function buildTesseract() {
-            const outerGeo = new THREE.BoxGeometry(3.4, 3.4, 3.4);
-            const innerGeo = new THREE.BoxGeometry(1.6, 1.6, 1.6);
-            const outerEdges = new THREE.LineSegments(new THREE.EdgesGeometry(outerGeo), new THREE.LineBasicMaterial({ color: 0x06b6d4, transparent: true, opacity: 0.85 }));
-            const innerEdges = new THREE.LineSegments(new THREE.EdgesGeometry(innerGeo), new THREE.LineBasicMaterial({ color: 0xf472b6, transparent: true, opacity: 0.9 }));
-            const outerVerts = outerGeo.attributes.position.array;
-            const innerVerts = innerGeo.attributes.position.array;
-            const connGeo = new THREE.BufferGeometry();
-            const connPos = [];
-            for (let i = 0; i < outerVerts.length; i += 3) {
-                connPos.push(outerVerts[i], outerVerts[i+1], outerVerts[i+2]);
-                connPos.push(innerVerts[i], innerVerts[i+1], innerVerts[i+2]);
-            }
-            connGeo.setAttribute('position', new THREE.Float32BufferAttribute(connPos, 3));
-            const connectors = new THREE.LineSegments(connGeo, new THREE.LineBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.5 }));
-            tesseractGroup.add(outerEdges, innerEdges, connectors);
-            tesseractGroup.userData = { outerEdges, innerEdges, connectors };
-            coreGroup.add(tesseractGroup);
-        })();
-
-        // 5. Volumetric Nebula Drift
-        const driftNebulae = [];
-        (function buildDriftNebulae() {
-            const palette = [0x8b5cf6, 0x3b82f6, 0xf472b6, 0x06b6d4, 0xa78bfa];
-            for (let i = 0; i < 25; i++) {
-                const canvas = _canvas(256, 256);
-                const ctx = canvas.getContext('2d');
-                const col = palette[Math.floor(Math.random()*palette.length)];
-                const hex = '#' + col.toString(16).padStart(6,'0');
-                const grd = ctx.createRadialGradient(128,128,0,128,128,128);
-                grd.addColorStop(0, hex + '55');
-                grd.addColorStop(0.5, hex + '18');
-                grd.addColorStop(1, hex + '00');
-                ctx.fillStyle = grd;
-                ctx.fillRect(0,0,256,256);
-                const tex = new THREE.CanvasTexture(canvas);
-                const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0.4, depthWrite: false, blending: THREE.AdditiveBlending }));
-                const r = 300 + Math.random()*500;
-                const theta = Math.random()*Math.PI*2;
-                const phi = Math.acos(2*Math.random()-1);
-                spr.position.set(r*Math.sin(phi)*Math.cos(theta), r*Math.sin(phi)*Math.sin(theta)*0.6, r*Math.cos(phi));
-                const s = 400 + Math.random()*500;
-                spr.scale.set(s, s, 1);
-                spr.userData = { driftPhase: Math.random()*Math.PI*2, driftSpeed: 0.00015 + Math.random()*0.0003, basePos: spr.position.clone() };
-                milkyWayGroup.add(spr);
-                driftNebulae.push(spr);
-            }
-        })();
-
-        // 6. Radio Telescope
-        const telescopeGroup = new THREE.Group();
-        (function buildTelescope() {
-            const base = new THREE.Mesh(new THREE.DodecahedronGeometry(6, 0), new THREE.MeshStandardMaterial({ color: 0x554433, roughness: 0.9, metalness: 0.3 }));
-            telescopeGroup.add(base);
-            for (let i = 0; i < 5; i++) {
-                const dish = new THREE.Group();
-                const dishGeo = new THREE.SphereGeometry(1.8, 24, 16, 0, Math.PI*2, 0, Math.PI/2.4);
-                const dishMesh = new THREE.Mesh(dishGeo, new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.85, roughness: 0.2, side: THREE.DoubleSide }));
-                dishMesh.rotation.x = Math.PI;
-                dish.add(dishMesh);
-                const a = (i / 5) * Math.PI * 2;
-                const r = 4;
-                dish.position.set(Math.cos(a)*r, 4 + Math.random()*0.5, Math.sin(a)*r);
-                dish.lookAt(0, 40, 0);
-                telescopeGroup.add(dish);
-            }
-            telescopeGroup.position.set(420, -80, -300);
-            telescopeGroup.userData = { base };
-        })();
-        milkyWayGroup.add(telescopeGroup);
-
-        // --- ASTEROID IMPACT POOL ---
-        const impactPool = [];
-        function spawnImpactFlash(planet) {
-            const free = impactPool.find(i => i.life <= 0);
-            if (!free) return;
-            planet.getWorldPosition(free.sprite.position);
-            const p = planet.userData.sphere.geometry.parameters.radius;
-            const theta = Math.random() * Math.PI * 2;
-            const phi = Math.acos(2*Math.random()-1);
-            free.sprite.position.x += p * Math.sin(phi) * Math.cos(theta);
-            free.sprite.position.y += p * Math.sin(phi) * Math.sin(theta);
-            free.sprite.position.z += p * Math.cos(phi);
-            free.sprite.scale.set(1.5, 1.5, 1);
-            free.sprite.visible = true;
-            free.life = 1;
-        }
-        let impactTimer = 400;
-
         // === SOLAR SYSTEM ===
         const solarSystemGroup = new THREE.Group();
         solarSystemGroup.visible = false;
         scene.add(solarSystemGroup);
 
+        // === REALISTIC SUN (photo-real texture, no artificial fire) ===
         const sunGroup = new THREE.Group();
-        const sunMesh = new THREE.Mesh(new THREE.SphereGeometry(1.6, 128, 128), new THREE.MeshBasicMaterial({ color: 0xffcc66 }));
+        const sunMesh = new THREE.Mesh(
+            new THREE.SphereGeometry(1.6, 128, 128),
+            new THREE.MeshBasicMaterial({ color: 0xffcc66 })
+        );
         sunGroup.add(sunMesh);
 
         const sunCoronaCanvas = _canvas(1024, 1024);
         { const ctx = sunCoronaCanvas.getContext('2d'); const g = ctx.createRadialGradient(512, 512, 120, 512, 512, 512); 
-          g.addColorStop(0, 'rgba(255,245,200,1)'); g.addColorStop(0.15, 'rgba(255,220,120,0.85)'); g.addColorStop(0.35, 'rgba(255,160,60,0.45)'); g.addColorStop(0.6, 'rgba(255,110,30,0.15)'); g.addColorStop(1, 'rgba(255,70,10,0)'); 
+          g.addColorStop(0, 'rgba(255,245,200,1)'); 
+          g.addColorStop(0.15, 'rgba(255,220,120,0.85)'); 
+          g.addColorStop(0.35, 'rgba(255,160,60,0.45)'); 
+          g.addColorStop(0.6, 'rgba(255,110,30,0.15)'); 
+          g.addColorStop(1, 'rgba(255,70,10,0)'); 
           ctx.fillStyle = g; ctx.fillRect(0, 0, 1024, 1024); }
         const sunCorona = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(sunCoronaCanvas), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
         sunCorona.scale.set(14, 14, 1); sunGroup.add(sunCorona);
@@ -1036,7 +763,12 @@
         for (const p of PLANET_DATA) {
             const grp = new THREE.Group();
             const baseTex = p.name === 'Earth' ? makeEarthTexFallback() : makeSimpleTex(p.fb[0], p.fb[1]);
-            const mat = new THREE.MeshStandardMaterial({ map: baseTex, roughness: p.roughness || 0.8, metalness: p.metalness || 0.05, envMapIntensity: 0.4 });
+            const mat = new THREE.MeshStandardMaterial({ 
+                map: baseTex, 
+                roughness: p.roughness || 0.8, 
+                metalness: p.metalness || 0.05,
+                envMapIntensity: 0.4
+            });
             const sphere = new THREE.Mesh(new THREE.SphereGeometry(p.r, 96, 96), mat);
             sphere.userData.rotSpd = p.rotSpd;
             grp.add(sphere);
@@ -1053,7 +785,14 @@
                     cctx.arc(x, y, r, 0, Math.PI*2);
                     cctx.fill();
                 }
-                const cloudMesh = new THREE.Mesh(new THREE.SphereGeometry(p.r * 1.018, 96, 96), new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(cloudCanvas), transparent: true, opacity: 0.85, depthWrite: false, roughness: 0.9, metalness: 0 }));
+                const cloudMesh = new THREE.Mesh(new THREE.SphereGeometry(p.r * 1.018, 96, 96), new THREE.MeshStandardMaterial({ 
+                    map: new THREE.CanvasTexture(cloudCanvas), 
+                    transparent: true, 
+                    opacity: 0.85, 
+                    depthWrite: false,
+                    roughness: 0.9,
+                    metalness: 0
+                }));
                 cloudMesh.userData.rotSpd = p.rotSpd * 1.35;
                 cloudMesh.userData.isCloud = true;
                 grp.add(cloudMesh);
@@ -1069,10 +808,22 @@
                 ag.addColorStop(1, ahex + '00');
                 actx.fillStyle = ag;
                 actx.fillRect(0, 0, 512, 512);
-                const atmo = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(aCanvas), transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending }));
+                const atmo = new THREE.Sprite(new THREE.SpriteMaterial({ 
+                    map: new THREE.CanvasTexture(aCanvas), 
+                    transparent: true, 
+                    opacity: 0.55, 
+                    depthWrite: false, 
+                    blending: THREE.AdditiveBlending 
+                }));
                 atmo.scale.set(p.r * 2.7, p.r * 2.7, 1);
                 grp.add(atmo);
-                const atmo2 = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(aCanvas), transparent: true, opacity: 0.3, depthWrite: false, blending: THREE.AdditiveBlending }));
+                const atmo2 = new THREE.Sprite(new THREE.SpriteMaterial({ 
+                    map: new THREE.CanvasTexture(aCanvas), 
+                    transparent: true, 
+                    opacity: 0.3, 
+                    depthWrite: false, 
+                    blending: THREE.AdditiveBlending 
+                }));
                 atmo2.scale.set(p.r * 4.2, p.r * 4.2, 1);
                 grp.add(atmo2);
             }
@@ -1108,7 +859,11 @@
                         mctx.arc(Math.random()*512, Math.random()*256, 2 + Math.random()*15, 0, Math.PI*2);
                         mctx.fill();
                     }
-                    const moonMesh = new THREE.Mesh(new THREE.SphereGeometry(m.r, 64, 64), new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(moonCanvas), roughness: 0.95, metalness: 0.02 }));
+                    const moonMesh = new THREE.Mesh(new THREE.SphereGeometry(m.r, 64, 64), new THREE.MeshStandardMaterial({ 
+                        map: new THREE.CanvasTexture(moonCanvas), 
+                        roughness: 0.95, 
+                        metalness: 0.02 
+                    }));
                     moonMesh.position.x = m.o;
                     moonMesh.userData.isMoon = true;
                     moonGrp.add(moonMesh);
@@ -1141,35 +896,6 @@
             asteroidMeshes.push(ast);
         }
         solarSystemGroup.add(asteroidBeltGroup);
-
-        // Build impact pool now that solarSystemGroup exists
-        (function buildImpactPool() {
-            for (let i = 0; i < 12; i++) {
-                const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: cometHeadTex, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, color: 0xffaa33 }));
-                spr.scale.set(2, 2, 1);
-                spr.visible = false;
-                solarSystemGroup.add(spr);
-                impactPool.push({ sprite: spr, life: 0 });
-            }
-        })();
-
-        // Planet labels
-        const planetLabels = [];
-        planetObjs.forEach(p => {
-            const name = p.userData.name;
-            const canvas = _canvas(256, 64);
-            const ctx = canvas.getContext('2d');
-            ctx.font = 'bold 28px "Space Grotesk", sans-serif';
-            ctx.fillStyle = 'rgba(167,139,250,0.95)';
-            ctx.textAlign = 'center';
-            ctx.fillText(name.toUpperCase(), 128, 40);
-            const tex = new THREE.CanvasTexture(canvas);
-            const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0.9, depthWrite: false, depthTest: false }));
-            spr.scale.set(3, 0.75, 1);
-            spr.position.set(0, p.userData.sphere.geometry.parameters.radius + 1.2, 0);
-            p.add(spr);
-            planetLabels.push(spr);
-        });
 
         const satelliteGroup = new THREE.Group();
         if (earthObj) {
@@ -1213,7 +939,12 @@
         texLoader.setCrossOrigin('anonymous');
         
         const skyboxGeo = new THREE.SphereGeometry(4000, 64, 64);
-        const skyboxMat = new THREE.MeshBasicMaterial({ map: texLoader.load('https://threejs.org/examples/textures/planets/starfield.png'), side: THREE.BackSide, transparent: true, opacity: 0 });
+        const skyboxMat = new THREE.MeshBasicMaterial({ 
+            map: texLoader.load('https://threejs.org/examples/textures/planets/starfield.png'), 
+            side: THREE.BackSide, 
+            transparent: true, 
+            opacity: 0 
+        });
         const skybox = new THREE.Mesh(skyboxGeo, skyboxMat);
         scene.add(skybox);
 
@@ -1229,6 +960,7 @@
             }, undefined, () => {});
         }
 
+        // === LOAD SUN REAL TEXTURE (photo-real) ===
         loadRealTex('Sun', (tex) => {
             tex.encoding = THREE.sRGBEncoding;
             sunMesh.material.map = tex;
@@ -1293,14 +1025,16 @@
         let lastInteractionTime = Date.now(); const IDLE_COLLAPSE_MS = 5 * 60 * 1000;
 
         function resetIdleTimer() { lastInteractionTime = Date.now(); }
+        
+        // New global listeners to ensure idle timer resets on any interaction
         window.addEventListener('pointerdown', resetIdleTimer);
         window.addEventListener('pointermove', resetIdleTimer);
         window.addEventListener('wheel', resetIdleTimer);
         window.addEventListener('touchstart', resetIdleTimer);
         window.addEventListener('touchmove', resetIdleTimer);
 
-        function triggerSpaceExpand() { if (spaceState === 'expanding' || spaceState === 'space') return; spaceState = 'expanding'; spacePhaseStart = Date.now(); spaceProgress = 0; cameraTheta = 0; cameraPhi = 0.55; cameraRadius = SPACE_CAM_Z; targetCameraZ = SPACE_CAM_Z; solarAlpha = 0; milkyAlpha = 1; earthFocusAmount = 0; currentZoomIndex = 0; resetIdleTimer(); startSpaceDrone(); updateSpaceDrone(0.10); }
-        function triggerSpaceCollapse() { if (spaceState === 'collapsing' || spaceState === 'core') return; spaceState = 'collapsing'; spacePhaseStart = Date.now(); spaceProgress = 1; resetIdleTimer(); updateSpaceDrone(0.0001); }
+        function triggerSpaceExpand() { if (spaceState === 'expanding' || spaceState === 'space') return; spaceState = 'expanding'; spacePhaseStart = Date.now(); spaceProgress = 0; cameraTheta = 0; cameraPhi = 0.55; cameraRadius = SPACE_CAM_Z; targetCameraZ = SPACE_CAM_Z; solarAlpha = 0; milkyAlpha = 1; earthFocusAmount = 0; currentZoomIndex = 0; resetIdleTimer(); }
+        function triggerSpaceCollapse() { if (spaceState === 'collapsing' || spaceState === 'core') return; spaceState = 'collapsing'; spacePhaseStart = Date.now(); spaceProgress = 1; resetIdleTimer(); }
 
         let landingState = 'none';
         let landingTarget = new THREE.Vector3();
@@ -1357,38 +1091,72 @@
         let cosmicBirthLife = 0;
 
         function spawnCosmicBirth() {
-            if (cosmicBirthGroup) { scene.remove(cosmicBirthGroup); cosmicBirthGroup = null; }
+            if (cosmicBirthGroup) {
+                scene.remove(cosmicBirthGroup);
+                cosmicBirthGroup = null;
+            }
             cosmicBirthGroup = new THREE.Group();
+            
+            // 1. Initial Singularity Flash
             const flashGeo = new THREE.SphereGeometry(0.1, 32, 32);
             const flashMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 1.0 });
             const flash = new THREE.Mesh(flashGeo, flashMat);
             cosmicBirthGroup.add(flash);
-            const N = is5DMode ? 8000 : 4000;
+            
+            // 2. Primordial Particle Explosion Burst
+            const N = 4000;
             const positions = new Float32Array(N * 3);
             const colors = new Float32Array(N * 3);
             const velocities = [];
-            const palette = [ new THREE.Color(0xffffff), new THREE.Color(0xa78bfa), new THREE.Color(0x3b82f6), new THREE.Color(0xf59e0b), new THREE.Color(0xef4444) ];
-            const speedMul = is5DMode ? 1.8 : 1.0;
+            const palette = [
+                new THREE.Color(0xffffff),
+                new THREE.Color(0xa78bfa),
+                new THREE.Color(0x3b82f6),
+                new THREE.Color(0xf59e0b),
+                new THREE.Color(0xef4444)
+            ];
             for (let i = 0; i < N; i++) {
-                positions[i*3] = 0; positions[i*3+1] = 0; positions[i*3+2] = 0;
+                positions[i*3] = 0;
+                positions[i*3+1] = 0;
+                positions[i*3+2] = 0;
                 const theta = Math.random() * Math.PI * 2;
                 const phi = Math.acos(2 * Math.random() - 1);
-                const speed = (0.05 + Math.random() * 0.35) * speedMul;
-                velocities.push({ x: Math.sin(phi) * Math.cos(theta) * speed, y: Math.sin(phi) * Math.sin(theta) * speed, z: Math.cos(phi) * speed });
+                const speed = 0.05 + Math.random() * 0.35;
+                velocities.push({
+                    x: Math.sin(phi) * Math.cos(theta) * speed,
+                    y: Math.sin(phi) * Math.sin(theta) * speed,
+                    z: Math.cos(phi) * speed
+                });
                 const c = palette[Math.floor(Math.random() * palette.length)];
-                colors[i*3] = c.r; colors[i*3+1] = c.g; colors[i*3+2] = c.b;
+                colors[i*3] = c.r;
+                colors[i*3+1] = c.g;
+                colors[i*3+2] = c.b;
             }
             const burstGeo = new THREE.BufferGeometry();
             burstGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
             burstGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-            const burstMat = new THREE.PointsMaterial({ size: is5DMode ? 0.32 : 0.2, vertexColors: true, transparent: true, opacity: 1.0, depthWrite: false, blending: THREE.AdditiveBlending, map: makeCircularStarTexture('rgba(255,255,255,1)') });
+            const burstMat = new THREE.PointsMaterial({
+                size: 0.2,
+                vertexColors: true,
+                transparent: true,
+                opacity: 1.0,
+                depthWrite: false,
+                blending: THREE.AdditiveBlending,
+                map: makeCircularStarTexture('rgba(255,255,255,1)')
+            });
             const burstPoints = new THREE.Points(burstGeo, burstMat);
             burstPoints.userData = { velocities };
             cosmicBirthGroup.add(burstPoints);
-            const cloudCount = is5DMode ? 80 : 40;
-            for (let i = 0; i < cloudCount; i++) {
+
+            // 3. Early Cosmic Web Filaments / Gas Clouds
+            for (let i = 0; i < 40; i++) {
                 const cloudGeo = new THREE.SphereGeometry(2 + Math.random() * 4, 16, 16);
-                const cloudMat = new THREE.MeshBasicMaterial({ color: Math.random() > 0.5 ? 0x8b5cf6 : 0x3b82f6, transparent: true, opacity: 0.15, blending: THREE.AdditiveBlending });
+                const cloudMat = new THREE.MeshBasicMaterial({
+                    color: Math.random() > 0.5 ? 0x8b5cf6 : 0x3b82f6,
+                    transparent: true,
+                    opacity: 0.15,
+                    blending: THREE.AdditiveBlending
+                });
                 const cloud = new THREE.Mesh(cloudGeo, cloudMat);
                 const theta = Math.random() * Math.PI * 2;
                 const phi = Math.acos(2 * Math.random() - 1);
@@ -1396,6 +1164,7 @@
                 cloud.position.set(r * Math.sin(phi) * Math.cos(theta), r * Math.sin(phi) * Math.sin(theta), r * Math.cos(phi));
                 cosmicBirthGroup.add(cloud);
             }
+
             scene.add(cosmicBirthGroup);
             cosmicBirthLife = 1.0;
         }
@@ -1403,21 +1172,34 @@
         function updateCosmicBirth() {
             if (!cosmicBirthGroup || cosmicBirthLife <= 0) return;
             cosmicBirthLife -= 0.008;
+            
+            // Expand burst points
             const burstPoints = cosmicBirthGroup.children[1];
             if (burstPoints && burstPoints.geometry) {
                 const positions = burstPoints.geometry.attributes.position.array;
                 const vels = burstPoints.userData.velocities;
-                const expandMul = is5DMode ? 1.6 : 1.0;
                 for (let i = 0; i < vels.length; i++) {
-                    positions[i*3] += vels[i].x * expandMul;
-                    positions[i*3+1] += vels[i].y * expandMul;
-                    positions[i*3+2] += vels[i].z * expandMul;
-                    vels[i].x *= 0.98; vels[i].y *= 0.98; vels[i].z *= 0.98;
+                    positions[i*3] += vels[i].x;
+                    positions[i*3+1] += vels[i].y;
+                    positions[i*3+2] += vels[i].z;
+                    vels[i].x *= 0.98;
+                    vels[i].y *= 0.98;
+                    vels[i].z *= 0.98;
                 }
                 burstPoints.geometry.attributes.position.needsUpdate = true;
             }
-            cosmicBirthGroup.traverse((child) => { if (child.material) { child.material.opacity = Math.max(0, cosmicBirthLife * (child.material.userData?.baseOpacity || 1)); } });
-            if (cosmicBirthLife <= 0) { scene.remove(cosmicBirthGroup); cosmicBirthGroup = null; }
+
+            // Fade out whole cosmic birth group as space expansion takes over
+            cosmicBirthGroup.traverse((child) => {
+                if (child.material) {
+                    child.material.opacity = Math.max(0, cosmicBirthLife * (child.material.userData?.baseOpacity || 1));
+                }
+            });
+
+            if (cosmicBirthLife <= 0) {
+                scene.remove(cosmicBirthGroup);
+                cosmicBirthGroup = null;
+            }
         }
 
         const WARP_COUNT = 600;
@@ -1429,10 +1211,17 @@
             const geo = new THREE.BufferGeometry();
             geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
             geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-            const mat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
+            const mat = new THREE.LineBasicMaterial({
+                vertexColors: true,
+                transparent: true,
+                opacity: 0,
+                depthWrite: false,
+                blending: THREE.AdditiveBlending
+            });
             warpLineSegments = new THREE.LineSegments(geo, mat);
             warpLineSegments.frustumCulled = false;
             scene.add(warpLineSegments);
+            
             for (let i = 0; i < WARP_COUNT; i++) {
                 const theta = Math.random() * Math.PI * 2;
                 const phi = Math.acos(2 * Math.random() - 1);
@@ -1441,7 +1230,9 @@
                 const py = r * Math.sin(phi) * Math.sin(theta);
                 const pz = r * Math.cos(phi);
                 const speed = 3 + Math.random() * 10;
-                const nx = -px / r; const ny = -py / r; const nz = -pz / r;
+                const nx = -px / r;
+                const ny = -py / r;
+                const nz = -pz / r;
                 warpState.push({ x: px, y: py, z: pz, nx, ny, nz, speed, tail: 0 });
             }
         }
@@ -1452,14 +1243,21 @@
             warpLineSegments.material.opacity = intensity * 0.85;
             warpLineSegments.visible = intensity > 0.02;
             if (!warpLineSegments.visible) return;
+            
             const pos = warpLineSegments.geometry.attributes.position.array;
             const col = warpLineSegments.geometry.attributes.color.array;
-            const camX = camera.position.x; const camY = camera.position.y; const camZ = camera.position.z;
-            const speedMul = 1 + intensity * (is5DMode ? 8 : 4);
+            const camX = camera.position.x;
+            const camY = camera.position.y;
+            const camZ = camera.position.z;
+            const speedMul = 1 + intensity * 4;
+            
             for (let i = 0; i < WARP_COUNT; i++) {
                 const s = warpState[i];
                 const move = s.speed * speedMul;
-                s.x += s.nx * move; s.y += s.ny * move; s.z += s.nz * move;
+                s.x += s.nx * move;
+                s.y += s.ny * move;
+                s.z += s.nz * move;
+                
                 const distToCam = Math.sqrt((s.x-camX)**2 + (s.y-camY)**2 + (s.z-camZ)**2);
                 if (distToCam < 8) {
                     const theta = Math.random() * Math.PI * 2;
@@ -1472,12 +1270,19 @@
                     const dl = Math.sqrt(dx*dx + dy*dy + dz*dz);
                     s.nx = dx / dl; s.ny = dy / dl; s.nz = dz / dl;
                 }
+                
                 const tailLen = s.speed * speedMul * 4 + intensity * 15;
-                const startX = s.x; const startY = s.y; const startZ = s.z;
-                const endX = s.x - s.nx * tailLen; const endY = s.y - s.ny * tailLen; const endZ = s.z - s.nz * tailLen;
+                const startX = s.x;
+                const startY = s.y;
+                const startZ = s.z;
+                const endX = s.x - s.nx * tailLen;
+                const endY = s.y - s.ny * tailLen;
+                const endZ = s.z - s.nz * tailLen;
+                
                 const idx = i * 6;
                 pos[idx] = startX; pos[idx+1] = startY; pos[idx+2] = startZ;
                 pos[idx+3] = endX; pos[idx+4] = endY; pos[idx+5] = endZ;
+                
                 const bright = intensity * 0.9 + 0.1;
                 col[idx] = 1.0 * bright; col[idx+1] = 0.95 * bright; col[idx+2] = 0.85 * bright;
                 col[idx+3] = 0.3 * bright; col[idx+4] = 0.3 * bright; col[idx+5] = 0.9 * bright;
@@ -1503,11 +1308,16 @@
             raycaster.setFromCamera(pointer, camera);
             const intersects = raycaster.intersectObject(earthObj, true);
             if (intersects.length > 0) {
-                if (spaceState === 'space') { triggerISSView(); }
-                else if (spaceState === 'iss_view') {
+                if (spaceState === 'space') {
+                    triggerISSView();
+                } else if (spaceState === 'iss_view') {
                     const now = Date.now();
-                    if (now - issLastTapTime < 600) { issLastTapTime = 0; triggerEarthLanding(); }
-                    else { issLastTapTime = now; }
+                    if (now - issLastTapTime < 600) {
+                        issLastTapTime = 0;
+                        triggerEarthLanding();
+                    } else {
+                        issLastTapTime = now;
+                    }
                 }
                 return true;
             }
@@ -1516,11 +1326,16 @@
 
         container.addEventListener('pointerdown', (e) => { 
             try { container.setPointerCapture(e.pointerId); } catch(err) {} 
-            initAudio(); resetIdleTimer(); 
+            initAudio(); 
+            resetIdleTimer(); 
             if (landingState !== 'none') return; 
+            
             const now = Date.now(); 
+            
+            // NEW: Double tap to collapse anywhere except Earth
             if (now - lastTapTime < 400 && (spaceState === 'space' || spaceState === 'expanding' || spaceState === 'iss_view')) {
-                const dx = e.clientX - lastTapX; const dy = e.clientY - lastTapY;
+                const dx = e.clientX - lastTapX;
+                const dy = e.clientY - lastTapY;
                 if (Math.sqrt(dx*dx + dy*dy) < 60) {
                     let tappedEarth = false;
                     if (earthObj) {
@@ -1531,26 +1346,42 @@
                         const intersects = raycaster.intersectObject(earthObj, true);
                         if (intersects.length > 0) tappedEarth = true;
                     }
-                    if (!tappedEarth) { triggerSpaceCollapse(); lastTapTime = 0; return; }
+                    if (!tappedEarth) {
+                        triggerSpaceCollapse();
+                        lastTapTime = 0;
+                        return;
+                    }
                 }
             }
-            lastTapTime = now; lastTapX = e.clientX; lastTapY = e.clientY; 
+
+            lastTapTime = now; 
+            lastTapX = e.clientX; 
+            lastTapY = e.clientY; 
             activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); 
             container.classList.add('touched'); 
             if (activePointers.size === 1) { 
-                isDragging = true; pointerVelocity = { x: 0, y: 0 }; isOnCenter = isPointerOnCenter(e); 
+                isDragging = true; 
+                pointerVelocity = { x: 0, y: 0 }; 
+                isOnCenter = isPointerOnCenter(e); 
                 if (isOnCenter && spaceState === 'core') { 
                     longPressTimer = setTimeout(() => { 
                         if (isDragging && activePointers.size === 1 && isOnCenter) { 
-                            longPressActive = true; isCharging = true; chargeStartTime = Date.now(); startChargeSound(); 
+                            longPressActive = true; 
+                            isCharging = true; 
+                            chargeStartTime = Date.now(); 
+                            startChargeSound(); 
                             if (navigator.vibrate) navigator.vibrate(20); 
                         } 
                     }, CHARGE_START_MS); 
                 } 
             } else if (activePointers.size === 2) { 
                 const pts = Array.from(activePointers.values()); 
-                pinchStartDist = getDistance(pts[0], pts[1]); pinchStartScale = coreScale; 
-                clearTimeout(longPressTimer); isCharging = false; longPressActive = false; chargeLevel = 0; 
+                pinchStartDist = getDistance(pts[0], pts[1]); 
+                pinchStartScale = coreScale; 
+                clearTimeout(longPressTimer); 
+                isCharging = false; 
+                longPressActive = false; 
+                chargeLevel = 0; 
                 fadeOutChargeSound(0.2); 
             } 
         });
@@ -1558,29 +1389,16 @@
         container.addEventListener('pointermove', (e) => { if (landingState !== 'none') return; if (!activePointers.has(e.pointerId)) return; resetIdleTimer(); const prev = activePointers.get(e.pointerId); activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (activePointers.size === 1 && isDragging) { const dx = e.clientX - prev.x; const dy = e.clientY - prev.y; if (spaceState === 'space' || spaceState === 'expanding' || spaceState === 'iss_view') { cameraTheta -= dx * 0.008; cameraPhi = Math.max(-1.5, Math.min(1.5, cameraPhi + dy * 0.008)); } else { coreRotVelY += dx * 0.0009; coreRotVelX += dy * 0.0009; } pointerVelocity.x = dx; pointerVelocity.y = dy; if (Math.abs(dx) + Math.abs(dy) > 5 && !longPressActive) clearTimeout(longPressTimer); if (longPressActive && isCharging && !isPointerOnCenter(e)) { isCharging = false; longPressActive = false; fadeOutChargeSound(0.4); } } else if (activePointers.size === 2) { const pts = Array.from(activePointers.values()); const dist = getDistance(pts[0], pts[1]); if (pinchStartDist > 0) { const ratio = dist / pinchStartDist; if (spaceState === 'space' || spaceState === 'expanding' || spaceState === 'iss_view') { cameraRadius = Math.max(1.2, Math.min(3000, cameraRadius / ratio)); targetCameraZ = cameraRadius; } else { coreScale = Math.max(0.6, Math.min(2.2, pinchStartScale * ratio)); } } } });
 
         function endPointer(e) { if (landingState !== 'none') return; activePointers.delete(e.pointerId); if (activePointers.size === 0) { isDragging = false; container.classList.remove('touched'); clearTimeout(longPressTimer); const speed = Math.sqrt(pointerVelocity.x**2 + pointerVelocity.y**2); 
-            if (!longPressActive && speed < 3 && checkEarthTap(e)) { return; }
-            if (longPressActive && chargeLevel >= 0.95) { 
-                stopChargeSound(); playExplosionSound(); spawnExplosion(); spawnCosmicBirth(); 
-                touchBoost = 4.0; coreScaleVel += 0.9; coreRotVelY += 1.2; coreRotVelX -= 0.8; 
-                if (navigator.vibrate) navigator.vibrate([80, 40, 100, 40, 150, 40, 200]); 
-                setTimeout(() => { triggerSpaceExpand(); }, 900); 
-            } else if (longPressActive && chargeLevel > 0.3) { fadeOutChargeSound(0.5); touchBoost = 0.8; spawnRipple(0xf59e0b); coreScaleVel += 0.2; if (navigator.vibrate) navigator.vibrate(15); } else if (!longPressActive && speed < 3) { stopChargeSound(); touchBoost = 1.0; coreScaleVel += 0.15; spawnRipple(); if (navigator.vibrate) navigator.vibrate(15); } else { fadeOutChargeSound(0.3); } 
-            longPressActive = false; isCharging = false; isOnCenter = false; chargeLevel = 0; pointerVelocity = { x: 0, y: 0 }; 
-        } else if (activePointers.size === 1) { pinchStartDist = 0; } }
+        
+            if (!longPressActive && speed < 3 && checkEarthTap(e)) {
+                return;
+            }
+
+            if (longPressActive && chargeLevel >= 0.95) { stopChargeSound(); playExplosionSound(); spawnExplosion(); spawnCosmicBirth(); touchBoost = 4.0; coreScaleVel += 0.9; coreRotVelY += 1.2; coreRotVelX -= 0.8; if (navigator.vibrate) navigator.vibrate([80, 40, 100, 40, 150, 40, 200]); setTimeout(() => { triggerSpaceExpand(); }, 900); } else if (longPressActive && chargeLevel > 0.3) { fadeOutChargeSound(0.5); touchBoost = 0.8; spawnRipple(0xf59e0b); coreScaleVel += 0.2; if (navigator.vibrate) navigator.vibrate(15); } else if (!longPressActive && speed < 3) { stopChargeSound(); touchBoost = 1.0; coreScaleVel += 0.15; spawnRipple(); if (navigator.vibrate) navigator.vibrate(15); } else { fadeOutChargeSound(0.3); } longPressActive = false; isCharging = false; isOnCenter = false; chargeLevel = 0; pointerVelocity = { x: 0, y: 0 }; } else if (activePointers.size === 1) { pinchStartDist = 0; } }
 
         container.addEventListener('pointerup', endPointer); container.addEventListener('pointercancel', endPointer); container.addEventListener('touchstart', (e) => { if (landingState !== 'none') return; e.preventDefault(); }, { passive: false }); container.addEventListener('touchmove', (e) => { if (landingState !== 'none') return; e.preventDefault(); }, { passive: false });
 
         const _earthWorld = new THREE.Vector3(0, 0, 0); const _lookTarget = new THREE.Vector3(0, 0, 0);
-
-        function renderSceneFinal(nowMs) {
-            if (composer) {
-                composer.render();
-                if (chromaticPass) chromaticPass.uniforms.uTime.value = nowMs;
-            } else {
-                renderer.render(scene, camera);
-            }
-        }
-
         function animate() {
             requestAnimationFrame(animate);
             const nowMs = Date.now();
@@ -1604,21 +1422,28 @@
                     }, 100);
                 }
                 updateCosmicBirth();
-                renderSceneFinal(nowMs);
+                renderer.render(scene, camera);
                 return;
             }
             
             if (landingState === 'landed') {
                 updateCosmicBirth();
-                renderSceneFinal(nowMs);
+                renderer.render(scene, camera);
                 return;
             }
 
             if (spaceState === 'expanding') { const t = Math.min(1, (nowMs - spacePhaseStart) / SPACE_FULL_MS); spaceProgress = t; if (t >= 1) { spaceProgress = 1; spaceState = 'space'; currentZoomIndex = 0; } } else if (spaceState === 'collapsing') { const t = Math.min(1, (nowMs - spacePhaseStart) / SPACE_FULL_MS); spaceProgress = 1 - t; if (t >= 1) { spaceProgress = 0; spaceState = 'core'; } }
             
+            // NEW: 5 Minute Idle check to return to core from anywhere
             if ((nowMs - lastInteractionTime) > IDLE_COLLAPSE_MS) {
-                if (landingState === 'landed') { exitMap(); setTimeout(() => { triggerSpaceCollapse(); }, 1600); lastInteractionTime = Date.now(); }
-                else if (spaceState === 'space' || spaceState === 'expanding' || spaceState === 'iss_view') { triggerSpaceCollapse(); lastInteractionTime = Date.now(); }
+                if (landingState === 'landed') {
+                    exitMap();
+                    setTimeout(() => { triggerSpaceCollapse(); }, 1600);
+                    lastInteractionTime = Date.now();
+                } else if (spaceState === 'space' || spaceState === 'expanding' || spaceState === 'iss_view') {
+                    triggerSpaceCollapse();
+                    lastInteractionTime = Date.now();
+                }
             }
 
             const ep = spaceProgress < 0.5 ? 4 * spaceProgress * spaceProgress * spaceProgress : 1 - Math.pow(-2 * spaceProgress + 2, 3) / 2;
@@ -1628,29 +1453,38 @@
                 if (camDist >= 150) solarAlpha = 0; else if (camDist <= 60) solarAlpha = 1; else solarAlpha = (150 - camDist) / 90; solarAlpha = Math.max(0, Math.min(1, solarAlpha));
                 milkyAlpha = Math.max(0, Math.min(1, camDist / 300));
                 if (camDist >= 20) earthFocusAmount = 0; else if (camDist <= 2.2) earthFocusAmount = 1; else earthFocusAmount = (20 - camDist) / 17.8; earthFocusAmount = Math.max(0, Math.min(1, earthFocusAmount));
-            } else { solarAlpha = 0; milkyAlpha = 1; earthFocusAmount = 0; }
+            } else {
+                solarAlpha = 0; milkyAlpha = 1; earthFocusAmount = 0;
+            }
 
-            if (milkyAlpha > 0.001) { skybox.visible = true; skybox.material.opacity = milkyAlpha; } else { skybox.visible = false; }
-
-            const g5 = is5DMode ? 3.0 : 1.0;
+            if (milkyAlpha > 0.001) {
+                skybox.visible = true;
+                skybox.material.opacity = milkyAlpha;
+            } else {
+                skybox.visible = false;
+            }
 
             if (spaceProgress > 0.001) { 
                 milkyWayGroup.visible = true; 
                 const galaxyScale = Math.max(0.001, ep * (1 + ep * 1.6));
                 milkyWayGroup.scale.setScalar(galaxyScale); 
                 if (spaceState === 'expanding' || spaceState === 'collapsing') {
-                    milkyWayGroup.rotation.y += (0.0005 + ep * 0.028) * g5;
-                    milkyWayGroup.rotation.x += (0.0002 + ep * 0.010) * g5;
-                    milkyWayGroup.rotation.z += ep * 0.005 * g5;
-                } else { milkyWayGroup.rotation.y += 0.0005 * g5; }
+                    milkyWayGroup.rotation.y += 0.0005 + ep * 0.028;
+                    milkyWayGroup.rotation.x += 0.0002 + ep * 0.010;
+                    milkyWayGroup.rotation.z += ep * 0.005;
+                } else {
+                    milkyWayGroup.rotation.y += 0.0005;
+                }
                 milkyWayGroup.traverse((o) => { if (o.material && o.material.opacity !== undefined) { if (o.userData.baseOpacity === undefined) o.userData.baseOpacity = o.material.opacity; o.material.opacity = o.userData.baseOpacity * milkyAlpha; } }); 
-            } else { milkyWayGroup.visible = false; }
-
+            } else { 
+                milkyWayGroup.visible = false; 
+            }
             const solarFinal = ep * solarAlpha;
             if (solarFinal > 0.001) { 
                 solarSystemGroup.visible = true; 
                 solarSystemGroup.scale.setScalar(Math.max(0.001, solarFinal)); 
-                sunLight.intensity = 3.2 * solarAlpha; sunFillLight.intensity = 0.35 * solarAlpha;
+                sunLight.intensity = 3.2 * solarAlpha; 
+                sunFillLight.intensity = 0.35 * solarAlpha;
                 solarSystemGroup.traverse((o) => { 
                     if (o === sunCorona || o === sunCoronaInner) return; 
                     if (o.material && o.material.transparent) { 
@@ -1661,53 +1495,54 @@
                 sunCorona.material.opacity = (0.85 + Math.sin(nowMs * 0.0015) * 0.15) * solarAlpha; 
                 sunCoronaInner.material.opacity = (0.9 + Math.sin(nowMs * 0.0025) * 0.1) * solarAlpha; 
             } else { 
-                solarSystemGroup.visible = false; sunLight.intensity = 0; sunFillLight.intensity = 0;
+                solarSystemGroup.visible = false; 
+                sunLight.intensity = 0; 
+                sunFillLight.intensity = 0;
             }
             
-            const p5 = is5DMode ? 2.5 : 1.0;
-
             if (solarAlpha > 0.02) { 
                 const ts = nowMs * 0.001; 
+                
                 for (const grp of planetObjs) { 
                     const ud = grp.userData; 
                     const a = ud.angle + ts * ud.speed * 0.04; 
                     grp.position.set(Math.cos(a) * ud.orbit, 0, Math.sin(a) * ud.orbit); 
-                    for (const child of grp.children) { if (child.userData && child.userData.rotSpd) child.rotation.y += child.userData.rotSpd * 0.12 * p5; } 
-                    if (ud.moons) { for (const m of ud.moons) { m.angle += m.speed * 0.0015; m.grp.rotation.y = m.angle; } } 
+                    for (const child of grp.children) { 
+                        if (child.userData && child.userData.rotSpd) child.rotation.y += child.userData.rotSpd * 0.12; 
+                    } 
+                    if (ud.moons) { 
+                        for (const m of ud.moons) { 
+                            m.angle += m.speed * 0.0015; 
+                            m.grp.rotation.y = m.angle; 
+                        } 
+                    } 
                 } 
                 for (const ast of asteroidMeshes) { 
                     ast.userData.angle += ast.userData.speed * 0.008; 
-                    const ra = ast.userData.angle; const r = ast.userData.dist; 
-                    ast.position.x = Math.cos(ra) * r; ast.position.z = Math.sin(ra) * r; 
-                    ast.rotation.x += ast.userData.rotSpd.x; ast.rotation.y += ast.userData.rotSpd.y; ast.rotation.z += ast.userData.rotSpd.z;
+                    const ra = ast.userData.angle; 
+                    const r = ast.userData.dist; 
+                    ast.position.x = Math.cos(ra) * r; 
+                    ast.position.z = Math.sin(ra) * r; 
+                    ast.rotation.x += ast.userData.rotSpd.x; 
+                    ast.rotation.y += ast.userData.rotSpd.y; 
+                    ast.rotation.z += ast.userData.rotSpd.z;
                 } 
-                sunMesh.rotation.y += 0.0012 * p5; 
-                const sunPulse = 1 + Math.sin(ts * 1.5) * 0.012 * p5;
+                
+                sunMesh.rotation.y += 0.0012; 
+                const sunPulse = 1 + Math.sin(ts * 1.5) * 0.012;
                 sunMesh.scale.set(sunPulse, sunPulse, sunPulse);
-                const cs = 14 + Math.sin(ts * 1.8) * 0.4 * p5; sunCorona.scale.set(cs, cs, 1); 
-                const ci = 6.5 + Math.sin(ts * 3.2) * 0.25 * p5; sunCoronaInner.scale.set(ci, ci, 1);
+                const cs = 14 + Math.sin(ts * 1.8) * 0.4; sunCorona.scale.set(cs, cs, 1); 
+                const ci = 6.5 + Math.sin(ts * 3.2) * 0.25; sunCoronaInner.scale.set(ci, ci, 1);
             }
             if (satelliteGroup) { const ts = nowMs * 0.001; for (const sat of satelliteGroup.children) { sat.userData.angle += sat.userData.speed * 0.01; const ra = sat.userData.angle; const r = sat.userData.orbitRadius; sat.position.set(Math.cos(ra) * r, Math.sin(ra) * r * Math.sin(sat.userData.incl), Math.sin(ra) * r * Math.cos(sat.userData.incl)); sat.rotation.y = -ra; } }
-            if (spaceProgress > 0.01 && milkyAlpha > 0.05) { 
-                travelCometTimer -= 1; 
-                if (travelCometTimer <= 0 && travelComets.length < 4) { spawnTravelComet(); travelCometTimer = 200 + Math.floor(Math.random() * 100); } 
-                const c5 = is5DMode ? 2.5 : 1.0;
-                for (let i = travelComets.length - 1; i >= 0; i--) { 
-                    const c = travelComets[i]; 
-                    c.grp.position.addScaledVector(c.dir, c.speed * c5); 
-                    c.grp.lookAt(new THREE.Vector3(c.grp.position.x + c.dir.x, c.grp.position.y + c.dir.y, c.grp.position.z + c.dir.z)); 
-                    c.life -= 0.003; 
-                    if (c.life <= 0 || c.grp.position.length() > 3500) { milkyWayGroup.remove(c.grp); travelComets.splice(i, 1); } 
-                } 
-                for (const m of meteoroids) { m.grp.rotation.x += m.rotSpd.x; m.grp.rotation.y += m.rotSpd.y; m.grp.rotation.z += m.rotSpd.z; } 
-            }
+            if (spaceProgress > 0.01 && milkyAlpha > 0.05) { travelCometTimer -= 1; if (travelCometTimer <= 0 && travelComets.length < 4) { spawnTravelComet(); travelCometTimer = 200 + Math.floor(Math.random() * 100); } for (let i = travelComets.length - 1; i >= 0; i--) { const c = travelComets[i]; c.grp.position.addScaledVector(c.dir, c.speed); c.grp.lookAt(new THREE.Vector3(c.grp.position.x + c.dir.x, c.grp.position.y + c.dir.y, c.grp.position.z + c.dir.z)); c.life -= 0.003; if (c.life <= 0 || c.grp.position.length() > 3500) { milkyWayGroup.remove(c.grp); travelComets.splice(i, 1); } } for (const m of meteoroids) { m.grp.rotation.x += m.rotSpd.x; m.grp.rotation.y += m.rotSpd.y; m.grp.rotation.z += m.rotSpd.z; } }
             
-            let targetFov = 45; let warpIntensity = 0;
+            let targetFov = 45;
+            let warpIntensity = 0;
             if (spaceState === 'expanding' || spaceState === 'collapsing') {
                 const warpCurve = Math.sin(ep * Math.PI);
-                const multiplier = is5DMode ? 3.0 : 1.0;
-                targetFov = 45 + warpCurve * 35 * multiplier;
-                warpIntensity = warpCurve * 0.9 * multiplier;
+                targetFov = 45 + warpCurve * 35;
+                warpIntensity = warpCurve * 0.9;
             }
             camera.fov += (targetFov - camera.fov) * 0.06;
             camera.updateProjectionMatrix();
@@ -1716,7 +1551,8 @@
 
             if (spaceState === 'space') {
                 cameraRadius += (targetCameraZ - cameraRadius) * 0.1;
-                if (earthObj) earthObj.getWorldPosition(_earthWorld); else _earthWorld.set(0, 0, 0);
+                if (earthObj) earthObj.getWorldPosition(_earthWorld);
+                else _earthWorld.set(0, 0, 0);
                 _lookTarget.set(_earthWorld.x * earthFocusAmount, _earthWorld.y * earthFocusAmount, _earthWorld.z * earthFocusAmount);
                 const x = _lookTarget.x + cameraRadius * Math.cos(cameraPhi) * Math.sin(cameraTheta);
                 const y = _lookTarget.y + cameraRadius * Math.sin(cameraPhi);
@@ -1725,7 +1561,8 @@
                 camera.lookAt(_lookTarget);
             } else if (spaceState === 'iss_view') {
                 cameraRadius += (targetCameraZ - cameraRadius) * 0.08;
-                if (earthObj) earthObj.getWorldPosition(_earthWorld); else _earthWorld.set(0, 0, 0);
+                if (earthObj) earthObj.getWorldPosition(_earthWorld);
+                else _earthWorld.set(0, 0, 0);
                 _lookTarget.set(_earthWorld.x, _earthWorld.y, _earthWorld.z);
                 const x = _lookTarget.x + cameraRadius * Math.cos(cameraPhi) * Math.sin(cameraTheta);
                 const y = _lookTarget.y + cameraRadius * Math.sin(cameraPhi);
@@ -1748,103 +1585,12 @@
             }
 
             if (isCharging) { const elapsed = Date.now() - chargeStartTime; chargeLevel = Math.min(1, elapsed / CHARGE_FULL_MS); updateChargeSound(chargeLevel); }
-            const c5r = is5DMode ? 2.0 : 1.0;
-            const spin = (1 + chargeLevel * 15 + touchBoost * 0.5) * c5r; 
-            pulseTime += 0.04 * spin; touchBoost *= 0.94; const chargeScale = 1 + chargeLevel * 1.1; 
-            const brightScale = (1 + Math.sin(pulseTime * 1.5) * 0.15 + touchBoost * 0.25) * chargeScale; 
-            innerBright.scale.set(brightScale, brightScale, brightScale); 
-            innerBright.material.opacity = 0.3 + Math.sin(pulseTime * 1.5) * 0.1 + touchBoost * 0.2 + chargeLevel * 0.6; 
-            innerCore.rotation.x += 0.008 * spin; innerCore.rotation.y += 0.012 * spin; 
-            midShell.rotation.x -= 0.004 * spin; midShell.rotation.y -= 0.006 * spin; 
-            outerShell.rotation.x += 0.002 * spin; outerShell.rotation.y -= 0.003 * spin; 
-            if (is5DMode) {
-                hyperShell1.rotation.x += 0.005 * spin; hyperShell1.rotation.y -= 0.008 * spin;
-                hyperShell2.rotation.x -= 0.003 * spin; hyperShell2.rotation.y += 0.005 * spin;
-                hyperShell3.rotation.x += 0.002 * spin; hyperShell3.rotation.y += 0.003 * spin;
-            }
-            coreGroup.rotation.y += coreRotVelY; coreGroup.rotation.x += coreRotVelX; coreRotVelY *= 0.92; coreRotVelX *= 0.92; 
-            const scaleForce = (1 - coreScale) * 0.15; coreScaleVel += scaleForce; coreScaleVel *= 0.85; coreScale += coreScaleVel; 
-            const _coreSpaceScale = coreScale * (1 - ep * 0.85); coreGroup.scale.set(_coreSpaceScale, _coreSpaceScale, _coreSpaceScale); 
-            coreGroup.visible = (spaceState === 'core' || spaceState === 'collapsing') && spaceProgress < 0.98; 
-            const rumble = touchBoost * 0.08 + chargeLevel * 0.35; 
-            if (rumble > 0.01) { coreGroup.position.x = (Math.random() - 0.5) * rumble; coreGroup.position.y = (Math.random() - 0.5) * rumble; } else { coreGroup.position.x *= 0.9; coreGroup.position.y *= 0.9; } 
-            glowSphere.material.opacity = 0.08 + Math.sin(pulseTime * 0.6) * 0.04 + touchBoost * 0.15 + chargeLevel * 0.6; 
-            if (chargeLevel > 0.01) { 
-                const c = new THREE.Color(); 
-                if (chargeLevel < 0.5) c.lerpColors(new THREE.Color(0x8b5cf6), new THREE.Color(0xf59e0b), chargeLevel / 0.5); 
-                else c.lerpColors(new THREE.Color(0xf59e0b), new THREE.Color(0xef4444), (chargeLevel - 0.5) / 0.5); 
-                glowSphere.material.color.copy(c); innerBright.material.color.copy(c); innerCore.material.color.copy(c); midShell.material.color.copy(c); outerShell.material.color.copy(c); 
-            } 
-            if (isCharging && chargeLevel > 0.08) { 
-                boltTimer -= 1; 
-                const boltInterval = Math.max(1, Math.floor(14 - chargeLevel * 13)); 
-                if (boltTimer <= 0) { 
-                    spawnBolt(); 
-                    if (chargeLevel > 0.3 && Math.random() < 0.6) spawnBolt(); 
-                    if (chargeLevel > 0.6 && Math.random() < 0.7) spawnBolt(); 
-                    if (chargeLevel > 0.85 && Math.random() < 0.8) spawnBolt(); 
-                    boltTimer = boltInterval; 
-                } 
-            } 
-            for (const b of boltPool) { if (b.life > 0) { b.life -= 0.12 + chargeLevel * 0.08; b.line.material.opacity = Math.max(0, b.life * 1.2); if (b.life <= 0) { b.line.visible = false; b.line.material.opacity = 0; } } } 
-            for (let i = ripples.length - 1; i >= 0; i--) { const r = ripples[i]; r.life -= 0.03; r.mesh.scale.setScalar(1 + (1 - r.life) * 4); r.mesh.material.opacity = r.life * 0.8; if (r.life <= 0) { scene.remove(r.mesh); r.mesh.geometry.dispose(); r.mesh.material.dispose(); ripples.splice(i, 1); } } 
-
-            // ===== CINEMATIC OBJECT ANIMATIONS =====
-            const tsAnim = nowMs * 0.001;
-            if (blackHoleGroup.userData.disk1) {
-                blackHoleGroup.userData.disk1.rotation.z += 0.0035;
-                blackHoleGroup.userData.disk2.rotation.z -= 0.0018;
-                blackHoleGroup.userData.photonRing.material.opacity = 0.7 + Math.sin(tsAnim*3)*0.2;
-            }
-            pulsars.forEach(p => { p.rotation.y += p.userData.spin; });
-            solarFlares.forEach(f => {
-                f.timer -= 1;
-                if (f.timer <= 0 && f.life <= 0) { f.life = 1; f.timer = f.delay; }
-                if (f.life > 0) { f.life -= 0.008; f.mesh.material.opacity = Math.sin(f.life * Math.PI) * 0.85; }
-            });
-            if (tesseractGroup.visible) {
-                tesseractGroup.rotation.x += 0.004;
-                tesseractGroup.rotation.y += 0.007;
-                tesseractGroup.rotation.z -= 0.003;
-                const s = 1 + Math.sin(tsAnim * 1.6) * 0.08;
-                tesseractGroup.userData.innerEdges.scale.setScalar(s);
-                tesseractGroup.userData.innerEdges.rotation.y -= 0.01;
-            }
-            driftNebulae.forEach(n => {
-                const d = n.userData;
-                n.position.x = d.basePos.x + Math.sin(tsAnim * d.driftSpeed * 100 + d.driftPhase) * 15;
-                n.position.y = d.basePos.y + Math.cos(tsAnim * d.driftSpeed * 80 + d.driftPhase) * 10;
-            });
-            if (telescopeGroup.userData.base) telescopeGroup.userData.base.rotation.y += 0.002;
-            planetLabels.forEach(lbl => {
-                const worldPos = new THREE.Vector3();
-                lbl.parent.getWorldPosition(worldPos);
-                const d = camera.position.distanceTo(worldPos);
-                const op = Math.max(0, Math.min(0.95, (40 - d) / 25));
-                lbl.material.opacity = op * solarAlpha;
-            });
-            impactTimer -= 1;
-            if (impactTimer <= 0 && planetObjs.length > 0 && solarAlpha > 0.3) {
-                spawnImpactFlash(planetObjs[Math.floor(Math.random()*planetObjs.length)]);
-                impactTimer = 300 + Math.floor(Math.random()*400);
-            }
-            impactPool.forEach(i => {
-                if (i.life > 0) {
-                    i.life -= 0.03;
-                    i.sprite.material.opacity = i.life;
-                    const s = 1.5 + (1 - i.life) * 4;
-                    i.sprite.scale.set(s, s, 1);
-                    if (i.life <= 0) i.sprite.visible = false;
-                }
-            });
-            const droneVol = solarAlpha > 0.05 ? 0.10 : 0.0001;
-            updateSpaceDrone(droneVol);
-
+            const spin = 1 + chargeLevel * 15 + touchBoost * 0.5; pulseTime += 0.04 * spin; touchBoost *= 0.94; const chargeScale = 1 + chargeLevel * 1.1; const brightScale = (1 + Math.sin(pulseTime * 1.5) * 0.15 + touchBoost * 0.25) * chargeScale; innerBright.scale.set(brightScale, brightScale, brightScale); innerBright.material.opacity = 0.3 + Math.sin(pulseTime * 1.5) * 0.1 + touchBoost * 0.2 + chargeLevel * 0.6; innerCore.rotation.x += 0.008 * spin; innerCore.rotation.y += 0.012 * spin; midShell.rotation.x -= 0.004 * spin; midShell.rotation.y -= 0.006 * spin; outerShell.rotation.x += 0.002 * spin; outerShell.rotation.y -= 0.003 * spin; coreGroup.rotation.y += coreRotVelY; coreGroup.rotation.x += coreRotVelX; coreRotVelY *= 0.92; coreRotVelX *= 0.92; const scaleForce = (1 - coreScale) * 0.15; coreScaleVel += scaleForce; coreScaleVel *= 0.85; coreScale += coreScaleVel; const _coreSpaceScale = coreScale * (1 - ep * 0.85); coreGroup.scale.set(_coreSpaceScale, _coreSpaceScale, _coreSpaceScale); coreGroup.visible = (spaceState === 'core' || spaceState === 'collapsing') && spaceProgress < 0.98; const rumble = touchBoost * 0.08 + chargeLevel * 0.35; if (rumble > 0.01) { coreGroup.position.x = (Math.random() - 0.5) * rumble; coreGroup.position.y = (Math.random() - 0.5) * rumble; } else { coreGroup.position.x *= 0.9; coreGroup.position.y *= 0.9; } glowSphere.material.opacity = 0.08 + Math.sin(pulseTime * 0.6) * 0.04 + touchBoost * 0.15 + chargeLevel * 0.6; if (chargeLevel > 0.01) { const c = new THREE.Color(); if (chargeLevel < 0.5) c.lerpColors(new THREE.Color(0x8b5cf6), new THREE.Color(0xf59e0b), chargeLevel / 0.5); else c.lerpColors(new THREE.Color(0xf59e0b), new THREE.Color(0xef4444), (chargeLevel - 0.5) / 0.5); glowSphere.material.color.copy(c); innerBright.material.color.copy(c); innerCore.material.color.copy(c); midShell.material.color.copy(c); outerShell.material.color.copy(c); } if (isCharging && chargeLevel > 0.08) { boltTimer -= 1; const boltInterval = Math.max(1, Math.floor(14 - chargeLevel * 13)); if (boltTimer <= 0) { spawnBolt(); if (chargeLevel > 0.3 && Math.random() < 0.6) spawnBolt(); if (chargeLevel > 0.6 && Math.random() < 0.7) spawnBolt(); if (chargeLevel > 0.85 && Math.random() < 0.8) spawnBolt(); boltTimer = boltInterval; } } for (const b of boltPool) { if (b.life > 0) { b.life -= 0.12 + chargeLevel * 0.08; b.line.material.opacity = Math.max(0, b.life * 1.2); if (b.life <= 0) { b.line.visible = false; b.line.material.opacity = 0; } } } for (let i = ripples.length - 1; i >= 0; i--) { const r = ripples[i]; r.life -= 0.03; r.mesh.scale.setScalar(1 + (1 - r.life) * 4); r.mesh.material.opacity = r.life * 0.8; if (r.life <= 0) { scene.remove(r.mesh); r.mesh.geometry.dispose(); r.mesh.material.dispose(); ripples.splice(i, 1); } } 
             updateCosmicBirth();
-            renderSceneFinal(nowMs);
+            renderer.render(scene, camera);
         }
         animate();
-        window.addEventListener('resize', () => { camera.aspect = container.clientWidth / container.clientHeight; camera.updateProjectionMatrix(); renderer.setSize(container.clientWidth, container.clientHeight); if (composer) composer.setSize(container.clientWidth, container.clientHeight); if (bloomPass) bloomPass.setSize(container.clientWidth, container.clientHeight); });
+        window.addEventListener('resize', () => { camera.aspect = container.clientWidth / container.clientHeight; camera.updateProjectionMatrix(); renderer.setSize(container.clientWidth, container.clientHeight); });
 
         function updateCoreColor(signal) { if (isCharging) return; let color = 0x8b5cf6; if (signal === 'BUY') color = 0x10b981; else if (signal === 'SELL') color = 0xef4444; else if (signal === 'SETUP') color = 0xf59e0b; glowSphere.material.color.setHex(color); innerBright.material.color.setHex(color); innerCore.material.color.setHex(color); midShell.material.color.setHex(color); outerShell.material.color.setHex(color); }
 
@@ -1868,7 +1614,7 @@
             if (groqKey) {
                 for (const model of GROQ_MODELS) {
                     try {
-                        const res = await fetch(GROQ_URL, { method: 'POST', headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: model, messages: messages, temperature: 0.95, max_tokens: 1200 }) });
+                        const res = await fetch(GROQ_URL, { method: 'POST', headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: model, messages: messages, temperature: 0.95, max_tokens: 800 }) });
                         if (res.ok) return (await res.json()).choices[0].message.content;
                     } catch(e) {}
                 }
@@ -1877,7 +1623,7 @@
                 const contents = [{ role: 'user', parts: [{ text: systemPrompt }] }, ...conversationHistory.map(m => ({ role: m.role === 'ai' ? 'model' : 'user', parts: [{ text: m.text }] })), { role: 'user', parts: [{ text: userText }] }];
                 for (const model of GEMINI_MODELS) {
                     try {
-                        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ contents, generationConfig: { maxOutputTokens: 1200, temperature: 0.95 } }) });
+                        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ contents, generationConfig: { maxOutputTokens: 800, temperature: 0.95 } }) });
                         if (r.ok) return (await r.json()).candidates[0].content.parts[0].text;
                     } catch(e) {}
                 }
@@ -2085,6 +1831,7 @@
             const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
             const dayName = days[now.getDay()];
             const isWeekend = [0, 6].includes(now.getDay());
+            
             const istHour = parseInt(now.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', hour12: false }), 10);
             let mealContext = "";
             if (istHour < 10) mealContext = "IST time NOW = MORNING (before 10 AM). Breakfast is the ONLY meal relevant now. Lunch and dinner are NOT yet.";
@@ -2093,10 +1840,12 @@
             else if (istHour < 18) mealContext = "IST time NOW = AFTERNOON. Lunch is done. Dinner is NOT yet.";
             else if (istHour < 22) mealContext = "IST time NOW = EVENING/DINNER. Dinner is the relevant meal now. Breakfast and lunch are done.";
             else mealContext = "IST time NOW = NIGHT. All meals for today are done. Do NOT ask about any meal now.";
+            
             let askedBlock = "";
             if (recentCheckinTopics && recentCheckinTopics.length > 0) {
                 askedBlock = `\n=== ALREADY ASKED (DO NOT ask about these again) ===\n${recentCheckinTopics.slice(-20).map(t => `- ${t}`).join('\n')}\n=== END ALREADY ASKED ===\n`;
             }
+            
             let memoryBlock = "";
             if (longTermMemory.length > 0) {
                 let relevantMemories = [];
@@ -2107,12 +1856,20 @@
                         return queryWords.some(w => factLower.includes(w) || (w.length >= 4 && factLower.includes(w.substring(0, 4))));
                     });
                 }
-                if (relevantMemories.length > 0) { memoryBlock = `\nRELEVANT MEMORIES (Recall these naturally when relevant):\n${relevantMemories.map(m => `- ${m.fact} (${m.added})`).join('\n')}\n`; }
-                else { memoryBlock = `\nLONG-TERM MEMORY:\n${longTermMemory.slice(-80).map(m => `- ${m.fact} (${m.added})`).join('\n')}\n`; }
+                if (relevantMemories.length > 0) {
+                    memoryBlock = `\nRELEVANT MEMORIES (Recall these naturally when relevant):\n${relevantMemories.map(m => `- ${m.fact} (${m.added})`).join('\n')}\n`;
+                } else {
+                    memoryBlock = `\nLONG-TERM MEMORY:\n${longTermMemory.slice(-80).map(m => `- ${m.fact} (${m.added})`).join('\n')}\n`;
+                }
             }
+            
             let marketBlock = marketData ? `\nLIVE MARKET DATA (EUR/USD):\nPrice: ${safeNum(marketData.currentPrice, 1.1200).toFixed(5)} | Trend: ${marketData.trend} | Support: ${safeNum(marketData.support, 1.1176).toFixed(5)} | Resistance: ${safeNum(marketData.resistance, 1.1246).toFixed(5)} | RSI 1H: ${safeNum(marketData.rsi1H, 50).toFixed(1)} | Session: ${marketData.session}\n` : "";
+
             let personalBlock = "";
-            if (personalContext && typeof personalContext === 'object') { personalBlock = `\n=== BOSS'S PERSONAL CONTEXT (You already know all of this — never say you don't know) ===\n${JSON.stringify(personalContext, null, 2)}\n=== END PERSONAL CONTEXT ===\n`; }
+            if (personalContext && typeof personalContext === 'object') {
+                personalBlock = `\n=== BOSS'S PERSONAL CONTEXT (You already know all of this — never say you don't know) ===\n${JSON.stringify(personalContext, null, 2)}\n=== END PERSONAL CONTEXT ===\n`;
+            }
+
             let prompt = `You are Alex—Boss's closest friend, side-by-side desk partner, and a hardcore professional EUR/USD day trader (75% expert trader, 25% loyal witty best friend).
 
 === PERSONALITY & TONE GUIDELINES ===
@@ -2124,16 +1881,21 @@
 === SIMPLE TRADE TALK RULES (very important) ===
 - Your trading brain stays 100% sharp — same SMC, liquidity, order flow, EMA, RSI, ATR logic, no dumbing down of analysis.
 - But you EXPLAIN it like you're talking to a friend who's still learning. No jargon dumps.
-- Translate every technical term into plain words right after you use it.
-- Use short sentences. One idea per line.
+- Translate every technical term into plain words right after you use it. Example:
+  - Instead of "price swept liquidity above the Asian high" → say "price pushed up past the Asian session high to grab stop losses up there, then dropped — classic liquidity grab"
+  - Instead of "RSI is showing bearish divergence" → say "price is going up, but momentum is fading — that's a warning sign"
+  - Instead of "EMA20 crossed above EMA50" → say "the short-term average just crossed above the long-term one — bulls are taking over"
+  - Instead of "FVG on 15m" → say "there's a gap on the 15-minute chart that price usually comes back to fill"
+- Use short sentences. One idea per line. Let the trader insight shine, just say it simply.
 - If Boss seems confused, slow down and explain the "why" first, then the "what."
 
-=== PERSONAL QUESTION DISCIPLINE (STRICT) ===
+=== PERSONAL QUESTION DISCIPLINE (STRICT — READ CAREFULLY) ===
 - When Boss asks about a trade: answer the trade FIRST and fully. Then, AT MOST, ask exactly ONE personal question at the very end. Not two. Not three. ONE.
-- NEVER stack personal questions in the same reply.
-- If you see a topic in the "ALREADY ASKED" list below — DO NOT ask about it again.
-- If you have nothing NEW and relevant to ask, ask NOTHING personal.
-- Time awareness (STRICT): ${mealContext}
+- NEVER stack personal questions in the same reply. If you catch yourself asking breakfast + lunch + tablet + family in one message — STOP. Pick one thing and stop.
+- If you see a topic in the "ALREADY ASKED" list below — DO NOT ask about it again. It's done. Skipped. Move on.
+- If you have nothing NEW and relevant to ask, ask NOTHING personal. Just answer the trade and shut up. Silence is fine.
+- Time awareness (STRICT): ${mealContext} — only ask about a meal that matches the CURRENT time. Never ask about breakfast at dinner time. Never ask about a meal that's already been eaten.
+- Boss finds repeated personal questions annoying. Respect that. Only bring up personal stuff when it's genuinely relevant or timely.
 
 === RULES ===
 - If Boss says "Remember", "Save this", or tells you an important fact, append this tag at the very end of your reply: [REMEMBER: Exact fact to save].
@@ -2141,21 +1903,39 @@
 - Today is ${dayName}, ${istTime} IST. ${isWeekend ? 'The weekend market is closed. Keep it relaxed, review past trades, or focus on downtime.' : 'Active session day.'}
 ${askedBlock}
 ${memoryBlock}${personalBlock}${marketBlock}`;
-            if (includeSignal) { prompt += `\nCRITICAL: After your natural conversational response, append a new line with ONLY this JSON block: {"signal":"BUY"|"SELL"|"HOLD","reason":"2-4 sentences of seasoned market analysis","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`; }
+            
+            if (includeSignal) { 
+                prompt += `\nCRITICAL: After your natural conversational response, append a new line with ONLY this JSON block: {"signal":"BUY"|"SELL"|"HOLD","reason":"2-4 sentences of seasoned market analysis","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`; 
+            }
             return prompt;
         }
 
         function trackPersonalTopics(aiResponse) {
             const topicKeywords = [
-                { kw: 'breakfast', topic: 'breakfast question' }, { kw: 'lunch', topic: 'lunch question' }, { kw: 'dinner', topic: 'dinner question' },
-                { kw: 'bp tablet', topic: 'BP tablet reminder' }, { kw: 'blood pressure', topic: 'BP reminder' }, { kw: 'tablet', topic: 'tablet reminder' },
-                { kw: 'cook', topic: 'cook for the girls' }, { kw: 'girls get home', topic: 'girls coming home' }, { kw: 'sadia', topic: 'wife Sadia' },
-                { kw: 'emy', topic: 'daughter Emy' }, { kw: 'bismah', topic: 'daughter Bismah' }, { kw: 'cookie', topic: 'cat Cookie' },
-                { kw: 'how are you', topic: 'how are you checkin' }, { kw: 'how you feeling', topic: 'feelings checkin' }, { kw: 'how are you holding up', topic: 'holding up checkin' }
+                { kw: 'breakfast', topic: 'breakfast question' },
+                { kw: 'lunch', topic: 'lunch question' },
+                { kw: 'dinner', topic: 'dinner question' },
+                { kw: 'bp tablet', topic: 'BP tablet reminder' },
+                { kw: 'blood pressure', topic: 'BP reminder' },
+                { kw: 'tablet', topic: 'tablet reminder' },
+                { kw: 'cook', topic: 'cook for the girls' },
+                { kw: 'girls get home', topic: 'girls coming home' },
+                { kw: 'sadia', topic: 'wife Sadia' },
+                { kw: 'emy', topic: 'daughter Emy' },
+                { kw: 'bismah', topic: 'daughter Bismah' },
+                { kw: 'cookie', topic: 'cat Cookie' },
+                { kw: 'how are you', topic: 'how are you checkin' },
+                { kw: 'how you feeling', topic: 'feelings checkin' },
+                { kw: 'how are you holding up', topic: 'holding up checkin' }
             ];
             const lower = (aiResponse || '').toLowerCase();
             let changed = false;
-            topicKeywords.forEach(({kw, topic}) => { if (lower.includes(kw) && !recentCheckinTopics.includes(topic)) { recentCheckinTopics.push(topic); changed = true; } });
+            topicKeywords.forEach(({kw, topic}) => {
+                if (lower.includes(kw) && !recentCheckinTopics.includes(topic)) {
+                    recentCheckinTopics.push(topic);
+                    changed = true;
+                }
+            });
             if (recentCheckinTopics.length > 25) recentCheckinTopics = recentCheckinTopics.slice(-25);
             if (changed) localStorage.setItem('eurusd_recent_checkin_topics', JSON.stringify(recentCheckinTopics));
         }
@@ -2178,19 +1958,30 @@ ${memoryBlock}${personalBlock}${marketBlock}`;
                 } else {
                     response = await callAI(buildPersonalityPrompt(isMarketQuestion(text), text), text, chatHistory.slice(-6));
                 }
+                
                 response = cleanResponse(response);
                 let signalData = null;
                 const jsonMatch = response.match(/\{[\s\S]*?"signal"[\s\S]*?\}/);
                 if (jsonMatch) { try { signalData = JSON.parse(jsonMatch[0]); response = response.replace(jsonMatch[0], '').trim(); } catch(e) {} }
-                response = response.replace(/```json[\s\S]*?```/g, '').replace(/```json/gi, '').replace(/```/g, '').trim();
                 document.getElementById('chat-history').removeChild(loading);
+                
                 const rm = response.match(/\[REMINDER:\s*(\w{3}\s\d{2}:\d{2}\vert{}\d{2}:\d{2})\s*-\s*(.*?)\]/); 
                 if (rm) { addReminder(rm[1], rm[2]); response = response.replace(/\[REMINDER:.*?\]/g, '').trim(); }
+
                 const mm = response.match(/\[REMEMBER:\s*(.*?)\]/); 
-                if (mm) { addLongTermMemory(mm[1]); response = response.replace(/\[REMEMBER:.*?\]/g, '').trim(); } 
-                else if (text.toLowerCase().includes('remember') || text.toLowerCase().includes('don\'t forget') || text.toLowerCase().includes('save this')) { addLongTermMemory(text); response += " (Got it locked in my memory, Boss.)"; }
+                if (mm) { 
+                    addLongTermMemory(mm[1]); 
+                    response = response.replace(/\[REMEMBER:.*?\]/g, '').trim(); 
+                } 
+                else if (text.toLowerCase().includes('remember') || text.toLowerCase().includes('don\'t forget') || text.toLowerCase().includes('save this')) {
+                    addLongTermMemory(text);
+                    response += " (Got it locked in my memory, Boss.)";
+                }
+
                 trackPersonalTopics(response);
+
                 chatHistory.push({role:'ai', text: response}); renderChat(); saveChatHistory(); speakText(response);
+                
                 if (signalData && marketData) {
                     globalData = { price: marketData.currentPrice.toFixed(5), signal: signalData.signal, reason: signalData.reason, confidence: signalData.confidence, entry: signalData.entry, sl: signalData.sl, tp: signalData.tp, atr: marketData.atr.toFixed(5), support: marketData.support.toFixed(5), resistance: marketData.resistance.toFixed(5), trend: marketData.trend, session: marketData.session, valid: new Date(Date.now()+1800000).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})+" IST", wise_words: signalData.wise_words };
                     const st = document.getElementById('signal-text'); st.innerText = signalData.signal;
@@ -2217,7 +2008,9 @@ ${memoryBlock}${personalBlock}${marketBlock}`;
             else if (istHour < 22) mealContext = "It's DINNER time in IST.";
             else mealContext = "It's NIGHT in IST. All meals done. Do NOT ask about any meal.";
             let askedBlock = "";
-            if (recentCheckinTopics && recentCheckinTopics.length > 0) { askedBlock = `\nDO NOT ask about any of these again: ${recentCheckinTopics.slice(-15).join(', ')}`; }
+            if (recentCheckinTopics && recentCheckinTopics.length > 0) {
+                askedBlock = `\nDO NOT ask about any of these again: ${recentCheckinTopics.slice(-15).join(', ')}`;
+            }
             const prompt = `You are Alex, elite EUR/USD day trader and best friend. Check in on Boss casually.
 STRICT: Ask AT MOST ONE casual question. Not multiple. Just one. And only if it's new and relevant.
 Time context: ${mealContext}${askedBlock}
@@ -2232,8 +2025,19 @@ If you have nothing new to ask, just say a short friendly line with no question.
             } catch(e) {}
         }
 
-        function addReminder(time, message) { reminders.push({id: Math.random().toString(36).substr(2,9), time, message, voice:true, fired:false, created: new Date().toISOString()}); localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); }
-        function addScheduledSearch(minutes, query) { const triggerTime = Date.now() + (minutes * 60000); scheduledSearches.push({ id: Math.random().toString(36).substr(2,9), triggerTime, query, fired: false }); localStorage.setItem('eurusd_scheduled_searches', JSON.stringify(scheduledSearches)); renderReminders(); }
+        function addReminder(time, message) { 
+            reminders.push({id: Math.random().toString(36).substr(2,9), time, message, voice:true, fired:false, created: new Date().toISOString()}); 
+            localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); 
+            renderReminders(); 
+        }
+
+        function addScheduledSearch(minutes, query) {
+            const triggerTime = Date.now() + (minutes * 60000);
+            scheduledSearches.push({ id: Math.random().toString(36).substr(2,9), triggerTime, query, fired: false });
+            localStorage.setItem('eurusd_scheduled_searches', JSON.stringify(scheduledSearches));
+            renderReminders();
+        }
+
         function renderReminders() { 
             const l = document.getElementById('reminders-list'); 
             const activeReminders = reminders.filter(r => !r.fired); 
@@ -2243,10 +2047,16 @@ If you have nothing new to ask, just say a short friendly line with no question.
             activeReminders.forEach(r => { html += `<div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span>⏰ ${r.time} · ${r.message}</span><button class="btn danger" onclick="deleteReminder('${r.id}')">X</button></div>`; });
             l.innerHTML = html;
         }
+
         function deleteReminder(id) { reminders = reminders.filter(r => r.id !== id); localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); }
         function clearReminders() { reminders = []; scheduledSearches = []; localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); localStorage.setItem('eurusd_scheduled_searches', JSON.stringify(scheduledSearches)); renderReminders(); }
         function testReminder() { triggerNotif("Test Reminder", "System test operational, Boss."); }
-        function triggerNotif(title, body) { if (Notification.permission === "granted") { try { new Notification(title, {body, requireInteraction: true}); } catch(e) {} } speakText(body, true); }
+        
+        function triggerNotif(title, body) { 
+            if (Notification.permission === "granted") { try { new Notification(title, {body, requireInteraction: true}); } catch(e) {} } 
+            speakText(body, true); 
+        }
+
         function checkReminders() { 
             const now = new Date(); 
             const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -2256,27 +2066,44 @@ If you have nothing new to ask, just say a short friendly line with no question.
             reminders.forEach(r => { 
                 if (!r.fired) {
                     let shouldFire = false;
-                    if (r.time.includes(' ')) { const [dayPart, timePart] = r.time.split(' '); if (dayPart === curDay && timePart === curTime) shouldFire = true; }
-                    else { if (r.time === curTime) shouldFire = true; }
+                    if (r.time.includes(' ')) {
+                        const [dayPart, timePart] = r.time.split(' ');
+                        if (dayPart === curDay && timePart === curTime) shouldFire = true;
+                    } else {
+                        if (r.time === curTime) shouldFire = true;
+                    }
                     if (shouldFire) { r.fired = true; updated = true; triggerNotif("Reminder", r.message); } 
                 }
             }); 
             if (updated) { localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); } 
         }
         setInterval(checkReminders, 10000);
+
         async function checkScheduledSearches() {
             const now = Date.now();
             for (let task of scheduledSearches) {
-                if (!task.fired && now >= task.triggerTime) { task.fired = true; const results = await searchWeb(task.query); chatHistory.push({role:'ai', text: `Update on "${task.query}":\n${results}`}); renderChat(); saveChatHistory(); }
+                if (!task.fired && now >= task.triggerTime) {
+                    task.fired = true;
+                    const results = await searchWeb(task.query);
+                    chatHistory.push({role:'ai', text: `Update on "${task.query}":\n${results}`});
+                    renderChat(); saveChatHistory();
+                }
             }
         }
         setInterval(checkScheduledSearches, 10000);
+
         function checkMissedReminders() {}
         function addLongTermMemory(fact) { longTermMemory.push({fact, added: new Date().toISOString().split('T')[0]}); localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); }
         function renderMemory() { const l = document.getElementById('memory-list'); l.innerHTML = longTermMemory.length === 0 ? 'No facts saved.' : longTermMemory.map(m => `<div>• ${m.fact} <span style="color:var(--text-subtle);">(${m.added})</span></div>`).join(''); }
         function clearLongTermMemory() { if (confirm("Clear memory?")) { longTermMemory = []; localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); renderMemory(); } }
         function saveApiKey() { const v = document.getElementById('api-key-input').value.trim(); if (v) { apiKey = v; localStorage.setItem('eurusd_chat_key', apiKey); document.getElementById('groq-status').innerText = "✓ Gemini key saved"; } }
-        async function saveGroqKey() { const v = document.getElementById('groq-key-input').value.trim(); if (!v) return; groqKey = v; localStorage.setItem('eurusd_groq_key', groqKey); document.getElementById('groq-status').innerText = "✓ Groq Key Saved!"; document.getElementById('groq-status').style.color = "var(--green)"; }
+        
+        async function saveGroqKey() {
+            const v = document.getElementById('groq-key-input').value.trim();
+            if (!v) return;
+            groqKey = v; localStorage.setItem('eurusd_groq_key', groqKey);
+            document.getElementById('groq-status').innerText = "✓ Groq Key Saved!"; document.getElementById('groq-status').style.color = "var(--green)";
+        }
 
         let map = null;
         let userMarker = null;
@@ -2289,6 +2116,7 @@ If you have nothing new to ask, just say a short friendly line with no question.
             L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }).addTo(map);
             runCinematicDescent();
         }
+
         function runCinematicDescent() {
             if (!map) return;
             map.setView([20.0, 30.0], 2, { animate: false });
@@ -2298,33 +2126,65 @@ If you have nothing new to ask, just say a short friendly line with no question.
             setTimeout(() => { if (map) map.flyTo([10.7867, 76.6548], 10, { duration: 2.4 }); }, 9800);
             setTimeout(() => { flyToLiveLocation(); }, 12800);
         }
+
         function flyToLiveLocation() {
-            if (!navigator.geolocation) { console.warn("Geolocation not supported"); return; }
+            if (!navigator.geolocation) {
+                console.warn("Geolocation not supported");
+                return;
+            }
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
-                    const lat = pos.coords.latitude; const lng = pos.coords.longitude; const acc = Math.round(pos.coords.accuracy || 0);
+                    const lat = pos.coords.latitude;
+                    const lng = pos.coords.longitude;
+                    const acc = Math.round(pos.coords.accuracy || 0);
                     if (!map) return;
                     map.flyTo([lat, lng], 17, { duration: 3 });
                     if (userMarker) { try { map.removeLayer(userMarker); } catch(e) {} }
-                    userMarker = L.circleMarker([lat, lng], { radius: 10, color: '#a78bfa', fillColor: '#8b5cf6', fillOpacity: 0.9, weight: 3 }).addTo(map);
-                    userMarker.bindPopup(`<div style="font-family:Inter,sans-serif;font-size:13px;color:#000;"><strong>You are here, Boss</strong><br>${lat.toFixed(6)}, ${lng.toFixed(6)}<br><span style="color:#666;">Accuracy ±${acc} m</span></div>`).openPopup();
+                    userMarker = L.circleMarker([lat, lng], {
+                        radius: 10,
+                        color: '#a78bfa',
+                        fillColor: '#8b5cf6',
+                        fillOpacity: 0.9,
+                        weight: 3
+                    }).addTo(map);
+                    userMarker.bindPopup(
+                        `<div style="font-family:Inter,sans-serif;font-size:13px;color:#000;">
+                            <strong>You are here, Boss</strong><br>
+                            ${lat.toFixed(6)}, ${lng.toFixed(6)}<br>
+                            <span style="color:#666;">Accuracy ±${acc} m</span>
+                        </div>`
+                    ).openPopup();
                     setTimeout(() => { showStreetView(lat, lng); }, 3400);
                 },
-                (err) => { console.warn("Geolocation error:", err); },
+                (err) => {
+                    console.warn("Geolocation error:", err);
+                },
                 { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
             );
         }
-        function showStreetView(lat, lng) { const iframe = document.getElementById('street-view-iframe'); iframe.src = `https://maps.google.com/maps?q=&layer=c&cbll=${lat},${lng}&cbp=11,0,0,0,0&output=svembed`; document.getElementById('street-view-container').style.display = 'block'; }
+
+        function showStreetView(lat, lng) {
+            const iframe = document.getElementById('street-view-iframe');
+            iframe.src = `https://maps.google.com/maps?q=&layer=c&cbll=${lat},${lng}&cbp=11,0,0,0,0&output=svembed`;
+            document.getElementById('street-view-container').style.display = 'block';
+        }
+
         function closeStreetView() { document.getElementById('street-view-container').style.display = 'none'; }
         function flyToDubai() { map.flyTo([25.2854, 55.3742], 17, { duration: 3 }); }
 
+        // NEW: Double-tap on the map overlay to exit and return to core
         let mapLastTapTime = 0;
         const mapOverlay = document.getElementById('map-overlay');
         mapOverlay.addEventListener('pointerdown', (e) => {
             resetIdleTimer();
             const now = Date.now();
-            if (now - mapLastTapTime < 400) { exitMap(); setTimeout(() => { triggerSpaceCollapse(); }, 1600); mapLastTapTime = 0; }
-            else { mapLastTapTime = now; }
+            if (now - mapLastTapTime < 400) {
+                exitMap();
+                setTimeout(() => { triggerSpaceCollapse(); }, 1600);
+                mapLastTapTime = 0;
+            } else {
+                mapLastTapTime = now;
+            }
         });
 
         window.onload = () => {
