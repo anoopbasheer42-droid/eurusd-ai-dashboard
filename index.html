@@ -1088,13 +1088,56 @@
             return voices.find(v => v.lang.startsWith('en')) || voices[0];
         }
 
+        function sanitizeForSpeech(text) {
+            if (!text) return '';
+            let t = String(text);
+            // Remove code blocks / inline code
+            t = t.replace(/```[\s\S]*?```/g, ' ');
+            t = t.replace(/`([^`]*)`/g, '$1');
+            // Markdown headings -> plain (remove the hashes)
+            t = t.replace(/^\s*#{1,6}\s*/gm, '');
+            // Remove horizontal rules / dashes / underscores lines
+            t = t.replace(/^\s*[-_*]{3,}\s*$/gm, '');
+            // Markdown bullets at line start -> remove the bullet char
+            t = t.replace(/^\s*[-*+•]\s+/gm, '');
+            // Bold / italic markers
+            t = t.replace(/\*\*([^*]+)\*\*/g, '$1');
+            t = t.replace(/\*([^*]+)\*/g, '$1');
+            t = t.replace(/__([^_]+)__/g, '$1');
+            t = t.replace(/_([^_]+)_/g, '$1');
+            // Remove stray asterisks / hashes / tildes
+            t = t.replace(/[*#~`|]/g, ' ');
+            // Collapse any run of 2+ dashes or underscores to a short pause
+            t = t.replace(/[-_]{2,}/g, ', ');
+            // Single dash used as separator between words -> keep as space
+            t = t.replace(/\s-\s/g, ' ');
+            // Curly/square braces and JSON-ish fragments
+            t = t.replace(/[{}[\]<>]/g, ' ');
+            // URLs -> remove
+            t = t.replace(/https?:\/\/\S+/g, ' ');
+            // Emojis & symbol pictographs -> remove
+            try { t = t.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}]/gu, ' '); } catch(e) {}
+            // Quotes around prices/values like "1.12345" are fine but double-quote pairs -> strip
+            t = t.replace(/["']/g, '');
+            // Normalize whitespace
+            t = t.replace(/[ \t]+/g, ' ').replace(/\s*\n\s*/g, '. ').replace(/\.\s*\./g, '.').replace(/\s+([.,!?;:])/g, '$1');
+            // Collapse repeated punctuation
+            t = t.replace(/([.,!?;:])\1+/g, '$1');
+            // Space out decimals like 1.12345 so TTS reads them naturally
+            t = t.replace(/(\d)\.(\d)/g, '$1 point $2');
+            // Final trim
+            return t.trim();
+        }
+
         function fallbackSpeakText(text, isReminder = false) {
             if (!('speechSynthesis' in window)) return;
+            const cleaned = sanitizeForSpeech(text);
+            if (!cleaned) { isSpeaking = false; return; }
             window.speechSynthesis.cancel();
             let voice = getBestVoice();
             if (!voice) { setTimeout(() => fallbackSpeakText(text, isReminder), 500); return; }
-            const sentences = text.split(/(?<=[.!?,])\s+/).map(s => s.trim()).filter(s => s.length > 0);
-            if (sentences.length === 0) return;
+            const sentences = cleaned.split(/(?<=[.!?,])\s+/).map(s => s.trim()).filter(s => s.length > 0);
+            if (sentences.length === 0) { isSpeaking = false; return; }
             isSpeaking = true;
             let index = 0;
             function speakNext() {
@@ -1116,8 +1159,8 @@
             const statusEl = document.getElementById('voice-status');
             if (currentAudio) { currentAudio.pause(); currentAudio = null; }
             if ('speechSynthesis' in window) { window.speechSynthesis.cancel(); }
-            const cleanText = text.replace(/\[.*?\]/g, '').trim();
-            if (!cleanText) return;
+            const cleanText = sanitizeForSpeech(text.replace(/\[.*?\]/g, ''));
+            if (!cleanText) { isSpeaking = false; return; }
             isSpeaking = true;
             if (voiceEngineMode === 'browser') {
                 if (statusEl) statusEl.innerHTML = "<span style='color:var(--yellow);'>Using Browser Voice (Manual Mode)</span>";
