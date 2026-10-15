@@ -716,74 +716,12 @@
         solarSystemGroup.visible = false;
         scene.add(solarSystemGroup);
 
-        // === REALISTIC FIERY SUN (Shader-based) ===
+        // === REALISTIC SUN (photo-real texture, no artificial fire) ===
         const sunGroup = new THREE.Group();
-        const sunUniforms = { time: { value: 0 }, sunTex: { value: null } };
-        const sunVertexShader = `
-            varying vec2 vUv;
-            varying vec3 vNormal;
-            void main() {
-                vUv = uv;
-                vNormal = normalize(normalMatrix * normal);
-                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-            }
-        `;
-        const sunFragmentShader = `
-            uniform float time;
-            varying vec2 vUv;
-            varying vec3 vNormal;
-            float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-            float noise(vec2 p) {
-                vec2 i = floor(p);
-                vec2 f = fract(p);
-                f = f*f*(3.0-2.0*f);
-                float a = hash(i);
-                float b = hash(i + vec2(1.0, 0.0));
-                float c = hash(i + vec2(0.0, 1.0));
-                float d = hash(i + vec2(1.0, 1.0));
-                return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
-            }
-            float fbm(vec2 p) {
-                float v = 0.0;
-                float a = 0.5;
-                for (int i = 0; i < 6; i++) {
-                    v += a * noise(p);
-                    p *= 2.05;
-                    a *= 0.5;
-                }
-                return v;
-            }
-            void main() {
-                vec2 uv = vUv;
-                float n1 = fbm(uv * 4.0 + vec2(time * 0.12, time * 0.07));
-                float n2 = fbm(uv * 8.0 - vec2(time * 0.18, time * 0.11));
-                float n3 = fbm(uv * 16.0 + vec2(time * 0.28, -time * 0.09));
-                float n4 = fbm(uv * 32.0 - vec2(time * 0.35, time * 0.22));
-                float mixv = n1 * 0.45 + n2 * 0.28 + n3 * 0.17 + n4 * 0.10;
-                vec3 colDeep = vec3(0.55, 0.10, 0.02);
-                vec3 colMid = vec3(1.0, 0.42, 0.08);
-                vec3 colHot = vec3(1.0, 0.75, 0.20);
-                vec3 colWhite = vec3(1.0, 0.98, 0.85);
-                vec3 col = mix(colDeep, colMid, smoothstep(0.25, 0.55, mixv));
-                col = mix(col, colHot, smoothstep(0.55, 0.78, mixv));
-                col = mix(col, colWhite, smoothstep(0.82, 0.98, mixv));
-                float cells = fbm(uv * 60.0 + time * 0.5);
-                col += vec3(0.15, 0.08, 0.0) * cells;
-                float limb = dot(vNormal, vec3(0.0, 0.0, 1.0));
-                limb = 0.55 + 0.45 * pow(max(limb, 0.0), 0.4);
-                col *= limb;
-                vec3 edgeTint = vec3(1.0, 0.5, 0.2);
-                col = mix(edgeTint * col, col, limb);
-                gl_FragColor = vec4(col, 1.0);
-            }
-        `;
-        const sunMaterial = new THREE.ShaderMaterial({
-            uniforms: sunUniforms,
-            vertexShader: sunVertexShader,
-            fragmentShader: sunFragmentShader,
-            side: THREE.FrontSide
-        });
-        const sunMesh = new THREE.Mesh(new THREE.SphereGeometry(1.6, 128, 128), sunMaterial);
+        const sunMesh = new THREE.Mesh(
+            new THREE.SphereGeometry(1.6, 128, 128),
+            new THREE.MeshBasicMaterial({ color: 0xffcc66 })
+        );
         sunGroup.add(sunMesh);
 
         const sunCoronaCanvas = _canvas(1024, 1024);
@@ -801,36 +739,6 @@
         { const ctx = sunCoronaInnerCanvas.getContext('2d'); const g = ctx.createRadialGradient(256, 256, 30, 256, 256, 210); g.addColorStop(0, 'rgba(255,255,240,1)'); g.addColorStop(0.35, 'rgba(255,240,160,0.85)'); g.addColorStop(0.7, 'rgba(255,190,70,0.4)'); g.addColorStop(1, 'rgba(255,120,20,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, 512, 512); }
         const sunCoronaInner = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(sunCoronaInnerCanvas), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.95 }));
         sunCoronaInner.scale.set(6.5, 6.5, 1); sunGroup.add(sunCoronaInner);
-
-        const sunFlares = [];
-        (function buildSunFlares() {
-            for (let i = 0; i < 20; i++) {
-                const flareCanvas = _canvas(256, 256);
-                const fctx = flareCanvas.getContext('2d');
-                const fg = fctx.createRadialGradient(128, 128, 6, 128, 128, 128);
-                fg.addColorStop(0, 'rgba(255,255,235,1)');
-                fg.addColorStop(0.3, 'rgba(255,215,110,0.7)');
-                fg.addColorStop(0.7, 'rgba(255,140,40,0.25)');
-                fg.addColorStop(1, 'rgba(255,80,10,0)');
-                fctx.fillStyle = fg; fctx.fillRect(0, 0, 256, 256);
-                const flare = new THREE.Sprite(new THREE.SpriteMaterial({ 
-                    map: new THREE.CanvasTexture(flareCanvas), 
-                    transparent: true, 
-                    depthWrite: false, 
-                    blending: THREE.AdditiveBlending, 
-                    opacity: 0.75 
-                }));
-                const size = 1.1 + Math.random() * 1.4;
-                flare.scale.set(size, size, 1);
-                const dist = 1.95 + Math.random() * 1.3;
-                const theta = Math.random() * Math.PI * 2;
-                const phi = Math.acos(2 * Math.random() - 1);
-                flare.position.set(Math.sin(phi) * Math.cos(theta) * dist, Math.sin(phi) * Math.sin(theta) * dist, Math.cos(phi) * dist);
-                flare.userData = { baseDist: dist, angle: theta, phi: phi, speed: 0.12 + Math.random() * 0.4, pulse: Math.random() * Math.PI * 2 };
-                sunGroup.add(flare);
-                sunFlares.push(flare);
-            }
-        })();
 
         const sunLight = new THREE.PointLight(0xfff0c4, 3.2, 1200, 2);
         sunLight.position.set(0, 0, 0);
@@ -1012,6 +920,7 @@
 
         const TEX_BASE = 'https://threejs.org/examples/textures/planets/';
         const REAL_TEX = {
+            Sun: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/sun_2k.jpg',
             Mercury: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/mercury_1k.jpg',
             Venus: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/venus_1k.jpg',
             Earth: 'earth_atmos_2048.jpg',
@@ -1050,6 +959,14 @@
                 onLoad(tex);
             }, undefined, () => {});
         }
+
+        // === LOAD SUN REAL TEXTURE (photo-real) ===
+        loadRealTex('Sun', (tex) => {
+            tex.encoding = THREE.sRGBEncoding;
+            sunMesh.material.map = tex;
+            sunMesh.material.color.setHex(0xffffff);
+            sunMesh.material.needsUpdate = true;
+        });
 
         for (const grp of planetObjs) {
             const name = grp.userData.name;
@@ -1113,6 +1030,7 @@
 
         let landingState = 'none';
         let landingTarget = new THREE.Vector3();
+        let issLastTapTime = 0;   // <-- NEW: for double-tap detection
         
         function triggerISSView() {
             if (spaceState !== 'space' || landingState !== 'none') return;
@@ -1137,15 +1055,18 @@
                 document.getElementById('map-overlay').style.display = 'none';
                 if (map) { map.remove(); map = null; }
                 landingState = 'none';
-                spaceState = 'space';
-                cameraRadius = 3000; targetCameraZ = 3000;
+                // <-- NEW: return to Earth view (ISS), not to deep space
+                spaceState = 'iss_view';
+                targetCameraZ = 1.8;
+                cameraRadius = camera.position.length();
+                issLastTapTime = 0;
             }, 1500);
         }
 
         const issHint = document.createElement('div');
         issHint.id = 'iss-hint';
         issHint.style.cssText = 'position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.8); color:white; padding:10px 20px; border-radius:20px; font-family:Inter, sans-serif; font-size:12px; letter-spacing:0.1em; text-transform:uppercase; opacity:0; transition:opacity 0.5s; z-index:100; border:1px solid rgba(139,92,246,0.5); pointer-events:none;';
-        issHint.innerText = 'Drag to look around · Tap Earth to descend';
+        issHint.innerText = 'Drag to look around · Double-tap Earth to descend';
         document.body.appendChild(issHint);
 
         let lastTapTime = 0; let lastTapX = 0, lastTapY = 0;
@@ -1344,9 +1265,17 @@
             const intersects = raycaster.intersectObject(earthObj, true);
             if (intersects.length > 0) {
                 if (spaceState === 'space') {
+                    // Single tap from space: go to Earth view
                     triggerISSView();
                 } else if (spaceState === 'iss_view') {
-                    triggerEarthLanding();
+                    // <-- NEW: from Earth view, need double-tap to go inside
+                    const now = Date.now();
+                    if (now - issLastTapTime < 600) {
+                        issLastTapTime = 0;
+                        triggerEarthLanding();
+                    } else {
+                        issLastTapTime = now;
+                    }
                 }
                 return true;
             }
@@ -1421,7 +1350,24 @@
                 skybox.visible = false;
             }
 
-            if (spaceProgress > 0.001) { milkyWayGroup.visible = true; milkyWayGroup.scale.setScalar(Math.max(0.001, ep)); milkyWayGroup.rotation.y += 0.0005; milkyWayGroup.traverse((o) => { if (o.material && o.material.opacity !== undefined) { if (o.userData.baseOpacity === undefined) o.userData.baseOpacity = o.material.opacity; o.material.opacity = o.userData.baseOpacity * milkyAlpha; } }); } else { milkyWayGroup.visible = false; }
+            // === GALAXY: comes closer + spins hard during explosion ===
+            if (spaceProgress > 0.001) { 
+                milkyWayGroup.visible = true; 
+                // Galaxy grows AND keeps growing past 1.0 so it feels like it's rushing toward viewer
+                const galaxyScale = Math.max(0.001, ep * (1 + ep * 1.6));
+                milkyWayGroup.scale.setScalar(galaxyScale); 
+                // Extra spin during expand/collapse = experience the spin
+                if (spaceState === 'expanding' || spaceState === 'collapsing') {
+                    milkyWayGroup.rotation.y += 0.0005 + ep * 0.028;
+                    milkyWayGroup.rotation.x += 0.0002 + ep * 0.010;
+                    milkyWayGroup.rotation.z += ep * 0.005;
+                } else {
+                    milkyWayGroup.rotation.y += 0.0005;
+                }
+                milkyWayGroup.traverse((o) => { if (o.material && o.material.opacity !== undefined) { if (o.userData.baseOpacity === undefined) o.userData.baseOpacity = o.material.opacity; o.material.opacity = o.userData.baseOpacity * milkyAlpha; } }); 
+            } else { 
+                milkyWayGroup.visible = false; 
+            }
             const solarFinal = ep * solarAlpha;
             if (solarFinal > 0.001) { 
                 solarSystemGroup.visible = true; 
@@ -1445,8 +1391,6 @@
             
             if (solarAlpha > 0.02) { 
                 const ts = nowMs * 0.001; 
-                
-                sunUniforms.time.value = ts;
                 
                 for (const grp of planetObjs) { 
                     const ud = grp.userData; 
@@ -1472,22 +1416,12 @@
                     ast.rotation.y += ast.userData.rotSpd.y; 
                 } 
                 
-                sunMesh.rotation.y += 0.0018; 
-                const sunPulse = 1 + Math.sin(ts * 1.5) * 0.025;
+                // Sun rotation - photo-real texture spins slowly
+                sunMesh.rotation.y += 0.0012; 
+                const sunPulse = 1 + Math.sin(ts * 1.5) * 0.012;
                 sunMesh.scale.set(sunPulse, sunPulse, sunPulse);
-                const cs = 14 + Math.sin(ts * 1.8) * 0.7; sunCorona.scale.set(cs, cs, 1); 
-                const ci = 6.5 + Math.sin(ts * 3.2) * 0.4; sunCoronaInner.scale.set(ci, ci, 1);
-                
-                for (const flare of sunFlares) {
-                    flare.userData.angle += flare.userData.speed * 0.012;
-                    const r = flare.userData.baseDist * (1 + Math.sin(ts * 1.8 + flare.userData.pulse) * 0.22);
-                    const th = flare.userData.angle;
-                    const ph = flare.userData.phi;
-                    flare.position.set(Math.sin(ph) * Math.cos(th) * r, Math.sin(ph) * Math.sin(th) * r, Math.cos(ph) * r);
-                    flare.material.opacity = (0.5 + Math.sin(ts * 2.5 + flare.userData.pulse) * 0.35) * solarAlpha;
-                    const fscale = (1.1 + Math.sin(ts * 2 + flare.userData.pulse) * 0.15) * 1.0;
-                    flare.scale.set(fscale, fscale, 1);
-                }
+                const cs = 14 + Math.sin(ts * 1.8) * 0.4; sunCorona.scale.set(cs, cs, 1); 
+                const ci = 6.5 + Math.sin(ts * 3.2) * 0.25; sunCoronaInner.scale.set(ci, ci, 1);
             }
             if (satelliteGroup) { const ts = nowMs * 0.001; for (const sat of satelliteGroup.children) { sat.userData.angle += sat.userData.speed * 0.01; const ra = sat.userData.angle; const r = sat.userData.orbitRadius; sat.position.set(Math.cos(ra) * r, Math.sin(ra) * r * Math.sin(sat.userData.incl), Math.sin(ra) * r * Math.cos(sat.userData.incl)); sat.rotation.y = -ra; } }
             if (spaceProgress > 0.01 && milkyAlpha > 0.05) { travelCometTimer -= 1; if (travelCometTimer <= 0 && travelComets.length < 4) { spawnTravelComet(); travelCometTimer = 200 + Math.floor(Math.random() * 100); } for (let i = travelComets.length - 1; i >= 0; i--) { const c = travelComets[i]; c.grp.position.addScaledVector(c.dir, c.speed); c.grp.lookAt(new THREE.Vector3(c.grp.position.x + c.dir.x, c.grp.position.y + c.dir.y, c.grp.position.z + c.dir.z)); c.life -= 0.003; if (c.life <= 0 || c.grp.position.length() > 3500) { milkyWayGroup.remove(c.grp); travelComets.splice(i, 1); } } for (const m of meteoroids) { m.grp.rotation.x += m.rotSpd.x; m.grp.rotation.y += m.rotSpd.y; m.grp.rotation.z += m.rotSpd.z; } }
@@ -1806,7 +1740,6 @@
             
             let marketBlock = marketData ? `\nLIVE MARKET DATA (EUR/USD):\nPrice: ${safeNum(marketData.currentPrice, 1.1200).toFixed(5)} | Trend: ${marketData.trend} | Support: ${safeNum(marketData.support, 1.1176).toFixed(5)} | Resistance: ${safeNum(marketData.resistance, 1.1246).toFixed(5)} | RSI 1H: ${safeNum(marketData.rsi1H, 50).toFixed(1)} | Session: ${marketData.session}\n` : "";
 
-            // === NEW: Personal Context block ===
             let personalBlock = "";
             if (personalContext && typeof personalContext === 'object') {
                 personalBlock = `\n=== BOSS'S PERSONAL CONTEXT (You already know all of this — never say you don't know) ===\n${JSON.stringify(personalContext, null, 2)}\n=== END PERSONAL CONTEXT ===\n`;
