@@ -716,6 +716,97 @@
         solarSystemGroup.visible = false;
         scene.add(solarSystemGroup);
 
+        // === CINEMATIC REALISTIC BLACK HOLE ===
+        const blackHoleGroup = new THREE.Group();
+        blackHoleGroup.visible = false;
+        solarSystemGroup.add(blackHoleGroup);
+
+        function makeCinematicAccretionDiskTex() {
+            const canvas = document.createElement('canvas');
+            canvas.width = canvas.height = 1024;
+            const ctx = canvas.getContext('2d');
+            const g = ctx.createRadialGradient(512, 512, 60, 512, 512, 512);
+            g.addColorStop(0, 'rgba(0, 0, 0, 1)');
+            g.addColorStop(0.12, 'rgba(255, 255, 255, 1)');
+            g.addColorStop(0.22, 'rgba(255, 220, 150, 0.95)');
+            g.addColorStop(0.38, 'rgba(255, 110, 20, 0.9)');
+            g.addColorStop(0.60, 'rgba(167, 139, 250, 0.6)');
+            g.addColorStop(0.82, 'rgba(59, 130, 246, 0.25)');
+            g.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = g;
+            ctx.fillRect(0, 0, 1024, 1024);
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        const eventHorizon = new THREE.Mesh(
+            new THREE.SphereGeometry(3.2, 64, 64),
+            new THREE.MeshBasicMaterial({ color: 0x000000 })
+        );
+        blackHoleGroup.add(eventHorizon);
+
+        const photonRingMat = new THREE.ShaderMaterial({
+            uniforms: { time: { value: 0 } },
+            vertexShader: `
+                varying vec3 vNormal;
+                void main() {
+                    vNormal = normalize(normalMatrix * normal);
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                varying vec3 vNormal;
+                void main() {
+                    float intensity = pow(0.7 - dot(vNormal, vec3(0, 0, 1.0)), 2.5);
+                    gl_FragColor = vec4(1.0, 0.65, 0.2, 1.0) * intensity * 2.2;
+                }
+            `,
+            side: THREE.BackSide,
+            blending: THREE.AdditiveBlending,
+            transparent: true
+        });
+        const photonRing = new THREE.Mesh(new THREE.SphereGeometry(3.45, 32, 32), photonRingMat);
+        blackHoleGroup.add(photonRing);
+
+        const diskGeo = new THREE.RingGeometry(3.6, 18.0, 128);
+        const diskMat = new THREE.MeshBasicMaterial({
+            map: makeCinematicAccretionDiskTex(),
+            side: THREE.DoubleSide,
+            transparent: true,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+        });
+        const accretionDisk = new THREE.Mesh(diskGeo, diskMat);
+        accretionDisk.rotation.x = Math.PI / 2.1;
+        blackHoleGroup.add(accretionDisk);
+
+        const lensedDiskGeo = new THREE.RingGeometry(3.55, 12.0, 128);
+        const lensedDisk = new THREE.Mesh(lensedDiskGeo, new THREE.MeshBasicMaterial({
+            map: makeCinematicAccretionDiskTex(),
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0.45,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+        }));
+        lensedDisk.rotation.x = Math.PI / 2.5;
+        lensedDisk.position.y = 1.2;
+        blackHoleGroup.add(lensedDisk);
+
+        const bhGlowSprite = new THREE.Sprite(new THREE.SpriteMaterial({
+            map: makeCircularStarTexture('rgba(255,160,50,0.8)'),
+            transparent: true,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+            opacity: 0.7
+        }));
+        bhGlowSprite.scale.set(45, 45, 1);
+        blackHoleGroup.add(bhGlowSprite);
+
+        const bhLight = new THREE.PointLight(0xff9933, 4.0, 900, 2);
+        blackHoleGroup.add(bhLight);
+
+        blackHoleGroup.position.set(280, 70, -450);
+
         // === REALISTIC SUN (photo-real texture, no artificial fire) ===
         const sunGroup = new THREE.Group();
         const sunMesh = new THREE.Mesh(
@@ -1022,26 +1113,45 @@
         const BASE_CAM_Z = 6; const SPACE_CAM_Z = 3000;
         let cameraTheta = 0; let cameraPhi = 0.55; let cameraRadius = SPACE_CAM_Z; let targetCameraZ = BASE_CAM_Z; let solarAlpha = 0; let milkyAlpha = 1; let earthFocusAmount = 0;
         let spaceState = 'core'; let spaceProgress = 0; const SPACE_FULL_MS = 15000; let spacePhaseStart = 0;
+        let cinematicBlackHoleMode = false; let cinematicStartTime = 0; const CINEMATIC_DURATION_MS = 15000;
+
+        function triggerCinematicBlackHoleZoom() {
+            if (spaceState !== 'space' || cinematicBlackHoleMode) return;
+            cinematicBlackHoleMode = true;
+            cinematicStartTime = Date.now();
+            cameraTheta = 0;
+            cameraPhi = 0.2;
+            const hint = document.getElementById('iss-hint');
+            if (hint) {
+                hint.innerText = 'Cinematic Approach: Descending into Black Hole Event Horizon...';
+                hint.style.opacity = '1';
+                setTimeout(() => { hint.style.opacity = '0'; }, 4000);
+            }
+        }
+
         let lastInteractionTime = Date.now(); const IDLE_COLLAPSE_MS = 5 * 60 * 1000;
 
         function resetIdleTimer() { lastInteractionTime = Date.now(); }
         
-        // New global listeners to ensure idle timer resets on any interaction
         window.addEventListener('pointerdown', resetIdleTimer);
         window.addEventListener('pointermove', resetIdleTimer);
         window.addEventListener('wheel', resetIdleTimer);
         window.addEventListener('touchstart', resetIdleTimer);
         window.addEventListener('touchmove', resetIdleTimer);
 
-        function triggerSpaceExpand() { if (spaceState === 'expanding' || spaceState === 'space') return; spaceState = 'expanding'; spacePhaseStart = Date.now(); spaceProgress = 0; cameraTheta = 0; cameraPhi = 0.55; cameraRadius = SPACE_CAM_Z; targetCameraZ = SPACE_CAM_Z; solarAlpha = 0; milkyAlpha = 1; earthFocusAmount = 0; currentZoomIndex = 0; resetIdleTimer(); }
-        function triggerSpaceCollapse() { if (spaceState === 'collapsing' || spaceState === 'core') return; spaceState = 'collapsing'; spacePhaseStart = Date.now(); spaceProgress = 1; resetIdleTimer(); }
+        function triggerSpaceExpand() { 
+            if (spaceState === 'expanding' || spaceState === 'space') return; 
+            spaceState = 'expanding'; spacePhaseStart = Date.now(); spaceProgress = 0; cameraTheta = 0; cameraPhi = 0.55; cameraRadius = SPACE_CAM_Z; targetCameraZ = SPACE_CAM_Z; solarAlpha = 0; milkyAlpha = 1; earthFocusAmount = 0; currentZoomIndex = 0; cinematicBlackHoleMode = false; resetIdleTimer(); 
+            setTimeout(() => { triggerCinematicBlackHoleZoom(); }, 16000);
+        }
+        function triggerSpaceCollapse() { if (spaceState === 'collapsing' || spaceState === 'core') return; spaceState = 'collapsing'; spacePhaseStart = Date.now(); spaceProgress = 1; cinematicBlackHoleMode = false; resetIdleTimer(); }
 
         let landingState = 'none';
         let landingTarget = new THREE.Vector3();
         let issLastTapTime = 0;
         
         function triggerISSView() {
-            if (spaceState !== 'space' || landingState !== 'none') return;
+            if (spaceState !== 'space' || landingState !== 'none' || cinematicBlackHoleMode) return;
             spaceState = 'iss_view';
             targetCameraZ = 1.8;
             cameraRadius = camera.position.length();
@@ -1078,7 +1188,7 @@
 
         let lastTapTime = 0; let lastTapX = 0, lastTapY = 0;
         const zoomMilestones = []; for (let i = 0; i <= 450; i++) { const t = i / 450; const dist = 3000 * Math.pow(0.0004, t); zoomMilestones.push(dist); } zoomMilestones.reverse(); let currentZoomIndex = 0;
-        container.addEventListener('wheel', (e) => { if (landingState !== 'none') return; if (spaceState === 'space' || spaceState === 'expanding' || spaceState === 'iss_view') { e.preventDefault(); resetIdleTimer(); if (e.deltaY > 0) { currentZoomIndex = Math.max(0, currentZoomIndex - 1); } else { currentZoomIndex = Math.min(zoomMilestones.length - 1, currentZoomIndex + 1); } targetCameraZ = zoomMilestones[currentZoomIndex]; cameraRadius = targetCameraZ; } }, { passive: false });
+        container.addEventListener('wheel', (e) => { if (landingState !== 'none' || cinematicBlackHoleMode) return; if (spaceState === 'space' || spaceState === 'expanding' || spaceState === 'iss_view') { e.preventDefault(); resetIdleTimer(); if (e.deltaY > 0) { currentZoomIndex = Math.max(0, currentZoomIndex - 1); } else { currentZoomIndex = Math.min(zoomMilestones.length - 1, currentZoomIndex + 1); } targetCameraZ = zoomMilestones[currentZoomIndex]; cameraRadius = targetCameraZ; } }, { passive: false });
 
         const BOLT_COUNT = 12; const boltPool = [];
         for (let i = 0; i < BOLT_COUNT; i++) { const boltMat = new THREE.LineBasicMaterial({ color: 0xffe066, transparent: true, opacity: 0 }); const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(24 * 3), 3)); const line = new THREE.Line(geo, boltMat); line.visible = false; scene.add(line); boltPool.push({ line, life: 0 }); }
@@ -1097,13 +1207,11 @@
             }
             cosmicBirthGroup = new THREE.Group();
             
-            // 1. Initial Singularity Flash
             const flashGeo = new THREE.SphereGeometry(0.1, 32, 32);
             const flashMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 1.0 });
             const flash = new THREE.Mesh(flashGeo, flashMat);
             cosmicBirthGroup.add(flash);
             
-            // 2. Primordial Particle Explosion Burst
             const N = 4000;
             const positions = new Float32Array(N * 3);
             const colors = new Float32Array(N * 3);
@@ -1148,7 +1256,6 @@
             burstPoints.userData = { velocities };
             cosmicBirthGroup.add(burstPoints);
 
-            // 3. Early Cosmic Web Filaments / Gas Clouds
             for (let i = 0; i < 40; i++) {
                 const cloudGeo = new THREE.SphereGeometry(2 + Math.random() * 4, 16, 16);
                 const cloudMat = new THREE.MeshBasicMaterial({
@@ -1173,7 +1280,6 @@
             if (!cosmicBirthGroup || cosmicBirthLife <= 0) return;
             cosmicBirthLife -= 0.008;
             
-            // Expand burst points
             const burstPoints = cosmicBirthGroup.children[1];
             if (burstPoints && burstPoints.geometry) {
                 const positions = burstPoints.geometry.attributes.position.array;
@@ -1189,7 +1295,6 @@
                 burstPoints.geometry.attributes.position.needsUpdate = true;
             }
 
-            // Fade out whole cosmic birth group as space expansion takes over
             cosmicBirthGroup.traverse((child) => {
                 if (child.material) {
                     child.material.opacity = Math.max(0, cosmicBirthLife * (child.material.userData?.baseOpacity || 1));
@@ -1332,7 +1437,6 @@
             
             const now = Date.now(); 
             
-            // NEW: Double tap to collapse anywhere except Earth
             if (now - lastTapTime < 400 && (spaceState === 'space' || spaceState === 'expanding' || spaceState === 'iss_view')) {
                 const dx = e.clientX - lastTapX;
                 const dy = e.clientY - lastTapY;
@@ -1398,7 +1502,7 @@
 
         container.addEventListener('pointerup', endPointer); container.addEventListener('pointercancel', endPointer); container.addEventListener('touchstart', (e) => { if (landingState !== 'none') return; e.preventDefault(); }, { passive: false }); container.addEventListener('touchmove', (e) => { if (landingState !== 'none') return; e.preventDefault(); }, { passive: false });
 
-        const _earthWorld = new THREE.Vector3(0, 0, 0); const _lookTarget = new THREE.Vector3(0, 0, 0);
+        const _earthWorld = new THREE.Vector3(0, 0, 0); const _lookTarget = new THREE.Vector3(0, 0, 0); const _bhWorld = new THREE.Vector3(280, 70, -450);
         function animate() {
             requestAnimationFrame(animate);
             const nowMs = Date.now();
@@ -1434,7 +1538,6 @@
 
             if (spaceState === 'expanding') { const t = Math.min(1, (nowMs - spacePhaseStart) / SPACE_FULL_MS); spaceProgress = t; if (t >= 1) { spaceProgress = 1; spaceState = 'space'; currentZoomIndex = 0; } } else if (spaceState === 'collapsing') { const t = Math.min(1, (nowMs - spacePhaseStart) / SPACE_FULL_MS); spaceProgress = 1 - t; if (t >= 1) { spaceProgress = 0; spaceState = 'core'; } }
             
-            // NEW: 5 Minute Idle check to return to core from anywhere
             if ((nowMs - lastInteractionTime) > IDLE_COLLAPSE_MS) {
                 if (landingState === 'landed') {
                     exitMap();
@@ -1482,6 +1585,7 @@
             const solarFinal = ep * solarAlpha;
             if (solarFinal > 0.001) { 
                 solarSystemGroup.visible = true; 
+                blackHoleGroup.visible = true;
                 solarSystemGroup.scale.setScalar(Math.max(0.001, solarFinal)); 
                 sunLight.intensity = 3.2 * solarAlpha; 
                 sunFillLight.intensity = 0.35 * solarAlpha;
@@ -1496,12 +1600,17 @@
                 sunCoronaInner.material.opacity = (0.9 + Math.sin(nowMs * 0.0025) * 0.1) * solarAlpha; 
             } else { 
                 solarSystemGroup.visible = false; 
+                blackHoleGroup.visible = false;
                 sunLight.intensity = 0; 
                 sunFillLight.intensity = 0;
             }
             
             if (solarAlpha > 0.02) { 
                 const ts = nowMs * 0.001; 
+                
+                accretionDisk.rotation.z -= 0.025;
+                lensedDisk.rotation.z += 0.018;
+                photonRingMat.uniforms.time.value = ts;
                 
                 for (const grp of planetObjs) { 
                     const ud = grp.userData; 
@@ -1543,13 +1652,34 @@
                 const warpCurve = Math.sin(ep * Math.PI);
                 targetFov = 45 + warpCurve * 35;
                 warpIntensity = warpCurve * 0.9;
+            } else if (cinematicBlackHoleMode) {
+                const cineProgress = Math.min(1, (nowMs - cinematicStartTime) / CINEMATIC_DURATION_MS);
+                warpIntensity = Math.sin(cineProgress * Math.PI) * 0.95;
+                targetFov = 45 + Math.sin(cineProgress * Math.PI) * 30;
             }
             camera.fov += (targetFov - camera.fov) * 0.06;
             camera.updateProjectionMatrix();
             
             updateWarpStreaks(warpIntensity);
 
-            if (spaceState === 'space') {
+            if (cinematicBlackHoleMode) {
+                const cineProgress = Math.min(1, (nowMs - cinematicStartTime) / CINEMATIC_DURATION_MS);
+                const easedProgress = cineProgress < 0.5 ? 2 * cineProgress * cineProgress : 1 - Math.pow(-2 * cineProgress + 2, 2) / 2;
+                
+                blackHoleGroup.getWorldPosition(_bhWorld);
+                const startPos = new THREE.Vector3(0, 0, 1500);
+                const targetCamPos = _bhWorld.clone().add(new THREE.Vector3(0, 0.4, 4.2));
+                
+                camera.position.lerpVectors(startPos, targetCamPos, easedProgress);
+                camera.position.x += Math.sin(nowMs * 0.001) * (1.0 - easedProgress);
+                camera.position.y += Math.cos(nowMs * 0.0012) * (1.0 - easedProgress);
+                camera.lookAt(_bhWorld);
+                
+                if (cineProgress >= 1) {
+                    cinematicBlackHoleMode = false;
+                    spaceState = 'space';
+                }
+            } else if (spaceState === 'space') {
                 cameraRadius += (targetCameraZ - cameraRadius) * 0.1;
                 if (earthObj) earthObj.getWorldPosition(_earthWorld);
                 else _earthWorld.set(0, 0, 0);
@@ -2172,7 +2302,6 @@ If you have nothing new to ask, just say a short friendly line with no question.
         function closeStreetView() { document.getElementById('street-view-container').style.display = 'none'; }
         function flyToDubai() { map.flyTo([25.2854, 55.3742], 17, { duration: 3 }); }
 
-        // NEW: Double-tap on the map overlay to exit and return to core
         let mapLastTapTime = 0;
         const mapOverlay = document.getElementById('map-overlay');
         mapOverlay.addEventListener('pointerdown', (e) => {
