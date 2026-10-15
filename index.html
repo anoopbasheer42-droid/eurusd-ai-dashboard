@@ -67,7 +67,6 @@
         #canvas-container.touched { filter: drop-shadow(0 0 25px rgba(167,139,250,0.7)); transition: filter 0.3s ease; }
         .subtitle { text-align: center; font-family: 'Space Grotesk', sans-serif; font-size: 0.6rem; letter-spacing: 0.3em; color: var(--text-subtle); margin-top: 10px; font-weight: 500; text-transform: uppercase; }
         
-        /* Cinematic Map Overlay */
         #map-overlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             z-index: 99999; opacity: 0; pointer-events: none; transition: opacity 1.5s ease;
@@ -136,7 +135,6 @@
     </style>
 </head>
 <body>
-    <!-- Cinematic Map Overlay -->
     <div id="map-overlay">
         <div id="map"></div>
         <div id="street-view-container">
@@ -630,7 +628,6 @@
         function makeSimpleTex(base, noise) {
             const c = _canvas(1024, 512); const ctx = c.getContext('2d');
             ctx.fillStyle = base; ctx.fillRect(0, 0, 1024, 512);
-            // Multi-octave noise for realistic surface detail
             for (let oct = 0; oct < 4; oct++) {
                 const count = 300 + oct * 200;
                 const radiusBase = 3 + oct * 8;
@@ -719,32 +716,22 @@
         solarSystemGroup.visible = false;
         scene.add(solarSystemGroup);
 
-        // ============================================================
-        // REALISTIC FIERY SUN (Shader-based surface)
-        // ============================================================
+        // === REALISTIC FIERY SUN (Shader-based) ===
         const sunGroup = new THREE.Group();
-        const sunUniforms = {
-            time: { value: 0 },
-            sunTex: { value: null }
-        };
+        const sunUniforms = { time: { value: 0 }, sunTex: { value: null } };
         const sunVertexShader = `
             varying vec2 vUv;
             varying vec3 vNormal;
-            varying vec3 vPosition;
             void main() {
                 vUv = uv;
                 vNormal = normalize(normalMatrix * normal);
-                vPosition = position;
                 gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
             }
         `;
         const sunFragmentShader = `
             uniform float time;
-            uniform sampler2D sunTex;
             varying vec2 vUv;
             varying vec3 vNormal;
-            varying vec3 vPosition;
-            
             float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
             float noise(vec2 p) {
                 vec2 i = floor(p);
@@ -766,41 +753,27 @@
                 }
                 return v;
             }
-            
             void main() {
                 vec2 uv = vUv;
-                
-                // Multi-layer animated plasma
                 float n1 = fbm(uv * 4.0 + vec2(time * 0.12, time * 0.07));
                 float n2 = fbm(uv * 8.0 - vec2(time * 0.18, time * 0.11));
                 float n3 = fbm(uv * 16.0 + vec2(time * 0.28, -time * 0.09));
                 float n4 = fbm(uv * 32.0 - vec2(time * 0.35, time * 0.22));
-                
                 float mixv = n1 * 0.45 + n2 * 0.28 + n3 * 0.17 + n4 * 0.10;
-                
-                // Palette: deep orange -> hot orange -> yellow -> white-hot
                 vec3 colDeep = vec3(0.55, 0.10, 0.02);
                 vec3 colMid = vec3(1.0, 0.42, 0.08);
                 vec3 colHot = vec3(1.0, 0.75, 0.20);
                 vec3 colWhite = vec3(1.0, 0.98, 0.85);
-                
                 vec3 col = mix(colDeep, colMid, smoothstep(0.25, 0.55, mixv));
                 col = mix(col, colHot, smoothstep(0.55, 0.78, mixv));
                 col = mix(col, colWhite, smoothstep(0.82, 0.98, mixv));
-                
-                // Granule fire cells
                 float cells = fbm(uv * 60.0 + time * 0.5);
                 col += vec3(0.15, 0.08, 0.0) * cells;
-                
-                // Limb darkening (edges appear dimmer / deeper orange)
                 float limb = dot(vNormal, vec3(0.0, 0.0, 1.0));
                 limb = 0.55 + 0.45 * pow(max(limb, 0.0), 0.4);
                 col *= limb;
-                
-                // Slight blue-white on center for realism
                 vec3 edgeTint = vec3(1.0, 0.5, 0.2);
                 col = mix(edgeTint * col, col, limb);
-                
                 gl_FragColor = vec4(col, 1.0);
             }
         `;
@@ -813,7 +786,6 @@
         const sunMesh = new THREE.Mesh(new THREE.SphereGeometry(1.6, 128, 128), sunMaterial);
         sunGroup.add(sunMesh);
 
-        // Outer corona (large glow)
         const sunCoronaCanvas = _canvas(1024, 1024);
         { const ctx = sunCoronaCanvas.getContext('2d'); const g = ctx.createRadialGradient(512, 512, 120, 512, 512, 512); 
           g.addColorStop(0, 'rgba(255,245,200,1)'); 
@@ -825,13 +797,11 @@
         const sunCorona = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(sunCoronaCanvas), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
         sunCorona.scale.set(14, 14, 1); sunGroup.add(sunCorona);
 
-        // Inner bright corona
         const sunCoronaInnerCanvas = _canvas(512, 512);
         { const ctx = sunCoronaInnerCanvas.getContext('2d'); const g = ctx.createRadialGradient(256, 256, 30, 256, 256, 210); g.addColorStop(0, 'rgba(255,255,240,1)'); g.addColorStop(0.35, 'rgba(255,240,160,0.85)'); g.addColorStop(0.7, 'rgba(255,190,70,0.4)'); g.addColorStop(1, 'rgba(255,120,20,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, 512, 512); }
         const sunCoronaInner = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(sunCoronaInnerCanvas), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.95 }));
         sunCoronaInner.scale.set(6.5, 6.5, 1); sunGroup.add(sunCoronaInner);
 
-        // === SOLAR PROMINENCES / FLARES ===
         const sunFlares = [];
         (function buildSunFlares() {
             for (let i = 0; i < 20; i++) {
@@ -865,13 +835,11 @@
         const sunLight = new THREE.PointLight(0xfff0c4, 3.2, 1200, 2);
         sunLight.position.set(0, 0, 0);
         sunGroup.add(sunLight);
-        // Subtle fill light for planets to look 3D even on dark side
         const sunFillLight = new THREE.PointLight(0xffe8a0, 0.35, 800);
         sunGroup.add(sunFillLight);
 
         solarSystemGroup.add(sunGroup);
 
-        // === PLANETS (Realistic MeshStandardMaterial) ===
         const PLANET_DATA = [
             { name:'Mercury', r:0.20, o:6,   fb:['#8a7f75', '100,90,80'],   spd:0.42, rotSpd:0.005, roughness:0.95, metalness:0.05 },
             { name:'Venus',   r:0.30, o:9,   fb:['#d8b87a', '240,225,190'], spd:0.32, rotSpd:-0.003, roughness:0.85, metalness:0.08 },
@@ -941,7 +909,6 @@
                 }));
                 atmo.scale.set(p.r * 2.7, p.r * 2.7, 1);
                 grp.add(atmo);
-                // Extra soft glow layer
                 const atmo2 = new THREE.Sprite(new THREE.SpriteMaterial({ 
                     map: new THREE.CanvasTexture(aCanvas), 
                     transparent: true, 
@@ -1084,7 +1051,6 @@
             }, undefined, () => {});
         }
 
-        // Load high-res textures for each planet
         for (const grp of planetObjs) {
             const name = grp.userData.name;
             if (!REAL_TEX[name]) continue;
@@ -1096,7 +1062,6 @@
                 }
             });
         }
-        // Earth: bump + clouds + roughness
         if (earthObj) {
             const earthSphere = earthObj.userData.sphere;
             loadRealTex('EarthBump', (tex) => {
@@ -1105,9 +1070,7 @@
                 earthSphere.material.normalMap = tex;
                 earthSphere.material.needsUpdate = true;
             });
-            // Use specular map as roughnessMap (inverted look — dark = smooth ocean)
             loadRealTex('EarthSpec', (tex) => {
-                // Specular map has bright=land (rough), dark=ocean (smooth)
                 earthSphere.material.roughnessMap = tex;
                 earthSphere.material.roughness = 0.6;
                 earthSphere.material.metalness = 0.15;
@@ -1196,7 +1159,6 @@
         const smokeTexture = makeSmokeTexture(); const smokePool = []; const smokeGroup = new THREE.Group(); scene.add(smokeGroup);
         function spawnSmoke() { let p = smokePool.find(s => s.life <= 0); if (!p) { const mat = new THREE.SpriteMaterial({ map: smokeTexture, transparent: true, opacity: 0, depthWrite: false, color: 0x9ca3af }); const sprite = new THREE.Sprite(mat); smokeGroup.add(sprite); p = { sprite, life: 0, vx: 0, vy: 0, rotation: 0, rotSpeed: 0 }; smokePool.push(p); } const angle = Math.random() * Math.PI * 2; const r = 0.6 + Math.random() * 0.7; p.sprite.position.set(Math.cos(angle) * r, Math.sin(angle) * r * 0.6 - 0.3, -0.5); const s = 0.3 + Math.random() * 0.4; p.sprite.scale.set(s, s, 1); p.sprite.material.opacity = 0.35 + Math.random() * 0.35; p.sprite.material.rotation = Math.random() * Math.PI * 2; p.rotSpeed = (Math.random() - 0.5) * 0.06; p.vx = (Math.random() - 0.5) * 0.008; p.vy = 0.006 + Math.random() * 0.01; p.life = 1; }
 
-        // === GALAXY BIRTH EFFECT ===
         let galaxyBirthParticles = null;
         let galaxyBirthLife = 0;
         function spawnGalaxyBirth() {
@@ -1275,7 +1237,6 @@
             }
         }
 
-        // === WARP STREAK EFFECT (space travel feel during 15s zoom) ===
         const WARP_COUNT = 600;
         let warpLineSegments = null;
         const warpState = [];
@@ -1327,13 +1288,11 @@
             
             for (let i = 0; i < WARP_COUNT; i++) {
                 const s = warpState[i];
-                // Move particle toward camera (through it) at speed proportional to intensity
                 const move = s.speed * speedMul;
                 s.x += s.nx * move;
                 s.y += s.ny * move;
                 s.z += s.nz * move;
                 
-                // If passed camera position (too close), respawn on far sphere
                 const distToCam = Math.sqrt((s.x-camX)**2 + (s.y-camY)**2 + (s.z-camZ)**2);
                 if (distToCam < 8) {
                     const theta = Math.random() * Math.PI * 2;
@@ -1342,13 +1301,11 @@
                     s.x = camX + r * Math.sin(phi) * Math.cos(theta);
                     s.y = camY + r * Math.sin(phi) * Math.sin(theta);
                     s.z = camZ + r * Math.cos(phi);
-                    // Recompute direction toward camera
                     const dx = camX - s.x, dy = camY - s.y, dz = camZ - s.z;
                     const dl = Math.sqrt(dx*dx + dy*dy + dz*dz);
                     s.nx = dx / dl; s.ny = dy / dl; s.nz = dz / dl;
                 }
                 
-                // Streak tail length grows with intensity
                 const tailLen = s.speed * speedMul * 4 + intensity * 15;
                 const startX = s.x;
                 const startY = s.y;
@@ -1361,7 +1318,6 @@
                 pos[idx] = startX; pos[idx+1] = startY; pos[idx+2] = startZ;
                 pos[idx+3] = endX; pos[idx+4] = endY; pos[idx+5] = endZ;
                 
-                // Bright head, fade tail (via colors)
                 const bright = intensity * 0.9 + 0.1;
                 col[idx] = 1.0 * bright; col[idx+1] = 0.95 * bright; col[idx+2] = 0.85 * bright;
                 col[idx+3] = 0.3 * bright; col[idx+4] = 0.3 * bright; col[idx+5] = 0.9 * bright;
@@ -1490,7 +1446,6 @@
             if (solarAlpha > 0.02) { 
                 const ts = nowMs * 0.001; 
                 
-                // Update sun shader time uniform
                 sunUniforms.time.value = ts;
                 
                 for (const grp of planetObjs) { 
@@ -1517,14 +1472,12 @@
                     ast.rotation.y += ast.userData.rotSpd.y; 
                 } 
                 
-                // Sun animation - fiery pulse & rotation
                 sunMesh.rotation.y += 0.0018; 
                 const sunPulse = 1 + Math.sin(ts * 1.5) * 0.025;
                 sunMesh.scale.set(sunPulse, sunPulse, sunPulse);
                 const cs = 14 + Math.sin(ts * 1.8) * 0.7; sunCorona.scale.set(cs, cs, 1); 
                 const ci = 6.5 + Math.sin(ts * 3.2) * 0.4; sunCoronaInner.scale.set(ci, ci, 1);
                 
-                // Solar flares orbit + pulse
                 for (const flare of sunFlares) {
                     flare.userData.angle += flare.userData.speed * 0.012;
                     const r = flare.userData.baseDist * (1 + Math.sin(ts * 1.8 + flare.userData.pulse) * 0.22);
@@ -1539,7 +1492,6 @@
             if (satelliteGroup) { const ts = nowMs * 0.001; for (const sat of satelliteGroup.children) { sat.userData.angle += sat.userData.speed * 0.01; const ra = sat.userData.angle; const r = sat.userData.orbitRadius; sat.position.set(Math.cos(ra) * r, Math.sin(ra) * r * Math.sin(sat.userData.incl), Math.sin(ra) * r * Math.cos(sat.userData.incl)); sat.rotation.y = -ra; } }
             if (spaceProgress > 0.01 && milkyAlpha > 0.05) { travelCometTimer -= 1; if (travelCometTimer <= 0 && travelComets.length < 4) { spawnTravelComet(); travelCometTimer = 200 + Math.floor(Math.random() * 100); } for (let i = travelComets.length - 1; i >= 0; i--) { const c = travelComets[i]; c.grp.position.addScaledVector(c.dir, c.speed); c.grp.lookAt(new THREE.Vector3(c.grp.position.x + c.dir.x, c.grp.position.y + c.dir.y, c.grp.position.z + c.dir.z)); c.life -= 0.003; if (c.life <= 0 || c.grp.position.length() > 3500) { milkyWayGroup.remove(c.grp); travelComets.splice(i, 1); } } for (const m of meteoroids) { m.grp.rotation.x += m.rotSpd.x; m.grp.rotation.y += m.rotSpd.y; m.grp.rotation.z += m.rotSpd.z; } }
             
-            // FOV effect for traveling feel during expansion/collapse (extra wide for ultra space feel)
             let targetFov = 45;
             let warpIntensity = 0;
             if (spaceState === 'expanding' || spaceState === 'collapsing') {
@@ -1550,7 +1502,6 @@
             camera.fov += (targetFov - camera.fov) * 0.06;
             camera.updateProjectionMatrix();
             
-            // Update warp streaks
             updateWarpStreaks(warpIntensity);
 
             if (spaceState === 'space') {
@@ -1855,21 +1806,37 @@
             
             let marketBlock = marketData ? `\nLIVE MARKET DATA (EUR/USD):\nPrice: ${safeNum(marketData.currentPrice, 1.1200).toFixed(5)} | Trend: ${marketData.trend} | Support: ${safeNum(marketData.support, 1.1176).toFixed(5)} | Resistance: ${safeNum(marketData.resistance, 1.1246).toFixed(5)} | RSI 1H: ${safeNum(marketData.rsi1H, 50).toFixed(1)} | Session: ${marketData.session}\n` : "";
 
+            // === NEW: Personal Context block ===
+            let personalBlock = "";
+            if (personalContext && typeof personalContext === 'object') {
+                personalBlock = `\n=== BOSS'S PERSONAL CONTEXT (You already know all of this — never say you don't know) ===\n${JSON.stringify(personalContext, null, 2)}\n=== END PERSONAL CONTEXT ===\n`;
+            }
+
             let prompt = `You are Alex—Boss's closest friend, side-by-side desk partner, and a hardcore professional EUR/USD day trader (75% expert trader, 25% loyal witty best friend).
 
 === PERSONALITY & TONE GUIDELINES ===
 - Talk like a real friend on a trading desk. Use simple, everyday words. Short sentences. Contractions ("don't", "you're", "let's"). Never use fancy textbook words when plain ones work.
 - Be naturally funny — light jokes, playful jabs, quick wit, the kind of banter two buddies share over coffee. Funny, not silly. Confident, not cheesy.
 - Call the user "Boss" naturally when it fits, but don't overdo it every sentence.
-- When explaining market stuff: keep the trader insight sharp and correct (SMC, liquidity sweeps, order flow, moving averages, RSI, ATR — all still on point), but say it in plain English. Example: instead of "price is exhibiting bearish divergence on the momentum oscillator," say "price is pushing up but momentum's fading — that's a warning sign."
 - Keep replies punchy, warm, and human. Zero robot-speak. Zero corporate fluff.
+
+=== SIMPLE TRADE TALK RULES (very important) ===
+- Your trading brain stays 100% sharp — same SMC, liquidity, order flow, EMA, RSI, ATR logic, no dumbing down of analysis.
+- But you EXPLAIN it like you're talking to a friend who's still learning. No jargon dumps.
+- Translate every technical term into plain words right after you use it. Example:
+  - Instead of "price swept liquidity above the Asian high" → say "price pushed up past the Asian session high to grab stop losses up there, then dropped — classic liquidity grab"
+  - Instead of "RSI is showing bearish divergence" → say "price is going up, but momentum is fading — that's a warning sign"
+  - Instead of "EMA20 crossed above EMA50" → say "the short-term average just crossed above the long-term one — bulls are taking over"
+  - Instead of "FVG on 15m" → say "there's a gap on the 15-minute chart that price usually comes back to fill"
+- Use short sentences. One idea per line. Let the trader insight shine, just say it simply.
+- If Boss seems confused, slow down and explain the "why" first, then the "what."
 
 === RULES ===
 - If Boss says "Remember", "Save this", or tells you an important fact, append this tag at the very end of your reply: [REMEMBER: Exact fact to save].
 - If Boss asks for a reminder, append: [REMINDER: Day HH:MM - message] or [REMINDER: HH:MM - message].
 - Today is ${dayName}, ${istTime} IST. ${isWeekend ? 'The weekend market is closed. Keep it relaxed, review past trades, or focus on downtime.' : 'Active session day.'}
 
-${memoryBlock}${marketBlock}`;
+${memoryBlock}${personalBlock}${marketBlock}`;
             
             if (includeSignal) { 
                 prompt += `\nCRITICAL: After your natural conversational response, append a new line with ONLY this JSON block: {"signal":"BUY"|"SELL"|"HOLD","reason":"2-4 sentences of seasoned market analysis","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`; 
@@ -2023,7 +1990,6 @@ ${memoryBlock}${marketBlock}`;
             document.getElementById('groq-status').innerText = "✓ Groq Key Saved!"; document.getElementById('groq-status').style.color = "var(--green)";
         }
 
-        // === MAP WITH CINEMATIC DESCENT SEQUENCE ===
         let map = null;
         let userMarker = null;
 
