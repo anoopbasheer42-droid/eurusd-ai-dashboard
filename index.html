@@ -132,6 +132,10 @@
         .fade-in { animation: fadeIn 0.3s ease-in; }
         .pulse-dot { display: inline-block; width: 6px; height: 6px; background: var(--green); border-radius: 50%; margin-right: 6px; box-shadow: 0 0 10px var(--green); animation: pulse 2s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+        
+        /* 5D Mode Visual Enhancements */
+        body.mode-5d .card { border-color: rgba(59, 130, 246, 0.6); box-shadow: 0 0 40px rgba(59, 130, 246, 0.3); }
+        body.mode-5d #canvas-container { filter: contrast(1.2) saturate(1.5) hue-rotate(15deg); }
     </style>
 </head>
 <body>
@@ -281,6 +285,12 @@
             <div class="card-title">AI Trader's Reasoning</div>
             <div class="reasoning-text" id="val-reason">Engine scanning. AI auto-analyzes hourly.</div>
         </div>
+        
+        <!-- NEW: 3D / 5D Toggle Button -->
+        <div class="card" style="padding: 12px; text-align: center; margin-top: 10px;">
+            <button class="btn" id="btn-5d" onclick="toggle5D()">5D MODE: OFF</button>
+        </div>
+        
     </div>
     <script>
         const GROQ_MODELS = ['meta-llama/llama-4-scout-17b-16e-instruct','llama-3.3-70b-versatile','openai/gpt-oss-120b'];
@@ -307,7 +317,25 @@
         let voiceEngineMode = localStorage.getItem('eurusd_voice_engine_mode') || 'cloud';
         let currentAudio = null;
 
+        // NEW: 5D Mode Variable
+        let is5DMode = false;
+
         document.body.addEventListener('click', () => { if ('speechSynthesis' in window) window.speechSynthesis.getVoices(); }, { once: true });
+
+        // NEW: 5D Toggle Function
+        function toggle5D() {
+            is5DMode = !is5DMode;
+            const btn = document.getElementById('btn-5d');
+            if (is5DMode) {
+                document.body.classList.add('mode-5d');
+                btn.innerText = '5D MODE: ON';
+                btn.classList.add('active');
+            } else {
+                document.body.classList.remove('mode-5d');
+                btn.innerText = '5D MODE: OFF';
+                btn.classList.remove('active');
+            }
+        }
 
         function updateISTClock() {
             const istTime = new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false });
@@ -1033,7 +1061,22 @@
         window.addEventListener('touchstart', resetIdleTimer);
         window.addEventListener('touchmove', resetIdleTimer);
 
-        function triggerSpaceExpand() { if (spaceState === 'expanding' || spaceState === 'space') return; spaceState = 'expanding'; spacePhaseStart = Date.now(); spaceProgress = 0; cameraTheta = 0; cameraPhi = 0.55; cameraRadius = SPACE_CAM_Z; targetCameraZ = SPACE_CAM_Z; solarAlpha = 0; milkyAlpha = 1; earthFocusAmount = 0; currentZoomIndex = 0; resetIdleTimer(); }
+        function triggerSpaceExpand() { 
+            if (spaceState === 'expanding' || spaceState === 'space') return; 
+            spaceState = 'expanding'; 
+            spacePhaseStart = Date.now(); 
+            spaceProgress = 0; 
+            cameraTheta = 0; 
+            cameraPhi = 0.55; 
+            cameraRadius = SPACE_CAM_Z; 
+            targetCameraZ = SPACE_CAM_Z; 
+            solarAlpha = 0; 
+            milkyAlpha = 1; 
+            earthFocusAmount = 0; 
+            currentZoomIndex = 0; 
+            resetIdleTimer(); 
+        }
+        
         function triggerSpaceCollapse() { if (spaceState === 'collapsing' || spaceState === 'core') return; spaceState = 'collapsing'; spacePhaseStart = Date.now(); spaceProgress = 1; resetIdleTimer(); }
 
         let landingState = 'none';
@@ -1249,7 +1292,8 @@
             const camX = camera.position.x;
             const camY = camera.position.y;
             const camZ = camera.position.z;
-            const speedMul = 1 + intensity * 4;
+            // NEW: 5D Mode multiplier for warp speed
+            const speedMul = 1 + intensity * (is5DMode ? 8 : 4);
             
             for (let i = 0; i < WARP_COUNT; i++) {
                 const s = warpState[i];
@@ -1332,7 +1376,7 @@
             
             const now = Date.now(); 
             
-            // NEW: Double tap to collapse anywhere except Earth
+            // Double tap to collapse anywhere except Earth
             if (now - lastTapTime < 400 && (spaceState === 'space' || spaceState === 'expanding' || spaceState === 'iss_view')) {
                 const dx = e.clientX - lastTapX;
                 const dy = e.clientY - lastTapY;
@@ -1394,7 +1438,18 @@
                 return;
             }
 
-            if (longPressActive && chargeLevel >= 0.95) { stopChargeSound(); playExplosionSound(); spawnExplosion(); spawnCosmicBirth(); touchBoost = 4.0; coreScaleVel += 0.9; coreRotVelY += 1.2; coreRotVelX -= 0.8; if (navigator.vibrate) navigator.vibrate([80, 40, 100, 40, 150, 40, 200]); setTimeout(() => { triggerSpaceExpand(); }, 900); } else if (longPressActive && chargeLevel > 0.3) { fadeOutChargeSound(0.5); touchBoost = 0.8; spawnRipple(0xf59e0b); coreScaleVel += 0.2; if (navigator.vibrate) navigator.vibrate(15); } else if (!longPressActive && speed < 3) { stopChargeSound(); touchBoost = 1.0; coreScaleVel += 0.15; spawnRipple(); if (navigator.vibrate) navigator.vibrate(15); } else { fadeOutChargeSound(0.3); } longPressActive = false; isCharging = false; isOnCenter = false; chargeLevel = 0; pointerVelocity = { x: 0, y: 0 }; } else if (activePointers.size === 1) { pinchStartDist = 0; } }
+            if (longPressActive && chargeLevel >= 0.95) { 
+                stopChargeSound(); 
+                playExplosionSound(); 
+                spawnExplosion(); 
+                spawnCosmicBirth(); 
+                touchBoost = 4.0; 
+                coreScaleVel += 0.9; 
+                coreRotVelY += 1.2; 
+                coreRotVelX -= 0.8; 
+                if (navigator.vibrate) navigator.vibrate([80, 40, 100, 40, 150, 40, 200]); 
+                setTimeout(() => { triggerSpaceExpand(); }, 900); 
+            } else if (longPressActive && chargeLevel > 0.3) { fadeOutChargeSound(0.5); touchBoost = 0.8; spawnRipple(0xf59e0b); coreScaleVel += 0.2; if (navigator.vibrate) navigator.vibrate(15); } else if (!longPressActive && speed < 3) { stopChargeSound(); touchBoost = 1.0; coreScaleVel += 0.15; spawnRipple(); if (navigator.vibrate) navigator.vibrate(15); } else { fadeOutChargeSound(0.3); } longPressActive = false; isCharging = false; isOnCenter = false; chargeLevel = 0; pointerVelocity = { x: 0, y: 0 }; } else if (activePointers.size === 1) { pinchStartDist = 0; } }
 
         container.addEventListener('pointerup', endPointer); container.addEventListener('pointercancel', endPointer); container.addEventListener('touchstart', (e) => { if (landingState !== 'none') return; e.preventDefault(); }, { passive: false }); container.addEventListener('touchmove', (e) => { if (landingState !== 'none') return; e.preventDefault(); }, { passive: false });
 
@@ -1434,7 +1489,7 @@
 
             if (spaceState === 'expanding') { const t = Math.min(1, (nowMs - spacePhaseStart) / SPACE_FULL_MS); spaceProgress = t; if (t >= 1) { spaceProgress = 1; spaceState = 'space'; currentZoomIndex = 0; } } else if (spaceState === 'collapsing') { const t = Math.min(1, (nowMs - spacePhaseStart) / SPACE_FULL_MS); spaceProgress = 1 - t; if (t >= 1) { spaceProgress = 0; spaceState = 'core'; } }
             
-            // NEW: 5 Minute Idle check to return to core from anywhere
+            // 5 Minute Idle check to return to core from anywhere
             if ((nowMs - lastInteractionTime) > IDLE_COLLAPSE_MS) {
                 if (landingState === 'landed') {
                     exitMap();
@@ -1541,8 +1596,10 @@
             let warpIntensity = 0;
             if (spaceState === 'expanding' || spaceState === 'collapsing') {
                 const warpCurve = Math.sin(ep * Math.PI);
-                targetFov = 45 + warpCurve * 35;
-                warpIntensity = warpCurve * 0.9;
+                // NEW: 5D Mode multiplier for FOV and Warp Intensity
+                const multiplier = is5DMode ? 3.0 : 1.0;
+                targetFov = 45 + warpCurve * 35 * multiplier;
+                warpIntensity = warpCurve * 0.9 * multiplier;
             }
             camera.fov += (targetFov - camera.fov) * 0.06;
             camera.updateProjectionMatrix();
@@ -2172,7 +2229,7 @@ If you have nothing new to ask, just say a short friendly line with no question.
         function closeStreetView() { document.getElementById('street-view-container').style.display = 'none'; }
         function flyToDubai() { map.flyTo([25.2854, 55.3742], 17, { duration: 3 }); }
 
-        // NEW: Double-tap on the map overlay to exit and return to core
+        // Double-tap on the map overlay to exit and return to core
         let mapLastTapTime = 0;
         const mapOverlay = document.getElementById('map-overlay');
         mapOverlay.addEventListener('pointerdown', (e) => {
