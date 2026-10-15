@@ -1079,37 +1079,44 @@
         const smokeTexture = makeSmokeTexture(); const smokePool = []; const smokeGroup = new THREE.Group(); scene.add(smokeGroup);
         function spawnSmoke() { let p = smokePool.find(s => s.life <= 0); if (!p) { const mat = new THREE.SpriteMaterial({ map: smokeTexture, transparent: true, opacity: 0, depthWrite: false, color: 0x9ca3af }); const sprite = new THREE.Sprite(mat); smokeGroup.add(sprite); p = { sprite, life: 0, vx: 0, vy: 0, rotation: 0, rotSpeed: 0 }; smokePool.push(p); } const angle = Math.random() * Math.PI * 2; const r = 0.6 + Math.random() * 0.7; p.sprite.position.set(Math.cos(angle) * r, Math.sin(angle) * r * 0.6 - 0.3, -0.5); const s = 0.3 + Math.random() * 0.4; p.sprite.scale.set(s, s, 1); p.sprite.material.opacity = 0.35 + Math.random() * 0.35; p.sprite.material.rotation = Math.random() * Math.PI * 2; p.rotSpeed = (Math.random() - 0.5) * 0.06; p.vx = (Math.random() - 0.5) * 0.008; p.vy = 0.006 + Math.random() * 0.01; p.life = 1; }
 
-        let galaxyBirthParticles = null;
-        let galaxyBirthLife = 0;
-        function spawnGalaxyBirth() {
-            if (galaxyBirthParticles) {
-                scene.remove(galaxyBirthParticles);
-                galaxyBirthParticles.geometry.dispose();
-                galaxyBirthParticles.material.dispose();
-                galaxyBirthParticles = null;
+        let cosmicBirthGroup = null;
+        let cosmicBirthLife = 0;
+
+        function spawnCosmicBirth() {
+            if (cosmicBirthGroup) {
+                scene.remove(cosmicBirthGroup);
+                cosmicBirthGroup = null;
             }
-            const N = 3500;
+            cosmicBirthGroup = new THREE.Group();
+            
+            // 1. Initial Singularity Flash
+            const flashGeo = new THREE.SphereGeometry(0.1, 32, 32);
+            const flashMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 1.0 });
+            const flash = new THREE.Mesh(flashGeo, flashMat);
+            cosmicBirthGroup.add(flash);
+            
+            // 2. Primordial Particle Explosion Burst
+            const N = 4000;
             const positions = new Float32Array(N * 3);
             const colors = new Float32Array(N * 3);
             const velocities = [];
             const palette = [
-                new THREE.Color(0x8b5cf6),
-                new THREE.Color(0x3b82f6),
+                new THREE.Color(0xffffff),
                 new THREE.Color(0xa78bfa),
+                new THREE.Color(0x3b82f6),
                 new THREE.Color(0xf59e0b),
-                new THREE.Color(0xfbbf24),
-                new THREE.Color(0xffffff)
+                new THREE.Color(0xef4444)
             ];
             for (let i = 0; i < N; i++) {
-                positions[i*3] = (Math.random() - 0.5) * 0.5;
-                positions[i*3+1] = (Math.random() - 0.5) * 0.5;
-                positions[i*3+2] = (Math.random() - 0.5) * 0.5;
+                positions[i*3] = 0;
+                positions[i*3+1] = 0;
+                positions[i*3+2] = 0;
                 const theta = Math.random() * Math.PI * 2;
                 const phi = Math.acos(2 * Math.random() - 1);
-                const speed = 0.02 + Math.random() * 0.16;
+                const speed = 0.05 + Math.random() * 0.35;
                 velocities.push({
                     x: Math.sin(phi) * Math.cos(theta) * speed,
-                    y: Math.sin(phi) * Math.sin(theta) * speed * 0.6,
+                    y: Math.sin(phi) * Math.sin(theta) * speed,
                     z: Math.cos(phi) * speed
                 });
                 const c = palette[Math.floor(Math.random() * palette.length)];
@@ -1117,43 +1124,73 @@
                 colors[i*3+1] = c.g;
                 colors[i*3+2] = c.b;
             }
-            const geo = new THREE.BufferGeometry();
-            geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-            geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-            const mat = new THREE.PointsMaterial({
-                size: 0.18,
+            const burstGeo = new THREE.BufferGeometry();
+            burstGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            burstGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            const burstMat = new THREE.PointsMaterial({
+                size: 0.2,
                 vertexColors: true,
                 transparent: true,
                 opacity: 1.0,
                 depthWrite: false,
                 blending: THREE.AdditiveBlending,
-                map: makeCircularStarTexture('rgba(255,255,255,0.95)')
+                map: makeCircularStarTexture('rgba(255,255,255,1)')
             });
-            galaxyBirthParticles = new THREE.Points(geo, mat);
-            galaxyBirthParticles.userData.velocities = velocities;
-            scene.add(galaxyBirthParticles);
-            galaxyBirthLife = 1.0;
-        }
-        function updateGalaxyBirth() {
-            if (!galaxyBirthParticles || galaxyBirthLife <= 0) return;
-            const positions = galaxyBirthParticles.geometry.attributes.position.array;
-            const vels = galaxyBirthParticles.userData.velocities;
-            for (let i = 0; i < vels.length; i++) {
-                positions[i*3] += vels[i].x;
-                positions[i*3+1] += vels[i].y;
-                positions[i*3+2] += vels[i].z;
-                vels[i].x *= 0.996;
-                vels[i].y *= 0.996;
-                vels[i].z *= 0.996;
+            const burstPoints = new THREE.Points(burstGeo, burstMat);
+            burstPoints.userData = { velocities };
+            cosmicBirthGroup.add(burstPoints);
+
+            // 3. Early Cosmic Web Filaments / Gas Clouds
+            for (let i = 0; i < 40; i++) {
+                const cloudGeo = new THREE.SphereGeometry(2 + Math.random() * 4, 16, 16);
+                const cloudMat = new THREE.MeshBasicMaterial({
+                    color: Math.random() > 0.5 ? 0x8b5cf6 : 0x3b82f6,
+                    transparent: true,
+                    opacity: 0.15,
+                    blending: THREE.AdditiveBlending
+                });
+                const cloud = new THREE.Mesh(cloudGeo, cloudMat);
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                const r = 5 + Math.random() * 40;
+                cloud.position.set(r * Math.sin(phi) * Math.cos(theta), r * Math.sin(phi) * Math.sin(theta), r * Math.cos(phi));
+                cosmicBirthGroup.add(cloud);
             }
-            galaxyBirthParticles.geometry.attributes.position.needsUpdate = true;
-            galaxyBirthLife -= 0.005;
-            galaxyBirthParticles.material.opacity = Math.max(0, galaxyBirthLife);
-            if (galaxyBirthLife <= 0) {
-                scene.remove(galaxyBirthParticles);
-                galaxyBirthParticles.geometry.dispose();
-                galaxyBirthParticles.material.dispose();
-                galaxyBirthParticles = null;
+
+            scene.add(cosmicBirthGroup);
+            cosmicBirthLife = 1.0;
+        }
+
+        function updateCosmicBirth() {
+            if (!cosmicBirthGroup || cosmicBirthLife <= 0) return;
+            cosmicBirthLife -= 0.008;
+            
+            // Expand burst points
+            const burstPoints = cosmicBirthGroup.children[1];
+            if (burstPoints && burstPoints.geometry) {
+                const positions = burstPoints.geometry.attributes.position.array;
+                const vels = burstPoints.userData.velocities;
+                for (let i = 0; i < vels.length; i++) {
+                    positions[i*3] += vels[i].x;
+                    positions[i*3+1] += vels[i].y;
+                    positions[i*3+2] += vels[i].z;
+                    vels[i].x *= 0.98;
+                    vels[i].y *= 0.98;
+                    vels[i].z *= 0.98;
+                }
+                burstPoints.geometry.attributes.position.needsUpdate = true;
+            }
+
+            // Fade out whole cosmic birth group as space expansion takes over
+            cosmicBirthGroup.traverse((child) => {
+                if (child.material) {
+                    child.material.opacity = Math.max(0, cosmicBirthLife * (child.material.userData?.baseOpacity || 1));
+                }
+            });
+
+            if (cosmicBirthLife <= 0) {
+                scene.remove(cosmicBirthGroup);
+                cosmicBirthGroup = null;
             }
         }
 
@@ -1289,7 +1326,7 @@
                 return;
             }
 
-            if (longPressActive && chargeLevel >= 0.95) { stopChargeSound(); playExplosionSound(); spawnExplosion(); spawnGalaxyBirth(); touchBoost = 4.0; coreScaleVel += 0.9; coreRotVelY += 1.2; coreRotVelX -= 0.8; if (navigator.vibrate) navigator.vibrate([80, 40, 100, 40, 150, 40, 200]); setTimeout(() => { triggerSpaceExpand(); }, 900); } else if (longPressActive && chargeLevel > 0.3) { fadeOutChargeSound(0.5); touchBoost = 0.8; spawnRipple(0xf59e0b); coreScaleVel += 0.2; if (navigator.vibrate) navigator.vibrate(15); } else if (!longPressActive && speed < 3) { stopChargeSound(); touchBoost = 1.0; coreScaleVel += 0.15; spawnRipple(); if (navigator.vibrate) navigator.vibrate(15); } else { fadeOutChargeSound(0.3); } longPressActive = false; isCharging = false; isOnCenter = false; chargeLevel = 0; pointerVelocity = { x: 0, y: 0 }; } else if (activePointers.size === 1) { pinchStartDist = 0; } }
+            if (longPressActive && chargeLevel >= 0.95) { stopChargeSound(); playExplosionSound(); spawnExplosion(); spawnCosmicBirth(); touchBoost = 4.0; coreScaleVel += 0.9; coreRotVelY += 1.2; coreRotVelX -= 0.8; if (navigator.vibrate) navigator.vibrate([80, 40, 100, 40, 150, 40, 200]); setTimeout(() => { triggerSpaceExpand(); }, 900); } else if (longPressActive && chargeLevel > 0.3) { fadeOutChargeSound(0.5); touchBoost = 0.8; spawnRipple(0xf59e0b); coreScaleVel += 0.2; if (navigator.vibrate) navigator.vibrate(15); } else if (!longPressActive && speed < 3) { stopChargeSound(); touchBoost = 1.0; coreScaleVel += 0.15; spawnRipple(); if (navigator.vibrate) navigator.vibrate(15); } else { fadeOutChargeSound(0.3); } longPressActive = false; isCharging = false; isOnCenter = false; chargeLevel = 0; pointerVelocity = { x: 0, y: 0 }; } else if (activePointers.size === 1) { pinchStartDist = 0; } }
 
         container.addEventListener('pointerup', endPointer); container.addEventListener('pointercancel', endPointer); container.addEventListener('touchstart', (e) => { if (landingState !== 'none') return; e.preventDefault(); }, { passive: false }); container.addEventListener('touchmove', (e) => { if (landingState !== 'none') return; e.preventDefault(); }, { passive: false });
 
@@ -1316,13 +1353,13 @@
                         initMap();
                     }, 100);
                 }
-                updateGalaxyBirth();
+                updateCosmicBirth();
                 renderer.render(scene, camera);
                 return;
             }
             
             if (landingState === 'landed') {
-                updateGalaxyBirth();
+                updateCosmicBirth();
                 renderer.render(scene, camera);
                 return;
             }
@@ -1408,6 +1445,7 @@
                     ast.position.z = Math.sin(ra) * r; 
                     ast.rotation.x += ast.userData.rotSpd.x; 
                     ast.rotation.y += ast.userData.rotSpd.y; 
+                    ast.rotation.z += ast.userData.rotSpd.z;
                 } 
                 
                 sunMesh.rotation.y += 0.0012; 
@@ -1468,7 +1506,7 @@
 
             if (isCharging) { const elapsed = Date.now() - chargeStartTime; chargeLevel = Math.min(1, elapsed / CHARGE_FULL_MS); updateChargeSound(chargeLevel); }
             const spin = 1 + chargeLevel * 15 + touchBoost * 0.5; pulseTime += 0.04 * spin; touchBoost *= 0.94; const chargeScale = 1 + chargeLevel * 1.1; const brightScale = (1 + Math.sin(pulseTime * 1.5) * 0.15 + touchBoost * 0.25) * chargeScale; innerBright.scale.set(brightScale, brightScale, brightScale); innerBright.material.opacity = 0.3 + Math.sin(pulseTime * 1.5) * 0.1 + touchBoost * 0.2 + chargeLevel * 0.6; innerCore.rotation.x += 0.008 * spin; innerCore.rotation.y += 0.012 * spin; midShell.rotation.x -= 0.004 * spin; midShell.rotation.y -= 0.006 * spin; outerShell.rotation.x += 0.002 * spin; outerShell.rotation.y -= 0.003 * spin; coreGroup.rotation.y += coreRotVelY; coreGroup.rotation.x += coreRotVelX; coreRotVelY *= 0.92; coreRotVelX *= 0.92; const scaleForce = (1 - coreScale) * 0.15; coreScaleVel += scaleForce; coreScaleVel *= 0.85; coreScale += coreScaleVel; const _coreSpaceScale = coreScale * (1 - ep * 0.85); coreGroup.scale.set(_coreSpaceScale, _coreSpaceScale, _coreSpaceScale); coreGroup.visible = (spaceState === 'core' || spaceState === 'collapsing') && spaceProgress < 0.98; const rumble = touchBoost * 0.08 + chargeLevel * 0.35; if (rumble > 0.01) { coreGroup.position.x = (Math.random() - 0.5) * rumble; coreGroup.position.y = (Math.random() - 0.5) * rumble; } else { coreGroup.position.x *= 0.9; coreGroup.position.y *= 0.9; } glowSphere.material.opacity = 0.08 + Math.sin(pulseTime * 0.6) * 0.04 + touchBoost * 0.15 + chargeLevel * 0.6; if (chargeLevel > 0.01) { const c = new THREE.Color(); if (chargeLevel < 0.5) c.lerpColors(new THREE.Color(0x8b5cf6), new THREE.Color(0xf59e0b), chargeLevel / 0.5); else c.lerpColors(new THREE.Color(0xf59e0b), new THREE.Color(0xef4444), (chargeLevel - 0.5) / 0.5); glowSphere.material.color.copy(c); innerBright.material.color.copy(c); innerCore.material.color.copy(c); midShell.material.color.copy(c); outerShell.material.color.copy(c); } if (isCharging && chargeLevel > 0.08) { boltTimer -= 1; const boltInterval = Math.max(1, Math.floor(14 - chargeLevel * 13)); if (boltTimer <= 0) { spawnBolt(); if (chargeLevel > 0.3 && Math.random() < 0.6) spawnBolt(); if (chargeLevel > 0.6 && Math.random() < 0.7) spawnBolt(); if (chargeLevel > 0.85 && Math.random() < 0.8) spawnBolt(); boltTimer = boltInterval; } } for (const b of boltPool) { if (b.life > 0) { b.life -= 0.12 + chargeLevel * 0.08; b.line.material.opacity = Math.max(0, b.life * 1.2); if (b.life <= 0) { b.line.visible = false; b.line.material.opacity = 0; } } } for (let i = ripples.length - 1; i >= 0; i--) { const r = ripples[i]; r.life -= 0.03; r.mesh.scale.setScalar(1 + (1 - r.life) * 4); r.mesh.material.opacity = r.life * 0.8; if (r.life <= 0) { scene.remove(r.mesh); r.mesh.geometry.dispose(); r.mesh.material.dispose(); ripples.splice(i, 1); } } 
-            updateGalaxyBirth();
+            updateCosmicBirth();
             renderer.render(scene, camera);
         }
         animate();
@@ -1714,7 +1752,6 @@
             const dayName = days[now.getDay()];
             const isWeekend = [0, 6].includes(now.getDay());
             
-            // === NEW: IST hour for meal time awareness ===
             const istHour = parseInt(now.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', hour12: false }), 10);
             let mealContext = "";
             if (istHour < 10) mealContext = "IST time NOW = MORNING (before 10 AM). Breakfast is the ONLY meal relevant now. Lunch and dinner are NOT yet.";
@@ -1724,7 +1761,6 @@
             else if (istHour < 22) mealContext = "IST time NOW = EVENING/DINNER. Dinner is the relevant meal now. Breakfast and lunch are done.";
             else mealContext = "IST time NOW = NIGHT. All meals for today are done. Do NOT ask about any meal now.";
             
-            // === NEW: Already-asked personal questions block ===
             let askedBlock = "";
             if (recentCheckinTopics && recentCheckinTopics.length > 0) {
                 askedBlock = `\n=== ALREADY ASKED (DO NOT ask about these again) ===\n${recentCheckinTopics.slice(-20).map(t => `- ${t}`).join('\n')}\n=== END ALREADY ASKED ===\n`;
@@ -1794,7 +1830,6 @@ ${memoryBlock}${personalBlock}${marketBlock}`;
             return prompt;
         }
 
-        // === NEW: Track personal topics the AI has asked about, so it won't repeat ===
         function trackPersonalTopics(aiResponse) {
             const topicKeywords = [
                 { kw: 'breakfast', topic: 'breakfast question' },
@@ -1863,7 +1898,6 @@ ${memoryBlock}${personalBlock}${marketBlock}`;
                     response += " (Got it locked in my memory, Boss.)";
                 }
 
-                // === NEW: track what personal stuff the AI asked about so it won't repeat ===
                 trackPersonalTopics(response);
 
                 chatHistory.push({role:'ai', text: response}); renderChat(); saveChatHistory(); speakText(response);
