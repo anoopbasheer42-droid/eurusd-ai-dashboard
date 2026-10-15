@@ -1746,7 +1746,7 @@
             if (groqKey) {
                 for (const model of GROQ_MODELS) {
                     try {
-                        const res = await fetch(GROQ_URL, { method: 'POST', headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: model, messages: messages, temperature: 0.95, max_tokens: 800 }) });
+                        const res = await fetch(GROQ_URL, { method: 'POST', headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: model, messages: messages, temperature: 0.95, max_tokens: 1200 }) });
                         if (res.ok) return (await res.json()).choices[0].message.content;
                     } catch(e) {}
                 }
@@ -1755,7 +1755,7 @@
                 const contents = [{ role: 'user', parts: [{ text: systemPrompt }] }, ...conversationHistory.map(m => ({ role: m.role === 'ai' ? 'model' : 'user', parts: [{ text: m.text }] })), { role: 'user', parts: [{ text: userText }] }];
                 for (const model of GEMINI_MODELS) {
                     try {
-                        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ contents, generationConfig: { maxOutputTokens: 800, temperature: 0.95 } }) });
+                        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ contents, generationConfig: { maxOutputTokens: 1200, temperature: 0.95 } }) });
                         if (r.ok) return (await r.json()).candidates[0].content.parts[0].text;
                     } catch(e) {}
                 }
@@ -2095,6 +2095,8 @@ ${memoryBlock}${personalBlock}${marketBlock}`;
                 let signalData = null;
                 const jsonMatch = response.match(/\{[\s\S]*?"signal"[\s\S]*?\}/);
                 if (jsonMatch) { try { signalData = JSON.parse(jsonMatch[0]); response = response.replace(jsonMatch[0], '').trim(); } catch(e) {} }
+                // FIX: Strip leftover markdown code-fence wrappers so the chat looks clean
+                response = response.replace(/```json[\s\S]*?```/g, '').replace(/```json/gi, '').replace(/```/g, '').trim();
                 document.getElementById('chat-history').removeChild(loading);
                 
                 const rm = response.match(/\[REMINDER:\s*(\w{3}\s\d{2}:\d{2}\vert{}\d{2}:\d{2})\s*-\s*(.*?)\]/); 
