@@ -135,7 +135,7 @@
         
         /* 5D Mode Visual Enhancements */
         body.mode-5d .card { border-color: rgba(59, 130, 246, 0.6); box-shadow: 0 0 40px rgba(59, 130, 246, 0.3); }
-        body.mode-5d #canvas-container { filter: contrast(1.2) saturate(1.5) hue-rotate(15deg); }
+        body.mode-5d #canvas-container { filter: contrast(1.25) saturate(1.6) hue-rotate(15deg); }
     </style>
 </head>
 <body>
@@ -286,7 +286,7 @@
             <div class="reasoning-text" id="val-reason">Engine scanning. AI auto-analyzes hourly.</div>
         </div>
         
-        <!-- NEW: 3D / 5D Toggle Button -->
+        <!-- 3D / 5D Toggle Button -->
         <div class="card" style="padding: 12px; text-align: center; margin-top: 10px;">
             <button class="btn" id="btn-5d" onclick="toggle5D()">5D MODE: OFF</button>
         </div>
@@ -317,12 +317,12 @@
         let voiceEngineMode = localStorage.getItem('eurusd_voice_engine_mode') || 'cloud';
         let currentAudio = null;
 
-        // NEW: 5D Mode Variable
+        // 5D Mode Variable
         let is5DMode = false;
 
         document.body.addEventListener('click', () => { if ('speechSynthesis' in window) window.speechSynthesis.getVoices(); }, { once: true });
 
-        // NEW: 5D Toggle Function
+        // 5D Toggle Function
         function toggle5D() {
             is5DMode = !is5DMode;
             const btn = document.getElementById('btn-5d');
@@ -334,6 +334,12 @@
                 document.body.classList.remove('mode-5d');
                 btn.innerText = '5D MODE: OFF';
                 btn.classList.remove('active');
+            }
+            // Toggle hyper-dimensional core shells
+            if (typeof hyperShell1 !== 'undefined') {
+                hyperShell1.visible = is5DMode;
+                hyperShell2.visible = is5DMode;
+                hyperShell3.visible = is5DMode;
             }
         }
 
@@ -614,8 +620,17 @@
         const innerCore = new THREE.Mesh(new THREE.IcosahedronGeometry(1.0, 1), new THREE.MeshBasicMaterial({ color: 0xa78bfa, wireframe: true, transparent: true, opacity: 0.75 }));
         const midShell = new THREE.Mesh(new THREE.IcosahedronGeometry(1.6, 1), new THREE.MeshBasicMaterial({ color: 0x8b5cf6, wireframe: true, transparent: true, opacity: 0.4 }));
         const outerShell = new THREE.Mesh(new THREE.IcosahedronGeometry(2.2, 1), new THREE.MeshBasicMaterial({ color: 0x7c3aed, wireframe: true, transparent: true, opacity: 0.2 }));
+        
+        // Hyper-dimensional shells (visible only in 5D mode)
+        const hyperShell1 = new THREE.Mesh(new THREE.IcosahedronGeometry(2.8, 1), new THREE.MeshBasicMaterial({ color: 0x06b6d4, wireframe: true, transparent: true, opacity: 0.30 }));
+        const hyperShell2 = new THREE.Mesh(new THREE.IcosahedronGeometry(3.4, 1), new THREE.MeshBasicMaterial({ color: 0xf472b6, wireframe: true, transparent: true, opacity: 0.16 }));
+        const hyperShell3 = new THREE.Mesh(new THREE.IcosahedronGeometry(4.2, 1), new THREE.MeshBasicMaterial({ color: 0x3b82f6, wireframe: true, transparent: true, opacity: 0.08 }));
+        hyperShell1.visible = false;
+        hyperShell2.visible = false;
+        hyperShell3.visible = false;
+        
         const coreGroup = new THREE.Group();
-        coreGroup.add(glowSphere, innerBright, innerCore, midShell, outerShell);
+        coreGroup.add(glowSphere, innerBright, innerCore, midShell, outerShell, hyperShell1, hyperShell2, hyperShell3);
         scene.add(coreGroup);
 
         function makeCircularStarTexture(colorHex) {
@@ -1054,7 +1069,6 @@
 
         function resetIdleTimer() { lastInteractionTime = Date.now(); }
         
-        // New global listeners to ensure idle timer resets on any interaction
         window.addEventListener('pointerdown', resetIdleTimer);
         window.addEventListener('pointermove', resetIdleTimer);
         window.addEventListener('wheel', resetIdleTimer);
@@ -1146,8 +1160,8 @@
             const flash = new THREE.Mesh(flashGeo, flashMat);
             cosmicBirthGroup.add(flash);
             
-            // 2. Primordial Particle Explosion Burst
-            const N = 4000;
+            // 2. Primordial Particle Explosion Burst (5D = more particles + faster)
+            const N = is5DMode ? 8000 : 4000;
             const positions = new Float32Array(N * 3);
             const colors = new Float32Array(N * 3);
             const velocities = [];
@@ -1158,13 +1172,14 @@
                 new THREE.Color(0xf59e0b),
                 new THREE.Color(0xef4444)
             ];
+            const speedMul = is5DMode ? 1.8 : 1.0;
             for (let i = 0; i < N; i++) {
                 positions[i*3] = 0;
                 positions[i*3+1] = 0;
                 positions[i*3+2] = 0;
                 const theta = Math.random() * Math.PI * 2;
                 const phi = Math.acos(2 * Math.random() - 1);
-                const speed = 0.05 + Math.random() * 0.35;
+                const speed = (0.05 + Math.random() * 0.35) * speedMul;
                 velocities.push({
                     x: Math.sin(phi) * Math.cos(theta) * speed,
                     y: Math.sin(phi) * Math.sin(theta) * speed,
@@ -1179,7 +1194,7 @@
             burstGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
             burstGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
             const burstMat = new THREE.PointsMaterial({
-                size: 0.2,
+                size: is5DMode ? 0.32 : 0.2,
                 vertexColors: true,
                 transparent: true,
                 opacity: 1.0,
@@ -1192,7 +1207,8 @@
             cosmicBirthGroup.add(burstPoints);
 
             // 3. Early Cosmic Web Filaments / Gas Clouds
-            for (let i = 0; i < 40; i++) {
+            const cloudCount = is5DMode ? 80 : 40;
+            for (let i = 0; i < cloudCount; i++) {
                 const cloudGeo = new THREE.SphereGeometry(2 + Math.random() * 4, 16, 16);
                 const cloudMat = new THREE.MeshBasicMaterial({
                     color: Math.random() > 0.5 ? 0x8b5cf6 : 0x3b82f6,
@@ -1216,15 +1232,16 @@
             if (!cosmicBirthGroup || cosmicBirthLife <= 0) return;
             cosmicBirthLife -= 0.008;
             
-            // Expand burst points
+            // Expand burst points (5D = faster expansion)
             const burstPoints = cosmicBirthGroup.children[1];
             if (burstPoints && burstPoints.geometry) {
                 const positions = burstPoints.geometry.attributes.position.array;
                 const vels = burstPoints.userData.velocities;
+                const expandMul = is5DMode ? 1.6 : 1.0;
                 for (let i = 0; i < vels.length; i++) {
-                    positions[i*3] += vels[i].x;
-                    positions[i*3+1] += vels[i].y;
-                    positions[i*3+2] += vels[i].z;
+                    positions[i*3] += vels[i].x * expandMul;
+                    positions[i*3+1] += vels[i].y * expandMul;
+                    positions[i*3+2] += vels[i].z * expandMul;
                     vels[i].x *= 0.98;
                     vels[i].y *= 0.98;
                     vels[i].z *= 0.98;
@@ -1232,7 +1249,6 @@
                 burstPoints.geometry.attributes.position.needsUpdate = true;
             }
 
-            // Fade out whole cosmic birth group as space expansion takes over
             cosmicBirthGroup.traverse((child) => {
                 if (child.material) {
                     child.material.opacity = Math.max(0, cosmicBirthLife * (child.material.userData?.baseOpacity || 1));
@@ -1292,7 +1308,6 @@
             const camX = camera.position.x;
             const camY = camera.position.y;
             const camZ = camera.position.z;
-            // NEW: 5D Mode multiplier for warp speed
             const speedMul = 1 + intensity * (is5DMode ? 8 : 4);
             
             for (let i = 0; i < WARP_COUNT; i++) {
@@ -1376,7 +1391,6 @@
             
             const now = Date.now(); 
             
-            // Double tap to collapse anywhere except Earth
             if (now - lastTapTime < 400 && (spaceState === 'space' || spaceState === 'expanding' || spaceState === 'iss_view')) {
                 const dx = e.clientX - lastTapX;
                 const dy = e.clientY - lastTapY;
@@ -1489,7 +1503,6 @@
 
             if (spaceState === 'expanding') { const t = Math.min(1, (nowMs - spacePhaseStart) / SPACE_FULL_MS); spaceProgress = t; if (t >= 1) { spaceProgress = 1; spaceState = 'space'; currentZoomIndex = 0; } } else if (spaceState === 'collapsing') { const t = Math.min(1, (nowMs - spacePhaseStart) / SPACE_FULL_MS); spaceProgress = 1 - t; if (t >= 1) { spaceProgress = 0; spaceState = 'core'; } }
             
-            // 5 Minute Idle check to return to core from anywhere
             if ((nowMs - lastInteractionTime) > IDLE_COLLAPSE_MS) {
                 if (landingState === 'landed') {
                     exitMap();
@@ -1519,16 +1532,19 @@
                 skybox.visible = false;
             }
 
+            // 5D galaxy rotation multiplier
+            const g5 = is5DMode ? 3.0 : 1.0;
+
             if (spaceProgress > 0.001) { 
                 milkyWayGroup.visible = true; 
                 const galaxyScale = Math.max(0.001, ep * (1 + ep * 1.6));
                 milkyWayGroup.scale.setScalar(galaxyScale); 
                 if (spaceState === 'expanding' || spaceState === 'collapsing') {
-                    milkyWayGroup.rotation.y += 0.0005 + ep * 0.028;
-                    milkyWayGroup.rotation.x += 0.0002 + ep * 0.010;
-                    milkyWayGroup.rotation.z += ep * 0.005;
+                    milkyWayGroup.rotation.y += (0.0005 + ep * 0.028) * g5;
+                    milkyWayGroup.rotation.x += (0.0002 + ep * 0.010) * g5;
+                    milkyWayGroup.rotation.z += ep * 0.005 * g5;
                 } else {
-                    milkyWayGroup.rotation.y += 0.0005;
+                    milkyWayGroup.rotation.y += 0.0005 * g5;
                 }
                 milkyWayGroup.traverse((o) => { if (o.material && o.material.opacity !== undefined) { if (o.userData.baseOpacity === undefined) o.userData.baseOpacity = o.material.opacity; o.material.opacity = o.userData.baseOpacity * milkyAlpha; } }); 
             } else { 
@@ -1555,6 +1571,9 @@
                 sunFillLight.intensity = 0;
             }
             
+            // 5D planet rotation multiplier
+            const p5 = is5DMode ? 2.5 : 1.0;
+
             if (solarAlpha > 0.02) { 
                 const ts = nowMs * 0.001; 
                 
@@ -1563,7 +1582,7 @@
                     const a = ud.angle + ts * ud.speed * 0.04; 
                     grp.position.set(Math.cos(a) * ud.orbit, 0, Math.sin(a) * ud.orbit); 
                     for (const child of grp.children) { 
-                        if (child.userData && child.userData.rotSpd) child.rotation.y += child.userData.rotSpd * 0.12; 
+                        if (child.userData && child.userData.rotSpd) child.rotation.y += child.userData.rotSpd * 0.12 * p5; 
                     } 
                     if (ud.moons) { 
                         for (const m of ud.moons) { 
@@ -1583,20 +1602,33 @@
                     ast.rotation.z += ast.userData.rotSpd.z;
                 } 
                 
-                sunMesh.rotation.y += 0.0012; 
-                const sunPulse = 1 + Math.sin(ts * 1.5) * 0.012;
+                // 5D sun corona boost
+                sunMesh.rotation.y += 0.0012 * p5; 
+                const sunPulse = 1 + Math.sin(ts * 1.5) * 0.012 * p5;
                 sunMesh.scale.set(sunPulse, sunPulse, sunPulse);
-                const cs = 14 + Math.sin(ts * 1.8) * 0.4; sunCorona.scale.set(cs, cs, 1); 
-                const ci = 6.5 + Math.sin(ts * 3.2) * 0.25; sunCoronaInner.scale.set(ci, ci, 1);
+                const cs = 14 + Math.sin(ts * 1.8) * 0.4 * p5; sunCorona.scale.set(cs, cs, 1); 
+                const ci = 6.5 + Math.sin(ts * 3.2) * 0.25 * p5; sunCoronaInner.scale.set(ci, ci, 1);
             }
             if (satelliteGroup) { const ts = nowMs * 0.001; for (const sat of satelliteGroup.children) { sat.userData.angle += sat.userData.speed * 0.01; const ra = sat.userData.angle; const r = sat.userData.orbitRadius; sat.position.set(Math.cos(ra) * r, Math.sin(ra) * r * Math.sin(sat.userData.incl), Math.sin(ra) * r * Math.cos(sat.userData.incl)); sat.rotation.y = -ra; } }
-            if (spaceProgress > 0.01 && milkyAlpha > 0.05) { travelCometTimer -= 1; if (travelCometTimer <= 0 && travelComets.length < 4) { spawnTravelComet(); travelCometTimer = 200 + Math.floor(Math.random() * 100); } for (let i = travelComets.length - 1; i >= 0; i--) { const c = travelComets[i]; c.grp.position.addScaledVector(c.dir, c.speed); c.grp.lookAt(new THREE.Vector3(c.grp.position.x + c.dir.x, c.grp.position.y + c.dir.y, c.grp.position.z + c.dir.z)); c.life -= 0.003; if (c.life <= 0 || c.grp.position.length() > 3500) { milkyWayGroup.remove(c.grp); travelComets.splice(i, 1); } } for (const m of meteoroids) { m.grp.rotation.x += m.rotSpd.x; m.grp.rotation.y += m.rotSpd.y; m.grp.rotation.z += m.rotSpd.z; } }
+            if (spaceProgress > 0.01 && milkyAlpha > 0.05) { 
+                travelCometTimer -= 1; 
+                if (travelCometTimer <= 0 && travelComets.length < 4) { spawnTravelComet(); travelCometTimer = 200 + Math.floor(Math.random() * 100); } 
+                // 5D comet speed multiplier
+                const c5 = is5DMode ? 2.5 : 1.0;
+                for (let i = travelComets.length - 1; i >= 0; i--) { 
+                    const c = travelComets[i]; 
+                    c.grp.position.addScaledVector(c.dir, c.speed * c5); 
+                    c.grp.lookAt(new THREE.Vector3(c.grp.position.x + c.dir.x, c.grp.position.y + c.dir.y, c.grp.position.z + c.dir.z)); 
+                    c.life -= 0.003; 
+                    if (c.life <= 0 || c.grp.position.length() > 3500) { milkyWayGroup.remove(c.grp); travelComets.splice(i, 1); } 
+                } 
+                for (const m of meteoroids) { m.grp.rotation.x += m.rotSpd.x; m.grp.rotation.y += m.rotSpd.y; m.grp.rotation.z += m.rotSpd.z; } 
+            }
             
             let targetFov = 45;
             let warpIntensity = 0;
             if (spaceState === 'expanding' || spaceState === 'collapsing') {
                 const warpCurve = Math.sin(ep * Math.PI);
-                // NEW: 5D Mode multiplier for FOV and Warp Intensity
                 const multiplier = is5DMode ? 3.0 : 1.0;
                 targetFov = 45 + warpCurve * 35 * multiplier;
                 warpIntensity = warpCurve * 0.9 * multiplier;
@@ -1642,7 +1674,60 @@
             }
 
             if (isCharging) { const elapsed = Date.now() - chargeStartTime; chargeLevel = Math.min(1, elapsed / CHARGE_FULL_MS); updateChargeSound(chargeLevel); }
-            const spin = 1 + chargeLevel * 15 + touchBoost * 0.5; pulseTime += 0.04 * spin; touchBoost *= 0.94; const chargeScale = 1 + chargeLevel * 1.1; const brightScale = (1 + Math.sin(pulseTime * 1.5) * 0.15 + touchBoost * 0.25) * chargeScale; innerBright.scale.set(brightScale, brightScale, brightScale); innerBright.material.opacity = 0.3 + Math.sin(pulseTime * 1.5) * 0.1 + touchBoost * 0.2 + chargeLevel * 0.6; innerCore.rotation.x += 0.008 * spin; innerCore.rotation.y += 0.012 * spin; midShell.rotation.x -= 0.004 * spin; midShell.rotation.y -= 0.006 * spin; outerShell.rotation.x += 0.002 * spin; outerShell.rotation.y -= 0.003 * spin; coreGroup.rotation.y += coreRotVelY; coreGroup.rotation.x += coreRotVelX; coreRotVelY *= 0.92; coreRotVelX *= 0.92; const scaleForce = (1 - coreScale) * 0.15; coreScaleVel += scaleForce; coreScaleVel *= 0.85; coreScale += coreScaleVel; const _coreSpaceScale = coreScale * (1 - ep * 0.85); coreGroup.scale.set(_coreSpaceScale, _coreSpaceScale, _coreSpaceScale); coreGroup.visible = (spaceState === 'core' || spaceState === 'collapsing') && spaceProgress < 0.98; const rumble = touchBoost * 0.08 + chargeLevel * 0.35; if (rumble > 0.01) { coreGroup.position.x = (Math.random() - 0.5) * rumble; coreGroup.position.y = (Math.random() - 0.5) * rumble; } else { coreGroup.position.x *= 0.9; coreGroup.position.y *= 0.9; } glowSphere.material.opacity = 0.08 + Math.sin(pulseTime * 0.6) * 0.04 + touchBoost * 0.15 + chargeLevel * 0.6; if (chargeLevel > 0.01) { const c = new THREE.Color(); if (chargeLevel < 0.5) c.lerpColors(new THREE.Color(0x8b5cf6), new THREE.Color(0xf59e0b), chargeLevel / 0.5); else c.lerpColors(new THREE.Color(0xf59e0b), new THREE.Color(0xef4444), (chargeLevel - 0.5) / 0.5); glowSphere.material.color.copy(c); innerBright.material.color.copy(c); innerCore.material.color.copy(c); midShell.material.color.copy(c); outerShell.material.color.copy(c); } if (isCharging && chargeLevel > 0.08) { boltTimer -= 1; const boltInterval = Math.max(1, Math.floor(14 - chargeLevel * 13)); if (boltTimer <= 0) { spawnBolt(); if (chargeLevel > 0.3 && Math.random() < 0.6) spawnBolt(); if (chargeLevel > 0.6 && Math.random() < 0.7) spawnBolt(); if (chargeLevel > 0.85 && Math.random() < 0.8) spawnBolt(); boltTimer = boltInterval; } } for (const b of boltPool) { if (b.life > 0) { b.life -= 0.12 + chargeLevel * 0.08; b.line.material.opacity = Math.max(0, b.life * 1.2); if (b.life <= 0) { b.line.visible = false; b.line.material.opacity = 0; } } } for (let i = ripples.length - 1; i >= 0; i--) { const r = ripples[i]; r.life -= 0.03; r.mesh.scale.setScalar(1 + (1 - r.life) * 4); r.mesh.material.opacity = r.life * 0.8; if (r.life <= 0) { scene.remove(r.mesh); r.mesh.geometry.dispose(); r.mesh.material.dispose(); ripples.splice(i, 1); } } 
+            // 5D core spin multiplier
+            const c5r = is5DMode ? 2.0 : 1.0;
+            const spin = (1 + chargeLevel * 15 + touchBoost * 0.5) * c5r; 
+            pulseTime += 0.04 * spin; touchBoost *= 0.94; const chargeScale = 1 + chargeLevel * 1.1; 
+            const brightScale = (1 + Math.sin(pulseTime * 1.5) * 0.15 + touchBoost * 0.25) * chargeScale; 
+            innerBright.scale.set(brightScale, brightScale, brightScale); 
+            innerBright.material.opacity = 0.3 + Math.sin(pulseTime * 1.5) * 0.1 + touchBoost * 0.2 + chargeLevel * 0.6; 
+            innerCore.rotation.x += 0.008 * spin; innerCore.rotation.y += 0.012 * spin; 
+            midShell.rotation.x -= 0.004 * spin; midShell.rotation.y -= 0.006 * spin; 
+            outerShell.rotation.x += 0.002 * spin; outerShell.rotation.y -= 0.003 * spin; 
+            // Rotate hyper shells (5D only)
+            if (is5DMode) {
+                hyperShell1.rotation.x += 0.005 * spin; hyperShell1.rotation.y -= 0.008 * spin;
+                hyperShell2.rotation.x -= 0.003 * spin; hyperShell2.rotation.y += 0.005 * spin;
+                hyperShell3.rotation.x += 0.002 * spin; hyperShell3.rotation.y += 0.003 * spin;
+            }
+            coreGroup.rotation.y += coreRotVelY; coreGroup.rotation.x += coreRotVelX; coreRotVelY *= 0.92; coreRotVelX *= 0.92; 
+            const scaleForce = (1 - coreScale) * 0.15; coreScaleVel += scaleForce; coreScaleVel *= 0.85; coreScale += coreScaleVel; 
+            const _coreSpaceScale = coreScale * (1 - ep * 0.85); coreGroup.scale.set(_coreSpaceScale, _coreSpaceScale, _coreSpaceScale); 
+            coreGroup.visible = (spaceState === 'core' || spaceState === 'collapsing') && spaceProgress < 0.98; 
+            const rumble = touchBoost * 0.08 + chargeLevel * 0.35; 
+            if (rumble > 0.01) { coreGroup.position.x = (Math.random() - 0.5) * rumble; coreGroup.position.y = (Math.random() - 0.5) * rumble; } else { coreGroup.position.x *= 0.9; coreGroup.position.y *= 0.9; } 
+            glowSphere.material.opacity = 0.08 + Math.sin(pulseTime * 0.6) * 0.04 + touchBoost * 0.15 + chargeLevel * 0.6; 
+            if (chargeLevel > 0.01) { 
+                const c = new THREE.Color(); 
+                if (chargeLevel < 0.5) c.lerpColors(new THREE.Color(0x8b5cf6), new THREE.Color(0xf59e0b), chargeLevel / 0.5); 
+                else c.lerpColors(new THREE.Color(0xf59e0b), new THREE.Color(0xef4444), (chargeLevel - 0.5) / 0.5); 
+                glowSphere.material.color.copy(c); innerBright.material.color.copy(c); innerCore.material.color.copy(c); midShell.material.color.copy(c); outerShell.material.color.copy(c); 
+            } 
+            if (isCharging && chargeLevel > 0.08) { 
+                boltTimer -= 1; 
+                const boltInterval = Math.max(1, Math.floor(14 - chargeLevel * 13)); 
+                if (boltTimer <= 0) { 
+                    spawnBolt(); 
+                    if (chargeLevel > 0.3 && Math.random() < 0.6) spawnBolt(); 
+                    if (chargeLevel > 0.6 && Math.random() < 0.7) spawnBolt(); 
+                    if (chargeLevel > 0.85 && Math.random() < 0.8) spawnBolt(); 
+                    boltTimer = boltInterval; 
+                } 
+            } 
+            for (const b of boltPool) { 
+                if (b.life > 0) { 
+                    b.life -= 0.12 + chargeLevel * 0.08; 
+                    b.line.material.opacity = Math.max(0, b.life * 1.2); 
+                    if (b.life <= 0) { b.line.visible = false; b.line.material.opacity = 0; } 
+                } 
+            } 
+            for (let i = ripples.length - 1; i >= 0; i--) { 
+                const r = ripples[i]; 
+                r.life -= 0.03; 
+                r.mesh.scale.setScalar(1 + (1 - r.life) * 4); 
+                r.mesh.material.opacity = r.life * 0.8; 
+                if (r.life <= 0) { scene.remove(r.mesh); r.mesh.geometry.dispose(); r.mesh.material.dispose(); ripples.splice(i, 1); } 
+            } 
             updateCosmicBirth();
             renderer.render(scene, camera);
         }
