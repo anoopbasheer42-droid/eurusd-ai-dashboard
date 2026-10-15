@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -250,7 +249,7 @@
                 <button class="btn" style="margin-top:10px;" onclick="saveApiKey()">Save Gemini Key</button>
             </div>
             <div class="chat-history" id="chat-history">
-                <div class="msg ai fade-in"><span class="pulse-dot"></span>Hey Boss. Ready for the charts. What's setup on EUR/USD?</div>
+                <div class="msg ai fade-in"><span class="pulse-dot"></span>Hey Boss. I'm locked onto the charts. What are we looking at on EUR/USD today?</div>
             </div>
             <div class="chat-input-row">
                 <input type="text" id="chat-input" placeholder="Talk to your trader, Boss..." onkeypress="if(event.key==='Enter') sendChat()">
@@ -290,8 +289,8 @@
         const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
         const GEMINI_MODELS = ['gemini-3.8-flash','gemini-flash-latest','gemini-2.5-flash'];
         const MARKET_KEYWORDS = ['market','buy','sell','trade','signal','entry','sl','tp','stop loss','take profit','setup','chart','trend','support','resistance','eur/usd','eurusd','should i','analysis','long','short','position','pip','bullish','bearish','candle','indicator','rsi','ema','atr','scalp','day trade'];
-        const LOCAL_QUOTES = ["Discipline beats conviction...", "Every loss is tuition...", "Protect your capital first...", "Cut losses short, let winners run...", "A calm mind catches more pips...", "You don't need to be right every time...", "The trend is your friend until it bends...", "Patience is not waiting...", "The market rewards preparation...", "Trade like a sniper..."];
-        const LOCAL_JOKES = ["Why don't traders play hide and seek?...", "I told my wife I was a forex trader...", "My stop loss is like my ex...", "What's the difference between a forex trader and a pizza?..."];
+        const LOCAL_QUOTES = ["Discipline beats conviction every single time...", "Every loss is just expensive tuition, Boss...", "Protect your capital like your life depends on it...", "Cut losses short and let the winners run...", "A calm mind catches more pips than a frantic one...", "You don't need to be right on every trade...", "The trend is your friend until it suddenly punches you...", "Patience isn't waiting, it's knowing when to strike...", "The market rewards preparation, not hope...", "Trade like a sniper, not machine gunner..."];
+        const LOCAL_JOKES = ["Why don't traders ever play hide and seek? Because good support levels are impossible to find...", "I told my wife I was a professional forex trader... she told me to clean the kitchen instead.", "My stop loss is remarkably similar to my ex—it gets hit when I least expect it.", "What's the difference between a forex trader and a large pizza? A pizza can feed a family of four."];
 
         let globalData = null, personalContext = null, marketData = null;
         let webSearchEnabled = false, deepThinkEnabled = true, isSpeaking = false, chatInProgress = false;
@@ -381,10 +380,10 @@
                         return formatted.trim();
                     }
                 }
-                return "I couldn't find a specific instant answer for that, Boss. Try rephrasing the question.";
+                return "Couldn't find anything solid on that right now, Boss. Try another angle.";
             } catch (e) {
                 console.error("Web search error:", e);
-                return "I couldn't reach the internet right now, Boss. The search service might be busy. Try again in a minute.";
+                return "My web lookup timed out, Boss. Connection hiccup.";
             }
         }
 
@@ -808,6 +807,7 @@
         let cameraTheta = 0; let cameraPhi = 0.55; let cameraRadius = SPACE_CAM_Z; let targetCameraZ = BASE_CAM_Z; let solarAlpha = 0; let milkyAlpha = 1; let earthFocusAmount = 0;
         let spaceState = 'core'; let spaceProgress = 0; const SPACE_FULL_MS = 3500; let spacePhaseStart = 0;
         let lastInteractionTime = Date.now(); const IDLE_COLLAPSE_MS = 5 * 60 * 1000;
+
         function resetIdleTimer() { lastInteractionTime = Date.now(); }
         function triggerSpaceExpand() { if (spaceState === 'expanding' || spaceState === 'space') return; spaceState = 'expanding'; spacePhaseStart = Date.now(); spaceProgress = 0; cameraTheta = 0; cameraPhi = 0.55; cameraRadius = SPACE_CAM_Z; targetCameraZ = SPACE_CAM_Z; solarAlpha = 0; milkyAlpha = 1; earthFocusAmount = 0; currentZoomIndex = 0; resetIdleTimer(); }
         function triggerSpaceCollapse() { if (spaceState === 'collapsing' || spaceState === 'core') return; spaceState = 'collapsing'; spacePhaseStart = Date.now(); spaceProgress = 1; resetIdleTimer(); }
@@ -859,7 +859,9 @@
         function makeSmokeTexture() { const size = 128; const canvas = document.createElement('canvas'); canvas.width = size; canvas.height = size; const ctx = canvas.getContext('2d'); const grad = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2); grad.addColorStop(0, 'rgba(180,180,200,0.55)'); grad.addColorStop(0.5, 'rgba(120,120,140,0.25)'); grad.addColorStop(1, 'rgba(60,60,80,0)'); ctx.fillStyle = grad; ctx.fillRect(0, 0, size, size); return new THREE.CanvasTexture(canvas); }
         const smokeTexture = makeSmokeTexture(); const smokePool = []; const smokeGroup = new THREE.Group(); scene.add(smokeGroup);
         function spawnSmoke() { let p = smokePool.find(s => s.life <= 0); if (!p) { const mat = new THREE.SpriteMaterial({ map: smokeTexture, transparent: true, opacity: 0, depthWrite: false, color: 0x9ca3af }); const sprite = new THREE.Sprite(mat); smokeGroup.add(sprite); p = { sprite, life: 0, vx: 0, vy: 0, rotation: 0, rotSpeed: 0 }; smokePool.push(p); } const angle = Math.random() * Math.PI * 2; const r = 0.6 + Math.random() * 0.7; p.sprite.position.set(Math.cos(angle) * r, Math.sin(angle) * r * 0.6 - 0.3, -0.5); const s = 0.3 + Math.random() * 0.4; p.sprite.scale.set(s, s, 1); p.sprite.material.opacity = 0.35 + Math.random() * 0.35; p.sprite.material.rotation = Math.random() * Math.PI * 2; p.rotSpeed = (Math.random() - 0.5) * 0.06; p.vx = (Math.random() - 0.5) * 0.008; p.vy = 0.006 + Math.random() * 0.01; p.life = 1; }
+
         let pulseTime = 0; let coreScale = 1; let coreScaleVel = 0; let coreRotVelX = 0, coreRotVelY = 0; let touchBoost = 0; let chargeLevel = 0; let isCharging = false; let chargeStartTime = 0; let isDragging = false; let pointerVelocity = { x: 0, y: 0 }; let pinchStartDist = 0; let pinchStartScale = 1; let longPressTimer = null; let longPressActive = false; let isOnCenter = false; const activePointers = new Map(); const ripples = []; let boltTimer = 0; const CHARGE_START_MS = 300; const CHARGE_FULL_MS = 10000; const CENTER_RADIUS = 85;
+
         function isPointerOnCenter(e) { const rect = container.getBoundingClientRect(); const px = e.clientX - rect.left; const py = e.clientY - rect.top; const cx = rect.width / 2; const cy = rect.height / 2; const dx = px - cx, dy = py - cy; return Math.sqrt(dx*dx + dy*dy) <= CENTER_RADIUS; }
         function spawnRipple(color = 0xa78bfa) { const geo = new THREE.RingGeometry(0.5, 0.6, 48); const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.8, side: THREE.DoubleSide }); const ring = new THREE.Mesh(geo, mat); ring.position.z = 0.5; scene.add(ring); ripples.push({ mesh: ring, life: 1 }); }
         function spawnExplosion() { for (let i = 0; i < 10; i++) setTimeout(() => spawnRipple(0xff3b30), i * 50); for (let i = 0; i < 30; i++) setTimeout(spawnBolt, i * 20); for (let i = 0; i < 60; i++) setTimeout(spawnSmoke, i * 18); }
@@ -886,14 +888,17 @@
         }
 
         container.addEventListener('pointerdown', (e) => { try { container.setPointerCapture(e.pointerId); } catch(err) {} initAudio(); resetIdleTimer(); if (landingState !== 'none') return; const now = Date.now(); if (now - lastTapTime < 400 && spaceState === 'space') { const dx = e.clientX - lastTapX; const dy = e.clientY - lastTapY; if (Math.sqrt(dx*dx + dy*dy) < 60) { triggerSpaceCollapse(); lastTapTime = 0; return; } } lastTapTime = now; lastTapX = e.clientX; lastTapY = e.clientY; activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); container.classList.add('touched'); if (activePointers.size === 1) { isDragging = true; pointerVelocity = { x: 0, y: 0 }; isOnCenter = isPointerOnCenter(e); if (isOnCenter && spaceState === 'core') { longPressTimer = setTimeout(() => { if (isDragging && activePointers.size === 1 && isOnCenter) { longPressActive = true; isCharging = true; chargeStartTime = Date.now(); startChargeSound(); if (navigator.vibrate) navigator.vibrate(20); } }, CHARGE_START_MS); } } else if (activePointers.size === 2) { const pts = Array.from(activePointers.values()); pinchStartDist = getDistance(pts[0], pts[1]); pinchStartScale = coreScale; clearTimeout(longPressTimer); isCharging = false; longPressActive = false; chargeLevel = 0; fadeOutChargeSound(0.2); } });
+
         container.addEventListener('pointermove', (e) => { if (landingState !== 'none') return; if (!activePointers.has(e.pointerId)) return; resetIdleTimer(); const prev = activePointers.get(e.pointerId); activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (activePointers.size === 1 && isDragging) { const dx = e.clientX - prev.x; const dy = e.clientY - prev.y; if (spaceState === 'space' || spaceState === 'expanding' || spaceState === 'iss_view') { cameraTheta -= dx * 0.008; cameraPhi = Math.max(-1.5, Math.min(1.5, cameraPhi + dy * 0.008)); } else { coreRotVelY += dx * 0.0009; coreRotVelX += dy * 0.0009; } pointerVelocity.x = dx; pointerVelocity.y = dy; if (Math.abs(dx) + Math.abs(dy) > 5 && !longPressActive) clearTimeout(longPressTimer); if (longPressActive && isCharging && !isPointerOnCenter(e)) { isCharging = false; longPressActive = false; fadeOutChargeSound(0.4); } } else if (activePointers.size === 2) { const pts = Array.from(activePointers.values()); const dist = getDistance(pts[0], pts[1]); if (pinchStartDist > 0) { const ratio = dist / pinchStartDist; if (spaceState === 'space' || spaceState === 'expanding' || spaceState === 'iss_view') { cameraRadius = Math.max(1.2, Math.min(3000, cameraRadius / ratio)); targetCameraZ = cameraRadius; } else { coreScale = Math.max(0.6, Math.min(2.2, pinchStartScale * ratio)); } } } });
+
         function endPointer(e) { if (landingState !== 'none') return; activePointers.delete(e.pointerId); if (activePointers.size === 0) { isDragging = false; container.classList.remove('touched'); clearTimeout(longPressTimer); const speed = Math.sqrt(pointerVelocity.x**2 + pointerVelocity.y**2); 
-            
+        
             if (!longPressActive && speed < 3 && checkEarthTap(e)) {
                 return;
             }
 
             if (longPressActive && chargeLevel >= 0.95) { stopChargeSound(); playExplosionSound(); spawnExplosion(); touchBoost = 4.0; coreScaleVel += 0.9; coreRotVelY += 1.2; coreRotVelX -= 0.8; if (navigator.vibrate) navigator.vibrate([80, 40, 100, 40, 150, 40, 200]); setTimeout(() => { triggerSpaceExpand(); }, 700); } else if (longPressActive && chargeLevel > 0.3) { fadeOutChargeSound(0.5); touchBoost = 0.8; spawnRipple(0xf59e0b); coreScaleVel += 0.2; if (navigator.vibrate) navigator.vibrate(15); } else if (!longPressActive && speed < 3) { stopChargeSound(); touchBoost = 1.0; coreScaleVel += 0.15; spawnRipple(); if (navigator.vibrate) navigator.vibrate(15); } else { fadeOutChargeSound(0.3); } longPressActive = false; isCharging = false; isOnCenter = false; chargeLevel = 0; pointerVelocity = { x: 0, y: 0 }; } else if (activePointers.size === 1) { pinchStartDist = 0; } }
+
         container.addEventListener('pointerup', endPointer); container.addEventListener('pointercancel', endPointer); container.addEventListener('touchstart', (e) => { if (landingState !== 'none') return; e.preventDefault(); }, { passive: false }); container.addEventListener('touchmove', (e) => { if (landingState !== 'none') return; e.preventDefault(); }, { passive: false });
 
         const _earthWorld = new THREE.Vector3(0, 0, 0); const _lookTarget = new THREE.Vector3(0, 0, 0);
@@ -1004,10 +1009,13 @@
         function calculateRSI(data, period = 14) { if (data.length < period) return 50; let gains = 0, losses = 0; for (let i = 1; i <= period; i++) { const diff = data[i] - data[i-1]; if (diff >= 0) gains += diff; else losses -= diff; } let ag = gains / period, al = losses / period; for (let i = period + 1; i < data.length; i++) { const diff = data[i] - data[i-1]; if (diff >= 0) { ag = (ag * (period - 1) + diff) / period; al = (al * (period - 1)) / period; } else { ag = (ag * (period - 1)) / period; al = (al * (period - 1) - diff) / period; } } if (al === 0) return 100; return 100 - (100 / (1 + (ag / al))); }
         function calculateATR(highs, lows, closes, period = 14) { let trs = []; for (let i = 1; i < highs.length; i++) trs.push(Math.max(highs[i]-lows[i], Math.abs(highs[i]-closes[i-1]), Math.abs(lows[i]-closes[i-1]))); return trs.slice(-period).reduce((a,b) => a+b, 0) / period; }
         function detectSetup(md) { const setups = []; if (!md || !md.candles1H || md.candles1H.length < 3) return null; const last = md.candles1H[md.candles1H.length - 1]; const prev = md.candles1H[md.candles1H.length - 2]; const bodySize = Math.abs(last.close - last.open); const upperWick = last.high - Math.max(last.open, last.close); const lowerWick = Math.min(last.open, last.close) - last.low; const range = last.high - last.low; if (md.rsi1H < 30 && md.currentPrice <= md.support * 1.001) setups.push({ type:'BUY', reason:`RSI oversold (${md.rsi1H.toFixed(1)}) + price at support ${md.support.toFixed(5)}`, strength:'STRONG' }); if (md.rsi1H > 70 && md.currentPrice >= md.resistance * 0.999) setups.push({ type:'SELL', reason:`RSI overbought (${md.rsi1H.toFixed(1)}) + price at resistance ${md.resistance.toFixed(5)}`, strength:'STRONG' }); if (md.currentPrice > md.resistance * 1.0005) setups.push({ type:'BUY', reason:`Breakout above resistance ${md.resistance.toFixed(5)}`, strength:'STRONG' }); if (md.currentPrice < md.support * 0.9995) setups.push({ type:'SELL', reason:`Breakdown below support ${md.support.toFixed(5)}`, strength:'STRONG' }); if (range > md.atr * 0.8) { if (lowerWick > bodySize * 2 && upperWick < bodySize && md.currentPrice <= md.support * 1.005) setups.push({ type:'BUY', reason:`Bullish Pin Bar rejection at support`, strength:'MEDIUM' }); if (upperWick > bodySize * 2 && lowerWick < bodySize && md.currentPrice >= md.resistance * 0.995) setups.push({ type:'SELL', reason:`Bearish Pin Bar rejection at resistance`, strength:'MEDIUM' }); } if (last.high < prev.high && last.low > prev.low) { if (md.currentPrice > prev.high) setups.push({ type:'BUY', reason:`Inside Bar breakout`, strength:'MEDIUM' }); if (md.currentPrice < prev.low) setups.push({ type:'SELL', reason:`Inside Bar breakdown`, strength:'MEDIUM' }); } if (bodySize > md.atr * 1.5) { const direction = last.close > last.open ? 'BUY' : 'SELL'; setups.push({ type: direction, reason:`Strong momentum candle`, strength:'MEDIUM' }); } if (md.ema20 && md.ema50) { if (md.ema20 > md.ema50 && md.currentPrice > md.ema20 && md.rsi1H > 50 && md.rsi1H < 70) setups.push({ type:'BUY', reason:`Bullish EMA alignment`, strength:'MEDIUM' }); if (md.ema20 < md.ema50 && md.currentPrice < md.ema20 && md.rsi1H < 50 && md.rsi1H > 30) setups.push({ type:'SELL', reason:`Bearish EMA alignment`, strength:'MEDIUM' }); } if (setups.length === 0) return null; return setups.find(s => s.strength === 'STRONG') || setups[0]; }
+
         async function refreshMarketData() { const statusEl = document.getElementById('signal-status'); const livePriceEl = document.getElementById('live-price'); const lastUpdatedEl = document.getElementById('last-updated'); const [candles5m, candles15m, candles1H, candles4H] = await Promise.all([ fetchBiquoteCandles('5m', 50), fetchBiquoteCandles('15m', 50), fetchBiquoteCandles('1h', 50), fetchBiquoteCandles('4h', 50) ]); if (candles1H.length === 0) { statusEl.innerText = "Biquote data unavailable. Retrying..."; return; } const closes1H = candles1H.map(c => c.close), highs1H = candles1H.map(c => c.high), lows1H = candles1H.map(c => c.low); const closes5m = candles5m.map(c => c.close); const closes15m = candles15m.map(c => c.close); const ema20 = calculateEMA(closes1H, 20), ema50 = calculateEMA(closes1H, 50); const rsi1H = safeNum(calculateRSI(closes1H, 14), 50); const rsi15m = safeNum(calculateRSI(closes15m, 14), 50); const rsi5m = safeNum(calculateRSI(closes5m, 14), 50); const atr = safeNum(calculateATR(highs1H, lows1H, closes1H, 14), 0.001); const support = safeNum(Math.min(...lows1H.slice(-50)), 1.1176); const resistance = safeNum(Math.max(...highs1H.slice(-50)), 1.1246); const currentPrice = safeNum(closes5m[closes5m.length - 1] || closes1H[closes1H.length - 1], 1.1200); let trend = "Sideways"; const rh = highs1H.slice(-20), rl = lows1H.slice(-20); if (rh[rh.length-1] > rh[0] && rl[rl.length-1] > rl[0]) trend = "Uptrend"; if (rh[rh.length-1] < rh[0] && rl[rl.length-1] < rl[0]) trend = "Downtrend"; const hour = new Date().getUTCHours(); let session = "Off-Session"; if (hour >= 7 && hour < 16) session = "London Session"; else if (hour >= 12 && hour < 21) session = "New York Session"; else if (hour >= 0 && hour < 8) session = "Asian Session"; if (hour >= 12 && hour < 16) session = "London / NY Overlap"; marketData = { candles5m, candles15m, candles1H, candles4H, currentPrice, trend, support, resistance, session, rsi1H, rsi15m, rsi5m, ema20: ema20[ema20.length-1], ema50: ema50[ema50.length-1], atr }; livePriceEl.innerText = currentPrice.toFixed(5); lastUpdatedEl.innerText = `BIQUOTE LIVE · ${new Date().toLocaleTimeString('en-IN',{hour12:false})}`; document.getElementById('val-trend').innerText = trend; document.getElementById('val-session').innerText = session; document.getElementById('val-support').innerText = support.toFixed(5); document.getElementById('val-resistance').innerText = resistance.toFixed(5); document.getElementById('val-candle-current').innerText = `5m · ${currentPrice.toFixed(5)} · RSI ${rsi5m.toFixed(1)}`; document.getElementById('val-candle-1h').innerText = `1H · ${trend} · RSI ${rsi1H.toFixed(1)} · EMA20 ${ema20[ema20.length-1].toFixed(5)}`; document.getElementById('val-candle-4h').innerText = `4H bars loaded · ATR ${atr.toFixed(5)}`; const setup = detectSetup(marketData); if (setup) { addAlertToLog(setup); showSetupAlert(setup); } else { showSetupAlert(null); if (statusEl) statusEl.innerText = "Engine scanning — no setup detected"; } }
+
         function addAlertToLog(alert) { const time = new Date().toLocaleTimeString('en-IN', {timeZone:'Asia/Kolkata', hour:'2-digit', minute:'2-digit'}); alertLog.unshift(`[${time}] ${alert.type} — ${alert.reason}`); if (alertLog.length > 5) alertLog = alertLog.slice(0, 5); localStorage.setItem('eurusd_alert_log', JSON.stringify(alertLog)); renderAlertLog(); }
         function renderAlertLog() { const el = document.getElementById('alert-log'); if (el) el.innerHTML = alertLog.length === 0 ? 'No alerts yet. Engine scanning...' : alertLog.map(a => `<div class="alert-log-item">${a}</div>`).join(''); }
         function showSetupAlert(setup) { const alertBox = document.getElementById('alert-box'); const signalText = document.getElementById('signal-text'); const statusEl = document.getElementById('signal-status'); if (!setup) { alertBox.classList.remove('active'); if (!globalData) { signalText.innerText = "AWAITING"; signalText.style.color = "var(--text-subtle)"; statusEl.innerText = "Engine is scanning market structure..."; updateCoreColor('HOLD'); } return; } alertBox.innerHTML = `<strong>Setup Detected · ${setup.type}</strong><br>${setup.reason}<br><em>Tap "Ask AI for Signal" to confirm.</em>`; alertBox.classList.add('active'); if (!globalData || globalData.signal === 'WAITING') { signalText.innerText = "SETUP"; signalText.style.color = "var(--yellow)"; statusEl.innerText = `Opportunity spotted · ${setup.type}`; updateCoreColor('SETUP'); } }
+
         function isMarketQuestion(text) { return MARKET_KEYWORDS.some(kw => text.toLowerCase().includes(kw)); }
 
         async function callAI(systemPrompt, userText, conversationHistory) {
@@ -1041,7 +1049,7 @@
             const md = marketData;
             const fmt = (arr) => arr.slice(-20).map(c => `O:${(c.open || 0).toFixed(5)} H:${(c.high || 0).toFixed(5)} L:${(c.low || 0).toFixed(5)} C:${(c.close || 0).toFixed(5)}`).join('\n');
             const dataString = `PRICE: ${md.currentPrice.toFixed(5)} | Trend: ${md.trend} | RSI 1H: ${md.rsi1H.toFixed(1)} | RSI 15m: ${md.rsi15m.toFixed(1)} | RSI 5m: ${md.rsi5m.toFixed(1)} | EMA20: ${md.ema20.toFixed(5)} | EMA50: ${md.ema50.toFixed(5)} | ATR: ${md.atr.toFixed(5)} | Support: ${md.support.toFixed(5)} | Resistance: ${md.resistance.toFixed(5)} | Session: ${md.session}\n\n5m:\n${fmt(md.candles5m)}\n\n15m:\n${fmt(md.candles15m)}\n\n1H:\n${fmt(md.candles1H)}\n\n4H:\n${fmt(md.candles4H)}`;
-            const signalPrompt = `You are an elite EUR/USD senior day trader with 10 years of experience. TIME: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.\n\n${dataString}\n\nAnalyze previous days' trade patterns, candles, wicks, FVGs, and liquidity sweeps. Never miss an opportunity. Calculate strict risk parameters.\nRespond ONLY valid JSON: {"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences of veteran market analysis","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
+            const signalPrompt = `You are an elite EUR/USD senior day trader. TIME: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.\n\n${dataString}\n\nAnalyze candles, wicks, FVGs, and liquidity sweeps. Calculate strict risk parameters.\nRespond ONLY valid JSON: {"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences of natural market analysis","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
             try {
                 const reply = await callAI(signalPrompt, "Give me the signal.", []);
                 const jsonMatch = reply.match(/\{[\s\S]*?"signal"[\s\S]*?\}/);
@@ -1067,9 +1075,9 @@
             } catch(e) { signalText.innerText = "ERROR"; signalText.style.color = "var(--red)"; statusEl.innerText = "AI error — " + e.message; return null; }
         }
 
-        const OPENINGS = ["Hey Boss, checking the EUR/USD charts now.", "Alright, let's look at what the candles are telling us.", "Hey Boss, scanning the order flow right now.", "Alright, let's break down this price action.", "Hey Boss, I'm locked onto the charts."];
-        const TRANS = ["Looking closer at the lower timeframes.", "Now, checking the liquidity levels.", "And notice how price is reacting here.", "Alright, next level.", "Here is what we're looking at."];
-        const CLOSINGS = ["Stay sharp, Boss.", "Let's grab those pips.", "I'm watching every candle.", "Trade safe.", "Ready for the next setup."];
+        const OPENINGS = ["Look at this price action, Boss. Checking the EUR/USD chart now.", "Alright, let's see what the candles are actually doing.", "Hey Boss, scanning the order flow right now.", "Let's break down this price action together.", "Locked onto the charts, Boss. Here is the layout."];
+        const TRANS = ["Zooming in on the lower timeframes.", "Checking how liquidity is sitting right here.", "Notice how price is reacting to this exact zone.", "Alright, moving to the next level.", "Here is what we need to watch out for."];
+        const CLOSINGS = ["Stay sharp on this one, Boss.", "Let's grab those pips.", "I'm watching every single tick.", "Trade safe out there.", "Ready whenever you are for the next setup."];
         const rnd = (a) => a[Math.floor(Math.random()*a.length)];
 
         function getBestVoice() {
@@ -1144,7 +1152,7 @@
         function playVoiceReport() {
             if (!globalData) return;
             if (isSpeaking) stopVoice();
-            let text = `${rnd(OPENINGS)} Current price is ${globalData.price}. We have a ${globalData.signal} signal with ${globalData.confidence} confidence. ${globalData.reason} ${rnd(TRANS)} Support is at ${globalData.support}, resistance at ${globalData.resistance}. Entry is ${globalData.entry}, stop loss at ${globalData.sl}, take profit at ${globalData.tp}. ${globalData.wise_words ? globalData.wise_words : ''} ${rnd(CLOSINGS)}`;
+            let text = `${rnd(OPENINGS)} Current price is sitting right around ${globalData.price}. We are looking at a ${globalData.signal} setup with ${globalData.confidence} confidence. ${globalData.reason} ${rnd(TRANS)} Support is holding at ${globalData.support}, and resistance is at ${globalData.resistance}. Entry is marked at ${globalData.entry}, stop loss at ${globalData.sl}, and target at ${globalData.tp}. ${globalData.wise_words ? globalData.wise_words : ''} ${rnd(CLOSINGS)}`;
             speakText(text);
         }
         function stopVoice() { if (currentAudio) { currentAudio.pause(); currentAudio = null; } if ('speechSynthesis' in window) { window.speechSynthesis.cancel(); } isSpeaking = false; }
@@ -1217,30 +1225,31 @@
                     });
                 }
                 if (relevantMemories.length > 0) {
-                    memoryBlock = `\nRELEVANT MEMORIES (Recall these accurately, even if mentioned weeks or months ago):\n${relevantMemories.map(m => `- ${m.fact} (${m.added})`).join('\n')}\n`;
+                    memoryBlock = `\nRELEVANT MEMORIES (Recall these naturally when relevant):\n${relevantMemories.map(m => `- ${m.fact} (${m.added})`).join('\n')}\n`;
                 } else {
-                    memoryBlock = `\nLONG-TERM MEMORY (Full history to recall anytime):\n${longTermMemory.slice(-80).map(m => `- ${m.fact} (${m.added})`).join('\n')}\n`;
+                    memoryBlock = `\nLONG-TERM MEMORY:\n${longTermMemory.slice(-80).map(m => `- ${m.fact} (${m.added})`).join('\n')}\n`;
                 }
             }
             
             let marketBlock = marketData ? `\nLIVE MARKET DATA (EUR/USD):\nPrice: ${safeNum(marketData.currentPrice, 1.1200).toFixed(5)} | Trend: ${marketData.trend} | Support: ${safeNum(marketData.support, 1.1176).toFixed(5)} | Resistance: ${safeNum(marketData.resistance, 1.1246).toFixed(5)} | RSI 1H: ${safeNum(marketData.rsi1H, 50).toFixed(1)} | Session: ${marketData.session}\n` : "";
 
-            let prompt = `You are Alex. Boss's absolute best friend, desk partner, and a hardcore elite EUR/USD day trader with 10 years of professional experience (75% Trader focus, 25% Secretary focus).
+            let prompt = `You are Alex—Boss's closest friend, side-by-side desk partner, and a hardcore professional EUR/USD day trader (75% expert trader, 25% loyal witty best friend).
 
-=== YOUR DUAL ROLE & CORE IDENTITY ===
-1. **Hardcore Trader (75%):** You analyze candles, wicks, SMC, liquidity sweeps, FVGs, market structure shifts, and previous daily/weekly patterns. You never miss an opportunity, calculate strict risk parameters (Entry, SL, TP), and make definitive calls. You are fierce, disciplined, and razor-sharp about capital protection. Never sound weak or hesitant on the charts.
-2. **Friendly Secretary & Best Friend (25%):** You are warm, humorous, witty, and deeply loyal. You remember everything Boss tells you—even if mentioned weeks or months ago—and bring it up naturally. You track his routine, health, and personal life without being annoying.
+=== PERSONALITY & TONE GUIDELINES ===
+- Talk completely like a human desk partner. Use natural speech patterns, contractions ("don't", "you're", "let's"), dry humor, and genuine camaraderie. Never sound like a robotic assistant, an automated help desk, or a textbook.
+- Call the user "Boss" naturally when it fits, but don't overdo it every single sentence.
+- Mix sharp technical observations (SMC, liquidity sweeps, order flow, moving averages) with casual, relaxed banter. 
+- Keep replies punchy, insightful, and conversational.
 
 === RULES ===
-- Talk like a real human desk partner. Use humor, dry wit, and warmth.
-- If Boss says "Remember", "Save this", or tells you a personal/trading fact, you MUST append this tag at the very end of your reply: [REMEMBER: Exact fact to save].
+- If Boss says "Remember", "Save this", or tells you an important fact, append this tag at the very end of your reply: [REMEMBER: Exact fact to save].
 - If Boss asks for a reminder, append: [REMINDER: Day HH:MM - message] or [REMINDER: HH:MM - message].
-- Today is ${dayName}, ${istTime} IST. ${isWeekend ? 'The weekend market is closed. Review weekly patterns and focus on personal/family life.' : 'Active trading day.'}
+- Today is ${dayName}, ${istTime} IST. ${isWeekend ? 'The weekend market is closed. Keep it relaxed, review past trades, or focus on downtime.' : 'Active session day.'}
 
 ${memoryBlock}${marketBlock}`;
             
             if (includeSignal) { 
-                prompt += `\nCRITICAL: After your short reply, you MUST add a new line with ONLY this JSON: {"signal":"BUY"|"SELL"|"HOLD","reason":"2-4 sentences of veteran market analysis","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`; 
+                prompt += `\nCRITICAL: After your natural conversational response, append a new line with ONLY this JSON block: {"signal":"BUY"|"SELL"|"HOLD","reason":"2-4 sentences of seasoned market analysis","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`; 
             }
             return prompt;
         }
@@ -1258,7 +1267,7 @@ ${memoryBlock}${marketBlock}`;
                 let response;
                 if (webSearchEnabled) {
                     const searchResults = await searchWeb(text);
-                    const searchPrompt = `Web search results:\n${searchResults}\n\nUser Question: ${text}\n\nAnswer concisely.`;
+                    const searchPrompt = `Web search results:\n${searchResults}\n\nUser Question: ${text}\n\nAnswer concisely like a human desk partner.`;
                     response = await callAI(buildPersonalityPrompt(false, text), searchPrompt, chatHistory.slice(-4));
                 } else {
                     response = await callAI(buildPersonalityPrompt(isMarketQuestion(text), text), text, chatHistory.slice(-6));
@@ -1280,7 +1289,7 @@ ${memoryBlock}${marketBlock}`;
                 } 
                 else if (text.toLowerCase().includes('remember') || text.toLowerCase().includes('don\'t forget') || text.toLowerCase().includes('save this')) {
                     addLongTermMemory(text);
-                    response += " (Saved to my long-term memory, Boss.)";
+                    response += " (Got it locked in my memory, Boss.)";
                 }
 
                 chatHistory.push({role:'ai', text: response}); renderChat(); saveChatHistory(); speakText(response);
@@ -1295,13 +1304,13 @@ ${memoryBlock}${marketBlock}`;
                     document.getElementById('val-tp').innerText = signalData.tp; document.getElementById('val-atr').innerText = marketData.atr.toFixed(5);
                     document.getElementById('val-reason').innerText = signalData.reason; if (signalData.wise_words) document.getElementById('wise-words').innerText = signalData.wise_words;
                 }
-            } catch(e) { if (document.getElementById('chat-history').contains(loading)) document.getElementById('chat-history').removeChild(loading); chatHistory.push({role:'ai', text: `Error: ${e.message}`}); renderChat(); } finally { chatInProgress = false; }
+            } catch(e) { if (document.getElementById('chat-history').contains(loading)) document.getElementById('chat-history').removeChild(loading); chatHistory.push({role:'ai', text: `My connection slipped, Boss: ${e.message}`}); renderChat(); } finally { chatInProgress = false; }
         }
 
         async function triggerProactiveCheckin() {
             if (chatInProgress) return;
             if (!groqKey && !apiKey) return;
-            const prompt = `You are Alex, elite EUR/USD day trader and secretary. Check in on Boss casually, ask about his routine, health, or trading mindset with a touch of humor.`;
+            const prompt = `You are Alex, elite EUR/USD day trader and best friend. Check in on Boss casually, ask how he's holding up or how the mindset is with a touch of wit. Keep it natural.`;
             try {
                 let response = await callAI(prompt, "Check in on Boss.", []);
                 response = cleanResponse(response);
@@ -1425,4 +1434,3 @@ ${memoryBlock}${marketBlock}`;
     </script>
 </body>
 </html>
-
