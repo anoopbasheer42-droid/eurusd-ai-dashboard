@@ -286,7 +286,7 @@
             <div class="reasoning-text" id="val-reason">Engine scanning. AI auto-analyzes hourly.</div>
         </div>
         
-        <!-- 3D / 5D Toggle Button -->
+        <!-- 5D Toggle Button -->
         <div class="card" style="padding: 12px; text-align: center; margin-top: 10px;">
             <button class="btn" id="btn-5d" onclick="toggle5D()">5D MODE: OFF</button>
         </div>
@@ -1069,27 +1069,14 @@
 
         function resetIdleTimer() { lastInteractionTime = Date.now(); }
         
+        // New global listeners to ensure idle timer resets on any interaction
         window.addEventListener('pointerdown', resetIdleTimer);
         window.addEventListener('pointermove', resetIdleTimer);
         window.addEventListener('wheel', resetIdleTimer);
         window.addEventListener('touchstart', resetIdleTimer);
         window.addEventListener('touchmove', resetIdleTimer);
 
-        function triggerSpaceExpand() { 
-            if (spaceState === 'expanding' || spaceState === 'space') return; 
-            spaceState = 'expanding'; 
-            spacePhaseStart = Date.now(); 
-            spaceProgress = 0; 
-            cameraTheta = 0; 
-            cameraPhi = 0.55; 
-            cameraRadius = SPACE_CAM_Z; 
-            targetCameraZ = SPACE_CAM_Z; 
-            solarAlpha = 0; 
-            milkyAlpha = 1; 
-            earthFocusAmount = 0; 
-            currentZoomIndex = 0; 
-            resetIdleTimer(); 
-        }
+        function triggerSpaceExpand() { if (spaceState === 'expanding' || spaceState === 'space') return; spaceState = 'expanding'; spacePhaseStart = Date.now(); spaceProgress = 0; cameraTheta = 0; cameraPhi = 0.55; cameraRadius = SPACE_CAM_Z; targetCameraZ = SPACE_CAM_Z; solarAlpha = 0; milkyAlpha = 1; earthFocusAmount = 0; currentZoomIndex = 0; resetIdleTimer(); }
         
         function triggerSpaceCollapse() { if (spaceState === 'collapsing' || spaceState === 'core') return; spaceState = 'collapsing'; spacePhaseStart = Date.now(); spaceProgress = 1; resetIdleTimer(); }
 
@@ -1249,6 +1236,7 @@
                 burstPoints.geometry.attributes.position.needsUpdate = true;
             }
 
+            // Fade out whole cosmic birth group as space expansion takes over
             cosmicBirthGroup.traverse((child) => {
                 if (child.material) {
                     child.material.opacity = Math.max(0, cosmicBirthLife * (child.material.userData?.baseOpacity || 1));
@@ -1391,6 +1379,7 @@
             
             const now = Date.now(); 
             
+            // NEW: Double tap to collapse anywhere except Earth
             if (now - lastTapTime < 400 && (spaceState === 'space' || spaceState === 'expanding' || spaceState === 'iss_view')) {
                 const dx = e.clientX - lastTapX;
                 const dy = e.clientY - lastTapY;
@@ -1503,6 +1492,7 @@
 
             if (spaceState === 'expanding') { const t = Math.min(1, (nowMs - spacePhaseStart) / SPACE_FULL_MS); spaceProgress = t; if (t >= 1) { spaceProgress = 1; spaceState = 'space'; currentZoomIndex = 0; } } else if (spaceState === 'collapsing') { const t = Math.min(1, (nowMs - spacePhaseStart) / SPACE_FULL_MS); spaceProgress = 1 - t; if (t >= 1) { spaceProgress = 0; spaceState = 'core'; } }
             
+            // 5 Minute Idle check to return to core from anywhere
             if ((nowMs - lastInteractionTime) > IDLE_COLLAPSE_MS) {
                 if (landingState === 'landed') {
                     exitMap();
