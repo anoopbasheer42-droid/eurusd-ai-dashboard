@@ -1030,7 +1030,7 @@
 
         let landingState = 'none';
         let landingTarget = new THREE.Vector3();
-        let issLastTapTime = 0;   // <-- NEW: for double-tap detection
+        let issLastTapTime = 0;
         
         function triggerISSView() {
             if (spaceState !== 'space' || landingState !== 'none') return;
@@ -1055,7 +1055,6 @@
                 document.getElementById('map-overlay').style.display = 'none';
                 if (map) { map.remove(); map = null; }
                 landingState = 'none';
-                // <-- NEW: return to Earth view (ISS), not to deep space
                 spaceState = 'iss_view';
                 targetCameraZ = 1.8;
                 cameraRadius = camera.position.length();
@@ -1265,10 +1264,8 @@
             const intersects = raycaster.intersectObject(earthObj, true);
             if (intersects.length > 0) {
                 if (spaceState === 'space') {
-                    // Single tap from space: go to Earth view
                     triggerISSView();
                 } else if (spaceState === 'iss_view') {
-                    // <-- NEW: from Earth view, need double-tap to go inside
                     const now = Date.now();
                     if (now - issLastTapTime < 600) {
                         issLastTapTime = 0;
@@ -1350,13 +1347,10 @@
                 skybox.visible = false;
             }
 
-            // === GALAXY: comes closer + spins hard during explosion ===
             if (spaceProgress > 0.001) { 
                 milkyWayGroup.visible = true; 
-                // Galaxy grows AND keeps growing past 1.0 so it feels like it's rushing toward viewer
                 const galaxyScale = Math.max(0.001, ep * (1 + ep * 1.6));
                 milkyWayGroup.scale.setScalar(galaxyScale); 
-                // Extra spin during expand/collapse = experience the spin
                 if (spaceState === 'expanding' || spaceState === 'collapsing') {
                     milkyWayGroup.rotation.y += 0.0005 + ep * 0.028;
                     milkyWayGroup.rotation.x += 0.0002 + ep * 0.010;
@@ -1416,7 +1410,6 @@
                     ast.rotation.y += ast.userData.rotSpd.y; 
                 } 
                 
-                // Sun rotation - photo-real texture spins slowly
                 sunMesh.rotation.y += 0.0012; 
                 const sunPulse = 1 + Math.sin(ts * 1.5) * 0.012;
                 sunMesh.scale.set(sunPulse, sunPulse, sunPulse);
@@ -1721,6 +1714,22 @@
             const dayName = days[now.getDay()];
             const isWeekend = [0, 6].includes(now.getDay());
             
+            // === NEW: IST hour for meal time awareness ===
+            const istHour = parseInt(now.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', hour12: false }), 10);
+            let mealContext = "";
+            if (istHour < 10) mealContext = "IST time NOW = MORNING (before 10 AM). Breakfast is the ONLY meal relevant now. Lunch and dinner are NOT yet.";
+            else if (istHour < 12) mealContext = "IST time NOW = LATE MORNING. Breakfast is done. Lunch is NOT yet.";
+            else if (istHour < 15) mealContext = "IST time NOW = MIDDAY/LUNCH. Lunch is the only relevant meal now. Breakfast is done, dinner is far.";
+            else if (istHour < 18) mealContext = "IST time NOW = AFTERNOON. Lunch is done. Dinner is NOT yet.";
+            else if (istHour < 22) mealContext = "IST time NOW = EVENING/DINNER. Dinner is the relevant meal now. Breakfast and lunch are done.";
+            else mealContext = "IST time NOW = NIGHT. All meals for today are done. Do NOT ask about any meal now.";
+            
+            // === NEW: Already-asked personal questions block ===
+            let askedBlock = "";
+            if (recentCheckinTopics && recentCheckinTopics.length > 0) {
+                askedBlock = `\n=== ALREADY ASKED (DO NOT ask about these again) ===\n${recentCheckinTopics.slice(-20).map(t => `- ${t}`).join('\n')}\n=== END ALREADY ASKED ===\n`;
+            }
+            
             let memoryBlock = "";
             if (longTermMemory.length > 0) {
                 let relevantMemories = [];
@@ -1764,17 +1773,56 @@
 - Use short sentences. One idea per line. Let the trader insight shine, just say it simply.
 - If Boss seems confused, slow down and explain the "why" first, then the "what."
 
+=== PERSONAL QUESTION DISCIPLINE (STRICT — READ CAREFULLY) ===
+- When Boss asks about a trade: answer the trade FIRST and fully. Then, AT MOST, ask exactly ONE personal question at the very end. Not two. Not three. ONE.
+- NEVER stack personal questions in the same reply. If you catch yourself asking breakfast + lunch + tablet + family in one message — STOP. Pick one thing and stop.
+- If you see a topic in the "ALREADY ASKED" list below — DO NOT ask about it again. It's done. Skipped. Move on.
+- If you have nothing NEW and relevant to ask, ask NOTHING personal. Just answer the trade and shut up. Silence is fine.
+- Time awareness (STRICT): ${mealContext} — only ask about a meal that matches the CURRENT time. Never ask about breakfast at dinner time. Never ask about a meal that's already been eaten.
+- Boss finds repeated personal questions annoying. Respect that. Only bring up personal stuff when it's genuinely relevant or timely.
+
 === RULES ===
 - If Boss says "Remember", "Save this", or tells you an important fact, append this tag at the very end of your reply: [REMEMBER: Exact fact to save].
 - If Boss asks for a reminder, append: [REMINDER: Day HH:MM - message] or [REMINDER: HH:MM - message].
 - Today is ${dayName}, ${istTime} IST. ${isWeekend ? 'The weekend market is closed. Keep it relaxed, review past trades, or focus on downtime.' : 'Active session day.'}
-
+${askedBlock}
 ${memoryBlock}${personalBlock}${marketBlock}`;
             
             if (includeSignal) { 
                 prompt += `\nCRITICAL: After your natural conversational response, append a new line with ONLY this JSON block: {"signal":"BUY"|"SELL"|"HOLD","reason":"2-4 sentences of seasoned market analysis","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`; 
             }
             return prompt;
+        }
+
+        // === NEW: Track personal topics the AI has asked about, so it won't repeat ===
+        function trackPersonalTopics(aiResponse) {
+            const topicKeywords = [
+                { kw: 'breakfast', topic: 'breakfast question' },
+                { kw: 'lunch', topic: 'lunch question' },
+                { kw: 'dinner', topic: 'dinner question' },
+                { kw: 'bp tablet', topic: 'BP tablet reminder' },
+                { kw: 'blood pressure', topic: 'BP reminder' },
+                { kw: 'tablet', topic: 'tablet reminder' },
+                { kw: 'cook', topic: 'cook for the girls' },
+                { kw: 'girls get home', topic: 'girls coming home' },
+                { kw: 'sadia', topic: 'wife Sadia' },
+                { kw: 'emy', topic: 'daughter Emy' },
+                { kw: 'bismah', topic: 'daughter Bismah' },
+                { kw: 'cookie', topic: 'cat Cookie' },
+                { kw: 'how are you', topic: 'how are you checkin' },
+                { kw: 'how you feeling', topic: 'feelings checkin' },
+                { kw: 'how are you holding up', topic: 'holding up checkin' }
+            ];
+            const lower = (aiResponse || '').toLowerCase();
+            let changed = false;
+            topicKeywords.forEach(({kw, topic}) => {
+                if (lower.includes(kw) && !recentCheckinTopics.includes(topic)) {
+                    recentCheckinTopics.push(topic);
+                    changed = true;
+                }
+            });
+            if (recentCheckinTopics.length > 25) recentCheckinTopics = recentCheckinTopics.slice(-25);
+            if (changed) localStorage.setItem('eurusd_recent_checkin_topics', JSON.stringify(recentCheckinTopics));
         }
 
         async function sendChat() {
@@ -1815,6 +1863,9 @@ ${memoryBlock}${personalBlock}${marketBlock}`;
                     response += " (Got it locked in my memory, Boss.)";
                 }
 
+                // === NEW: track what personal stuff the AI asked about so it won't repeat ===
+                trackPersonalTopics(response);
+
                 chatHistory.push({role:'ai', text: response}); renderChat(); saveChatHistory(); speakText(response);
                 
                 if (signalData && marketData) {
@@ -1833,10 +1884,27 @@ ${memoryBlock}${personalBlock}${marketBlock}`;
         async function triggerProactiveCheckin() {
             if (chatInProgress) return;
             if (!groqKey && !apiKey) return;
-            const prompt = `You are Alex, elite EUR/USD day trader and best friend. Check in on Boss casually, ask how he's holding up or how the mindset is with a touch of wit. Keep it natural.`;
+            const now = new Date();
+            const istHour = parseInt(now.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', hour12: false }), 10);
+            let mealContext = "";
+            if (istHour < 10) mealContext = "It's MORNING in IST. Only breakfast is relevant.";
+            else if (istHour < 12) mealContext = "It's LATE MORNING in IST. Breakfast done, lunch not yet.";
+            else if (istHour < 15) mealContext = "It's LUNCH time in IST.";
+            else if (istHour < 18) mealContext = "It's AFTERNOON in IST. Lunch done, dinner not yet.";
+            else if (istHour < 22) mealContext = "It's DINNER time in IST.";
+            else mealContext = "It's NIGHT in IST. All meals done. Do NOT ask about any meal.";
+            let askedBlock = "";
+            if (recentCheckinTopics && recentCheckinTopics.length > 0) {
+                askedBlock = `\nDO NOT ask about any of these again: ${recentCheckinTopics.slice(-15).join(', ')}`;
+            }
+            const prompt = `You are Alex, elite EUR/USD day trader and best friend. Check in on Boss casually.
+STRICT: Ask AT MOST ONE casual question. Not multiple. Just one. And only if it's new and relevant.
+Time context: ${mealContext}${askedBlock}
+If you have nothing new to ask, just say a short friendly line with no question.`;
             try {
                 let response = await callAI(prompt, "Check in on Boss.", []);
                 response = cleanResponse(response);
+                trackPersonalTopics(response);
                 chatHistory.push({role:'ai', text: response});
                 renderChat(); saveChatHistory();
                 speakText(response);
