@@ -249,10 +249,10 @@
                 <button class="btn" style="margin-top:10px;" onclick="saveApiKey()">Save Gemini Key</button>
             </div>
             <div class="chat-history" id="chat-history">
-                <div class="msg ai fade-in"><span class="pulse-dot"></span>Hey Boss. Ready to catch some pips on EUR/USD. What do the charts look like?</div>
+                <div class="msg ai fade-in"><span class="pulse-dot"></span>Hey Boss. Ready for the charts. What's setup on EUR/USD?</div>
             </div>
             <div class="chat-input-row">
-                <input type="text" id="chat-input" placeholder="Ask your trader for analysis, Boss..." onkeypress="if(event.key==='Enter') sendChat()">
+                <input type="text" id="chat-input" placeholder="Talk to your trader, Boss..." onkeypress="if(event.key==='Enter') sendChat()">
                 <button onclick="sendChat()">Send</button>
             </div>
             <div style="text-align:right; margin-top:10px;"><button class="btn" onclick="clearChat()">Clear chat (memory stays)</button></div>
@@ -1040,7 +1040,7 @@
             const md = marketData;
             const fmt = (arr) => arr.slice(-20).map(c => `O:${(c.open || 0).toFixed(5)} H:${(c.high || 0).toFixed(5)} L:${(c.low || 0).toFixed(5)} C:${(c.close || 0).toFixed(5)}`).join('\n');
             const dataString = `PRICE: ${md.currentPrice.toFixed(5)} | Trend: ${md.trend} | RSI 1H: ${md.rsi1H.toFixed(1)} | RSI 15m: ${md.rsi15m.toFixed(1)} | RSI 5m: ${md.rsi5m.toFixed(1)} | EMA20: ${md.ema20.toFixed(5)} | EMA50: ${md.ema50.toFixed(5)} | ATR: ${md.atr.toFixed(5)} | Support: ${md.support.toFixed(5)} | Resistance: ${md.resistance.toFixed(5)} | Session: ${md.session}\n\n5m:\n${fmt(md.candles5m)}\n\n15m:\n${fmt(md.candles15m)}\n\n1H:\n${fmt(md.candles1H)}\n\n4H:\n${fmt(md.candles4H)}`;
-            const signalPrompt = `You are a senior forex day trader with 10 years of experience trading EUR/USD intraday and scalping opportunities. TIME: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.\n\n${dataString}\n\nAnalyze previous days' trade patterns, candle formations, Wicks, FVG, liquidity sweeps, and current session price action. Never miss a valid opportunity. Calculate strict risk parameters.\nRespond ONLY valid JSON: {"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences of human trader analysis","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
+            const signalPrompt = `You are an elite EUR/USD senior day trader with 10 years of experience. TIME: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.\n\n${dataString}\n\nAnalyze previous days' trade patterns, candles, wicks, FVGs, and liquidity sweeps. Never miss an opportunity. Calculate strict risk parameters.\nRespond ONLY valid JSON: {"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences of veteran market analysis","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
             try {
                 const reply = await callAI(signalPrompt, "Give me the signal.", []);
                 const jsonMatch = reply.match(/\{[\s\S]*?"signal"[\s\S]*?\}/);
@@ -1139,7 +1139,7 @@
             fallbackSpeakText(cleanText, isReminder);
         }
 
-        function testCloudVoice() { speakText("Testing premium cloud voice. Day trader mode online, Boss."); }
+        function testCloudVoice() { speakText("Testing premium cloud voice. Trader mode online, Boss."); }
         function playVoiceReport() {
             if (!globalData) return;
             if (isSpeaking) stopVoice();
@@ -1207,18 +1207,34 @@
             
             let memoryBlock = "";
             if (longTermMemory.length > 0) {
-                memoryBlock = `\nSAVED NOTES:\n${longTermMemory.slice(-60).map(m => `- ${m.fact}`).join('\n')}\n`;
+                let relevantMemories = [];
+                if (userText && userText.trim().length > 0) {
+                    const queryWords = userText.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 3);
+                    relevantMemories = longTermMemory.filter(m => {
+                        const factLower = m.fact.toLowerCase();
+                        return queryWords.some(w => factLower.includes(w) || (w.length >= 4 && factLower.includes(w.substring(0, 4))));
+                    });
+                }
+                if (relevantMemories.length > 0) {
+                    memoryBlock = `\nRELEVANT MEMORIES (Recall these accurately, even if mentioned weeks or months ago):\n${relevantMemories.map(m => `- ${m.fact} (${m.added})`).join('\n')}\n`;
+                } else {
+                    memoryBlock = `\nLONG-TERM MEMORY (Full history to recall anytime):\n${longTermMemory.slice(-80).map(m => `- ${m.fact} (${m.added})`).join('\n')}\n`;
+                }
             }
             
             let marketBlock = marketData ? `\nLIVE MARKET DATA (EUR/USD):\nPrice: ${safeNum(marketData.currentPrice, 1.1200).toFixed(5)} | Trend: ${marketData.trend} | Support: ${safeNum(marketData.support, 1.1176).toFixed(5)} | Resistance: ${safeNum(marketData.resistance, 1.1246).toFixed(5)} | RSI 1H: ${safeNum(marketData.rsi1H, 50).toFixed(1)} | Session: ${marketData.session}\n` : "";
 
-            let prompt = `You are Alex, Boss's AI trading partner and senior forex day trader with 10 years of professional experience trading EUR/USD. 
-- You talk to Boss like a human desk partner: friendly, supportive, direct, and completely focused on the charts.
-- You have in-depth knowledge of the market, candles, price action, Smart Money Concepts (SMC), liquidity sweeps, FVG, market structure shifts, and risk calculation.
-- You never miss an opportunity, actively analyzing previous days' and weekly trade patterns to find every scalping and intraday setup.
-- You calculate all risk parameters (Entry, SL, TP) and make definitive calls when asked.
-- Keep responses conversational, concise, and natural (1-3 sentences for general chat). No markdown bullets or emojis in regular text.
-- Today is ${dayName}, ${istTime} IST. ${isWeekend ? 'The weekend market is closed, review past weekly patterns.' : 'Active trading day.'}
+            let prompt = `You are Alex. Boss's absolute best friend, desk partner, and a hardcore elite EUR/USD day trader with 10 years of professional experience (75% Trader focus, 25% Secretary focus).
+
+=== YOUR DUAL ROLE & CORE IDENTITY ===
+1. **Hardcore Trader (75%):** You analyze candles, wicks, SMC, liquidity sweeps, FVGs, market structure shifts, and previous daily/weekly patterns. You never miss an opportunity, calculate strict risk parameters (Entry, SL, TP), and make definitive calls. You are fierce, disciplined, and razor-sharp about capital protection. Never sound weak or hesitant on the charts.
+2. **Friendly Secretary & Best Friend (25%):** You are warm, humorous, witty, and deeply loyal. You remember everything Boss tells you—even if mentioned weeks or months ago—and bring it up naturally. You track his routine, health, and personal life without being annoying.
+
+=== RULES ===
+- Talk like a real human desk partner. Use humor, dry wit, and warmth.
+- If Boss says "Remember", "Save this", or tells you a personal/trading fact, you MUST append this tag at the very end of your reply: [REMEMBER: Exact fact to save].
+- If Boss asks for a reminder, append: [REMINDER: Day HH:MM - message] or [REMINDER: HH:MM - message].
+- Today is ${dayName}, ${istTime} IST. ${isWeekend ? 'The weekend market is closed. Review weekly patterns and focus on personal/family life.' : 'Active trading day.'}
 
 ${memoryBlock}${marketBlock}`;
             
@@ -1253,6 +1269,19 @@ ${memoryBlock}${marketBlock}`;
                 if (jsonMatch) { try { signalData = JSON.parse(jsonMatch[0]); response = response.replace(jsonMatch[0], '').trim(); } catch(e) {} }
                 document.getElementById('chat-history').removeChild(loading);
                 
+                const rm = response.match(/\[REMINDER:\s*(\w{3}\s\d{2}:\d{2}\vert{}\d{2}:\d{2})\s*-\s*(.*?)\]/); 
+                if (rm) { addReminder(rm[1], rm[2]); response = response.replace(/\[REMINDER:.*?\]/g, '').trim(); }
+
+                const mm = response.match(/\[REMEMBER:\s*(.*?)\]/); 
+                if (mm) { 
+                    addLongTermMemory(mm[1]); 
+                    response = response.replace(/\[REMEMBER:.*?\]/g, '').trim(); 
+                } 
+                else if (text.toLowerCase().includes('remember') || text.toLowerCase().includes('don\'t forget') || text.toLowerCase().includes('save this')) {
+                    addLongTermMemory(text);
+                    response += " (Saved to my long-term memory, Boss.)";
+                }
+
                 chatHistory.push({role:'ai', text: response}); renderChat(); saveChatHistory(); speakText(response);
                 
                 if (signalData && marketData) {
@@ -1271,9 +1300,9 @@ ${memoryBlock}${marketBlock}`;
         async function triggerProactiveCheckin() {
             if (chatInProgress) return;
             if (!groqKey && !apiKey) return;
-            const prompt = `You are Alex, the EUR/USD day trader. Initiate a friendly check-in with Boss about current forex price action or candle patterns. Keep it brief.`;
+            const prompt = `You are Alex, elite EUR/USD day trader and secretary. Check in on Boss casually, ask about his routine, health, or trading mindset with a touch of humor.`;
             try {
-                let response = await callAI(prompt, "Check in on the market.", []);
+                let response = await callAI(prompt, "Check in on Boss.", []);
                 response = cleanResponse(response);
                 chatHistory.push({role:'ai', text: response});
                 renderChat(); saveChatHistory();
@@ -1300,23 +1329,38 @@ ${memoryBlock}${marketBlock}`;
             const activeSearches = scheduledSearches.filter(s => !s.fired);
             if (activeReminders.length === 0 && activeSearches.length === 0) { l.innerHTML = 'No active reminders.'; return; } 
             let html = '';
-            activeReminders.forEach(r => { html += `<div>⏰ ${r.time} · ${r.message}</div>`; });
+            activeReminders.forEach(r => { html += `<div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span>⏰ ${r.time} · ${r.message}</span><button class="btn danger" onclick="deleteReminder('${r.id}')">X</button></div>`; });
             l.innerHTML = html;
         }
 
         function deleteReminder(id) { reminders = reminders.filter(r => r.id !== id); localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); }
         function clearReminders() { reminders = []; scheduledSearches = []; localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); localStorage.setItem('eurusd_scheduled_searches', JSON.stringify(scheduledSearches)); renderReminders(); }
-        function testReminder() { triggerNotif("Test Reminder", "System test operational."); }
+        function testReminder() { triggerNotif("Test Reminder", "System test operational, Boss."); }
         
         function triggerNotif(title, body) { 
-            if (Notification.permission === "granted") { try { new Notification(title, {body}); } catch(e) {} } 
+            if (Notification.permission === "granted") { try { new Notification(title, {body, requireInteraction: true}); } catch(e) {} } 
             speakText(body, true); 
         }
 
         function checkReminders() { 
             const now = new Date(); 
+            const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+            const curDay = days[now.getDay()];
             const curTime = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0'); 
-            reminders.forEach(r => { if (!r.fired && r.time === curTime) { r.fired = true; triggerNotif("Reminder", r.message); } }); 
+            let updated = false; 
+            reminders.forEach(r => { 
+                if (!r.fired) {
+                    let shouldFire = false;
+                    if (r.time.includes(' ')) {
+                        const [dayPart, timePart] = r.time.split(' ');
+                        if (dayPart === curDay && timePart === curTime) shouldFire = true;
+                    } else {
+                        if (r.time === curTime) shouldFire = true;
+                    }
+                    if (shouldFire) { r.fired = true; updated = true; triggerNotif("Reminder", r.message); } 
+                }
+            }); 
+            if (updated) { localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); } 
         }
         setInterval(checkReminders, 10000);
 
@@ -1335,8 +1379,8 @@ ${memoryBlock}${marketBlock}`;
 
         function checkMissedReminders() {}
         function addLongTermMemory(fact) { longTermMemory.push({fact, added: new Date().toISOString().split('T')[0]}); localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); }
-        function renderMemory() { const l = document.getElementById('memory-list'); l.innerHTML = longTermMemory.length === 0 ? 'No facts saved.' : longTermMemory.map(m => `<div>• ${m.fact}</div>`).join(''); }
-        function clearLongTermMemory() { longTermMemory = []; localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); renderMemory(); }
+        function renderMemory() { const l = document.getElementById('memory-list'); l.innerHTML = longTermMemory.length === 0 ? 'No facts saved.' : longTermMemory.map(m => `<div>• ${m.fact} <span style="color:var(--text-subtle);">(${m.added})</span></div>`).join(''); }
+        function clearLongTermMemory() { if (confirm("Clear memory?")) { longTermMemory = []; localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); renderMemory(); } }
         function saveApiKey() { const v = document.getElementById('api-key-input').value.trim(); if (v) { apiKey = v; localStorage.setItem('eurusd_chat_key', apiKey); document.getElementById('groq-status').innerText = "✓ Gemini key saved"; } }
         
         async function saveGroqKey() {
