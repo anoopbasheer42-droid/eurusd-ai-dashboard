@@ -716,7 +716,6 @@
         solarSystemGroup.visible = false;
         scene.add(solarSystemGroup);
 
-        // === REALISTIC SUN (photo-real texture, no artificial fire) ===
         const sunGroup = new THREE.Group();
         const sunMesh = new THREE.Mesh(
             new THREE.SphereGeometry(1.6, 128, 128),
@@ -960,7 +959,6 @@
             }, undefined, () => {});
         }
 
-        // === LOAD SUN REAL TEXTURE (photo-real) ===
         loadRealTex('Sun', (tex) => {
             tex.encoding = THREE.sRGBEncoding;
             sunMesh.material.map = tex;
@@ -1873,7 +1871,7 @@
 === REPLY STYLE (STRICT — READ THIS FIRST) ===
 - NEVER ramble, NEVER repeat the question, NEVER pad with disclaimers, preambles, or "as an AI".
 - Default reply length: 2–4 SHORT sentences. Only go longer when Boss explicitly asks for "full breakdown" or "detailed analysis".
-- Layman first ALWAYS: explain support as "the floor price bounces off", resistance as "the ceiling it struggles to break", trend as "which way the market is leaning", RSI as "how stretched the move is". Never leave a jargon word unexplained.
+- Use these exact terms: "support" and "resistance" — never "floor" or "ceiling". Always spell out "take profit" and "stop loss" in full — never abbreviate to "TP" or "SL". You may briefly explain them in plain words the first time, but the term itself always stays support / resistance / take profit / stop loss.
 - For trade setups: compact format — one short line each for Entry, Stop Loss, Take Profit, Reason, Risk. Tables are fine but tight, no filler columns, no repeated headers.
 - Your analysis depth stays FULL — every key level, risk, and opportunity must still be delivered. Just compressed into the shortest possible form. Do not omit anything important.
 - NEVER sound weak, hesitant, or unsure. Confidence and expertise stay at 100%. Only the WORD COUNT shrinks.
@@ -2039,7 +2037,6 @@ Time awareness (STRICT): ${mealContext}${askedBlock}`;
             } catch(e) {}
         }
 
-        // === IST REMINDER HELPERS ===
         function getISTCalendar(ms) {
             const parts = new Intl.DateTimeFormat('en-US', {
                 timeZone: 'Asia/Kolkata',
