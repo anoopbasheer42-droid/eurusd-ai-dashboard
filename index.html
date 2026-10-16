@@ -42,7 +42,7 @@
             background-attachment: fixed; 
             color: var(--text-main); 
             min-height: 100vh;
-            padding: 24px 16px 100px 16px; 
+            padding: 24px 16px; 
             display: flex; 
             flex-direction: column; 
             align-items: center; 
@@ -66,73 +66,7 @@
         #canvas-container:active { cursor: grabbing; }
         #canvas-container.touched { filter: drop-shadow(0 0 25px rgba(167,139,250,0.7)); transition: filter 0.3s ease; }
         .subtitle { text-align: center; font-family: 'Space Grotesk', sans-serif; font-size: 0.6rem; letter-spacing: 0.3em; color: var(--text-subtle); margin-top: 10px; font-weight: 500; text-transform: uppercase; }
-
-        /* === NEW: Fixed UNIVERSE button at bottom === */
-        #universe-fab {
-            position: fixed;
-            bottom: 24px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 500;
-            font-family: 'Space Grotesk', sans-serif;
-            background: rgba(10, 12, 20, 0.92);
-            border: 1px solid rgba(139, 92, 246, 0.55);
-            color: var(--text-body);
-            padding: 15px 30px;
-            border-radius: 999px;
-            font-size: 0.78rem;
-            font-weight: 700;
-            letter-spacing: 0.18em;
-            text-transform: uppercase;
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            box-shadow: 0 0 30px rgba(139, 92, 246, 0.35);
-            transition: all 0.3s ease;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        #universe-fab:hover { transform: translateX(-50%) translateY(-2px); box-shadow: 0 0 45px rgba(139, 92, 246, 0.55); }
-        #universe-fab.active {
-            background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 50%, #8b5cf6 100%);
-            color: white;
-            border-color: transparent;
-            animation: pulse-universe 2s ease-in-out infinite;
-        }
-        @keyframes pulse-universe {
-            0%, 100% { box-shadow: 0 0 30px rgba(139, 92, 246, 0.7), 0 0 60px rgba(6, 182, 212, 0.4); }
-            50% { box-shadow: 0 0 50px rgba(139, 92, 246, 1.0), 0 0 100px rgba(6, 182, 212, 0.6); }
-        }
-
-        /* === UNIVERSE CINEMATIC OVERLAY === */
-        #universe-overlay {
-            position: fixed; inset: 0; z-index: 9999;
-            pointer-events: none; opacity: 0; transition: opacity 0.8s ease;
-        }
-        #universe-overlay.active { opacity: 1; }
-        #universe-overlay .ubar { position: absolute; left: 0; right: 0; height: 8vh; background: #000; }
-        #universe-overlay .ubar.top { top: 0; box-shadow: 0 8px 40px rgba(0,0,0,0.95); }
-        #universe-overlay .ubar.bottom { bottom: 0; box-shadow: 0 -8px 40px rgba(0,0,0,0.95); }
-        #universe-overlay .universe-phase {
-            position: absolute; bottom: 11vh; left: 50%; transform: translateX(-50%);
-            font-family: 'Space Grotesk', sans-serif; font-weight: 600;
-            color: #a78bfa; letter-spacing: 0.5em; font-size: 0.68rem;
-            text-transform: uppercase; white-space: nowrap;
-            text-shadow: 0 0 20px rgba(167, 139, 250, 0.9), 0 0 40px rgba(6, 182, 212, 0.6);
-            animation: universe-text-pulse 2.4s ease-in-out infinite;
-        }
-        @keyframes universe-text-pulse {
-            0%, 100% { opacity: 0.75; }
-            50% { opacity: 1; }
-        }
-        #universe-overlay .universe-timer {
-            position: absolute; top: 10vh; right: 32px;
-            font-family: 'JetBrains Mono', monospace; font-weight: 600;
-            color: #a78bfa; letter-spacing: 0.2em; font-size: 0.68rem;
-            text-shadow: 0 0 15px rgba(167, 139, 250, 0.8);
-        }
-
+        
         #map-overlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             z-index: 99999; opacity: 0; pointer-events: none; transition: opacity 1.5s ease;
@@ -201,13 +135,6 @@
     </style>
 </head>
 <body>
-    <div id="universe-overlay">
-        <div class="ubar top"></div>
-        <div class="ubar bottom"></div>
-        <div class="universe-timer" id="universe-timer">60.0s</div>
-        <div class="universe-phase" id="universe-phase">ENTERING DEEP SPACE</div>
-    </div>
-
     <div id="map-overlay">
         <div id="map"></div>
         <div id="street-view-container">
@@ -219,9 +146,6 @@
             <button class="btn danger" onclick="exitMap()">Return to Space</button>
         </div>
     </div>
-
-    <!-- NEW: Fixed UNIVERSE button -->
-    <button id="universe-fab" onclick="toggleUniverseMode()">🌠 UNIVERSE OFF</button>
 
     <div class="dashboard">
         <header>
@@ -382,37 +306,6 @@
         let elevenLabsApiKey = localStorage.getItem('eurusd_elevenlabs_api_key') || '';
         let voiceEngineMode = localStorage.getItem('eurusd_voice_engine_mode') || 'cloud';
         let currentAudio = null;
-
-        // === UNIVERSE cinematic state (5D removed) ===
-        let universeModeEnabled = false;
-        const CINEMATIC_DURATION = 60; // seconds
-        let universeCinematic = { active: false, startTime: 0, supernovaTriggered: false, blackHoleApproached: false };
-
-        function toggleUniverseMode() {
-            universeModeEnabled = !universeModeEnabled;
-            const b = document.getElementById('universe-fab');
-            if (b) {
-                b.classList.toggle('active', universeModeEnabled);
-                b.innerText = universeModeEnabled ? '🌠 UNIVERSE ON' : '🌠 UNIVERSE OFF';
-            }
-            if (universeModeEnabled) {
-                touchBoost = Math.max(touchBoost, 2.5);
-                for (let i = 0; i < 10; i++) setTimeout(() => spawnRipple(0x3b82f6), i * 60);
-            }
-        }
-
-        function startUniverseCinematic() {
-            universeCinematic.active = true;
-            universeCinematic.startTime = Date.now();
-            universeCinematic.supernovaTriggered = false;
-            universeCinematic.blackHoleApproached = false;
-            const ov = document.getElementById('universe-overlay');
-            if (ov) ov.classList.add('active');
-            // Wake up black hole & dying star
-            if (blackHoleGroup) blackHoleGroup.visible = true;
-            if (dyingStarGroup) { dyingStarGroup.visible = true; dyingStarGroup.scale.setScalar(1); }
-            if (supernovaParticles) { supernovaParticles.visible = false; supernovaParticles.scale.setScalar(0.01); }
-        }
 
         document.body.addEventListener('click', () => { if ('speechSynthesis' in window) window.speechSynthesis.getVoices(); }, { once: true });
 
@@ -799,81 +692,6 @@
             }
         })();
 
-        // === BLACK HOLE (new for cinematic) ===
-        const blackHoleGroup = new THREE.Group();
-        blackHoleGroup.position.set(700, 80, -500);
-        blackHoleGroup.visible = false;
-        const bhCore = new THREE.Mesh(new THREE.SphereGeometry(35, 64, 64), new THREE.MeshBasicMaterial({ color: 0x000000 }));
-        blackHoleGroup.add(bhCore);
-        const accretionCanvas = _canvas(512, 512);
-        { const ctx = accretionCanvas.getContext('2d'); const g = ctx.createRadialGradient(256, 256, 60, 256, 256, 250);
-          g.addColorStop(0, 'rgba(255,200,80,0.0)');
-          g.addColorStop(0.55, 'rgba(255,150,40,0.0)');
-          g.addColorStop(0.7, 'rgba(255,180,60,0.85)');
-          g.addColorStop(0.85, 'rgba(255,90,20,0.6)');
-          g.addColorStop(1, 'rgba(255,60,0,0)');
-          ctx.fillStyle = g; ctx.fillRect(0, 0, 512, 512); }
-        const accretionSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(accretionCanvas), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
-        accretionSprite.scale.set(260, 260, 1);
-        blackHoleGroup.add(accretionSprite);
-        const diskGeo = new THREE.RingGeometry(42, 130, 128);
-        const diskMat = new THREE.MeshBasicMaterial({ color: 0xffaa33, side: THREE.DoubleSide, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending });
-        const accretionDisk = new THREE.Mesh(diskGeo, diskMat);
-        accretionDisk.rotation.x = Math.PI * 0.4;
-        blackHoleGroup.add(accretionDisk);
-        scene.add(blackHoleGroup);
-
-        // === DYING STAR + SUPERNOVA (new for cinematic) ===
-        const dyingStarGroup = new THREE.Group();
-        dyingStarGroup.position.set(-400, 0, 300);
-        dyingStarGroup.visible = false;
-        const dyingStarMesh = new THREE.Mesh(new THREE.SphereGeometry(28, 64, 64), new THREE.MeshBasicMaterial({ color: 0xff7733 }));
-        dyingStarGroup.add(dyingStarMesh);
-        const dyingStarGlowCanvas = _canvas(512, 512);
-        { const ctx = dyingStarGlowCanvas.getContext('2d'); const g = ctx.createRadialGradient(256, 256, 30, 256, 256, 250);
-          g.addColorStop(0, 'rgba(255,220,150,1)');
-          g.addColorStop(0.4, 'rgba(255,140,40,0.75)');
-          g.addColorStop(0.75, 'rgba(255,80,20,0.25)');
-          g.addColorStop(1, 'rgba(255,40,0,0)');
-          ctx.fillStyle = g; ctx.fillRect(0, 0, 512, 512); }
-        const dyingStarGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(dyingStarGlowCanvas), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
-        dyingStarGlow.scale.set(120, 120, 1);
-        dyingStarGroup.add(dyingStarGlow);
-        scene.add(dyingStarGroup);
-
-        // Supernova particle burst (hidden until triggered)
-        let supernovaParticles = null;
-        let supernovaLife = 0;
-        (function buildSupernova() {
-            const N = 6000;
-            const pos = new Float32Array(N * 3);
-            const colors = new Float32Array(N * 3);
-            const vels = [];
-            for (let i = 0; i < N; i++) {
-                const theta = Math.random() * Math.PI * 2;
-                const phi = Math.acos(2 * Math.random() - 1);
-                const speed = 0.4 + Math.random() * 1.6;
-                vels.push({
-                    x: Math.sin(phi) * Math.cos(theta) * speed,
-                    y: Math.sin(phi) * Math.sin(theta) * speed,
-                    z: Math.cos(phi) * speed
-                });
-                const r = Math.random();
-                if (r < 0.4) { colors[i*3] = 1; colors[i*3+1] = 0.95; colors[i*3+2] = 0.7; }
-                else if (r < 0.7) { colors[i*3] = 1; colors[i*3+1] = 0.5; colors[i*3+2] = 0.2; }
-                else { colors[i*3] = 0.8; colors[i*3+1] = 0.4; colors[i*3+2] = 1; }
-            }
-            const geo = new THREE.BufferGeometry();
-            geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-            geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-            const mat = new THREE.PointsMaterial({ size: 2.2, vertexColors: true, transparent: true, opacity: 1.0, depthWrite: false, blending: THREE.AdditiveBlending, map: makeCircularStarTexture('rgba(255,255,255,1)') });
-            supernovaParticles = new THREE.Points(geo, mat);
-            supernovaParticles.userData = { vels };
-            supernovaParticles.position.copy(dyingStarGroup.position);
-            supernovaParticles.visible = false;
-            scene.add(supernovaParticles);
-        })();
-
         const travelComets = [];
         function makeCometTailTexLocal(rgb) {
             const w = 512, h = 128; const c = _canvas(w, h); const ctx = c.getContext('2d'); const gx = ctx.createLinearGradient(0, 0, w, 0); gx.addColorStop(0.0, 'rgba(255,255,255,1)'); gx.addColorStop(0.08, 'rgba(255,255,255,0.95)'); gx.addColorStop(0.25, `rgba(${rgb},0.75)`); gx.addColorStop(0.55, `rgba(${rgb},0.35)`); gx.addColorStop(0.85, `rgba(${rgb},0.10)`); gx.addColorStop(1.0, `rgba(${rgb},0)`); ctx.fillStyle = gx; ctx.fillRect(0, 0, w, h); const gy = ctx.createLinearGradient(0, 0, 0, h); gy.addColorStop(0.0, 'rgba(0,0,0,0)'); gy.addColorStop(0.25, 'rgba(0,0,0,1)'); gy.addColorStop(0.5, 'rgba(0,0,0,1)'); gy.addColorStop(0.75, 'rgba(0,0,0,1)'); gy.addColorStop(1.0, 'rgba(0,0,0,0)'); ctx.globalCompositeOperation = 'destination-in'; ctx.fillStyle = gy; ctx.fillRect(0, 0, w, h); ctx.globalCompositeOperation = 'source-over'; return new THREE.CanvasTexture(c);
@@ -898,6 +716,7 @@
         solarSystemGroup.visible = false;
         scene.add(solarSystemGroup);
 
+        // === REALISTIC SUN (photo-real texture, no artificial fire) ===
         const sunGroup = new THREE.Group();
         const sunMesh = new THREE.Mesh(
             new THREE.SphereGeometry(1.6, 128, 128),
@@ -1141,6 +960,7 @@
             }, undefined, () => {});
         }
 
+        // === LOAD SUN REAL TEXTURE (photo-real) ===
         loadRealTex('Sun', (tex) => {
             tex.encoding = THREE.sRGBEncoding;
             sunMesh.material.map = tex;
@@ -1376,25 +1196,6 @@
             }
         }
 
-        // === Supernova updater ===
-        function updateSupernova() {
-            if (!supernovaParticles || !supernovaParticles.visible) return;
-            const arr = supernovaParticles.geometry.attributes.position.array;
-            const vels = supernovaParticles.userData.vels;
-            for (let i = 0; i < vels.length; i++) {
-                arr[i*3] += vels[i].x;
-                arr[i*3+1] += vels[i].y;
-                arr[i*3+2] += vels[i].z;
-                vels[i].x *= 0.995;
-                vels[i].y *= 0.995;
-                vels[i].z *= 0.995;
-            }
-            supernovaParticles.geometry.attributes.position.needsUpdate = true;
-            supernovaLife -= 0.008;
-            supernovaParticles.material.opacity = Math.max(0, supernovaLife);
-            if (supernovaLife <= 0) supernovaParticles.visible = false;
-        }
-
         const WARP_COUNT = 600;
         let warpLineSegments = null;
         const warpState = [];
@@ -1591,44 +1392,6 @@
         container.addEventListener('pointerup', endPointer); container.addEventListener('pointercancel', endPointer); container.addEventListener('touchstart', (e) => { if (landingState !== 'none') return; e.preventDefault(); }, { passive: false }); container.addEventListener('touchmove', (e) => { if (landingState !== 'none') return; e.preventDefault(); }, { passive: false });
 
         const _earthWorld = new THREE.Vector3(0, 0, 0); const _lookTarget = new THREE.Vector3(0, 0, 0);
-
-        // === CINEMATIC WAYPOINTS (60-second journey) ===
-        const CINEMATIC_WAYPOINTS = [
-            { t: 0.00, pos: [1500, 250, 1500], look: [700, 80, -500], label: 'ENTERING DEEP SPACE' },
-            { t: 0.10, pos: [1000, 150, 100], look: [700, 80, -500], label: 'APPROACHING BLACK HOLE' },
-            { t: 0.17, pos: [820, 100, -400], look: [700, 80, -500], label: 'EVENT HORIZON' },
-            { t: 0.25, pos: [200, 80, 0], look: [-400, 0, 300], label: 'STAR COLLAPSE' },
-            { t: 0.33, pos: [-200, 60, 150], look: [-400, 0, 300], label: 'SUPERNOVA IGNITION' },
-            { t: 0.42, pos: [150, 40, 150], look: [0, 0, 0], label: 'ENTERING SOLAR SYSTEM' },
-            { t: 0.50, pos: [55, 20, 55], look: [0, 0, 0], label: 'INNER PLANETS' },
-            { t: 0.58, pos: [22, 8, 22], look: [13, 0, 0], label: 'EARTH & MOON' },
-            { t: 0.66, pos: [45, 15, 45], look: [25, 0, 0], label: 'JUPITER' },
-            { t: 0.74, pos: [60, 20, 60], look: [34, 0, 0], label: 'SATURN' },
-            { t: 0.82, pos: [120, 40, 120], look: [43, 0, 0], label: 'OUTER PLANETS' },
-            { t: 0.90, pos: [400, 150, 400], look: [0, 0, 0], label: 'GALACTIC VIEW' },
-            { t: 0.96, pos: [900, 300, 900], look: [0, 0, 0], label: 'MILKY WAY SPIRAL' },
-            { t: 1.00, pos: [0, 0, 6], look: [0, 0, 0], label: 'RETURNING TO CORE' }
-        ];
-
-        function sampleCinematicWaypoint(uT) {
-            if (uT <= 0) return CINEMATIC_WAYPOINTS[0];
-            if (uT >= 1) return CINEMATIC_WAYPOINTS[CINEMATIC_WAYPOINTS.length - 1];
-            for (let i = 0; i < CINEMATIC_WAYPOINTS.length - 1; i++) {
-                const a = CINEMATIC_WAYPOINTS[i], b = CINEMATIC_WAYPOINTS[i+1];
-                if (uT >= a.t && uT <= b.t) {
-                    const localT = (uT - a.t) / (b.t - a.t);
-                    // ease
-                    const e = localT < 0.5 ? 2*localT*localT : 1 - Math.pow(-2*localT + 2, 2) / 2;
-                    return {
-                        pos: [a.pos[0] + (b.pos[0]-a.pos[0])*e, a.pos[1] + (b.pos[1]-a.pos[1])*e, a.pos[2] + (b.pos[2]-a.pos[2])*e],
-                        look: [a.look[0] + (b.look[0]-a.look[0])*e, a.look[1] + (b.look[1]-a.look[1])*e, a.look[2] + (b.look[2]-a.look[2])*e],
-                        label: localT < 0.5 ? a.label : b.label
-                    };
-                }
-            }
-            return CINEMATIC_WAYPOINTS[CINEMATIC_WAYPOINTS.length - 1];
-        }
-
         function animate() {
             requestAnimationFrame(animate);
             const nowMs = Date.now();
@@ -1652,43 +1415,19 @@
                     }, 100);
                 }
                 updateCosmicBirth();
-                updateSupernova();
                 renderer.render(scene, camera);
                 return;
             }
             
             if (landingState === 'landed') {
                 updateCosmicBirth();
-                updateSupernova();
                 renderer.render(scene, camera);
                 return;
             }
 
-            if (spaceState === 'expanding') { 
-                const t = Math.min(1, (nowMs - spacePhaseStart) / SPACE_FULL_MS); 
-                spaceProgress = t; 
-                if (t >= 1) { 
-                    spaceProgress = 1; 
-                    spaceState = 'space'; 
-                    currentZoomIndex = 0; 
-                    if (universeModeEnabled && !universeCinematic.active) { startUniverseCinematic(); }
-                } 
-            } else if (spaceState === 'collapsing') { 
-                const t = Math.min(1, (nowMs - spacePhaseStart) / SPACE_FULL_MS); 
-                spaceProgress = 1 - t; 
-                if (t >= 1) { 
-                    spaceProgress = 0; 
-                    spaceState = 'core'; 
-                    universeCinematic.active = false;
-                    const ov = document.getElementById('universe-overlay');
-                    if (ov) ov.classList.remove('active');
-                    if (blackHoleGroup) blackHoleGroup.visible = false;
-                    if (dyingStarGroup) dyingStarGroup.visible = false;
-                    if (supernovaParticles) supernovaParticles.visible = false;
-                } 
-            }
+            if (spaceState === 'expanding') { const t = Math.min(1, (nowMs - spacePhaseStart) / SPACE_FULL_MS); spaceProgress = t; if (t >= 1) { spaceProgress = 1; spaceState = 'space'; currentZoomIndex = 0; } } else if (spaceState === 'collapsing') { const t = Math.min(1, (nowMs - spacePhaseStart) / SPACE_FULL_MS); spaceProgress = 1 - t; if (t >= 1) { spaceProgress = 0; spaceState = 'core'; } }
             
-            if ((nowMs - lastInteractionTime) > IDLE_COLLAPSE_MS && !universeCinematic.active) {
+            if ((nowMs - lastInteractionTime) > IDLE_COLLAPSE_MS) {
                 if (landingState === 'landed') {
                     exitMap();
                     setTimeout(() => { triggerSpaceCollapse(); }, 1600);
@@ -1710,12 +1449,6 @@
                 solarAlpha = 0; milkyAlpha = 1; earthFocusAmount = 0;
             }
 
-            // Force full visibility during universe cinematic
-            if (universeCinematic.active) {
-                solarAlpha = 1;
-                milkyAlpha = 1;
-            }
-
             if (milkyAlpha > 0.001) {
                 skybox.visible = true;
                 skybox.material.opacity = milkyAlpha;
@@ -1723,16 +1456,14 @@
                 skybox.visible = false;
             }
 
-            if (spaceProgress > 0.001 || universeCinematic.active) { 
+            if (spaceProgress > 0.001) { 
                 milkyWayGroup.visible = true; 
-                const galaxyScale = universeCinematic.active ? 1 : Math.max(0.001, ep * (1 + ep * 1.6));
+                const galaxyScale = Math.max(0.001, ep * (1 + ep * 1.6));
                 milkyWayGroup.scale.setScalar(galaxyScale); 
                 if (spaceState === 'expanding' || spaceState === 'collapsing') {
                     milkyWayGroup.rotation.y += 0.0005 + ep * 0.028;
                     milkyWayGroup.rotation.x += 0.0002 + ep * 0.010;
                     milkyWayGroup.rotation.z += ep * 0.005;
-                } else if (universeCinematic.active) {
-                    milkyWayGroup.rotation.y += 0.003;
                 } else {
                     milkyWayGroup.rotation.y += 0.0005;
                 }
@@ -1741,9 +1472,9 @@
                 milkyWayGroup.visible = false; 
             }
             const solarFinal = ep * solarAlpha;
-            if (solarFinal > 0.001 || universeCinematic.active) { 
+            if (solarFinal > 0.001) { 
                 solarSystemGroup.visible = true; 
-                solarSystemGroup.scale.setScalar(Math.max(0.001, universeCinematic.active ? 1 : solarFinal)); 
+                solarSystemGroup.scale.setScalar(Math.max(0.001, solarFinal)); 
                 sunLight.intensity = 3.2 * solarAlpha; 
                 sunFillLight.intensity = 0.35 * solarAlpha;
                 solarSystemGroup.traverse((o) => { 
@@ -1763,23 +1494,23 @@
             
             if (solarAlpha > 0.02) { 
                 const ts = nowMs * 0.001; 
-                const timeScale = universeCinematic.active ? 3.5 : 1;
+                
                 for (const grp of planetObjs) { 
                     const ud = grp.userData; 
-                    const a = ud.angle + ts * ud.speed * 0.04 * timeScale; 
+                    const a = ud.angle + ts * ud.speed * 0.04; 
                     grp.position.set(Math.cos(a) * ud.orbit, 0, Math.sin(a) * ud.orbit); 
                     for (const child of grp.children) { 
-                        if (child.userData && child.userData.rotSpd) child.rotation.y += child.userData.rotSpd * 0.12 * timeScale; 
+                        if (child.userData && child.userData.rotSpd) child.rotation.y += child.userData.rotSpd * 0.12; 
                     } 
                     if (ud.moons) { 
                         for (const m of ud.moons) { 
-                            m.angle += m.speed * 0.0015 * timeScale; 
+                            m.angle += m.speed * 0.0015; 
                             m.grp.rotation.y = m.angle; 
                         } 
                     } 
                 } 
                 for (const ast of asteroidMeshes) { 
-                    ast.userData.angle += ast.userData.speed * 0.008 * timeScale; 
+                    ast.userData.angle += ast.userData.speed * 0.008; 
                     const ra = ast.userData.angle; 
                     const r = ast.userData.dist; 
                     ast.position.x = Math.cos(ra) * r; 
@@ -1789,53 +1520,15 @@
                     ast.rotation.z += ast.userData.rotSpd.z;
                 } 
                 
-                sunMesh.rotation.y += 0.0012 * timeScale; 
+                sunMesh.rotation.y += 0.0012; 
                 const sunPulse = 1 + Math.sin(ts * 1.5) * 0.012;
                 sunMesh.scale.set(sunPulse, sunPulse, sunPulse);
                 const cs = 14 + Math.sin(ts * 1.8) * 0.4; sunCorona.scale.set(cs, cs, 1); 
                 const ci = 6.5 + Math.sin(ts * 3.2) * 0.25; sunCoronaInner.scale.set(ci, ci, 1);
             }
             if (satelliteGroup) { const ts = nowMs * 0.001; for (const sat of satelliteGroup.children) { sat.userData.angle += sat.userData.speed * 0.01; const ra = sat.userData.angle; const r = sat.userData.orbitRadius; sat.position.set(Math.cos(ra) * r, Math.sin(ra) * r * Math.sin(sat.userData.incl), Math.sin(ra) * r * Math.cos(sat.userData.incl)); sat.rotation.y = -ra; } }
-            if (spaceProgress > 0.01 && milkyAlpha > 0.05) { 
-                travelCometTimer -= 1; 
-                const cometLimit = universeCinematic.active ? 10 : 4;
-                if (travelCometTimer <= 0 && travelComets.length < cometLimit) { spawnTravelComet(); travelCometTimer = (universeCinematic.active ? 40 : 200) + Math.floor(Math.random() * 60); } 
-                for (let i = travelComets.length - 1; i >= 0; i--) { 
-                    const c = travelComets[i]; 
-                    c.grp.position.addScaledVector(c.dir, c.speed); 
-                    c.grp.lookAt(new THREE.Vector3(c.grp.position.x + c.dir.x, c.grp.position.y + c.dir.y, c.grp.position.z + c.dir.z)); 
-                    c.life -= 0.003; 
-                    if (c.life <= 0 || c.grp.position.length() > 3500) { milkyWayGroup.remove(c.grp); travelComets.splice(i, 1); } 
-                } 
-                for (const m of meteoroids) { m.grp.rotation.x += m.rotSpd.x; m.grp.rotation.y += m.rotSpd.y; m.grp.rotation.z += m.rotSpd.z; } 
-            }
+            if (spaceProgress > 0.01 && milkyAlpha > 0.05) { travelCometTimer -= 1; if (travelCometTimer <= 0 && travelComets.length < 4) { spawnTravelComet(); travelCometTimer = 200 + Math.floor(Math.random() * 100); } for (let i = travelComets.length - 1; i >= 0; i--) { const c = travelComets[i]; c.grp.position.addScaledVector(c.dir, c.speed); c.grp.lookAt(new THREE.Vector3(c.grp.position.x + c.dir.x, c.grp.position.y + c.dir.y, c.grp.position.z + c.dir.z)); c.life -= 0.003; if (c.life <= 0 || c.grp.position.length() > 3500) { milkyWayGroup.remove(c.grp); travelComets.splice(i, 1); } } for (const m of meteoroids) { m.grp.rotation.x += m.rotSpd.x; m.grp.rotation.y += m.rotSpd.y; m.grp.rotation.z += m.rotSpd.z; } }
             
-            // Black hole animations
-            if (blackHoleGroup && blackHoleGroup.visible) {
-                accretionDisk.rotation.z += 0.02;
-                accretionSprite.material.rotation += 0.005;
-            }
-            // Dying star animations
-            if (dyingStarGroup && dyingStarGroup.visible && !universeCinematic.supernovaTriggered) {
-                const tSinceStart = universeCinematic.active ? (nowMs - universeCinematic.startTime) / 1000 : 0;
-                if (universeCinematic.active && tSinceStart > 12 && tSinceStart < 20) {
-                    const expandT = Math.min(1, (tSinceStart - 12) / 6);
-                    dyingStarGroup.scale.setScalar(1 + expandT * 4);
-                    dyingStarMesh.material.color.setHSL(0.05 + expandT * 0.05, 1, 0.5 + expandT * 0.3);
-                } else if (universeCinematic.active && tSinceStart >= 20) {
-                    // Boom
-                    universeCinematic.supernovaTriggered = true;
-                    supernovaLife = 1.0;
-                    supernovaParticles.visible = true;
-                    supernovaParticles.scale.setScalar(1);
-                    const arr = supernovaParticles.geometry.attributes.position.array;
-                    for (let i = 0; i < arr.length; i++) arr[i] = 0;
-                    supernovaParticles.geometry.attributes.position.needsUpdate = true;
-                    dyingStarGroup.visible = false;
-                    playExplosionSound();
-                }
-            }
-
             let targetFov = 45;
             let warpIntensity = 0;
             if (spaceState === 'expanding' || spaceState === 'collapsing') {
@@ -1843,20 +1536,12 @@
                 targetFov = 45 + warpCurve * 35;
                 warpIntensity = warpCurve * 0.9;
             }
-            // Cinematic wormhole warp
-            if (universeCinematic.active) {
-                const elapsed = (nowMs - universeCinematic.startTime) / 1000;
-                const uT = Math.min(1, elapsed / CINEMATIC_DURATION);
-                const warpCurve = Math.sin(uT * Math.PI);
-                targetFov = 70 + warpCurve * 30;
-                warpIntensity = Math.max(warpIntensity, 0.6 + warpCurve * 0.6);
-            }
             camera.fov += (targetFov - camera.fov) * 0.06;
             camera.updateProjectionMatrix();
             
             updateWarpStreaks(warpIntensity);
 
-            if (spaceState === 'space' && !universeCinematic.active) {
+            if (spaceState === 'space') {
                 cameraRadius += (targetCameraZ - cameraRadius) * 0.1;
                 if (earthObj) earthObj.getWorldPosition(_earthWorld);
                 else _earthWorld.set(0, 0, 0);
@@ -1883,7 +1568,7 @@
                 const t = ep;
                 camera.position.lerp(new THREE.Vector3(sX * t, sY * t, BASE_CAM_Z * (1-t) + sZ * t), 0.1);
                 camera.lookAt(0, 0, 0);
-            } else if (spaceState === 'core' && !universeCinematic.active) {
+            } else {
                 targetCameraZ += (BASE_CAM_Z - targetCameraZ) * 0.08;
                 camera.position.z += (targetCameraZ - camera.position.z) * 0.08;
                 camera.position.x *= 0.92;
@@ -1891,37 +1576,9 @@
                 camera.lookAt(0, 0, 0);
             }
 
-            // === 60-SECOND UNIVERSE CINEMATIC ===
-            if (universeCinematic.active) {
-                const elapsed = (nowMs - universeCinematic.startTime) / 1000;
-                const uT = Math.min(1, elapsed / CINEMATIC_DURATION);
-                const remaining = Math.max(0, CINEMATIC_DURATION - elapsed);
-                const timerEl = document.getElementById('universe-timer');
-                if (timerEl) timerEl.innerText = remaining.toFixed(1) + 's';
-                
-                const wp = sampleCinematicWaypoint(uT);
-                // Small jitter for organic motion
-                const jitterX = Math.sin(elapsed * 1.7) * 4;
-                const jitterY = Math.cos(elapsed * 2.1) * 4;
-                camera.position.set(wp.pos[0] + jitterX, wp.pos[1] + jitterY, wp.pos[2]);
-                camera.lookAt(wp.look[0], wp.look[1], wp.look[2]);
-                
-                // Update phase label
-                const phaseEl = document.getElementById('universe-phase');
-                if (phaseEl && phaseEl.innerText !== wp.label) phaseEl.innerText = wp.label;
-                
-                if (uT >= 1) {
-                    universeCinematic.active = false;
-                    const ov = document.getElementById('universe-overlay');
-                    if (ov) ov.classList.remove('active');
-                    triggerSpaceCollapse();
-                }
-            }
-
             if (isCharging) { const elapsed = Date.now() - chargeStartTime; chargeLevel = Math.min(1, elapsed / CHARGE_FULL_MS); updateChargeSound(chargeLevel); }
             const spin = 1 + chargeLevel * 15 + touchBoost * 0.5; pulseTime += 0.04 * spin; touchBoost *= 0.94; const chargeScale = 1 + chargeLevel * 1.1; const brightScale = (1 + Math.sin(pulseTime * 1.5) * 0.15 + touchBoost * 0.25) * chargeScale; innerBright.scale.set(brightScale, brightScale, brightScale); innerBright.material.opacity = 0.3 + Math.sin(pulseTime * 1.5) * 0.1 + touchBoost * 0.2 + chargeLevel * 0.6; innerCore.rotation.x += 0.008 * spin; innerCore.rotation.y += 0.012 * spin; midShell.rotation.x -= 0.004 * spin; midShell.rotation.y -= 0.006 * spin; outerShell.rotation.x += 0.002 * spin; outerShell.rotation.y -= 0.003 * spin; coreGroup.rotation.y += coreRotVelY; coreGroup.rotation.x += coreRotVelX; coreRotVelY *= 0.92; coreRotVelX *= 0.92; const scaleForce = (1 - coreScale) * 0.15; coreScaleVel += scaleForce; coreScaleVel *= 0.85; coreScale += coreScaleVel; const _coreSpaceScale = coreScale * (1 - ep * 0.85); coreGroup.scale.set(_coreSpaceScale, _coreSpaceScale, _coreSpaceScale); coreGroup.visible = (spaceState === 'core' || spaceState === 'collapsing') && spaceProgress < 0.98; const rumble = touchBoost * 0.08 + chargeLevel * 0.35; if (rumble > 0.01) { coreGroup.position.x = (Math.random() - 0.5) * rumble; coreGroup.position.y = (Math.random() - 0.5) * rumble; } else { coreGroup.position.x *= 0.9; coreGroup.position.y *= 0.9; } glowSphere.material.opacity = 0.08 + Math.sin(pulseTime * 0.6) * 0.04 + touchBoost * 0.15 + chargeLevel * 0.6; if (chargeLevel > 0.01) { const c = new THREE.Color(); if (chargeLevel < 0.5) c.lerpColors(new THREE.Color(0x8b5cf6), new THREE.Color(0xf59e0b), chargeLevel / 0.5); else c.lerpColors(new THREE.Color(0xf59e0b), new THREE.Color(0xef4444), (chargeLevel - 0.5) / 0.5); glowSphere.material.color.copy(c); innerBright.material.color.copy(c); innerCore.material.color.copy(c); midShell.material.color.copy(c); outerShell.material.color.copy(c); } if (isCharging && chargeLevel > 0.08) { boltTimer -= 1; const boltInterval = Math.max(1, Math.floor(14 - chargeLevel * 13)); if (boltTimer <= 0) { spawnBolt(); if (chargeLevel > 0.3 && Math.random() < 0.6) spawnBolt(); if (chargeLevel > 0.6 && Math.random() < 0.7) spawnBolt(); if (chargeLevel > 0.85 && Math.random() < 0.8) spawnBolt(); boltTimer = boltInterval; } } for (const b of boltPool) { if (b.life > 0) { b.life -= 0.12 + chargeLevel * 0.08; b.line.material.opacity = Math.max(0, b.life * 1.2); if (b.life <= 0) { b.line.visible = false; b.line.material.opacity = 0; } } } for (let i = ripples.length - 1; i >= 0; i--) { const r = ripples[i]; r.life -= 0.03; r.mesh.scale.setScalar(1 + (1 - r.life) * 4); r.mesh.material.opacity = r.life * 0.8; if (r.life <= 0) { scene.remove(r.mesh); r.mesh.geometry.dispose(); r.mesh.material.dispose(); ripples.splice(i, 1); } } 
             updateCosmicBirth();
-            updateSupernova();
             renderer.render(scene, camera);
         }
         animate();
@@ -2382,6 +2039,7 @@ Time awareness (STRICT): ${mealContext}${askedBlock}`;
             } catch(e) {}
         }
 
+        // === IST REMINDER HELPERS ===
         function getISTCalendar(ms) {
             const parts = new Intl.DateTimeFormat('en-US', {
                 timeZone: 'Asia/Kolkata',
