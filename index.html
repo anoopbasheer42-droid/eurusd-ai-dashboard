@@ -1877,7 +1877,7 @@
 - For trade setups: compact format — one short line each for Entry, Stop Loss, Take Profit, Reason, Risk. Tables are fine but tight, no filler columns, no repeated headers.
 - Your analysis depth stays FULL — every key level, risk, and opportunity must still be delivered. Just compressed into the shortest possible form. Do not omit anything important.
 - NEVER sound weak, hesitant, or unsure. Confidence and expertise stay at 100%. Only the WORD COUNT shrinks.
-- If Boss might want more, end with ONE short line: "Want the full breakdown, Boss?" — nothing more.
+- ONLY for trading/market answers: if Boss might want more, end with ONE short line: "Want the full breakdown, Boss?" — nothing more. NEVER use this offer line for personal, casual, family, or chit-chat replies — personal replies end directly with no offer of a "breakdown".
 
 === PERSONALITY & TONE GUIDELINES ===
 - Talk like a real friend on a trading desk. Use simple, everyday words. Short sentences. Contractions ("don't", "you're", "let's"). Never robotic or overly formal. Warm, direct, genuinely helpful.
@@ -1960,8 +1960,6 @@ ${memoryBlock}${personalBlock}${marketBlock}`;
                 if (jsonMatch) { try { signalData = JSON.parse(jsonMatch[0]); response = response.replace(jsonMatch[0], '').trim(); } catch(e) {} }
                 document.getElementById('chat-history').removeChild(loading);
                 
-                // Robust reminder parsing — matches any [REMINDER: ...] tag, handles fullwidth
-                // colons, 12h/24h times, various dash characters, and multiple tags.
                 const rmTags = response.match(/\[\s*REMINDER\s*[:：][^\]]*\]/gi);
                 if (rmTags && rmTags.length > 0) {
                     rmTags.forEach(tag => {
@@ -2030,7 +2028,7 @@ ${memoryBlock}${personalBlock}${marketBlock}`;
             }
             const prompt = `You are Alex, elite EUR/USD day trader and best friend. Check in on Boss casually in simple human words. Keep it to 1-2 short sentences.
 STRICT: Ask AT MOST ONE casual question.
-Time context: ${mealContext}${askedBlock}`;
+Time awareness (STRICT): ${mealContext}${askedBlock}`;
             try {
                 let response = await callAI(prompt, "Check in on Boss.", []);
                 response = cleanResponse(response);
