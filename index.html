@@ -1951,8 +1951,12 @@ ${memoryBlock}${personalBlock}${marketBlock}`;
                 if (jsonMatch) { try { signalData = JSON.parse(jsonMatch[0]); response = response.replace(jsonMatch[0], '').trim(); } catch(e) {} }
                 document.getElementById('chat-history').removeChild(loading);
                 
-                const rm = response.match(/\[REMINDER:\s*((?:[A-Za-z]{3}\s+)?\d{1,2}:\d{2})\s*-\s*([^\]]+)\]/i);
-                if (rm) { addReminder(rm[1].trim(), rm[2].trim()); response = response.replace(/\[REMINDER:.*?\]/g, '').trim(); }
+                const rm = response.match(/\[REMINDER:\s*([^\]]+?)\s*-\s*([^\]]+)\]/i);
+                if (rm) {
+                    const timeMatch = rm[1].match(/\d{1,2}:\d{2}/);
+                    if (timeMatch) addReminder(timeMatch[0], rm[2].trim());
+                    response = response.replace(/\[REMINDER:.*?\]/g, '').trim();
+                }
 
                 const mm = response.match(/\[REMEMBER:\s*(.*?)\]/); 
                 if (mm) { 
