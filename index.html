@@ -716,97 +716,6 @@
         solarSystemGroup.visible = false;
         scene.add(solarSystemGroup);
 
-        // === CINEMATIC REALISTIC BLACK HOLE ===
-        const blackHoleGroup = new THREE.Group();
-        blackHoleGroup.visible = false;
-        solarSystemGroup.add(blackHoleGroup);
-
-        function makeCinematicAccretionDiskTex() {
-            const canvas = document.createElement('canvas');
-            canvas.width = canvas.height = 1024;
-            const ctx = canvas.getContext('2d');
-            const g = ctx.createRadialGradient(512, 512, 60, 512, 512, 512);
-            g.addColorStop(0, 'rgba(0, 0, 0, 1)');
-            g.addColorStop(0.12, 'rgba(255, 255, 255, 1)');
-            g.addColorStop(0.22, 'rgba(255, 220, 150, 0.95)');
-            g.addColorStop(0.38, 'rgba(255, 110, 20, 0.9)');
-            g.addColorStop(0.60, 'rgba(167, 139, 250, 0.6)');
-            g.addColorStop(0.82, 'rgba(59, 130, 246, 0.25)');
-            g.addColorStop(1, 'rgba(0, 0, 0, 0)');
-            ctx.fillStyle = g;
-            ctx.fillRect(0, 0, 1024, 1024);
-            return new THREE.CanvasTexture(canvas);
-        }
-
-        const eventHorizon = new THREE.Mesh(
-            new THREE.SphereGeometry(3.2, 64, 64),
-            new THREE.MeshBasicMaterial({ color: 0x000000 })
-        );
-        blackHoleGroup.add(eventHorizon);
-
-        const photonRingMat = new THREE.ShaderMaterial({
-            uniforms: { time: { value: 0 } },
-            vertexShader: `
-                varying vec3 vNormal;
-                void main() {
-                    vNormal = normalize(normalMatrix * normal);
-                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                }
-            `,
-            fragmentShader: `
-                varying vec3 vNormal;
-                void main() {
-                    float intensity = pow(0.7 - dot(vNormal, vec3(0, 0, 1.0)), 2.5);
-                    gl_FragColor = vec4(1.0, 0.65, 0.2, 1.0) * intensity * 2.2;
-                }
-            `,
-            side: THREE.BackSide,
-            blending: THREE.AdditiveBlending,
-            transparent: true
-        });
-        const photonRing = new THREE.Mesh(new THREE.SphereGeometry(3.45, 32, 32), photonRingMat);
-        blackHoleGroup.add(photonRing);
-
-        const diskGeo = new THREE.RingGeometry(3.6, 18.0, 128);
-        const diskMat = new THREE.MeshBasicMaterial({
-            map: makeCinematicAccretionDiskTex(),
-            side: THREE.DoubleSide,
-            transparent: true,
-            blending: THREE.AdditiveBlending,
-            depthWrite: false
-        });
-        const accretionDisk = new THREE.Mesh(diskGeo, diskMat);
-        accretionDisk.rotation.x = Math.PI / 2.1;
-        blackHoleGroup.add(accretionDisk);
-
-        const lensedDiskGeo = new THREE.RingGeometry(3.55, 12.0, 128);
-        const lensedDisk = new THREE.Mesh(lensedDiskGeo, new THREE.MeshBasicMaterial({
-            map: makeCinematicAccretionDiskTex(),
-            side: THREE.DoubleSide,
-            transparent: true,
-            opacity: 0.45,
-            blending: THREE.AdditiveBlending,
-            depthWrite: false
-        }));
-        lensedDisk.rotation.x = Math.PI / 2.5;
-        lensedDisk.position.y = 1.2;
-        blackHoleGroup.add(lensedDisk);
-
-        const bhGlowSprite = new THREE.Sprite(new THREE.SpriteMaterial({
-            map: makeCircularStarTexture('rgba(255,160,50,0.8)'),
-            transparent: true,
-            blending: THREE.AdditiveBlending,
-            depthWrite: false,
-            opacity: 0.7
-        }));
-        bhGlowSprite.scale.set(45, 45, 1);
-        blackHoleGroup.add(bhGlowSprite);
-
-        const bhLight = new THREE.PointLight(0xff9933, 4.0, 900, 2);
-        blackHoleGroup.add(bhLight);
-
-        blackHoleGroup.position.set(280, 70, -450);
-
         // === REALISTIC SUN (photo-real texture, no artificial fire) ===
         const sunGroup = new THREE.Group();
         const sunMesh = new THREE.Mesh(
@@ -1113,45 +1022,18 @@
         const BASE_CAM_Z = 6; const SPACE_CAM_Z = 3000;
         let cameraTheta = 0; let cameraPhi = 0.55; let cameraRadius = SPACE_CAM_Z; let targetCameraZ = BASE_CAM_Z; let solarAlpha = 0; let milkyAlpha = 1; let earthFocusAmount = 0;
         let spaceState = 'core'; let spaceProgress = 0; const SPACE_FULL_MS = 15000; let spacePhaseStart = 0;
-        let cinematicBlackHoleMode = false; let cinematicStartTime = 0; const CINEMATIC_DURATION_MS = 15000;
-
-        function triggerCinematicBlackHoleZoom() {
-            if (spaceState !== 'space' || cinematicBlackHoleMode) return;
-            cinematicBlackHoleMode = true;
-            cinematicStartTime = Date.now();
-            cameraTheta = 0;
-            cameraPhi = 0.2;
-            const hint = document.getElementById('iss-hint');
-            if (hint) {
-                hint.innerText = 'Cinematic Approach: Descending into Black Hole Event Horizon...';
-                hint.style.opacity = '1';
-                setTimeout(() => { hint.style.opacity = '0'; }, 4000);
-            }
-        }
-
         let lastInteractionTime = Date.now(); const IDLE_COLLAPSE_MS = 5 * 60 * 1000;
 
         function resetIdleTimer() { lastInteractionTime = Date.now(); }
-        
-        window.addEventListener('pointerdown', resetIdleTimer);
-        window.addEventListener('pointermove', resetIdleTimer);
-        window.addEventListener('wheel', resetIdleTimer);
-        window.addEventListener('touchstart', resetIdleTimer);
-        window.addEventListener('touchmove', resetIdleTimer);
-
-        function triggerSpaceExpand() { 
-            if (spaceState === 'expanding' || spaceState === 'space') return; 
-            spaceState = 'expanding'; spacePhaseStart = Date.now(); spaceProgress = 0; cameraTheta = 0; cameraPhi = 0.55; cameraRadius = SPACE_CAM_Z; targetCameraZ = SPACE_CAM_Z; solarAlpha = 0; milkyAlpha = 1; earthFocusAmount = 0; currentZoomIndex = 0; cinematicBlackHoleMode = false; resetIdleTimer(); 
-            setTimeout(() => { triggerCinematicBlackHoleZoom(); }, 16000);
-        }
-        function triggerSpaceCollapse() { if (spaceState === 'collapsing' || spaceState === 'core') return; spaceState = 'collapsing'; spacePhaseStart = Date.now(); spaceProgress = 1; cinematicBlackHoleMode = false; resetIdleTimer(); }
+        function triggerSpaceExpand() { if (spaceState === 'expanding' || spaceState === 'space') return; spaceState = 'expanding'; spacePhaseStart = Date.now(); spaceProgress = 0; cameraTheta = 0; cameraPhi = 0.55; cameraRadius = SPACE_CAM_Z; targetCameraZ = SPACE_CAM_Z; solarAlpha = 0; milkyAlpha = 1; earthFocusAmount = 0; currentZoomIndex = 0; resetIdleTimer(); }
+        function triggerSpaceCollapse() { if (spaceState === 'collapsing' || spaceState === 'core') return; spaceState = 'collapsing'; spacePhaseStart = Date.now(); spaceProgress = 1; resetIdleTimer(); }
 
         let landingState = 'none';
         let landingTarget = new THREE.Vector3();
         let issLastTapTime = 0;
         
         function triggerISSView() {
-            if (spaceState !== 'space' || landingState !== 'none' || cinematicBlackHoleMode) return;
+            if (spaceState !== 'space' || landingState !== 'none') return;
             spaceState = 'iss_view';
             targetCameraZ = 1.8;
             cameraRadius = camera.position.length();
@@ -1188,7 +1070,7 @@
 
         let lastTapTime = 0; let lastTapX = 0, lastTapY = 0;
         const zoomMilestones = []; for (let i = 0; i <= 450; i++) { const t = i / 450; const dist = 3000 * Math.pow(0.0004, t); zoomMilestones.push(dist); } zoomMilestones.reverse(); let currentZoomIndex = 0;
-        container.addEventListener('wheel', (e) => { if (landingState !== 'none' || cinematicBlackHoleMode) return; if (spaceState === 'space' || spaceState === 'expanding' || spaceState === 'iss_view') { e.preventDefault(); resetIdleTimer(); if (e.deltaY > 0) { currentZoomIndex = Math.max(0, currentZoomIndex - 1); } else { currentZoomIndex = Math.min(zoomMilestones.length - 1, currentZoomIndex + 1); } targetCameraZ = zoomMilestones[currentZoomIndex]; cameraRadius = targetCameraZ; } }, { passive: false });
+        container.addEventListener('wheel', (e) => { if (landingState !== 'none') return; if (spaceState === 'space' || spaceState === 'expanding' || spaceState === 'iss_view') { e.preventDefault(); resetIdleTimer(); if (e.deltaY > 0) { currentZoomIndex = Math.max(0, currentZoomIndex - 1); } else { currentZoomIndex = Math.min(zoomMilestones.length - 1, currentZoomIndex + 1); } targetCameraZ = zoomMilestones[currentZoomIndex]; cameraRadius = targetCameraZ; } }, { passive: false });
 
         const BOLT_COUNT = 12; const boltPool = [];
         for (let i = 0; i < BOLT_COUNT; i++) { const boltMat = new THREE.LineBasicMaterial({ color: 0xffe066, transparent: true, opacity: 0 }); const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(24 * 3), 3)); const line = new THREE.Line(geo, boltMat); line.visible = false; scene.add(line); boltPool.push({ line, life: 0 }); }
@@ -1197,42 +1079,37 @@
         const smokeTexture = makeSmokeTexture(); const smokePool = []; const smokeGroup = new THREE.Group(); scene.add(smokeGroup);
         function spawnSmoke() { let p = smokePool.find(s => s.life <= 0); if (!p) { const mat = new THREE.SpriteMaterial({ map: smokeTexture, transparent: true, opacity: 0, depthWrite: false, color: 0x9ca3af }); const sprite = new THREE.Sprite(mat); smokeGroup.add(sprite); p = { sprite, life: 0, vx: 0, vy: 0, rotation: 0, rotSpeed: 0 }; smokePool.push(p); } const angle = Math.random() * Math.PI * 2; const r = 0.6 + Math.random() * 0.7; p.sprite.position.set(Math.cos(angle) * r, Math.sin(angle) * r * 0.6 - 0.3, -0.5); const s = 0.3 + Math.random() * 0.4; p.sprite.scale.set(s, s, 1); p.sprite.material.opacity = 0.35 + Math.random() * 0.35; p.sprite.material.rotation = Math.random() * Math.PI * 2; p.rotSpeed = (Math.random() - 0.5) * 0.06; p.vx = (Math.random() - 0.5) * 0.008; p.vy = 0.006 + Math.random() * 0.01; p.life = 1; }
 
-        let cosmicBirthGroup = null;
-        let cosmicBirthLife = 0;
-
-        function spawnCosmicBirth() {
-            if (cosmicBirthGroup) {
-                scene.remove(cosmicBirthGroup);
-                cosmicBirthGroup = null;
+        let galaxyBirthParticles = null;
+        let galaxyBirthLife = 0;
+        function spawnGalaxyBirth() {
+            if (galaxyBirthParticles) {
+                scene.remove(galaxyBirthParticles);
+                galaxyBirthParticles.geometry.dispose();
+                galaxyBirthParticles.material.dispose();
+                galaxyBirthParticles = null;
             }
-            cosmicBirthGroup = new THREE.Group();
-            
-            const flashGeo = new THREE.SphereGeometry(0.1, 32, 32);
-            const flashMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 1.0 });
-            const flash = new THREE.Mesh(flashGeo, flashMat);
-            cosmicBirthGroup.add(flash);
-            
-            const N = 4000;
+            const N = 3500;
             const positions = new Float32Array(N * 3);
             const colors = new Float32Array(N * 3);
             const velocities = [];
             const palette = [
-                new THREE.Color(0xffffff),
-                new THREE.Color(0xa78bfa),
+                new THREE.Color(0x8b5cf6),
                 new THREE.Color(0x3b82f6),
+                new THREE.Color(0xa78bfa),
                 new THREE.Color(0xf59e0b),
-                new THREE.Color(0xef4444)
+                new THREE.Color(0xfbbf24),
+                new THREE.Color(0xffffff)
             ];
             for (let i = 0; i < N; i++) {
-                positions[i*3] = 0;
-                positions[i*3+1] = 0;
-                positions[i*3+2] = 0;
+                positions[i*3] = (Math.random() - 0.5) * 0.5;
+                positions[i*3+1] = (Math.random() - 0.5) * 0.5;
+                positions[i*3+2] = (Math.random() - 0.5) * 0.5;
                 const theta = Math.random() * Math.PI * 2;
                 const phi = Math.acos(2 * Math.random() - 1);
-                const speed = 0.05 + Math.random() * 0.35;
+                const speed = 0.02 + Math.random() * 0.16;
                 velocities.push({
                     x: Math.sin(phi) * Math.cos(theta) * speed,
-                    y: Math.sin(phi) * Math.sin(theta) * speed,
+                    y: Math.sin(phi) * Math.sin(theta) * speed * 0.6,
                     z: Math.cos(phi) * speed
                 });
                 const c = palette[Math.floor(Math.random() * palette.length)];
@@ -1240,70 +1117,43 @@
                 colors[i*3+1] = c.g;
                 colors[i*3+2] = c.b;
             }
-            const burstGeo = new THREE.BufferGeometry();
-            burstGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-            burstGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-            const burstMat = new THREE.PointsMaterial({
-                size: 0.2,
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            const mat = new THREE.PointsMaterial({
+                size: 0.18,
                 vertexColors: true,
                 transparent: true,
                 opacity: 1.0,
                 depthWrite: false,
                 blending: THREE.AdditiveBlending,
-                map: makeCircularStarTexture('rgba(255,255,255,1)')
+                map: makeCircularStarTexture('rgba(255,255,255,0.95)')
             });
-            const burstPoints = new THREE.Points(burstGeo, burstMat);
-            burstPoints.userData = { velocities };
-            cosmicBirthGroup.add(burstPoints);
-
-            for (let i = 0; i < 40; i++) {
-                const cloudGeo = new THREE.SphereGeometry(2 + Math.random() * 4, 16, 16);
-                const cloudMat = new THREE.MeshBasicMaterial({
-                    color: Math.random() > 0.5 ? 0x8b5cf6 : 0x3b82f6,
-                    transparent: true,
-                    opacity: 0.15,
-                    blending: THREE.AdditiveBlending
-                });
-                const cloud = new THREE.Mesh(cloudGeo, cloudMat);
-                const theta = Math.random() * Math.PI * 2;
-                const phi = Math.acos(2 * Math.random() - 1);
-                const r = 5 + Math.random() * 40;
-                cloud.position.set(r * Math.sin(phi) * Math.cos(theta), r * Math.sin(phi) * Math.sin(theta), r * Math.cos(phi));
-                cosmicBirthGroup.add(cloud);
-            }
-
-            scene.add(cosmicBirthGroup);
-            cosmicBirthLife = 1.0;
+            galaxyBirthParticles = new THREE.Points(geo, mat);
+            galaxyBirthParticles.userData.velocities = velocities;
+            scene.add(galaxyBirthParticles);
+            galaxyBirthLife = 1.0;
         }
-
-        function updateCosmicBirth() {
-            if (!cosmicBirthGroup || cosmicBirthLife <= 0) return;
-            cosmicBirthLife -= 0.008;
-            
-            const burstPoints = cosmicBirthGroup.children[1];
-            if (burstPoints && burstPoints.geometry) {
-                const positions = burstPoints.geometry.attributes.position.array;
-                const vels = burstPoints.userData.velocities;
-                for (let i = 0; i < vels.length; i++) {
-                    positions[i*3] += vels[i].x;
-                    positions[i*3+1] += vels[i].y;
-                    positions[i*3+2] += vels[i].z;
-                    vels[i].x *= 0.98;
-                    vels[i].y *= 0.98;
-                    vels[i].z *= 0.98;
-                }
-                burstPoints.geometry.attributes.position.needsUpdate = true;
+        function updateGalaxyBirth() {
+            if (!galaxyBirthParticles || galaxyBirthLife <= 0) return;
+            const positions = galaxyBirthParticles.geometry.attributes.position.array;
+            const vels = galaxyBirthParticles.userData.velocities;
+            for (let i = 0; i < vels.length; i++) {
+                positions[i*3] += vels[i].x;
+                positions[i*3+1] += vels[i].y;
+                positions[i*3+2] += vels[i].z;
+                vels[i].x *= 0.996;
+                vels[i].y *= 0.996;
+                vels[i].z *= 0.996;
             }
-
-            cosmicBirthGroup.traverse((child) => {
-                if (child.material) {
-                    child.material.opacity = Math.max(0, cosmicBirthLife * (child.material.userData?.baseOpacity || 1));
-                }
-            });
-
-            if (cosmicBirthLife <= 0) {
-                scene.remove(cosmicBirthGroup);
-                cosmicBirthGroup = null;
+            galaxyBirthParticles.geometry.attributes.position.needsUpdate = true;
+            galaxyBirthLife -= 0.005;
+            galaxyBirthParticles.material.opacity = Math.max(0, galaxyBirthLife);
+            if (galaxyBirthLife <= 0) {
+                scene.remove(galaxyBirthParticles);
+                galaxyBirthParticles.geometry.dispose();
+                galaxyBirthParticles.material.dispose();
+                galaxyBirthParticles = null;
             }
         }
 
@@ -1429,66 +1279,7 @@
             return false;
         }
 
-        container.addEventListener('pointerdown', (e) => { 
-            try { container.setPointerCapture(e.pointerId); } catch(err) {} 
-            initAudio(); 
-            resetIdleTimer(); 
-            if (landingState !== 'none') return; 
-            
-            const now = Date.now(); 
-            
-            if (now - lastTapTime < 400 && (spaceState === 'space' || spaceState === 'expanding' || spaceState === 'iss_view')) {
-                const dx = e.clientX - lastTapX;
-                const dy = e.clientY - lastTapY;
-                if (Math.sqrt(dx*dx + dy*dy) < 60) {
-                    let tappedEarth = false;
-                    if (earthObj) {
-                        const rect = renderer.domElement.getBoundingClientRect();
-                        pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-                        pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-                        raycaster.setFromCamera(pointer, camera);
-                        const intersects = raycaster.intersectObject(earthObj, true);
-                        if (intersects.length > 0) tappedEarth = true;
-                    }
-                    if (!tappedEarth) {
-                        triggerSpaceCollapse();
-                        lastTapTime = 0;
-                        return;
-                    }
-                }
-            }
-
-            lastTapTime = now; 
-            lastTapX = e.clientX; 
-            lastTapY = e.clientY; 
-            activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); 
-            container.classList.add('touched'); 
-            if (activePointers.size === 1) { 
-                isDragging = true; 
-                pointerVelocity = { x: 0, y: 0 }; 
-                isOnCenter = isPointerOnCenter(e); 
-                if (isOnCenter && spaceState === 'core') { 
-                    longPressTimer = setTimeout(() => { 
-                        if (isDragging && activePointers.size === 1 && isOnCenter) { 
-                            longPressActive = true; 
-                            isCharging = true; 
-                            chargeStartTime = Date.now(); 
-                            startChargeSound(); 
-                            if (navigator.vibrate) navigator.vibrate(20); 
-                        } 
-                    }, CHARGE_START_MS); 
-                } 
-            } else if (activePointers.size === 2) { 
-                const pts = Array.from(activePointers.values()); 
-                pinchStartDist = getDistance(pts[0], pts[1]); 
-                pinchStartScale = coreScale; 
-                clearTimeout(longPressTimer); 
-                isCharging = false; 
-                longPressActive = false; 
-                chargeLevel = 0; 
-                fadeOutChargeSound(0.2); 
-            } 
-        });
+        container.addEventListener('pointerdown', (e) => { try { container.setPointerCapture(e.pointerId); } catch(err) {} initAudio(); resetIdleTimer(); if (landingState !== 'none') return; const now = Date.now(); if (now - lastTapTime < 400 && spaceState === 'space') { const dx = e.clientX - lastTapX; const dy = e.clientY - lastTapY; if (Math.sqrt(dx*dx + dy*dy) < 60) { triggerSpaceCollapse(); lastTapTime = 0; return; } } lastTapTime = now; lastTapX = e.clientX; lastTapY = e.clientY; activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); container.classList.add('touched'); if (activePointers.size === 1) { isDragging = true; pointerVelocity = { x: 0, y: 0 }; isOnCenter = isPointerOnCenter(e); if (isOnCenter && spaceState === 'core') { longPressTimer = setTimeout(() => { if (isDragging && activePointers.size === 1 && isOnCenter) { longPressActive = true; isCharging = true; chargeStartTime = Date.now(); startChargeSound(); if (navigator.vibrate) navigator.vibrate(20); } }, CHARGE_START_MS); } } else if (activePointers.size === 2) { const pts = Array.from(activePointers.values()); pinchStartDist = getDistance(pts[0], pts[1]); pinchStartScale = coreScale; clearTimeout(longPressTimer); isCharging = false; longPressActive = false; chargeLevel = 0; fadeOutChargeSound(0.2); } });
 
         container.addEventListener('pointermove', (e) => { if (landingState !== 'none') return; if (!activePointers.has(e.pointerId)) return; resetIdleTimer(); const prev = activePointers.get(e.pointerId); activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (activePointers.size === 1 && isDragging) { const dx = e.clientX - prev.x; const dy = e.clientY - prev.y; if (spaceState === 'space' || spaceState === 'expanding' || spaceState === 'iss_view') { cameraTheta -= dx * 0.008; cameraPhi = Math.max(-1.5, Math.min(1.5, cameraPhi + dy * 0.008)); } else { coreRotVelY += dx * 0.0009; coreRotVelX += dy * 0.0009; } pointerVelocity.x = dx; pointerVelocity.y = dy; if (Math.abs(dx) + Math.abs(dy) > 5 && !longPressActive) clearTimeout(longPressTimer); if (longPressActive && isCharging && !isPointerOnCenter(e)) { isCharging = false; longPressActive = false; fadeOutChargeSound(0.4); } } else if (activePointers.size === 2) { const pts = Array.from(activePointers.values()); const dist = getDistance(pts[0], pts[1]); if (pinchStartDist > 0) { const ratio = dist / pinchStartDist; if (spaceState === 'space' || spaceState === 'expanding' || spaceState === 'iss_view') { cameraRadius = Math.max(1.2, Math.min(3000, cameraRadius / ratio)); targetCameraZ = cameraRadius; } else { coreScale = Math.max(0.6, Math.min(2.2, pinchStartScale * ratio)); } } } });
 
@@ -1498,11 +1289,11 @@
                 return;
             }
 
-            if (longPressActive && chargeLevel >= 0.95) { stopChargeSound(); playExplosionSound(); spawnExplosion(); spawnCosmicBirth(); touchBoost = 4.0; coreScaleVel += 0.9; coreRotVelY += 1.2; coreRotVelX -= 0.8; if (navigator.vibrate) navigator.vibrate([80, 40, 100, 40, 150, 40, 200]); setTimeout(() => { triggerSpaceExpand(); }, 900); } else if (longPressActive && chargeLevel > 0.3) { fadeOutChargeSound(0.5); touchBoost = 0.8; spawnRipple(0xf59e0b); coreScaleVel += 0.2; if (navigator.vibrate) navigator.vibrate(15); } else if (!longPressActive && speed < 3) { stopChargeSound(); touchBoost = 1.0; coreScaleVel += 0.15; spawnRipple(); if (navigator.vibrate) navigator.vibrate(15); } else { fadeOutChargeSound(0.3); } longPressActive = false; isCharging = false; isOnCenter = false; chargeLevel = 0; pointerVelocity = { x: 0, y: 0 }; } else if (activePointers.size === 1) { pinchStartDist = 0; } }
+            if (longPressActive && chargeLevel >= 0.95) { stopChargeSound(); playExplosionSound(); spawnExplosion(); spawnGalaxyBirth(); touchBoost = 4.0; coreScaleVel += 0.9; coreRotVelY += 1.2; coreRotVelX -= 0.8; if (navigator.vibrate) navigator.vibrate([80, 40, 100, 40, 150, 40, 200]); setTimeout(() => { triggerSpaceExpand(); }, 900); } else if (longPressActive && chargeLevel > 0.3) { fadeOutChargeSound(0.5); touchBoost = 0.8; spawnRipple(0xf59e0b); coreScaleVel += 0.2; if (navigator.vibrate) navigator.vibrate(15); } else if (!longPressActive && speed < 3) { stopChargeSound(); touchBoost = 1.0; coreScaleVel += 0.15; spawnRipple(); if (navigator.vibrate) navigator.vibrate(15); } else { fadeOutChargeSound(0.3); } longPressActive = false; isCharging = false; isOnCenter = false; chargeLevel = 0; pointerVelocity = { x: 0, y: 0 }; } else if (activePointers.size === 1) { pinchStartDist = 0; } }
 
         container.addEventListener('pointerup', endPointer); container.addEventListener('pointercancel', endPointer); container.addEventListener('touchstart', (e) => { if (landingState !== 'none') return; e.preventDefault(); }, { passive: false }); container.addEventListener('touchmove', (e) => { if (landingState !== 'none') return; e.preventDefault(); }, { passive: false });
 
-        const _earthWorld = new THREE.Vector3(0, 0, 0); const _lookTarget = new THREE.Vector3(0, 0, 0); const _bhWorld = new THREE.Vector3(280, 70, -450);
+        const _earthWorld = new THREE.Vector3(0, 0, 0); const _lookTarget = new THREE.Vector3(0, 0, 0);
         function animate() {
             requestAnimationFrame(animate);
             const nowMs = Date.now();
@@ -1525,30 +1316,19 @@
                         initMap();
                     }, 100);
                 }
-                updateCosmicBirth();
+                updateGalaxyBirth();
                 renderer.render(scene, camera);
                 return;
             }
             
             if (landingState === 'landed') {
-                updateCosmicBirth();
+                updateGalaxyBirth();
                 renderer.render(scene, camera);
                 return;
             }
 
             if (spaceState === 'expanding') { const t = Math.min(1, (nowMs - spacePhaseStart) / SPACE_FULL_MS); spaceProgress = t; if (t >= 1) { spaceProgress = 1; spaceState = 'space'; currentZoomIndex = 0; } } else if (spaceState === 'collapsing') { const t = Math.min(1, (nowMs - spacePhaseStart) / SPACE_FULL_MS); spaceProgress = 1 - t; if (t >= 1) { spaceProgress = 0; spaceState = 'core'; } }
-            
-            if ((nowMs - lastInteractionTime) > IDLE_COLLAPSE_MS) {
-                if (landingState === 'landed') {
-                    exitMap();
-                    setTimeout(() => { triggerSpaceCollapse(); }, 1600);
-                    lastInteractionTime = Date.now();
-                } else if (spaceState === 'space' || spaceState === 'expanding' || spaceState === 'iss_view') {
-                    triggerSpaceCollapse();
-                    lastInteractionTime = Date.now();
-                }
-            }
-
+            if (spaceState === 'space' && (nowMs - lastInteractionTime) > IDLE_COLLAPSE_MS) { triggerSpaceCollapse(); }
             const ep = spaceProgress < 0.5 ? 4 * spaceProgress * spaceProgress * spaceProgress : 1 - Math.pow(-2 * spaceProgress + 2, 3) / 2;
             const camDist = camera.position.length();
             
@@ -1585,7 +1365,6 @@
             const solarFinal = ep * solarAlpha;
             if (solarFinal > 0.001) { 
                 solarSystemGroup.visible = true; 
-                blackHoleGroup.visible = true;
                 solarSystemGroup.scale.setScalar(Math.max(0.001, solarFinal)); 
                 sunLight.intensity = 3.2 * solarAlpha; 
                 sunFillLight.intensity = 0.35 * solarAlpha;
@@ -1600,17 +1379,12 @@
                 sunCoronaInner.material.opacity = (0.9 + Math.sin(nowMs * 0.0025) * 0.1) * solarAlpha; 
             } else { 
                 solarSystemGroup.visible = false; 
-                blackHoleGroup.visible = false;
                 sunLight.intensity = 0; 
                 sunFillLight.intensity = 0;
             }
             
             if (solarAlpha > 0.02) { 
                 const ts = nowMs * 0.001; 
-                
-                accretionDisk.rotation.z -= 0.025;
-                lensedDisk.rotation.z += 0.018;
-                photonRingMat.uniforms.time.value = ts;
                 
                 for (const grp of planetObjs) { 
                     const ud = grp.userData; 
@@ -1634,7 +1408,6 @@
                     ast.position.z = Math.sin(ra) * r; 
                     ast.rotation.x += ast.userData.rotSpd.x; 
                     ast.rotation.y += ast.userData.rotSpd.y; 
-                    ast.rotation.z += ast.userData.rotSpd.z;
                 } 
                 
                 sunMesh.rotation.y += 0.0012; 
@@ -1652,34 +1425,13 @@
                 const warpCurve = Math.sin(ep * Math.PI);
                 targetFov = 45 + warpCurve * 35;
                 warpIntensity = warpCurve * 0.9;
-            } else if (cinematicBlackHoleMode) {
-                const cineProgress = Math.min(1, (nowMs - cinematicStartTime) / CINEMATIC_DURATION_MS);
-                warpIntensity = Math.sin(cineProgress * Math.PI) * 0.95;
-                targetFov = 45 + Math.sin(cineProgress * Math.PI) * 30;
             }
             camera.fov += (targetFov - camera.fov) * 0.06;
             camera.updateProjectionMatrix();
             
             updateWarpStreaks(warpIntensity);
 
-            if (cinematicBlackHoleMode) {
-                const cineProgress = Math.min(1, (nowMs - cinematicStartTime) / CINEMATIC_DURATION_MS);
-                const easedProgress = cineProgress < 0.5 ? 2 * cineProgress * cineProgress : 1 - Math.pow(-2 * cineProgress + 2, 2) / 2;
-                
-                blackHoleGroup.getWorldPosition(_bhWorld);
-                const startPos = new THREE.Vector3(0, 0, 1500);
-                const targetCamPos = _bhWorld.clone().add(new THREE.Vector3(0, 0.4, 4.2));
-                
-                camera.position.lerpVectors(startPos, targetCamPos, easedProgress);
-                camera.position.x += Math.sin(nowMs * 0.001) * (1.0 - easedProgress);
-                camera.position.y += Math.cos(nowMs * 0.0012) * (1.0 - easedProgress);
-                camera.lookAt(_bhWorld);
-                
-                if (cineProgress >= 1) {
-                    cinematicBlackHoleMode = false;
-                    spaceState = 'space';
-                }
-            } else if (spaceState === 'space') {
+            if (spaceState === 'space') {
                 cameraRadius += (targetCameraZ - cameraRadius) * 0.1;
                 if (earthObj) earthObj.getWorldPosition(_earthWorld);
                 else _earthWorld.set(0, 0, 0);
@@ -1716,7 +1468,7 @@
 
             if (isCharging) { const elapsed = Date.now() - chargeStartTime; chargeLevel = Math.min(1, elapsed / CHARGE_FULL_MS); updateChargeSound(chargeLevel); }
             const spin = 1 + chargeLevel * 15 + touchBoost * 0.5; pulseTime += 0.04 * spin; touchBoost *= 0.94; const chargeScale = 1 + chargeLevel * 1.1; const brightScale = (1 + Math.sin(pulseTime * 1.5) * 0.15 + touchBoost * 0.25) * chargeScale; innerBright.scale.set(brightScale, brightScale, brightScale); innerBright.material.opacity = 0.3 + Math.sin(pulseTime * 1.5) * 0.1 + touchBoost * 0.2 + chargeLevel * 0.6; innerCore.rotation.x += 0.008 * spin; innerCore.rotation.y += 0.012 * spin; midShell.rotation.x -= 0.004 * spin; midShell.rotation.y -= 0.006 * spin; outerShell.rotation.x += 0.002 * spin; outerShell.rotation.y -= 0.003 * spin; coreGroup.rotation.y += coreRotVelY; coreGroup.rotation.x += coreRotVelX; coreRotVelY *= 0.92; coreRotVelX *= 0.92; const scaleForce = (1 - coreScale) * 0.15; coreScaleVel += scaleForce; coreScaleVel *= 0.85; coreScale += coreScaleVel; const _coreSpaceScale = coreScale * (1 - ep * 0.85); coreGroup.scale.set(_coreSpaceScale, _coreSpaceScale, _coreSpaceScale); coreGroup.visible = (spaceState === 'core' || spaceState === 'collapsing') && spaceProgress < 0.98; const rumble = touchBoost * 0.08 + chargeLevel * 0.35; if (rumble > 0.01) { coreGroup.position.x = (Math.random() - 0.5) * rumble; coreGroup.position.y = (Math.random() - 0.5) * rumble; } else { coreGroup.position.x *= 0.9; coreGroup.position.y *= 0.9; } glowSphere.material.opacity = 0.08 + Math.sin(pulseTime * 0.6) * 0.04 + touchBoost * 0.15 + chargeLevel * 0.6; if (chargeLevel > 0.01) { const c = new THREE.Color(); if (chargeLevel < 0.5) c.lerpColors(new THREE.Color(0x8b5cf6), new THREE.Color(0xf59e0b), chargeLevel / 0.5); else c.lerpColors(new THREE.Color(0xf59e0b), new THREE.Color(0xef4444), (chargeLevel - 0.5) / 0.5); glowSphere.material.color.copy(c); innerBright.material.color.copy(c); innerCore.material.color.copy(c); midShell.material.color.copy(c); outerShell.material.color.copy(c); } if (isCharging && chargeLevel > 0.08) { boltTimer -= 1; const boltInterval = Math.max(1, Math.floor(14 - chargeLevel * 13)); if (boltTimer <= 0) { spawnBolt(); if (chargeLevel > 0.3 && Math.random() < 0.6) spawnBolt(); if (chargeLevel > 0.6 && Math.random() < 0.7) spawnBolt(); if (chargeLevel > 0.85 && Math.random() < 0.8) spawnBolt(); boltTimer = boltInterval; } } for (const b of boltPool) { if (b.life > 0) { b.life -= 0.12 + chargeLevel * 0.08; b.line.material.opacity = Math.max(0, b.life * 1.2); if (b.life <= 0) { b.line.visible = false; b.line.material.opacity = 0; } } } for (let i = ripples.length - 1; i >= 0; i--) { const r = ripples[i]; r.life -= 0.03; r.mesh.scale.setScalar(1 + (1 - r.life) * 4); r.mesh.material.opacity = r.life * 0.8; if (r.life <= 0) { scene.remove(r.mesh); r.mesh.geometry.dispose(); r.mesh.material.dispose(); ripples.splice(i, 1); } } 
-            updateCosmicBirth();
+            updateGalaxyBirth();
             renderer.render(scene, camera);
         }
         animate();
@@ -1962,6 +1714,7 @@
             const dayName = days[now.getDay()];
             const isWeekend = [0, 6].includes(now.getDay());
             
+            // === NEW: IST hour for meal time awareness ===
             const istHour = parseInt(now.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', hour12: false }), 10);
             let mealContext = "";
             if (istHour < 10) mealContext = "IST time NOW = MORNING (before 10 AM). Breakfast is the ONLY meal relevant now. Lunch and dinner are NOT yet.";
@@ -1971,6 +1724,7 @@
             else if (istHour < 22) mealContext = "IST time NOW = EVENING/DINNER. Dinner is the relevant meal now. Breakfast and lunch are done.";
             else mealContext = "IST time NOW = NIGHT. All meals for today are done. Do NOT ask about any meal now.";
             
+            // === NEW: Already-asked personal questions block ===
             let askedBlock = "";
             if (recentCheckinTopics && recentCheckinTopics.length > 0) {
                 askedBlock = `\n=== ALREADY ASKED (DO NOT ask about these again) ===\n${recentCheckinTopics.slice(-20).map(t => `- ${t}`).join('\n')}\n=== END ALREADY ASKED ===\n`;
@@ -2040,6 +1794,7 @@ ${memoryBlock}${personalBlock}${marketBlock}`;
             return prompt;
         }
 
+        // === NEW: Track personal topics the AI has asked about, so it won't repeat ===
         function trackPersonalTopics(aiResponse) {
             const topicKeywords = [
                 { kw: 'breakfast', topic: 'breakfast question' },
@@ -2108,6 +1863,7 @@ ${memoryBlock}${personalBlock}${marketBlock}`;
                     response += " (Got it locked in my memory, Boss.)";
                 }
 
+                // === NEW: track what personal stuff the AI asked about so it won't repeat ===
                 trackPersonalTopics(response);
 
                 chatHistory.push({role:'ai', text: response}); renderChat(); saveChatHistory(); speakText(response);
@@ -2301,20 +2057,6 @@ If you have nothing new to ask, just say a short friendly line with no question.
 
         function closeStreetView() { document.getElementById('street-view-container').style.display = 'none'; }
         function flyToDubai() { map.flyTo([25.2854, 55.3742], 17, { duration: 3 }); }
-
-        let mapLastTapTime = 0;
-        const mapOverlay = document.getElementById('map-overlay');
-        mapOverlay.addEventListener('pointerdown', (e) => {
-            resetIdleTimer();
-            const now = Date.now();
-            if (now - mapLastTapTime < 400) {
-                exitMap();
-                setTimeout(() => { triggerSpaceCollapse(); }, 1600);
-                mapLastTapTime = 0;
-            } else {
-                mapLastTapTime = now;
-            }
-        });
 
         window.onload = () => {
             fetch('https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/personal_context.json').then(r => r.json()).then(d => { personalContext = d; loadWisdom(); }).catch(() => { loadWisdom(); });
