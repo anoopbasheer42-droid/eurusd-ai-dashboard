@@ -1,8 +1,8 @@
 {
     "signal": "HOLD",
-    "reason": "While the Daily and 4H charts show a mild bullish recovery off the 1.1212 swing low, the 1H anchor remains stuck in a choppy range between 1.1154 and 1.1273. Down on the 5m and 15m timeframes, price action has completely flatlined at 1.1244 with zero momentum as liquidity dried up into the weekend close. Entering mid-range on dead volume violates all our conservative risk rules, meaning patience is our best trade here. This wait-and-see stance only invalidates if we see an active-session breakout above 1.1273 resistance or a clean sweep below 1.1212 support.",
-    "personal_message": "Good morning, Boss\u2014the markets are officially sleeping for the weekend, so you can safely step away from the charts! Have you had a good breakfast yet and remembered to take your morning BP tablet? Make sure you cook up something delicious for Emy and Bismah today, and give Cookie an extra head scratch from me!",
-    "confidence": "HIGH",
+    "reason": "Higher timeframes (Daily, 4H, and 1H) maintain a mild bullish tilt with price holding comfortably above the 1H EMA20 (1.1238) and EMA50 (1.1225). However, the 5m and 15m charts are completely flatlined at 1.1244 with zero momentum as liquidity dries up into the weekend close. As conservative traders, we never force an entry into a frozen market with no follow-through or volume. A clean break below key support at 1.1212 would invalidate the bullish structure, so we patiently wait for the London open next week to spot real confirmation.",
+    "personal_message": "Good morning, Boss! Since the charts are fast asleep, make sure you take some time for yourself\u2014have you had breakfast yet, and did you remember your morning BP tablet? Whip up something delicious for Emy and Bismah, give Cookie a chin scratch, and enjoy a well-deserved weekend break!",
+    "confidence": "LOW",
     "price": "1.1244",
     "entry": "1.1244",
     "sl": "1.1226",
@@ -26,18 +26,11 @@
         "1.1212",
         "1.1217"
     ],
-    "valid": "03:53 IST",
+    "valid": "04:53 IST",
     "candle_current": "Bearish candle. Open: 1.1244, Now: 1.1244. Sellers pushing down.",
     "candle_1h": "1H candle at 1.1244. Above 20 EMA - uptrend.",
     "candle_4h": "4H trend: bullish above moving averages.",
     "candles_5m": [
-        {
-            "time": "2026-10-16 19:55",
-            "open": 1.1235,
-            "high": 1.1236,
-            "low": 1.1235,
-            "close": 1.1236
-        },
         {
             "time": "2026-10-16 20:00",
             "open": 1.1237,
@@ -236,6 +229,13 @@
         },
         {
             "time": "2026-10-16 22:20",
+            "open": 1.1244,
+            "high": 1.1244,
+            "low": 1.1244,
+            "close": 1.1244
+        },
+        {
+            "time": "2026-10-16 22:25",
             "open": 1.1244,
             "high": 1.1244,
             "low": 1.1244,
@@ -712,5 +712,5 @@
     ],
     "session": "Off-Session",
     "volatility": "low",
-    "wise_words": "Joke: I asked the market for a direction. It said 'yes'."
+    "wise_words": "Motivation: You don't need to be right every time, Boss. You just need to be profitable overall."
 }
