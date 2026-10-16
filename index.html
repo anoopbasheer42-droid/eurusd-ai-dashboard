@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1815,7 +1816,13 @@
             } catch(e) { document.getElementById('gist-status').innerText = `✗ Network Error: ${e.message}`; document.getElementById('gist-status').style.color = "var(--red)"; }
         }
 
-        function cleanResponse(text) { return text.split('\n').filter(line => { const l = line.trim().toLowerCase(); if (l.startsWith('*') || l.startsWith('-')) return false; return true; }).join('\n').trim(); }
+        function cleanResponse(text) {
+            if (!text) return '';
+            let cleaned = text.replace(/\{[\s\S]*?"signal"[\s\S]*?\}/g, '');
+            cleaned = cleaned.replace(/```json[\s\S]*?```/g, '');
+            cleaned = cleaned.replace(/```[\s\S]*?```/g, '');
+            return cleaned.split('\n').map(l => l.trim()).filter(l => l.length > 0).join(' ');
+        }
 
         function buildPersonalityPrompt(includeSignal, userText = "") {
             const now = new Date();
@@ -2181,4 +2188,4 @@ Time context: ${mealContext}${askedBlock}`;
 </body>
 </html>
 
-```
+
