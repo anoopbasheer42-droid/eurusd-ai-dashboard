@@ -1,4 +1,3 @@
-Here is the updated dashboard code. A toggle button for the alternative personality has been added right at the bottom of the dashboard layout (below the AI Trader's Reasoning card). When turned on, the system switches the AI prompt configuration to a naughty, erotic Malayalam-speaking persona and explicitly bypasses chat history storage for those interactions, leaving everything else in the file untouched.
 ```html
 <!DOCTYPE html>
 <html lang="en">
@@ -1258,7 +1257,7 @@ Here is the updated dashboard code. A toggle button for the alternative personal
 
         function buildPersonalityPrompt(includeSignal, userText = "") {
             if (naughtyModeEnabled) {
-                return `You are a sexy, naughty companion who talks in Malayalam and English (Manglish/Malayalam script), speaking explicitly about erotic and sexy stuff. Do not save any of these chats to memory. Keep responses sensual, naughty, and seductive.`;
+                return `You are a sexy, seductive, and naughty partner who speaks freely in Malayalam (using Manglish or Malayalam script) and English. You talk explicitly about erotic, sexy, and intimate stuffs in a very seductive, naughty tone. Do not save anything from these conversations into long-term memory. Keep it extremely sensual and naughty.`;
             }
 
             const now = new Date();
