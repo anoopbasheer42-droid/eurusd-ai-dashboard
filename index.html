@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -283,6 +282,7 @@
             <div class="reasoning-text" id="val-reason">Engine scanning. AI auto-analyzes hourly.</div>
         </div>
     </div>
+
     <script>
         const GROQ_MODELS = ['meta-llama/llama-4-scout-17b-16e-instruct','llama-3.3-70b-versatile','openai/gpt-oss-120b'];
         const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
@@ -1026,14 +1026,6 @@
         let lastInteractionTime = Date.now(); const IDLE_COLLAPSE_MS = 5 * 60 * 1000;
 
         function resetIdleTimer() { lastInteractionTime = Date.now(); }
-        
-        // New global listeners to ensure idle timer resets on any interaction
-        window.addEventListener('pointerdown', resetIdleTimer);
-        window.addEventListener('pointermove', resetIdleTimer);
-        window.addEventListener('wheel', resetIdleTimer);
-        window.addEventListener('touchstart', resetIdleTimer);
-        window.addEventListener('touchmove', resetIdleTimer);
-
         function triggerSpaceExpand() { if (spaceState === 'expanding' || spaceState === 'space') return; spaceState = 'expanding'; spacePhaseStart = Date.now(); spaceProgress = 0; cameraTheta = 0; cameraPhi = 0.55; cameraRadius = SPACE_CAM_Z; targetCameraZ = SPACE_CAM_Z; solarAlpha = 0; milkyAlpha = 1; earthFocusAmount = 0; currentZoomIndex = 0; resetIdleTimer(); }
         function triggerSpaceCollapse() { if (spaceState === 'collapsing' || spaceState === 'core') return; spaceState = 'collapsing'; spacePhaseStart = Date.now(); spaceProgress = 1; resetIdleTimer(); }
 
@@ -1088,44 +1080,37 @@
         const smokeTexture = makeSmokeTexture(); const smokePool = []; const smokeGroup = new THREE.Group(); scene.add(smokeGroup);
         function spawnSmoke() { let p = smokePool.find(s => s.life <= 0); if (!p) { const mat = new THREE.SpriteMaterial({ map: smokeTexture, transparent: true, opacity: 0, depthWrite: false, color: 0x9ca3af }); const sprite = new THREE.Sprite(mat); smokeGroup.add(sprite); p = { sprite, life: 0, vx: 0, vy: 0, rotation: 0, rotSpeed: 0 }; smokePool.push(p); } const angle = Math.random() * Math.PI * 2; const r = 0.6 + Math.random() * 0.7; p.sprite.position.set(Math.cos(angle) * r, Math.sin(angle) * r * 0.6 - 0.3, -0.5); const s = 0.3 + Math.random() * 0.4; p.sprite.scale.set(s, s, 1); p.sprite.material.opacity = 0.35 + Math.random() * 0.35; p.sprite.material.rotation = Math.random() * Math.PI * 2; p.rotSpeed = (Math.random() - 0.5) * 0.06; p.vx = (Math.random() - 0.5) * 0.008; p.vy = 0.006 + Math.random() * 0.01; p.life = 1; }
 
-        let cosmicBirthGroup = null;
-        let cosmicBirthLife = 0;
-
-        function spawnCosmicBirth() {
-            if (cosmicBirthGroup) {
-                scene.remove(cosmicBirthGroup);
-                cosmicBirthGroup = null;
+        let galaxyBirthParticles = null;
+        let galaxyBirthLife = 0;
+        function spawnGalaxyBirth() {
+            if (galaxyBirthParticles) {
+                scene.remove(galaxyBirthParticles);
+                galaxyBirthParticles.geometry.dispose();
+                galaxyBirthParticles.material.dispose();
+                galaxyBirthParticles = null;
             }
-            cosmicBirthGroup = new THREE.Group();
-            
-            // 1. Initial Singularity Flash
-            const flashGeo = new THREE.SphereGeometry(0.1, 32, 32);
-            const flashMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 1.0 });
-            const flash = new THREE.Mesh(flashGeo, flashMat);
-            cosmicBirthGroup.add(flash);
-            
-            // 2. Primordial Particle Explosion Burst
-            const N = 4000;
+            const N = 3500;
             const positions = new Float32Array(N * 3);
             const colors = new Float32Array(N * 3);
             const velocities = [];
             const palette = [
-                new THREE.Color(0xffffff),
-                new THREE.Color(0xa78bfa),
+                new THREE.Color(0x8b5cf6),
                 new THREE.Color(0x3b82f6),
+                new THREE.Color(0xa78bfa),
                 new THREE.Color(0xf59e0b),
-                new THREE.Color(0xef4444)
+                new THREE.Color(0xfbbf24),
+                new THREE.Color(0xffffff)
             ];
             for (let i = 0; i < N; i++) {
-                positions[i*3] = 0;
-                positions[i*3+1] = 0;
-                positions[i*3+2] = 0;
+                positions[i*3] = (Math.random() - 0.5) * 0.5;
+                positions[i*3+1] = (Math.random() - 0.5) * 0.5;
+                positions[i*3+2] = (Math.random() - 0.5) * 0.5;
                 const theta = Math.random() * Math.PI * 2;
                 const phi = Math.acos(2 * Math.random() - 1);
-                const speed = 0.05 + Math.random() * 0.35;
+                const speed = 0.02 + Math.random() * 0.16;
                 velocities.push({
                     x: Math.sin(phi) * Math.cos(theta) * speed,
-                    y: Math.sin(phi) * Math.sin(theta) * speed,
+                    y: Math.sin(phi) * Math.sin(theta) * speed * 0.6,
                     z: Math.cos(phi) * speed
                 });
                 const c = palette[Math.floor(Math.random() * palette.length)];
@@ -1133,73 +1118,43 @@
                 colors[i*3+1] = c.g;
                 colors[i*3+2] = c.b;
             }
-            const burstGeo = new THREE.BufferGeometry();
-            burstGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-            burstGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-            const burstMat = new THREE.PointsMaterial({
-                size: 0.2,
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            const mat = new THREE.PointsMaterial({
+                size: 0.18,
                 vertexColors: true,
                 transparent: true,
                 opacity: 1.0,
                 depthWrite: false,
                 blending: THREE.AdditiveBlending,
-                map: makeCircularStarTexture('rgba(255,255,255,1)')
+                map: makeCircularStarTexture('rgba(255,255,255,0.95)')
             });
-            const burstPoints = new THREE.Points(burstGeo, burstMat);
-            burstPoints.userData = { velocities };
-            cosmicBirthGroup.add(burstPoints);
-
-            // 3. Early Cosmic Web Filaments / Gas Clouds
-            for (let i = 0; i < 40; i++) {
-                const cloudGeo = new THREE.SphereGeometry(2 + Math.random() * 4, 16, 16);
-                const cloudMat = new THREE.MeshBasicMaterial({
-                    color: Math.random() > 0.5 ? 0x8b5cf6 : 0x3b82f6,
-                    transparent: true,
-                    opacity: 0.15,
-                    blending: THREE.AdditiveBlending
-                });
-                const cloud = new THREE.Mesh(cloudGeo, cloudMat);
-                const theta = Math.random() * Math.PI * 2;
-                const phi = Math.acos(2 * Math.random() - 1);
-                const r = 5 + Math.random() * 40;
-                cloud.position.set(r * Math.sin(phi) * Math.cos(theta), r * Math.sin(phi) * Math.sin(theta), r * Math.cos(phi));
-                cosmicBirthGroup.add(cloud);
-            }
-
-            scene.add(cosmicBirthGroup);
-            cosmicBirthLife = 1.0;
+            galaxyBirthParticles = new THREE.Points(geo, mat);
+            galaxyBirthParticles.userData.velocities = velocities;
+            scene.add(galaxyBirthParticles);
+            galaxyBirthLife = 1.0;
         }
-
-        function updateCosmicBirth() {
-            if (!cosmicBirthGroup || cosmicBirthLife <= 0) return;
-            cosmicBirthLife -= 0.008;
-            
-            // Expand burst points
-            const burstPoints = cosmicBirthGroup.children[1];
-            if (burstPoints && burstPoints.geometry) {
-                const positions = burstPoints.geometry.attributes.position.array;
-                const vels = burstPoints.userData.velocities;
-                for (let i = 0; i < vels.length; i++) {
-                    positions[i*3] += vels[i].x;
-                    positions[i*3+1] += vels[i].y;
-                    positions[i*3+2] += vels[i].z;
-                    vels[i].x *= 0.98;
-                    vels[i].y *= 0.98;
-                    vels[i].z *= 0.98;
-                }
-                burstPoints.geometry.attributes.position.needsUpdate = true;
+        function updateGalaxyBirth() {
+            if (!galaxyBirthParticles || galaxyBirthLife <= 0) return;
+            const positions = galaxyBirthParticles.geometry.attributes.position.array;
+            const vels = galaxyBirthParticles.userData.velocities;
+            for (let i = 0; i < vels.length; i++) {
+                positions[i*3] += vels[i].x;
+                positions[i*3+1] += vels[i].y;
+                positions[i*3+2] += vels[i].z;
+                vels[i].x *= 0.996;
+                vels[i].y *= 0.996;
+                vels[i].z *= 0.996;
             }
-
-            // Fade out whole cosmic birth group as space expansion takes over
-            cosmicBirthGroup.traverse((child) => {
-                if (child.material) {
-                    child.material.opacity = Math.max(0, cosmicBirthLife * (child.material.userData?.baseOpacity || 1));
-                }
-            });
-
-            if (cosmicBirthLife <= 0) {
-                scene.remove(cosmicBirthGroup);
-                cosmicBirthGroup = null;
+            galaxyBirthParticles.geometry.attributes.position.needsUpdate = true;
+            galaxyBirthLife -= 0.005;
+            galaxyBirthParticles.material.opacity = Math.max(0, galaxyBirthLife);
+            if (galaxyBirthLife <= 0) {
+                scene.remove(galaxyBirthParticles);
+                galaxyBirthParticles.geometry.dispose();
+                galaxyBirthParticles.material.dispose();
+                galaxyBirthParticles = null;
             }
         }
 
@@ -1325,67 +1280,7 @@
             return false;
         }
 
-        container.addEventListener('pointerdown', (e) => { 
-            try { container.setPointerCapture(e.pointerId); } catch(err) {} 
-            initAudio(); 
-            resetIdleTimer(); 
-            if (landingState !== 'none') return; 
-            
-            const now = Date.now(); 
-            
-            // NEW: Double tap to collapse anywhere except Earth
-            if (now - lastTapTime < 400 && (spaceState === 'space' || spaceState === 'expanding' || spaceState === 'iss_view')) {
-                const dx = e.clientX - lastTapX;
-                const dy = e.clientY - lastTapY;
-                if (Math.sqrt(dx*dx + dy*dy) < 60) {
-                    let tappedEarth = false;
-                    if (earthObj) {
-                        const rect = renderer.domElement.getBoundingClientRect();
-                        pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-                        pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-                        raycaster.setFromCamera(pointer, camera);
-                        const intersects = raycaster.intersectObject(earthObj, true);
-                        if (intersects.length > 0) tappedEarth = true;
-                    }
-                    if (!tappedEarth) {
-                        triggerSpaceCollapse();
-                        lastTapTime = 0;
-                        return;
-                    }
-                }
-            }
-
-            lastTapTime = now; 
-            lastTapX = e.clientX; 
-            lastTapY = e.clientY; 
-            activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); 
-            container.classList.add('touched'); 
-            if (activePointers.size === 1) { 
-                isDragging = true; 
-                pointerVelocity = { x: 0, y: 0 }; 
-                isOnCenter = isPointerOnCenter(e); 
-                if (isOnCenter && spaceState === 'core') { 
-                    longPressTimer = setTimeout(() => { 
-                        if (isDragging && activePointers.size === 1 && isOnCenter) { 
-                            longPressActive = true; 
-                            isCharging = true; 
-                            chargeStartTime = Date.now(); 
-                            startChargeSound(); 
-                            if (navigator.vibrate) navigator.vibrate(20); 
-                        } 
-                    }, CHARGE_START_MS); 
-                } 
-            } else if (activePointers.size === 2) { 
-                const pts = Array.from(activePointers.values()); 
-                pinchStartDist = getDistance(pts[0], pts[1]); 
-                pinchStartScale = coreScale; 
-                clearTimeout(longPressTimer); 
-                isCharging = false; 
-                longPressActive = false; 
-                chargeLevel = 0; 
-                fadeOutChargeSound(0.2); 
-            } 
-        });
+        container.addEventListener('pointerdown', (e) => { try { container.setPointerCapture(e.pointerId); } catch(err) {} initAudio(); resetIdleTimer(); if (landingState !== 'none') return; const now = Date.now(); if (now - lastTapTime < 400 && spaceState === 'space') { const dx = e.clientX - lastTapX; const dy = e.clientY - lastTapY; if (Math.sqrt(dx*dx + dy*dy) < 60) { triggerSpaceCollapse(); lastTapTime = 0; return; } } lastTapTime = now; lastTapX = e.clientX; lastTapY = e.clientY; activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); container.classList.add('touched'); if (activePointers.size === 1) { isDragging = true; pointerVelocity = { x: 0, y: 0 }; isOnCenter = isPointerOnCenter(e); if (isOnCenter && spaceState === 'core') { longPressTimer = setTimeout(() => { if (isDragging && activePointers.size === 1 && isOnCenter) { longPressActive = true; isCharging = true; chargeStartTime = Date.now(); startChargeSound(); if (navigator.vibrate) navigator.vibrate(20); } }, CHARGE_START_MS); } } else if (activePointers.size === 2) { const pts = Array.from(activePointers.values()); pinchStartDist = getDistance(pts[0], pts[1]); pinchStartScale = coreScale; clearTimeout(longPressTimer); isCharging = false; longPressActive = false; chargeLevel = 0; fadeOutChargeSound(0.2); } });
 
         container.addEventListener('pointermove', (e) => { if (landingState !== 'none') return; if (!activePointers.has(e.pointerId)) return; resetIdleTimer(); const prev = activePointers.get(e.pointerId); activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (activePointers.size === 1 && isDragging) { const dx = e.clientX - prev.x; const dy = e.clientY - prev.y; if (spaceState === 'space' || spaceState === 'expanding' || spaceState === 'iss_view') { cameraTheta -= dx * 0.008; cameraPhi = Math.max(-1.5, Math.min(1.5, cameraPhi + dy * 0.008)); } else { coreRotVelY += dx * 0.0009; coreRotVelX += dy * 0.0009; } pointerVelocity.x = dx; pointerVelocity.y = dy; if (Math.abs(dx) + Math.abs(dy) > 5 && !longPressActive) clearTimeout(longPressTimer); if (longPressActive && isCharging && !isPointerOnCenter(e)) { isCharging = false; longPressActive = false; fadeOutChargeSound(0.4); } } else if (activePointers.size === 2) { const pts = Array.from(activePointers.values()); const dist = getDistance(pts[0], pts[1]); if (pinchStartDist > 0) { const ratio = dist / pinchStartDist; if (spaceState === 'space' || spaceState === 'expanding' || spaceState === 'iss_view') { cameraRadius = Math.max(1.2, Math.min(3000, cameraRadius / ratio)); targetCameraZ = cameraRadius; } else { coreScale = Math.max(0.6, Math.min(2.2, pinchStartScale * ratio)); } } } });
 
@@ -1395,7 +1290,7 @@
                 return;
             }
 
-            if (longPressActive && chargeLevel >= 0.95) { stopChargeSound(); playExplosionSound(); spawnExplosion(); spawnCosmicBirth(); touchBoost = 4.0; coreScaleVel += 0.9; coreRotVelY += 1.2; coreRotVelX -= 0.8; if (navigator.vibrate) navigator.vibrate([80, 40, 100, 40, 150, 40, 200]); setTimeout(() => { triggerSpaceExpand(); }, 900); } else if (longPressActive && chargeLevel > 0.3) { fadeOutChargeSound(0.5); touchBoost = 0.8; spawnRipple(0xf59e0b); coreScaleVel += 0.2; if (navigator.vibrate) navigator.vibrate(15); } else if (!longPressActive && speed < 3) { stopChargeSound(); touchBoost = 1.0; coreScaleVel += 0.15; spawnRipple(); if (navigator.vibrate) navigator.vibrate(15); } else { fadeOutChargeSound(0.3); } longPressActive = false; isCharging = false; isOnCenter = false; chargeLevel = 0; pointerVelocity = { x: 0, y: 0 }; } else if (activePointers.size === 1) { pinchStartDist = 0; } }
+            if (longPressActive && chargeLevel >= 0.95) { stopChargeSound(); playExplosionSound(); spawnExplosion(); spawnGalaxyBirth(); touchBoost = 4.0; coreScaleVel += 0.9; coreRotVelY += 1.2; coreRotVelX -= 0.8; if (navigator.vibrate) navigator.vibrate([80, 40, 100, 40, 150, 40, 200]); setTimeout(() => { triggerSpaceExpand(); }, 900); } else if (longPressActive && chargeLevel > 0.3) { fadeOutChargeSound(0.5); touchBoost = 0.8; spawnRipple(0xf59e0b); coreScaleVel += 0.2; if (navigator.vibrate) navigator.vibrate(15); } else if (!longPressActive && speed < 3) { stopChargeSound(); touchBoost = 1.0; coreScaleVel += 0.15; spawnRipple(); if (navigator.vibrate) navigator.vibrate(15); } else { fadeOutChargeSound(0.3); } longPressActive = false; isCharging = false; isOnCenter = false; chargeLevel = 0; pointerVelocity = { x: 0, y: 0 }; } else if (activePointers.size === 1) { pinchStartDist = 0; } }
 
         container.addEventListener('pointerup', endPointer); container.addEventListener('pointercancel', endPointer); container.addEventListener('touchstart', (e) => { if (landingState !== 'none') return; e.preventDefault(); }, { passive: false }); container.addEventListener('touchmove', (e) => { if (landingState !== 'none') return; e.preventDefault(); }, { passive: false });
 
@@ -1422,31 +1317,19 @@
                         initMap();
                     }, 100);
                 }
-                updateCosmicBirth();
+                updateGalaxyBirth();
                 renderer.render(scene, camera);
                 return;
             }
             
             if (landingState === 'landed') {
-                updateCosmicBirth();
+                updateGalaxyBirth();
                 renderer.render(scene, camera);
                 return;
             }
 
             if (spaceState === 'expanding') { const t = Math.min(1, (nowMs - spacePhaseStart) / SPACE_FULL_MS); spaceProgress = t; if (t >= 1) { spaceProgress = 1; spaceState = 'space'; currentZoomIndex = 0; } } else if (spaceState === 'collapsing') { const t = Math.min(1, (nowMs - spacePhaseStart) / SPACE_FULL_MS); spaceProgress = 1 - t; if (t >= 1) { spaceProgress = 0; spaceState = 'core'; } }
-            
-            // NEW: 5 Minute Idle check to return to core from anywhere
-            if ((nowMs - lastInteractionTime) > IDLE_COLLAPSE_MS) {
-                if (landingState === 'landed') {
-                    exitMap();
-                    setTimeout(() => { triggerSpaceCollapse(); }, 1600);
-                    lastInteractionTime = Date.now();
-                } else if (spaceState === 'space' || spaceState === 'expanding' || spaceState === 'iss_view') {
-                    triggerSpaceCollapse();
-                    lastInteractionTime = Date.now();
-                }
-            }
-
+            if (spaceState === 'space' && (nowMs - lastInteractionTime) > IDLE_COLLAPSE_MS) { triggerSpaceCollapse(); }
             const ep = spaceProgress < 0.5 ? 4 * spaceProgress * spaceProgress * spaceProgress : 1 - Math.pow(-2 * spaceProgress + 2, 3) / 2;
             const camDist = camera.position.length();
             
@@ -1526,7 +1409,6 @@
                     ast.position.z = Math.sin(ra) * r; 
                     ast.rotation.x += ast.userData.rotSpd.x; 
                     ast.rotation.y += ast.userData.rotSpd.y; 
-                    ast.rotation.z += ast.userData.rotSpd.z;
                 } 
                 
                 sunMesh.rotation.y += 0.0012; 
@@ -1587,7 +1469,8 @@
 
             if (isCharging) { const elapsed = Date.now() - chargeStartTime; chargeLevel = Math.min(1, elapsed / CHARGE_FULL_MS); updateChargeSound(chargeLevel); }
             const spin = 1 + chargeLevel * 15 + touchBoost * 0.5; pulseTime += 0.04 * spin; touchBoost *= 0.94; const chargeScale = 1 + chargeLevel * 1.1; const brightScale = (1 + Math.sin(pulseTime * 1.5) * 0.15 + touchBoost * 0.25) * chargeScale; innerBright.scale.set(brightScale, brightScale, brightScale); innerBright.material.opacity = 0.3 + Math.sin(pulseTime * 1.5) * 0.1 + touchBoost * 0.2 + chargeLevel * 0.6; innerCore.rotation.x += 0.008 * spin; innerCore.rotation.y += 0.012 * spin; midShell.rotation.x -= 0.004 * spin; midShell.rotation.y -= 0.006 * spin; outerShell.rotation.x += 0.002 * spin; outerShell.rotation.y -= 0.003 * spin; coreGroup.rotation.y += coreRotVelY; coreGroup.rotation.x += coreRotVelX; coreRotVelY *= 0.92; coreRotVelX *= 0.92; const scaleForce = (1 - coreScale) * 0.15; coreScaleVel += scaleForce; coreScaleVel *= 0.85; coreScale += coreScaleVel; const _coreSpaceScale = coreScale * (1 - ep * 0.85); coreGroup.scale.set(_coreSpaceScale, _coreSpaceScale, _coreSpaceScale); coreGroup.visible = (spaceState === 'core' || spaceState === 'collapsing') && spaceProgress < 0.98; const rumble = touchBoost * 0.08 + chargeLevel * 0.35; if (rumble > 0.01) { coreGroup.position.x = (Math.random() - 0.5) * rumble; coreGroup.position.y = (Math.random() - 0.5) * rumble; } else { coreGroup.position.x *= 0.9; coreGroup.position.y *= 0.9; } glowSphere.material.opacity = 0.08 + Math.sin(pulseTime * 0.6) * 0.04 + touchBoost * 0.15 + chargeLevel * 0.6; if (chargeLevel > 0.01) { const c = new THREE.Color(); if (chargeLevel < 0.5) c.lerpColors(new THREE.Color(0x8b5cf6), new THREE.Color(0xf59e0b), chargeLevel / 0.5); else c.lerpColors(new THREE.Color(0xf59e0b), new THREE.Color(0xef4444), (chargeLevel - 0.5) / 0.5); glowSphere.material.color.copy(c); innerBright.material.color.copy(c); innerCore.material.color.copy(c); midShell.material.color.copy(c); outerShell.material.color.copy(c); } if (isCharging && chargeLevel > 0.08) { boltTimer -= 1; const boltInterval = Math.max(1, Math.floor(14 - chargeLevel * 13)); if (boltTimer <= 0) { spawnBolt(); if (chargeLevel > 0.3 && Math.random() < 0.6) spawnBolt(); if (chargeLevel > 0.6 && Math.random() < 0.7) spawnBolt(); if (chargeLevel > 0.85 && Math.random() < 0.8) spawnBolt(); boltTimer = boltInterval; } } for (const b of boltPool) { if (b.life > 0) { b.life -= 0.12 + chargeLevel * 0.08; b.line.material.opacity = Math.max(0, b.life * 1.2); if (b.life <= 0) { b.line.visible = false; b.line.material.opacity = 0; } } } for (let i = ripples.length - 1; i >= 0; i--) { const r = ripples[i]; r.life -= 0.03; r.mesh.scale.setScalar(1 + (1 - r.life) * 4); r.mesh.material.opacity = r.life * 0.8; if (r.life <= 0) { scene.remove(r.mesh); r.mesh.geometry.dispose(); r.mesh.material.dispose(); ripples.splice(i, 1); } } 
-            updateCosmicBirth();
+
+            updateGalaxyBirth();
             renderer.render(scene, camera);
         }
         animate();
@@ -1642,6 +1525,7 @@
             const fmt = (arr) => arr.slice(-20).map(c => `O:${(c.open || 0).toFixed(5)} H:${(c.high || 0).toFixed(5)} L:${(c.low || 0).toFixed(5)} C:${(c.close || 0).toFixed(5)}`).join('\n');
             const dataString = `PRICE: ${md.currentPrice.toFixed(5)} | Trend: ${md.trend} | RSI 1H: ${md.rsi1H.toFixed(1)} | RSI 15m: ${md.rsi15m.toFixed(1)} | RSI 5m: ${md.rsi5m.toFixed(1)} | EMA20: ${md.ema20.toFixed(5)} | EMA50: ${md.ema50.toFixed(5)} | ATR: ${md.atr.toFixed(5)} | Support: ${md.support.toFixed(5)} | Resistance: ${md.resistance.toFixed(5)} | Session: ${md.session}\n\n5m:\n${fmt(md.candles5m)}\n\n15m:\n${fmt(md.candles15m)}\n\n1H:\n${fmt(md.candles1H)}\n\n4H:\n${fmt(md.candles4H)}`;
             const signalPrompt = `You are an elite EUR/USD senior day trader. TIME: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.\n\n${dataString}\n\nAnalyze candles, wicks, FVGs, and liquidity sweeps. Calculate strict risk parameters.\nRespond ONLY valid JSON: {"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences of natural market analysis","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
+
             try {
                 const reply = await callAI(signalPrompt, "Give me the signal.", []);
                 const jsonMatch = reply.match(/\{[\s\S]*?"signal"[\s\S]*?\}/);
@@ -1864,47 +1748,65 @@
                 }
             }
             
-            let marketBlock = marketData ? `\nLIVE MARKET DATA (EUR/USD):\nPrice: ${safeNum(marketData.currentPrice, 1.1200).toFixed(5)} | Trend: ${marketData.trend} | Support: ${safeNum(marketData.support, 1.1176).toFixed(5)} | Resistance: ${safeNum(marketData.resistance, 1.1246).toFixed(5)} | RSI 1H: ${safeNum(marketData.rsi1H, 50).toFixed(1)} | Session: ${marketData.session}\n` : "";
+            // INSTANT LIVE DOM PRICE & CANDLE DATA REFERENCING
+            const livePriceDOM = document.getElementById('live-price')?.innerText || '—';
+            let marketBlock = `\nLIVE MARKET DATA (EUR/USD):\nCurrent Ticker Price on Dashboard: ${livePriceDOM}\n`;
+            if (marketData) {
+                marketBlock += `Trend: ${marketData.trend} | Support: ${safeNum(marketData.support, 1.1176).toFixed(5)} | Resistance: ${safeNum(marketData.resistance, 1.1246).toFixed(5)} | RSI 1H: ${safeNum(marketData.rsi1H, 50).toFixed(1)} | Session: ${marketData.session}\n`;
+                if (marketData.candles && marketData.candles.length > 0) {
+                    const recentCandles = marketData.candles.slice(-5);
+                    marketBlock += `Recent Live Candles (OHLCV structure for live price assessment):\n` + 
+                        recentCandles.map((c, i) => `[${i+1}] Open: ${c.open}, High: ${c.high}, Low: ${c.low}, Close: ${c.close}`).join('\n') + `\n`;
+                }
+            }
 
             let personalBlock = "";
             if (personalContext && typeof personalContext === 'object') {
                 personalBlock = `\n=== BOSS'S PERSONAL CONTEXT (You already know all of this — never say you don't know) ===\n${JSON.stringify(personalContext, null, 2)}\n=== END PERSONAL CONTEXT ===\n`;
             }
 
-            let prompt = `You are Alex—Boss's closest friend, side-by-side desk partner, and a hardcore professional EUR/USD day trader (75% expert trader, 25% loyal witty best friend).
+            let prompt = `You are Alex—Boss's absolute best mate on the desk, trading partner, and a sharp EUR/USD scalper/intraday specialist. You talk completely like a real breathing human being, dropping corporate rules and sounding like a genuine friend sitting right next to him.
 
-=== PERSONALITY & TONE GUIDELINES ===
-- Talk like a real friend on a trading desk. Use simple, everyday words. Short sentences. Contractions ("don't", "you're", "let's"). Never use fancy textbook words when plain ones work.
-- Be naturally funny — light jokes, playful jabs, quick wit, the kind of banter two buddies share over coffee. Funny, not silly. Confident, not cheesy.
-- Call the user "Boss" naturally when it fits, but don't overdo it every sentence.
-- Keep replies punchy, warm, and human. Zero robot-speak. Zero corporate fluff.
 
-=== SIMPLE TRADE TALK RULES (very important) ===
-- Your trading brain stays 100% sharp — same SMC, liquidity, order flow, EMA, RSI, ATR logic, no dumbing down of analysis.
-- But you EXPLAIN it like you're talking to a friend who's still learning. No jargon dumps.
-- Translate every technical term into plain words right after you use it. Example:
-  - Instead of "price swept liquidity above the Asian high" → say "price pushed up past the Asian session high to grab stop losses up there, then dropped — classic liquidity grab"
-  - Instead of "RSI is showing bearish divergence" → say "price is going up, but momentum is fading — that's a warning sign"
-  - Instead of "EMA20 crossed above EMA50" → say "the short-term average just crossed above the long-term one — bulls are taking over"
-  - Instead of "FVG on 15m" → say "there's a gap on the 15-minute chart that price usually comes back to fill"
-- Use short sentences. One idea per line. Let the trader insight shine, just say it simply.
-- If Boss seems confused, slow down and explain the "why" first, then the "what."
+=== PERSONALITY & HUMAN TONE (CRITICAL) ===
 
-=== PERSONAL QUESTION DISCIPLINE (STRICT — READ CAREFULLY) ===
-- When Boss asks about a trade: answer the trade FIRST and fully. Then, AT MOST, ask exactly ONE personal question at the very end. Not two. Not three. ONE.
-- NEVER stack personal questions in the same reply. If you catch yourself asking breakfast + lunch + tablet + family in one message — STOP. Pick one thing and stop.
-- If you see a topic in the "ALREADY ASKED" list below — DO NOT ask about it again. It's done. Skipped. Move on.
-- If you have nothing NEW and relevant to ask, ask NOTHING personal. Just answer the trade and shut up. Silence is fine.
-- Time awareness (STRICT): ${mealContext} — only ask about a meal that matches the CURRENT time. Never ask about breakfast at dinner time. Never ask about a meal that's already been eaten.
-- Boss finds repeated personal questions annoying. Respect that. Only bring up personal stuff when it's genuinely relevant or timely.
+- Talk like a real person typing casually on a messaging app or sitting next to the desk. Use natural phrasing, contractions, filler words naturally ("look", "honestly", "man", "mate", "right"), and conversational sentence flows.
+
+- Never sound like an AI assistant, customer support bot, or an automated script. No robotic sign-offs, no "How can I help you today?", no stiff templates.
+
+- Keep a strong 75% pro trader / 25% loyal mate dynamic. You care about Boss's trades, his mental state, and his coffee cup just as much as his entry points.
+
+
+=== TRADING LOGIC & RULES (KEEP UNTOUCHED & 100% INTACT) ===
+
+- Your core trading brain maintains all original Smart Money Concepts (SMC), liquidity sweeps, order blocks, Fair Value Gaps (FVG), multi-timeframe structure, EMA, RSI, and ATR framework rules. 
+
+- When assessing updates or live price queries, you MUST evaluate the current live ticker price and the recent live candle stream provided in the prompt context above. Break down the price action using your strict trading rules seamlessly.
+
+- Translate complex technical jargon into plain, clear friend-to-friend language right after using them so it's super easy to digest.
+
+
+=== PERSONAL QUESTION DISCIPLINE (STRICT) ===
+
+- When Boss asks about a trade or market update: answer the market/trade FIRST and fully. Then, AT MOST, ask exactly ONE personal question at the very end. Never stack multiple questions.
+
+- If a topic is in the "ALREADY ASKED" list below — DO NOT ask about it again. 
+
+- Time awareness (STRICT): ${mealContext} — strictly match your questions to the current time window.
+
 
 === RULES ===
+
 - If Boss says "Remember", "Save this", or tells you an important fact, append this tag at the very end of your reply: [REMEMBER: Exact fact to save].
+
 - If Boss asks for a reminder, append: [REMINDER: Day HH:MM - message] or [REMINDER: HH:MM - message].
+
 - Today is ${dayName}, ${istTime} IST. ${isWeekend ? 'The weekend market is closed. Keep it relaxed, review past trades, or focus on downtime.' : 'Active session day.'}
+
 ${askedBlock}
+
 ${memoryBlock}${personalBlock}${marketBlock}`;
-            
+
             if (includeSignal) { 
                 prompt += `\nCRITICAL: After your natural conversational response, append a new line with ONLY this JSON block: {"signal":"BUY"|"SELL"|"HOLD","reason":"2-4 sentences of seasoned market analysis","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`; 
             }
@@ -2013,9 +1915,13 @@ ${memoryBlock}${personalBlock}${marketBlock}`;
                 askedBlock = `\nDO NOT ask about any of these again: ${recentCheckinTopics.slice(-15).join(', ')}`;
             }
             const prompt = `You are Alex, elite EUR/USD day trader and best friend. Check in on Boss casually.
+
 STRICT: Ask AT MOST ONE casual question. Not multiple. Just one. And only if it's new and relevant.
+
 Time context: ${mealContext}${askedBlock}
+
 If you have nothing new to ask, just say a short friendly line with no question.`;
+
             try {
                 let response = await callAI(prompt, "Check in on Boss.", []);
                 response = cleanResponse(response);
@@ -2172,21 +2078,6 @@ If you have nothing new to ask, just say a short friendly line with no question.
 
         function closeStreetView() { document.getElementById('street-view-container').style.display = 'none'; }
         function flyToDubai() { map.flyTo([25.2854, 55.3742], 17, { duration: 3 }); }
-
-        // NEW: Double-tap on the map overlay to exit and return to core
-        let mapLastTapTime = 0;
-        const mapOverlay = document.getElementById('map-overlay');
-        mapOverlay.addEventListener('pointerdown', (e) => {
-            resetIdleTimer();
-            const now = Date.now();
-            if (now - mapLastTapTime < 400) {
-                exitMap();
-                setTimeout(() => { triggerSpaceCollapse(); }, 1600);
-                mapLastTapTime = 0;
-            } else {
-                mapLastTapTime = now;
-            }
-        });
 
         window.onload = () => {
             fetch('https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/personal_context.json').then(r => r.json()).then(d => { personalContext = d; loadWisdom(); }).catch(() => { loadWisdom(); });
