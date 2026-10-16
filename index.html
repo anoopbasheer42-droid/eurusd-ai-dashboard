@@ -690,10 +690,9 @@
         scene.add(coreGroup);
 
         // ═══════════════════════════════════════════════════════
-        // SPACE SCENE — Cinematic Realistic Solar System & Comets
+        // ORIGINAL MILKY WAY GALAXY VIEW (Smooth Round Particles, No Comets, Shooting Stars)
         // ═══════════════════════════════════════════════════════
 
-        // Procedural smooth circular particle texture generator (NASA standards - no square pixels)
         function makeCircularParticleTex(colorHex, size = 64) {
             const canvas = document.createElement('canvas');
             canvas.width = canvas.height = size;
@@ -724,139 +723,11 @@
             return new THREE.CanvasTexture(canvas);
         }
 
-        function makeSunTex() {
-            const c = document.createElement('canvas'); c.width = 512; c.height = 256;
-            const ctx = c.getContext('2d');
-            ctx.fillStyle = '#ffb840'; ctx.fillRect(0, 0, 512, 256);
-            for (let i = 0; i < 400; i++) {
-                const a = 0.05 + Math.random() * 0.25;
-                ctx.fillStyle = `rgba(255,${180 + Math.random()*60|0},${40 + Math.random()*60|0},${a})`;
-                ctx.beginPath(); ctx.arc(Math.random()*512, Math.random()*256, 8 + Math.random()*24, 0, Math.PI*2); ctx.fill();
-            }
-            return new THREE.CanvasTexture(c);
-        }
-        function makeMercuryTex() {
-            const c = document.createElement('canvas'); c.width = 512; c.height = 256;
-            const ctx = c.getContext('2d');
-            ctx.fillStyle = '#7a7168'; ctx.fillRect(0, 0, 512, 256);
-            for (let i = 0; i < 300; i++) {
-                const x = Math.random()*512, y = Math.random()*256, r = 3 + Math.random()*15;
-                const g = ctx.createRadialGradient(x-r*0.3, y-r*0.3, 0, x, y, r);
-                g.addColorStop(0, 'rgba(60,55,50,0.55)');
-                g.addColorStop(1, 'rgba(60,55,50,0)');
-                ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
-            }
-            return new THREE.CanvasTexture(c);
-        }
-        function makeVenusTex() {
-            const c = document.createElement('canvas'); c.width = 512; c.height = 256;
-            const ctx = c.getContext('2d');
-            ctx.fillStyle = '#c9a262'; ctx.fillRect(0, 0, 512, 256);
-            for (let i = 0; i < 80; i++) {
-                ctx.fillStyle = `rgba(240,220,180,${0.1 + Math.random()*0.2})`;
-                ctx.fillRect(0, Math.random()*256, 512, 8 + Math.random()*30);
-            }
-            return new THREE.CanvasTexture(c);
-        }
-        function makeEarthTex() {
-            const W = 1024, H = 512;
-            const c = document.createElement('canvas'); c.width = W; c.height = H;
-            const ctx = c.getContext('2d');
-            const og = ctx.createLinearGradient(0, 0, 0, H);
-            og.addColorStop(0, '#0a3d62'); og.addColorStop(0.5, '#1e5d8a'); og.addColorStop(1, '#0a3d62');
-            ctx.fillStyle = og; ctx.fillRect(0, 0, W, H);
-            const shapes = [
-                [[0.10,0.20],[0.18,0.15],[0.24,0.18],[0.28,0.28],[0.25,0.35],[0.20,0.42],[0.16,0.38],[0.12,0.30]],
-                [[0.24,0.55],[0.29,0.55],[0.33,0.62],[0.31,0.75],[0.27,0.85],[0.24,0.80],[0.23,0.65]],
-                [[0.46,0.22],[0.53,0.20],[0.55,0.28],[0.52,0.32],[0.47,0.30],[0.45,0.26]],
-                [[0.48,0.40],[0.56,0.38],[0.60,0.45],[0.58,0.60],[0.54,0.72],[0.50,0.75],[0.47,0.60],[0.46,0.48]],
-                [[0.55,0.18],[0.72,0.15],[0.85,0.20],[0.88,0.28],[0.82,0.38],[0.72,0.42],[0.62,0.38],[0.56,0.30]],
-                [[0.66,0.42],[0.71,0.42],[0.72,0.52],[0.68,0.55],[0.65,0.48]],
-                [[0.80,0.62],[0.90,0.60],[0.93,0.68],[0.88,0.74],[0.80,0.72],[0.78,0.66]],
-                [[0.0,0.94],[1.0,0.94],[1.0,1.0],[0.0,1.0]]
-            ];
-            for (const poly of shapes) {
-                ctx.beginPath();
-                ctx.moveTo(poly[0][0]*W, poly[0][1]*H);
-                for (let i = 1; i < poly.length; i++) ctx.lineTo(poly[i][0]*W, poly[i][1]*H);
-                ctx.closePath();
-                ctx.fillStyle = '#2e7d32'; ctx.fill();
-            }
-            ctx.fillStyle = 'rgba(255,255,255,0.9)';
-            ctx.fillRect(0, 0, W, H*0.045);
-            ctx.fillRect(0, H*0.955, W, H*0.045);
-            return new THREE.CanvasTexture(c);
-        }
-        function makeEarthCloudsTex() {
-            const W = 1024, H = 512;
-            const c = document.createElement('canvas'); c.width = W; c.height = H;
-            const ctx = c.getContext('2d');
-            for (let i = 0; i < 220; i++) {
-                const x = Math.random()*W, y = Math.random()*H, r = 10 + Math.random()*45;
-                const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-                g.addColorStop(0, `rgba(255,255,255,${0.4 + Math.random()*0.4})`);
-                g.addColorStop(1, 'rgba(255,255,255,0)');
-                ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
-            }
-            return new THREE.CanvasTexture(c);
-        }
-        function makeMarsTex() {
-            const c = document.createElement('canvas'); c.width = 512; c.height = 256;
-            const ctx = c.getContext('2d');
-            ctx.fillStyle = '#b85a34'; ctx.fillRect(0, 0, 512, 256);
-            ctx.fillStyle = 'rgba(240,240,250,0.85)';
-            ctx.beginPath(); ctx.ellipse(256, 12, 80, 18, 0, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.ellipse(256, 244, 60, 14, 0, 0, Math.PI*2); ctx.fill();
-            return new THREE.CanvasTexture(c);
-        }
-        function makeJupiterTex() {
-            const c = document.createElement('canvas'); c.width = 1024; c.height = 512;
-            const ctx = c.getContext('2d');
-            ctx.fillStyle = '#d9b88a'; ctx.fillRect(0, 0, 1024, 512);
-            const gx = 300, gy = 320, gr = 40;
-            const gg = ctx.createRadialGradient(gx, gy, 5, gx, gy, gr);
-            gg.addColorStop(0, 'rgba(200,80,50,0.9)');
-            gg.addColorStop(1, 'rgba(180,90,60,0)');
-            ctx.fillStyle = gg;
-            ctx.beginPath(); ctx.ellipse(gx, gy, gr*1.3, gr*0.9, 0, 0, Math.PI*2); ctx.fill();
-            return new THREE.CanvasTexture(c);
-        }
-        function makeSaturnTex() {
-            const c = document.createElement('canvas'); c.width = 1024; c.height = 512;
-            const ctx = c.getContext('2d');
-            ctx.fillStyle = '#e8d5a0'; ctx.fillRect(0, 0, 1024, 512);
-            return new THREE.CanvasTexture(c);
-        }
-        function makeUranusTex() {
-            const c = document.createElement('canvas'); c.width = 512; c.height = 256;
-            const ctx = c.getContext('2d');
-            ctx.fillStyle = '#9fd9e0'; ctx.fillRect(0, 0, 512, 256);
-            return new THREE.CanvasTexture(c);
-        }
-        function makeNeptuneTex() {
-            const c = document.createElement('canvas'); c.width = 512; c.height = 256;
-            const ctx = c.getContext('2d');
-            ctx.fillStyle = '#2b52a0'; ctx.fillRect(0, 0, 512, 256);
-            return new THREE.CanvasTexture(c);
-        }
-        function makePlutoTex() {
-            const c = document.createElement('canvas'); c.width = 512; c.height = 256;
-            const ctx = c.getContext('2d');
-            ctx.fillStyle = '#8a7868'; ctx.fillRect(0, 0, 512, 256);
-            return new THREE.CanvasTexture(c);
-        }
-        function makeMoonTex() {
-            const c = document.createElement('canvas'); c.width = 256; c.height = 128;
-            const ctx = c.getContext('2d');
-            ctx.fillStyle = '#a0a0a0'; ctx.fillRect(0, 0, 256, 128);
-            return new THREE.CanvasTexture(c);
-        }
-
         const milkyWayGroup = new THREE.Group();
         milkyWayGroup.visible = false;
         scene.add(milkyWayGroup);
 
-        // Deep star field using smooth circular points
+        // Deep star field using smooth circular particles
         (function buildStars() {
             const N = 4000;
             const pos = new Float32Array(N * 3);
@@ -881,7 +752,7 @@
             milkyWayGroup.add(new THREE.Points(g, m));
         })();
 
-        // Milky Way dense band with smooth circular particles
+        // Original Milky Way dense tilted band with smooth round particles
         (function buildMilkyWay() {
             const N = 12000;
             const pos = new Float32Array(N * 3);
@@ -890,12 +761,12 @@
                 const arm = Math.floor(Math.random() * 4);
                 const t = Math.random();
                 const angle = t * Math.PI * 4 + (arm * Math.PI) / 2;
-                const radius = 80 + t * 200;
-                const spread = 8 + t * 20;
+                const radius = 20 + t * 140;
+                const spread = 4 + t * 15;
                 const scatter = Math.pow(Math.random(), 2) * spread;
                 const angleScatter = Math.random() * Math.PI * 2;
                 pos[i*3] = Math.cos(angle) * radius + Math.cos(angleScatter) * scatter;
-                pos[i*3+1] = (Math.random() - 0.5) * 6 * (1 + t);
+                pos[i*3+1] = (Math.random() - 0.5) * 4 * (1 + t);
                 pos[i*3+2] = Math.sin(angle) * radius + Math.sin(angleScatter) * scatter;
                 
                 const mix = Math.random();
@@ -923,184 +794,17 @@
                     map: makeGlowTex(color, 256), transparent: true, opacity: 0.28, 
                     depthWrite: false, blending: THREE.AdditiveBlending 
                 }));
-                const r = 120 + Math.random()*200;
+                const r = 80 + Math.random()*120;
                 const theta = Math.random()*Math.PI*2;
                 const phi = Math.acos(2*Math.random()-1);
                 spr.position.set(r*Math.sin(phi)*Math.cos(theta), r*Math.sin(phi)*Math.sin(theta)*0.4, r*Math.cos(phi));
-                const s = 80 + Math.random()*160;
+                const s = 60 + Math.random()*100;
                 spr.scale.set(s, s, 1);
                 milkyWayGroup.add(spr);
             }
         })();
 
-        // Sun
-        const sunGroup = new THREE.Group();
-        const sunMesh = new THREE.Mesh(new THREE.SphereGeometry(1.6, 48, 48), new THREE.MeshBasicMaterial({ map: makeSunTex() }));
-        sunGroup.add(sunMesh);
-        const sunCorona = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeGlowTex(0xffaa33, 512), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
-        sunCorona.scale.set(16, 16, 1);
-        sunGroup.add(sunCorona);
-        const sunLight = new THREE.PointLight(0xfff2c4, 2.5, 400);
-        sunGroup.add(sunLight);
-        milkyWayGroup.add(sunGroup);
-
-        // Planets
-        const PLANET_DATA = [
-            { name:'Mercury', r:0.20, o:6,  tex:makeMercuryTex(), spd:0.42, rotSpd:0.005 },
-            { name:'Venus',   r:0.30, o:9,  tex:makeVenusTex(),   spd:0.32, rotSpd:-0.003 },
-            { name:'Earth',   r:0.34, o:13, tex:makeEarthTex(),   spd:0.24, rotSpd:0.01, clouds:makeEarthCloudsTex(), atmo:0x3b82f6,
-              moons:[{ r:0.09, o:0.75, tex:makeMoonTex(), spd:1.8 }] },
-            { name:'Mars',    r:0.26, o:17, tex:makeMarsTex(),    spd:0.19, rotSpd:0.009,
-              moons:[{ r:0.04, o:0.55, tex:makeMoonTex(), spd:3.2 }] },
-            { name:'Jupiter', r:1.10, o:25, tex:makeJupiterTex(), spd:0.11, rotSpd:0.02,
-              moons:[{ r:0.08, o:1.8, tex:makeMoonTex(), spd:1.6 },{ r:0.075, o:2.2, tex:makeMoonTex(), spd:1.2 }] },
-            { name:'Saturn',  r:0.95, o:34, tex:makeSaturnTex(),  spd:0.08, rotSpd:0.018, ring:true,
-              moons:[{ r:0.10, o:1.9, tex:makeMoonTex(), spd:0.8 }] },
-            { name:'Uranus',  r:0.62, o:43, tex:makeUranusTex(),  spd:0.055, rotSpd:0.012, ring:true, ringColor:0x88ccee,
-              moons:[{ r:0.06, o:1.2, tex:makeMoonTex(), spd:1.0 }] },
-            { name:'Neptune', r:0.60, o:52, tex:makeNeptuneTex(), spd:0.042, rotSpd:0.011,
-              moons:[{ r:0.07, o:1.2, tex:makeMoonTex(), spd:-1.2 }] },
-            { name:'Pluto',   r:0.15, o:62, tex:makePlutoTex(),   spd:0.028, rotSpd:0.005,
-              moons:[{ r:0.06, o:0.45, tex:makeMoonTex(), spd:1.5 }] }
-        ];
-
-        const planetObjs = [];
-        let earthGroupRef = null;
-
-        for (const p of PLANET_DATA) {
-            const grp = new THREE.Group();
-            const mat = new THREE.MeshPhongMaterial({ map: p.tex, shininess: 15, specular: 0x333333 });
-            const sphere = new THREE.Mesh(new THREE.SphereGeometry(p.r, 48, 48), mat);
-            sphere.userData.rotSpd = p.rotSpd;
-            sphere.userData.planetName = p.name;
-            grp.add(sphere);
-
-            if (p.name === 'Earth') earthGroupRef = grp;
-
-            if (p.clouds) {
-                const cloudSphere = new THREE.Mesh(
-                    new THREE.SphereGeometry(p.r * 1.02, 48, 48),
-                    new THREE.MeshPhongMaterial({ map: p.clouds, transparent: true, opacity: 0.75, depthWrite: false })
-                );
-                grp.add(cloudSphere);
-            }
-
-            if (p.atmo) {
-                const atmo = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeGlowTex(p.atmo, 256), transparent: true, opacity: 0.6, depthWrite: false, blending: THREE.AdditiveBlending }));
-                atmo.scale.set(p.r * 4.5, p.r * 4.5, 1);
-                grp.add(atmo);
-            }
-
-            if (p.ring) {
-                const ringColor = p.ringColor || 0xd9c89a;
-                const rg1 = new THREE.RingGeometry(p.r * 1.35, p.r * 2.0, 96);
-                const rm1 = new THREE.MeshBasicMaterial({ color: ringColor, side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
-                const ring1 = new THREE.Mesh(rg1, rm1);
-                ring1.rotation.x = Math.PI / 2.2;
-                grp.add(ring1);
-            }
-
-            const pts = [];
-            for (let i = 0; i <= 128; i++) {
-                const a = (i / 128) * Math.PI * 2;
-                pts.push(new THREE.Vector3(Math.cos(a) * p.o, 0, Math.sin(a) * p.o));
-            }
-            const og = new THREE.BufferGeometry().setFromPoints(pts);
-            const om = new THREE.LineBasicMaterial({ color: 0x8b5cf6, transparent: true, opacity: 0.12 });
-            milkyWayGroup.add(new THREE.Line(og, om));
-
-            const startAngle = Math.random() * Math.PI * 2;
-            grp.userData = { name: p.name, orbit: p.o, speed: p.spd, angle: startAngle, sphere };
-            grp.position.set(Math.cos(startAngle) * p.o, 0, Math.sin(startAngle) * p.o);
-            planetObjs.push(grp);
-            milkyWayGroup.add(grp);
-        }
-
-        // Asteroid belt with smooth circular points
-        (function buildAsteroidBelt() {
-            const N = 1000;
-            const pos = new Float32Array(N * 3);
-            const col = new Float32Array(N * 3);
-            for (let i = 0; i < N; i++) {
-                const a = Math.random() * Math.PI * 2;
-                const r = 20 + Math.random() * 3;
-                pos[i*3] = Math.cos(a) * r;
-                pos[i*3+1] = (Math.random() - 0.5) * 0.4;
-                pos[i*3+2] = Math.sin(a) * r;
-                col[i*3] = 0.7; col[i*3+1] = 0.7; col[i*3+2] = 0.7;
-            }
-            const g = new THREE.BufferGeometry();
-            g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-            g.setAttribute('color', new THREE.BufferAttribute(col, 3));
-            const astTex = makeCircularParticleTex('rgba(180,180,180,0.9)', 32);
-            const m = new THREE.PointsMaterial({ size: 0.25, map: astTex, vertexColors: true, transparent: true, opacity: 0.8, depthWrite: false });
-            const belt = new THREE.Points(g, m);
-            milkyWayGroup.userData.asteroidBelt = belt;
-            milkyWayGroup.add(belt);
-        })();
-
-        // ══════════════════════════════════════════════════════════════
-        // STRICT COMET & METEOR SYSTEMS (NASA Standards, 1 comet every 45s)
-        // ══════════════════════════════════════════════════════════════
-
-        let currentActiveComet = null;
-        let lastCometSpawnTime = -45000; // Trigger immediately or on demand
-
-        function makeCinematicCometTailTex(rgb) {
-            const c = document.createElement('canvas'); c.width = 512; c.height = 128;
-            const ctx = c.getContext('2d');
-            const g = ctx.createLinearGradient(0, 64, 512, 64);
-            g.addColorStop(0, 'rgba(255,255,255,1)');
-            g.addColorStop(0.2, 'rgba(180,220,255,0.9)');
-            g.addColorStop(0.5, `rgba(${rgb},0.5)`);
-            g.addColorStop(1, `rgba(${rgb},0)`);
-            ctx.fillStyle = g;
-            ctx.fillRect(0, 0, 512, 128);
-            return new THREE.CanvasTexture(c);
-        }
-
-        function spawnSingleComet() {
-            if (currentActiveComet) {
-                milkyWayGroup.remove(currentActiveComet.grp);
-                currentActiveComet = null;
-            }
-
-            const cg = new THREE.Group();
-            const nucleus = new THREE.Mesh(
-                new THREE.SphereGeometry(0.09, 16, 16),
-                new THREE.MeshBasicMaterial({ color: 0xffffff })
-            );
-            cg.add(nucleus);
-            
-            const coma = new THREE.Sprite(new THREE.SpriteMaterial({
-                map: makeGlowTex(0x88ccff, 128), transparent: true, opacity: 0.95,
-                depthWrite: false, blending: THREE.AdditiveBlending
-            }));
-            coma.scale.set(1.0, 1.0, 1);
-            cg.add(coma);
-
-            const rgbOpts = ['130,200,255', '220,180,255', '255,220,150'];
-            const chosenRgb = rgbOpts[Math.floor(Math.random() * rgbOpts.length)];
-            const tail = new THREE.Sprite(new THREE.SpriteMaterial({
-                map: makeCinematicCometTailTex(chosenRgb), transparent: true, opacity: 0.95,
-                depthWrite: false, blending: THREE.AdditiveBlending
-            }));
-            tail.scale.set(16, 2.4, 1);
-            tail.position.x = -8;
-            cg.add(tail);
-
-            // Randomized elliptic orbit parameters for diverse realistic passes
-            const a = 30 + Math.random() * 20;
-            const b = 30 + Math.random() * 20;
-            const cVal = 20 + Math.random() * 25;
-            const speed = 0.02 + Math.random() * 0.025;
-            const phase = Math.random() * Math.PI * 2;
-
-            currentActiveComet = { grp: cg, a, b, c: cVal, speed, phase, progress: 0 };
-            milkyWayGroup.add(cg);
-        }
-
-        // Shooting stars / atmospheric meteors for cinematic effect
+        // Shooting stars / cinematic meteors
         const shootingStars = [];
         function spawnShootingStar() {
             const sg = new THREE.Group();
@@ -1143,19 +847,17 @@
         }
         let shootingStarTimer = 0;
 
-        // Space state machine
         const BASE_CAM_Z = 6;
-        const SPACE_CAM_Z = 105;
+        const SPACE_CAM_Z = 45;
 
         let cameraTheta = 0;
         let cameraPhi = 0.35;
         let cameraRadius = SPACE_CAM_Z;
         let targetCameraZ = BASE_CAM_Z;
-        let earthViewMode = false;
 
         let spaceState = 'core';
         let spaceProgress = 0;
-        const SPACE_FULL_MS = 3500;
+        const SPACE_FULL_MS = 2500;
         let spacePhaseStart = 0;
 
         let lastInteractionTime = Date.now();
@@ -1171,10 +873,7 @@
             cameraPhi = 0.35;
             cameraRadius = SPACE_CAM_Z;
             targetCameraZ = SPACE_CAM_Z;
-            earthViewMode = false;
             resetIdleTimer();
-            spawnSingleComet();
-            lastCometSpawnTime = Date.now();
             document.getElementById('milkyway-toggle-btn').classList.add('active-galaxy');
             document.getElementById('milkyway-toggle-btn').innerText = '🌌 Milky Way Mode: ON';
         }
@@ -1183,10 +882,9 @@
             if (spaceState === 'collapsing' || spaceState === 'core') return;
             spaceState = 'collapsing';
             spacePhaseStart = Date.now();
-            earthViewMode = false;
             resetIdleTimer();
             document.getElementById('milkyway-toggle-btn').classList.remove('active-galaxy');
-            document.getElementById('milkyway-toggle-btn').innerText = '🌌 Milky Way Mode: ON (Off)';
+            document.getElementById('milkyway-toggle-btn').innerText = '🌌 Milky Way Mode: OFF';
         }
 
         function toggleMilkyWayMode() {
@@ -1199,37 +897,11 @@
             }
         }
 
-        // Raycaster for Earth click detection
-        const raycaster = new THREE.Raycaster();
-        const mouse = new THREE.Vector2();
-
-        container.addEventListener('click', (e) => {
-            if (spaceState !== 'space') return;
-            const rect = renderer.domElement.getBoundingClientRect();
-            mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-            mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-            raycaster.setFromCamera(mouse, camera);
-            
-            if (earthGroupRef) {
-                const intersects = raycaster.intersectObjects(earthGroupRef.children, true);
-                if (intersects.length > 0) {
-                    earthViewMode = !earthViewMode;
-                    if (earthViewMode) {
-                        targetCameraZ = 1.2; // View from Earth
-                        resetIdleTimer();
-                    } else {
-                        targetCameraZ = SPACE_CAM_Z;
-                    }
-                }
-            }
-        });
-
         container.addEventListener('wheel', (e) => {
             if (spaceState === 'space' || spaceState === 'expanding') {
                 e.preventDefault();
                 resetIdleTimer();
-                earthViewMode = false;
-                cameraRadius = Math.max(1.2, Math.min(220, cameraRadius + e.deltaY * 0.15));
+                cameraRadius = Math.max(10, Math.min(120, cameraRadius + e.deltaY * 0.15));
                 targetCameraZ = cameraRadius;
             }
         }, { passive: false });
@@ -1332,7 +1004,6 @@
         const activePointers = new Map();
         const ripples = [];
         let boltTimer = 0;
-        let smokeTimer = 0;
 
         const CHARGE_START_MS = 300;
         const CHARGE_FULL_MS = 10000;
@@ -1403,7 +1074,6 @@
                 const dx = e.clientX - prev.x;
                 const dy = e.clientY - prev.y;
                 if (spaceState === 'space' || spaceState === 'expanding') {
-                    earthViewMode = false;
                     cameraTheta -= dx * 0.008;
                     cameraPhi = Math.max(-1.4, Math.min(1.4, cameraPhi + dy * 0.008));
                 } else {
@@ -1421,8 +1091,7 @@
                 if (pinchStartDist > 0) {
                     const ratio = dist / pinchStartDist;
                     if (spaceState === 'space' || spaceState === 'expanding') {
-                        earthViewMode = false;
-                        cameraRadius = Math.max(1.2, Math.min(220, cameraRadius / ratio));
+                        cameraRadius = Math.max(10, Math.min(120, cameraRadius / ratio));
                         targetCameraZ = cameraRadius;
                     } else {
                         coreScale = Math.max(0.6, Math.min(2.2, pinchStartScale * ratio));
@@ -1481,47 +1150,12 @@
             if (spaceProgress > 0.001) {
                 milkyWayGroup.visible = true;
                 milkyWayGroup.scale.setScalar(Math.max(0.001, ep));
+                milkyWayGroup.rotation.y += 0.0005;
             } else {
                 milkyWayGroup.visible = false;
             }
 
             if (spaceProgress > 0.15) {
-                const ts = nowMs * 0.001;
-
-                // Planet orbits & rotations
-                for (const grp of planetObjs) {
-                    const ud = grp.userData;
-                    const a = ud.angle + ts * ud.speed * 0.12;
-                    grp.position.set(Math.cos(a) * ud.orbit, 0, Math.sin(a) * ud.orbit);
-                    for (const child of grp.children) {
-                        if (child.userData && child.userData.rotSpd) child.rotation.y += child.userData.rotSpd * 0.3;
-                    }
-                }
-
-                sunMesh.rotation.y += 0.002;
-                sunCorona.material.opacity = 0.85 + Math.sin(ts * 1.5) * 0.15;
-
-                if (milkyWayGroup.userData.asteroidBelt) milkyWayGroup.userData.asteroidBelt.rotation.y += 0.0008;
-
-                // STRICT COMET RULE: Exactly 1 comet, passes once every 45 seconds, next one is different
-                if (spaceState === 'space' && (nowMs - lastCometSpawnTime) >= 45000) {
-                    spawnSingleComet();
-                    lastCometSpawnTime = nowMs;
-                }
-
-                if (currentActiveComet) {
-                    currentActiveComet.progress += 0.003;
-                    const t2 = ts * currentActiveComet.speed + currentActiveComet.phase;
-                    const x = Math.cos(t2) * currentActiveComet.a;
-                    const z = Math.sin(t2) * currentActiveComet.b;
-                    const y = Math.sin(t2 * 2) * currentActiveComet.c * 0.3;
-                    currentActiveComet.grp.position.set(x, y, z);
-                    const dir = new THREE.Vector3(-x, -y, -z).normalize();
-                    currentActiveComet.grp.rotation.y = Math.atan2(dir.x, dir.z);
-                    currentActiveComet.grp.rotation.z = Math.atan2(dir.y, Math.sqrt(dir.x**2 + dir.z**2));
-                }
-
-                // Shooting stars / cinematic meteors
                 shootingStarTimer -= 1;
                 if (shootingStarTimer <= 0 && shootingStars.length < 3) {
                     spawnShootingStar();
@@ -1541,19 +1175,12 @@
             }
 
             if (spaceState === 'space') {
-                if (earthViewMode && earthGroupRef) {
-                    const earthPos = earthGroupRef.position.clone();
-                    const offset = new THREE.Vector3(0.6, 0.3, 0.6);
-                    camera.position.lerp(earthPos.clone().add(offset), 0.1);
-                    camera.lookAt(earthPos);
-                } else {
-                    cameraRadius += (targetCameraZ - cameraRadius) * 0.1;
-                    const x = cameraRadius * Math.cos(cameraPhi) * Math.sin(cameraTheta);
-                    const y = cameraRadius * Math.sin(cameraPhi);
-                    const z = cameraRadius * Math.cos(cameraPhi) * Math.cos(cameraTheta);
-                    camera.position.lerp(new THREE.Vector3(x, y, z), 0.1);
-                    camera.lookAt(0, 0, 0);
-                }
+                cameraRadius += (targetCameraZ - cameraRadius) * 0.1;
+                const x = cameraRadius * Math.cos(cameraPhi) * Math.sin(cameraTheta);
+                const y = cameraRadius * Math.sin(cameraPhi);
+                const z = cameraRadius * Math.cos(cameraPhi) * Math.cos(cameraTheta);
+                camera.position.lerp(new THREE.Vector3(x, y, z), 0.1);
+                camera.lookAt(0, 0, 0);
             } else if (spaceState === 'expanding' || spaceState === 'collapsing') {
                 const sX = SPACE_CAM_Z * Math.cos(0.35) * Math.sin(0);
                 const sY = SPACE_CAM_Z * Math.sin(0.35);
@@ -1706,12 +1333,6 @@
         function detectSetup(md) {
             const setups = [];
             if (!md || !md.candles1H || md.candles1H.length < 3) return null;
-            const last = md.candles1H[md.candles1H.length - 1];
-            const bodySize = Math.abs(last.close - last.open);
-            const upperWick = last.high - Math.max(last.open, last.close);
-            const lowerWick = Math.min(last.open, last.close) - last.low;
-            const range = last.high - last.low;
-
             if (md.rsi1H < 30 && md.currentPrice <= md.support * 1.001) setups.push({ type:'BUY', reason:`RSI oversold (${md.rsi1H.toFixed(1)}) + price at support ${md.support.toFixed(5)}`, strength:'STRONG' });
             if (md.rsi1H > 70 && md.currentPrice >= md.resistance * 0.999) setups.push({ type:'SELL', reason:`RSI overbought (${md.rsi1H.toFixed(1)}) + price at resistance ${md.resistance.toFixed(5)}`, strength:'STRONG' });
             if (md.currentPrice > md.resistance * 1.0005) setups.push({ type:'BUY', reason:`Breakout above resistance ${md.resistance.toFixed(5)}`, strength:'STRONG' });
@@ -1801,8 +1422,6 @@
             alertBox.classList.add('active');
             if (!globalData || globalData.signal === 'WAITING') { signalText.innerText = "SETUP"; signalText.style.color = "var(--yellow)"; statusEl.innerText = `Opportunity spotted · ${setup.type}`; updateCoreColor('SETUP'); }
         }
-
-        function isMarketQuestion(text) { return MARKET_KEYWORDS.some(kw => text.toLowerCase().includes(kw)); }
 
         async function callAI(systemPrompt, userText, conversationHistory) {
             const messages = [{ role: 'system', content: systemPrompt }, ...conversationHistory.map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text })), { role: 'user', content: userText }];
@@ -1898,7 +1517,6 @@
         }
 
         async function speakText(text, isReminder = false) {
-            const statusEl = document.getElementById('voice-status');
             if (currentAudio) { currentAudio.pause(); currentAudio = null; }
             if ('speechSynthesis' in window) window.speechSynthesis.cancel();
             const cleanText = text.replace(/\[.*?\]/g, '').trim();
@@ -1974,8 +1592,6 @@
         function buildPersonalityPrompt(includeSignal, userText = "") {
             const now = new Date();
             const istTime = now.toLocaleString('en-IN', {timeZone:'Asia/Kolkata'});
-            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-            const dayName = days[now.getDay()];
             const isWeekend = [0, 6].includes(now.getDay());
             return `You are Alex. Boss's best friend and elite EUR/USD day trader. Keep replies short, punchy, conversational, and caring. IST: ${istTime}. ${isWeekend ? 'IT IS THE WEEKEND. Forex market is closed.' : ''}`;
         }
@@ -1997,21 +1613,14 @@
             } catch(e) { if (document.getElementById('chat-history').contains(loading)) document.getElementById('chat-history').removeChild(loading); } finally { chatInProgress = false; }
         }
 
-        function addReminder(time, message) { reminders.push({id: Math.random().toString(36).substr(2,9), time, message, fired:false}); localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); }
-        function renderReminders() {}
-        function deleteReminder(id) {}
         function clearReminders() { reminders = []; localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); }
-        function testReminder() {}
-        function triggerNotif(title, body) { speakText(`Reminder: ${body}`, true); }
-        function checkReminders() {}
-        function addLongTermMemory(fact) { longTermMemory.push({fact, added: new Date().toISOString().split('T')[0]}); localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); }
-        function renderMemory() {}
         function clearLongTermMemory() { longTermMemory = []; localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); }
         function saveApiKey() { apiKey = document.getElementById('api-key-input').value.trim(); localStorage.setItem('eurusd_chat_key', apiKey); }
         async function saveGroqKey() { groqKey = document.getElementById('groq-key-input').value.trim(); localStorage.setItem('eurusd_groq_key', groqKey); }
 
         window.onload = () => {
             renderChat(); updateCoreColor('HOLD'); updateISTClock();
+            loadWisdom();
             refreshMarketData();
             setInterval(() => { if (chatInProgress) return; refreshMarketData(); }, 60000);
             setInterval(() => { if (chatInProgress) return; askAIForSignal(); }, 3600000);
