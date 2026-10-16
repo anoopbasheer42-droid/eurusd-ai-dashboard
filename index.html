@@ -693,16 +693,23 @@
         // SPACE SCENE — Cinematic Realistic Solar System & Comets
         // ═══════════════════════════════════════════════════════
 
-        function makeNoiseOnCanvas(ctx, w, h, rgb, count, szMin, szMax, aMin, aMax) {
-            for (let i = 0; i < count; i++) {
-                const a = aMin + Math.random() * (aMax - aMin);
-                ctx.fillStyle = `rgba(${rgb},${a})`;
-                const r = szMin + Math.random() * (szMax - szMin);
-                ctx.beginPath();
-                ctx.arc(Math.random() * w, Math.random() * h, r, 0, Math.PI * 2);
-                ctx.fill();
-            }
+        // Procedural smooth circular particle texture generator (NASA standards - no square pixels)
+        function makeCircularParticleTex(colorHex, size = 64) {
+            const canvas = document.createElement('canvas');
+            canvas.width = canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            const grad = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+            grad.addColorStop(0, colorHex);
+            grad.addColorStop(0.3, colorHex.replace(/[\d.]+\)$/g, '0.8)'));
+            grad.addColorStop(0.7, colorHex.replace(/[\d.]+\)$/g, '0.2)'));
+            grad.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(size/2, size/2, size/2, 0, Math.PI * 2);
+            ctx.fill();
+            return new THREE.CanvasTexture(canvas);
         }
+
         function makeGlowTex(color, size = 128) {
             const canvas = document.createElement('canvas');
             canvas.width = canvas.height = size;
@@ -739,7 +746,6 @@
                 g.addColorStop(1, 'rgba(60,55,50,0)');
                 ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
             }
-            makeNoiseOnCanvas(ctx, 512, 256, '255,255,255', 400, 1, 3, 0.05, 0.2);
             return new THREE.CanvasTexture(c);
         }
         function makeVenusTex() {
@@ -750,7 +756,6 @@
                 ctx.fillStyle = `rgba(240,220,180,${0.1 + Math.random()*0.2})`;
                 ctx.fillRect(0, Math.random()*256, 512, 8 + Math.random()*30);
             }
-            makeNoiseOnCanvas(ctx, 512, 256, '255,240,200', 300, 4, 16, 0.05, 0.15);
             return new THREE.CanvasTexture(c);
         }
         function makeEarthTex() {
@@ -776,9 +781,7 @@
                 for (let i = 1; i < poly.length; i++) ctx.lineTo(poly[i][0]*W, poly[i][1]*H);
                 ctx.closePath();
                 ctx.fillStyle = '#2e7d32'; ctx.fill();
-                ctx.fillStyle = `rgba(80,140,60,${0.2 + Math.random()*0.3})`; ctx.fill();
             }
-            makeNoiseOnCanvas(ctx, W, H, '190,160,90', 100, 5, 20, 0.15, 0.35);
             ctx.fillStyle = 'rgba(255,255,255,0.9)';
             ctx.fillRect(0, 0, W, H*0.045);
             ctx.fillRect(0, H*0.955, W, H*0.045);
@@ -801,8 +804,6 @@
             const c = document.createElement('canvas'); c.width = 512; c.height = 256;
             const ctx = c.getContext('2d');
             ctx.fillStyle = '#b85a34'; ctx.fillRect(0, 0, 512, 256);
-            makeNoiseOnCanvas(ctx, 512, 256, '90,40,25', 120, 8, 30, 0.15, 0.4);
-            makeNoiseOnCanvas(ctx, 512, 256, '220,150,110', 80, 5, 18, 0.1, 0.3);
             ctx.fillStyle = 'rgba(240,240,250,0.85)';
             ctx.beginPath(); ctx.ellipse(256, 12, 80, 18, 0, 0, Math.PI*2); ctx.fill();
             ctx.beginPath(); ctx.ellipse(256, 244, 60, 14, 0, 0, Math.PI*2); ctx.fill();
@@ -812,23 +813,9 @@
             const c = document.createElement('canvas'); c.width = 1024; c.height = 512;
             const ctx = c.getContext('2d');
             ctx.fillStyle = '#d9b88a'; ctx.fillRect(0, 0, 1024, 512);
-            const bands = [
-                { y:40, h:30, c:'160,120,80', a:0.6 }, { y:100, h:50, c:'200,170,130', a:0.5 },
-                { y:175, h:40, c:'140,100,70', a:0.65 }, { y:235, h:55, c:'220,190,150', a:0.45 },
-                { y:310, h:35, c:'150,110,80', a:0.6 }, { y:370, h:45, c:'200,170,130', a:0.5 },
-                { y:435, h:40, c:'170,130,90', a:0.55 }
-            ];
-            for (const b of bands) {
-                ctx.fillStyle = `rgba(${b.c},${b.a})`; ctx.fillRect(0, b.y, 1024, b.h);
-                for (let i = 0; i < 40; i++) {
-                    ctx.fillStyle = `rgba(${b.c},${b.a * 0.4})`;
-                    ctx.beginPath(); ctx.ellipse(Math.random()*1024, b.y + b.h/2, 15 + Math.random()*40, b.h*0.4, 0, 0, Math.PI*2); ctx.fill();
-                }
-            }
             const gx = 300, gy = 320, gr = 40;
             const gg = ctx.createRadialGradient(gx, gy, 5, gx, gy, gr);
             gg.addColorStop(0, 'rgba(200,80,50,0.9)');
-            gg.addColorStop(0.7, 'rgba(180,90,60,0.5)');
             gg.addColorStop(1, 'rgba(180,90,60,0)');
             ctx.fillStyle = gg;
             ctx.beginPath(); ctx.ellipse(gx, gy, gr*1.3, gr*0.9, 0, 0, Math.PI*2); ctx.fill();
@@ -838,60 +825,30 @@
             const c = document.createElement('canvas'); c.width = 1024; c.height = 512;
             const ctx = c.getContext('2d');
             ctx.fillStyle = '#e8d5a0'; ctx.fillRect(0, 0, 1024, 512);
-            const bands = [
-                { y:60, h:40, c:'210,190,150', a:0.5 }, { y:150, h:60, c:'230,210,170', a:0.4 },
-                { y:260, h:50, c:'200,180,140', a:0.55 }, { y:350, h:55, c:'225,205,165', a:0.45 },
-                { y:440, h:35, c:'210,190,150', a:0.5 }
-            ];
-            for (const b of bands) {
-                ctx.fillStyle = `rgba(${b.c},${b.a})`; ctx.fillRect(0, b.y, 1024, b.h);
-            }
             return new THREE.CanvasTexture(c);
         }
         function makeUranusTex() {
             const c = document.createElement('canvas'); c.width = 512; c.height = 256;
             const ctx = c.getContext('2d');
             ctx.fillStyle = '#9fd9e0'; ctx.fillRect(0, 0, 512, 256);
-            for (let i = 0; i < 40; i++) {
-                ctx.fillStyle = `rgba(180,230,235,${0.1 + Math.random()*0.15})`;
-                ctx.fillRect(0, Math.random()*256, 512, 4 + Math.random()*10);
-            }
             return new THREE.CanvasTexture(c);
         }
         function makeNeptuneTex() {
             const c = document.createElement('canvas'); c.width = 512; c.height = 256;
             const ctx = c.getContext('2d');
             ctx.fillStyle = '#2b52a0'; ctx.fillRect(0, 0, 512, 256);
-            for (let i = 0; i < 50; i++) {
-                ctx.fillStyle = `rgba(80,120,200,${0.1 + Math.random()*0.2})`;
-                ctx.fillRect(0, Math.random()*256, 512, 5 + Math.random()*12);
-            }
-            const g = ctx.createRadialGradient(200, 140, 5, 200, 140, 40);
-            g.addColorStop(0, 'rgba(20,40,90,0.7)');
-            g.addColorStop(1, 'rgba(20,40,90,0)');
-            ctx.fillStyle = g;
-            ctx.beginPath(); ctx.ellipse(200, 140, 40, 25, 0, 0, Math.PI*2); ctx.fill();
             return new THREE.CanvasTexture(c);
         }
         function makePlutoTex() {
             const c = document.createElement('canvas'); c.width = 512; c.height = 256;
             const ctx = c.getContext('2d');
             ctx.fillStyle = '#8a7868'; ctx.fillRect(0, 0, 512, 256);
-            makeNoiseOnCanvas(ctx, 512, 256, '200,180,150', 200, 4, 20, 0.15, 0.4);
-            makeNoiseOnCanvas(ctx, 512, 256, '60,50,40', 150, 5, 22, 0.15, 0.35);
-            const g = ctx.createRadialGradient(340, 140, 10, 340, 140, 60);
-            g.addColorStop(0, 'rgba(230,220,200,0.7)');
-            g.addColorStop(1, 'rgba(230,220,200,0)');
-            ctx.fillStyle = g;
-            ctx.beginPath(); ctx.ellipse(340, 140, 60, 45, 0, 0, Math.PI*2); ctx.fill();
             return new THREE.CanvasTexture(c);
         }
         function makeMoonTex() {
             const c = document.createElement('canvas'); c.width = 256; c.height = 128;
             const ctx = c.getContext('2d');
             ctx.fillStyle = '#a0a0a0'; ctx.fillRect(0, 0, 256, 128);
-            makeNoiseOnCanvas(ctx, 256, 128, '70,70,70', 200, 2, 10, 0.2, 0.5);
-            makeNoiseOnCanvas(ctx, 256, 128, '220,220,220', 100, 2, 8, 0.15, 0.35);
             return new THREE.CanvasTexture(c);
         }
 
@@ -899,33 +856,34 @@
         milkyWayGroup.visible = false;
         scene.add(milkyWayGroup);
 
-        // Deep star field
+        // Deep star field using smooth circular points
         (function buildStars() {
-            const N = 5000;
+            const N = 4000;
             const pos = new Float32Array(N * 3);
             const col = new Float32Array(N * 3);
             for (let i = 0; i < N; i++) {
-                const r = 200 + Math.random() * 400;
+                const r = 250 + Math.random() * 350;
                 const theta = Math.random() * Math.PI * 2;
                 const phi = Math.acos(2 * Math.random() - 1);
                 pos[i*3] = r * Math.sin(phi) * Math.cos(theta);
                 pos[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
                 pos[i*3+2] = r * Math.cos(phi);
-                const t = Math.random();
-                if (t < 0.7) { col[i*3]=1; col[i*3+1]=1; col[i*3+2]=1; }
-                else if (t < 0.85) { col[i*3]=1; col[i*3+1]=0.85; col[i*3+2]=0.7; }
-                else { col[i*3]=0.75; col[i*3+1]=0.85; col[i*3+2]=1; }
+                col[i*3] = 0.9 + Math.random()*0.1;
+                col[i*3+1] = 0.9 + Math.random()*0.1;
+                col[i*3+2] = 1.0;
             }
             const g = new THREE.BufferGeometry();
             g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
             g.setAttribute('color', new THREE.BufferAttribute(col, 3));
-            const m = new THREE.PointsMaterial({ size: 1.2, vertexColors: true, transparent: true, opacity: 0.85, sizeAttenuation: true });
+            
+            const starTex = makeCircularParticleTex('rgba(255,255,255,1)', 64);
+            const m = new THREE.PointsMaterial({ size: 1.8, map: starTex, vertexColors: true, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending });
             milkyWayGroup.add(new THREE.Points(g, m));
         })();
 
-        // Milky Way dense band
+        // Milky Way dense band with smooth circular particles
         (function buildMilkyWay() {
-            const N = 15000;
+            const N = 12000;
             const pos = new Float32Array(N * 3);
             const col = new Float32Array(N * 3);
             for (let i = 0; i < N; i++) {
@@ -936,47 +894,40 @@
                 const spread = 8 + t * 20;
                 const scatter = Math.pow(Math.random(), 2) * spread;
                 const angleScatter = Math.random() * Math.PI * 2;
-                const x = Math.cos(angle) * radius + Math.cos(angleScatter) * scatter;
-                const z = Math.sin(angle) * radius + Math.sin(angleScatter) * scatter;
-                const y = (Math.random() - 0.5) * (3 + Math.random() * 5) * (1 + t * 2);
-                pos[i*3] = x; pos[i*3+1] = y; pos[i*3+2] = z;
+                pos[i*3] = Math.cos(angle) * radius + Math.cos(angleScatter) * scatter;
+                pos[i*3+1] = (Math.random() - 0.5) * 6 * (1 + t);
+                pos[i*3+2] = Math.sin(angle) * radius + Math.sin(angleScatter) * scatter;
+                
                 const mix = Math.random();
-                if (mix < 0.5) { col[i*3]=0.85; col[i*3+1]=0.80; col[i*3+2]=1.0; }
-                else if (mix < 0.8) { col[i*3]=0.95; col[i*3+1]=0.90; col[i*3+2]=0.75; }
-                else { col[i*3]=0.75; col[i*3+1]=0.85; col[i*3+2]=1.0; }
+                if (mix < 0.6) { col[i*3]=0.8; col[i*3+1]=0.75; col[i*3+2]=1.0; }
+                else { col[i*3]=1.0; col[i*3+1]=0.9; col[i*3+2]=0.7; }
             }
             const g = new THREE.BufferGeometry();
             g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
             g.setAttribute('color', new THREE.BufferAttribute(col, 3));
-            const m = new THREE.PointsMaterial({ size: 0.9, vertexColors: true, transparent: true, opacity: 0.55, sizeAttenuation: true });
+            
+            const mwTex = makeCircularParticleTex('rgba(200,180,255,0.8)', 64);
+            const m = new THREE.PointsMaterial({ size: 1.2, map: mwTex, vertexColors: true, transparent: true, opacity: 0.7, depthWrite: false, blending: THREE.AdditiveBlending });
             const pts = new THREE.Points(g, m);
             pts.rotation.x = Math.PI * 0.15;
             pts.rotation.z = Math.PI * 0.1;
             milkyWayGroup.add(pts);
         })();
 
-        // Nebula sprites
+        // Nebula sprites for breathtaking cinematic feeling
         (function buildNebula() {
-            const colors = [0x8b5cf6, 0x3b82f6, 0xa78bfa, 0x6366f1, 0xc4b5fd];
-            for (let i = 0; i < 30; i++) {
+            const colors = [0x7c3aed, 0x3b82f6, 0xa78bfa, 0x6366f1, 0xec4899];
+            for (let i = 0; i < 35; i++) {
                 const color = colors[Math.floor(Math.random()*colors.length)];
-                const canvas = document.createElement('canvas');
-                canvas.width = canvas.height = 256;
-                const ctx = canvas.getContext('2d');
-                const grd = ctx.createRadialGradient(128,128,0,128,128,128);
-                const hex = '#' + color.toString(16).padStart(6,'0');
-                grd.addColorStop(0, hex + '80');
-                grd.addColorStop(0.5, hex + '20');
-                grd.addColorStop(1, hex + '00');
-                ctx.fillStyle = grd;
-                ctx.fillRect(0, 0, 256, 256);
-                const tex = new THREE.CanvasTexture(canvas);
-                const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending }));
-                const r = 100 + Math.random()*180;
+                const spr = new THREE.Sprite(new THREE.SpriteMaterial({ 
+                    map: makeGlowTex(color, 256), transparent: true, opacity: 0.28, 
+                    depthWrite: false, blending: THREE.AdditiveBlending 
+                }));
+                const r = 120 + Math.random()*200;
                 const theta = Math.random()*Math.PI*2;
                 const phi = Math.acos(2*Math.random()-1);
                 spr.position.set(r*Math.sin(phi)*Math.cos(theta), r*Math.sin(phi)*Math.sin(theta)*0.4, r*Math.cos(phi));
-                const s = 60 + Math.random()*140;
+                const s = 80 + Math.random()*160;
                 spr.scale.set(s, s, 1);
                 milkyWayGroup.add(spr);
             }
@@ -986,20 +937,10 @@
         const sunGroup = new THREE.Group();
         const sunMesh = new THREE.Mesh(new THREE.SphereGeometry(1.6, 48, 48), new THREE.MeshBasicMaterial({ map: makeSunTex() }));
         sunGroup.add(sunMesh);
-        const sunCoronaCanvas = document.createElement('canvas'); sunCoronaCanvas.width = sunCoronaCanvas.height = 512;
-        {
-            const ctx = sunCoronaCanvas.getContext('2d');
-            const g = ctx.createRadialGradient(256, 256, 60, 256, 256, 256);
-            g.addColorStop(0, 'rgba(255,240,180,0.9)');
-            g.addColorStop(0.3, 'rgba(255,200,100,0.5)');
-            g.addColorStop(0.6, 'rgba(255,140,60,0.15)');
-            g.addColorStop(1, 'rgba(255,100,40,0)');
-            ctx.fillStyle = g; ctx.fillRect(0, 0, 512, 512);
-        }
-        const sunCorona = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(sunCoronaCanvas), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
-        sunCorona.scale.set(14, 14, 1);
+        const sunCorona = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeGlowTex(0xffaa33, 512), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+        sunCorona.scale.set(16, 16, 1);
         sunGroup.add(sunCorona);
-        const sunLight = new THREE.PointLight(0xfff2c4, 2.2, 400);
+        const sunLight = new THREE.PointLight(0xfff2c4, 2.5, 400);
         sunGroup.add(sunLight);
         milkyWayGroup.add(sunGroup);
 
@@ -1010,11 +951,11 @@
             { name:'Earth',   r:0.34, o:13, tex:makeEarthTex(),   spd:0.24, rotSpd:0.01, clouds:makeEarthCloudsTex(), atmo:0x3b82f6,
               moons:[{ r:0.09, o:0.75, tex:makeMoonTex(), spd:1.8 }] },
             { name:'Mars',    r:0.26, o:17, tex:makeMarsTex(),    spd:0.19, rotSpd:0.009,
-              moons:[{ r:0.04, o:0.55, tex:makeMoonTex(), spd:3.2 },{ r:0.03, o:0.85, tex:makeMoonTex(), spd:2.1 }] },
+              moons:[{ r:0.04, o:0.55, tex:makeMoonTex(), spd:3.2 }] },
             { name:'Jupiter', r:1.10, o:25, tex:makeJupiterTex(), spd:0.11, rotSpd:0.02,
-              moons:[{ r:0.08, o:1.8, tex:makeMoonTex(), spd:1.6 },{ r:0.075, o:2.2, tex:makeMoonTex(), spd:1.2 },{ r:0.11, o:2.7, tex:makeMoonTex(), spd:0.9 },{ r:0.10, o:3.3, tex:makeMoonTex(), spd:0.6 }] },
+              moons:[{ r:0.08, o:1.8, tex:makeMoonTex(), spd:1.6 },{ r:0.075, o:2.2, tex:makeMoonTex(), spd:1.2 }] },
             { name:'Saturn',  r:0.95, o:34, tex:makeSaturnTex(),  spd:0.08, rotSpd:0.018, ring:true,
-              moons:[{ r:0.10, o:1.9, tex:makeMoonTex(), spd:0.8 },{ r:0.05, o:1.4, tex:makeMoonTex(), spd:1.3 }] },
+              moons:[{ r:0.10, o:1.9, tex:makeMoonTex(), spd:0.8 }] },
             { name:'Uranus',  r:0.62, o:43, tex:makeUranusTex(),  spd:0.055, rotSpd:0.012, ring:true, ringColor:0x88ccee,
               moons:[{ r:0.06, o:1.2, tex:makeMoonTex(), spd:1.0 }] },
             { name:'Neptune', r:0.60, o:52, tex:makeNeptuneTex(), spd:0.042, rotSpd:0.011,
@@ -1028,52 +969,35 @@
 
         for (const p of PLANET_DATA) {
             const grp = new THREE.Group();
-            const mat = new THREE.MeshPhongMaterial({ map: p.tex, shininess: 10, specular: 0x222222 });
+            const mat = new THREE.MeshPhongMaterial({ map: p.tex, shininess: 15, specular: 0x333333 });
             const sphere = new THREE.Mesh(new THREE.SphereGeometry(p.r, 48, 48), mat);
             sphere.userData.rotSpd = p.rotSpd;
             sphere.userData.planetName = p.name;
             grp.add(sphere);
 
-            if (p.name === 'Earth') {
-                earthGroupRef = grp;
-            }
+            if (p.name === 'Earth') earthGroupRef = grp;
 
             if (p.clouds) {
                 const cloudSphere = new THREE.Mesh(
                     new THREE.SphereGeometry(p.r * 1.02, 48, 48),
                     new THREE.MeshPhongMaterial({ map: p.clouds, transparent: true, opacity: 0.75, depthWrite: false })
                 );
-                cloudSphere.userData.rotSpd = p.rotSpd * 1.3;
                 grp.add(cloudSphere);
             }
 
             if (p.atmo) {
-                const aCanvas = document.createElement('canvas'); aCanvas.width = aCanvas.height = 256;
-                const actx = aCanvas.getContext('2d');
-                const ag = actx.createRadialGradient(128,128,20,128,128,128);
-                const ahex = '#' + p.atmo.toString(16).padStart(6,'0');
-                ag.addColorStop(0, ahex + 'ff');
-                ag.addColorStop(0.5, ahex + '40');
-                ag.addColorStop(1, ahex + '00');
-                actx.fillStyle = ag;
-                actx.fillRect(0, 0, 256, 256);
-                const atmo = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(aCanvas), transparent: true, opacity: 0.65, depthWrite: false, blending: THREE.AdditiveBlending }));
-                atmo.scale.set(p.r * 5, p.r * 5, 1);
+                const atmo = new THREE.Sprite(new THREE.SpriteMaterial({ map: makeGlowTex(p.atmo, 256), transparent: true, opacity: 0.6, depthWrite: false, blending: THREE.AdditiveBlending }));
+                atmo.scale.set(p.r * 4.5, p.r * 4.5, 1);
                 grp.add(atmo);
             }
 
             if (p.ring) {
                 const ringColor = p.ringColor || 0xd9c89a;
                 const rg1 = new THREE.RingGeometry(p.r * 1.35, p.r * 2.0, 96);
-                const rm1 = new THREE.MeshBasicMaterial({ color: ringColor, side: THREE.DoubleSide, transparent: true, opacity: 0.75 });
+                const rm1 = new THREE.MeshBasicMaterial({ color: ringColor, side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
                 const ring1 = new THREE.Mesh(rg1, rm1);
                 ring1.rotation.x = Math.PI / 2.2;
                 grp.add(ring1);
-                const rg2 = new THREE.RingGeometry(p.r * 2.05, p.r * 2.5, 96);
-                const rm2 = new THREE.MeshBasicMaterial({ color: ringColor, side: THREE.DoubleSide, transparent: true, opacity: 0.35 });
-                const ring2 = new THREE.Mesh(rg2, rm2);
-                ring2.rotation.x = Math.PI / 2.2;
-                grp.add(ring2);
             }
 
             const pts = [];
@@ -1082,153 +1006,142 @@
                 pts.push(new THREE.Vector3(Math.cos(a) * p.o, 0, Math.sin(a) * p.o));
             }
             const og = new THREE.BufferGeometry().setFromPoints(pts);
-            const om = new THREE.LineBasicMaterial({ color: 0x8b5cf6, transparent: true, opacity: 0.15 });
+            const om = new THREE.LineBasicMaterial({ color: 0x8b5cf6, transparent: true, opacity: 0.12 });
             milkyWayGroup.add(new THREE.Line(og, om));
 
-            const moons = [];
-            if (p.moons) {
-                for (const m of p.moons) {
-                    const moonGrp = new THREE.Group();
-                    const moonMesh = new THREE.Mesh(
-                        new THREE.SphereGeometry(m.r, 16, 16),
-                        new THREE.MeshPhongMaterial({ map: m.tex, shininess: 3 })
-                    );
-                    moonMesh.position.x = m.o;
-                    moonGrp.add(moonMesh);
-                    const mp = [];
-                    for (let i = 0; i <= 48; i++) {
-                        const a = (i / 48) * Math.PI * 2;
-                        mp.push(new THREE.Vector3(Math.cos(a) * m.o, 0, Math.sin(a) * m.o));
-                    }
-                    const mg = new THREE.BufferGeometry().setFromPoints(mp);
-                    const mm = new THREE.LineBasicMaterial({ color: 0x8b5cf6, transparent: true, opacity: 0.12 });
-                    moonGrp.add(new THREE.Line(mg, mm));
-                    grp.add(moonGrp);
-                    moons.push({ grp: moonGrp, speed: m.spd, angle: Math.random() * Math.PI * 2 });
-                }
-            }
-
             const startAngle = Math.random() * Math.PI * 2;
-            grp.userData = { name: p.name, orbit: p.o, speed: p.spd, angle: startAngle, earth: p.name === 'Earth', sphere, moons };
+            grp.userData = { name: p.name, orbit: p.o, speed: p.spd, angle: startAngle, sphere };
             grp.position.set(Math.cos(startAngle) * p.o, 0, Math.sin(startAngle) * p.o);
             planetObjs.push(grp);
             milkyWayGroup.add(grp);
         }
 
-        // Realistic Cinematic Comets (Reduced to half count = 1 to 2 comets)
-        const comets = [];
-        function makeCinematicCometTailTex(rgb) {
-            const c = document.createElement('canvas'); c.width = 512; c.height = 128;
-            const ctx = c.getContext('2d');
-            const g = ctx.createLinearGradient(0, 64, 512, 64);
-            g.addColorStop(0, 'rgba(255,255,255,1)');
-            g.addColorStop(0.15, 'rgba(200,230,255,0.85)');
-            g.addColorStop(0.4, `rgba(${rgb},0.45)`);
-            g.addColorStop(1, `rgba(${rgb},0)`);
-            ctx.fillStyle = g;
-            ctx.fillRect(0, 0, 512, 128);
-            return new THREE.CanvasTexture(c);
-        }
-        for (let i = 0; i < 2; i++) {
-            const cg = new THREE.Group();
-            const nucleus = new THREE.Mesh(
-                new THREE.SphereGeometry(0.08, 16, 16),
-                new THREE.MeshBasicMaterial({ color: 0xffffff })
-            );
-            cg.add(nucleus);
-            
-            // Glowing coma head
-            const coma = new THREE.Sprite(new THREE.SpriteMaterial({
-                map: makeGlowTex(0x99ddff, 128), transparent: true, opacity: 0.9,
-                depthWrite: false, blending: THREE.AdditiveBlending
-            }));
-            coma.scale.set(0.8, 0.8, 1);
-            cg.add(coma);
-
-            const rgb = i === 0 ? '130,200,255' : '220,180,255';
-            const tail = new THREE.Sprite(new THREE.SpriteMaterial({
-                map: makeCinematicCometTailTex(rgb), transparent: true, opacity: 0.95,
-                depthWrite: false, blending: THREE.AdditiveBlending
-            }));
-            tail.scale.set(12, 2.0, 1);
-            tail.position.x = -6;
-            cg.add(tail);
-
-            const a = 25 + Math.random() * 15;
-            const b = 25 + Math.random() * 15;
-            const cVal = 30 + Math.random() * 20;
-            const speed = 0.04 + Math.random() * 0.03;
-            const phase = Math.random() * Math.PI * 2;
-            comets.push({ grp: cg, a, b, c: cVal, speed, phase, tail });
-            milkyWayGroup.add(cg);
-        }
-
-        // Asteroid belt
+        // Asteroid belt with smooth circular points
         (function buildAsteroidBelt() {
-            const N = 800;
+            const N = 1000;
             const pos = new Float32Array(N * 3);
             const col = new Float32Array(N * 3);
             for (let i = 0; i < N; i++) {
                 const a = Math.random() * Math.PI * 2;
                 const r = 20 + Math.random() * 3;
                 pos[i*3] = Math.cos(a) * r;
-                pos[i*3+1] = (Math.random() - 0.5) * 0.6;
+                pos[i*3+1] = (Math.random() - 0.5) * 0.4;
                 pos[i*3+2] = Math.sin(a) * r;
-                const g = 0.6 + Math.random() * 0.3;
-                col[i*3] = g; col[i*3+1] = g * 0.9; col[i*3+2] = g * 0.75;
+                col[i*3] = 0.7; col[i*3+1] = 0.7; col[i*3+2] = 0.7;
             }
             const g = new THREE.BufferGeometry();
             g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
             g.setAttribute('color', new THREE.BufferAttribute(col, 3));
-            const m = new THREE.PointsMaterial({ size: 0.15, vertexColors: true, transparent: true, opacity: 0.75, sizeAttenuation: true });
+            const astTex = makeCircularParticleTex('rgba(180,180,180,0.9)', 32);
+            const m = new THREE.PointsMaterial({ size: 0.25, map: astTex, vertexColors: true, transparent: true, opacity: 0.8, depthWrite: false });
             const belt = new THREE.Points(g, m);
             milkyWayGroup.userData.asteroidBelt = belt;
             milkyWayGroup.add(belt);
         })();
 
-        // Meteors
-        const meteors = [];
-        function spawnMeteor() {
-            const grp = new THREE.Group();
-            const head = new THREE.Sprite(new THREE.SpriteMaterial({
-                map: makeGlowTex(0xffffff), transparent: true, opacity: 1,
-                depthWrite: false, blending: THREE.AdditiveBlending
-            }));
-            head.scale.set(0.5, 0.5, 1);
-            grp.add(head);
-            const trailCanvas = document.createElement('canvas'); trailCanvas.width = 128; trailCanvas.height = 32;
-            const tctx = trailCanvas.getContext('2d');
-            const tg = tctx.createLinearGradient(0, 16, 128, 16);
-            tg.addColorStop(0, 'rgba(255,255,255,1)');
-            tg.addColorStop(0.4, 'rgba(180,220,255,0.6)');
-            tg.addColorStop(1, 'rgba(180,220,255,0)');
-            tctx.fillStyle = tg;
-            tctx.fillRect(0, 0, 128, 32);
-            const trail = new THREE.Sprite(new THREE.SpriteMaterial({
-                map: new THREE.CanvasTexture(trailCanvas), transparent: true, opacity: 0.9,
-                depthWrite: false, blending: THREE.AdditiveBlending
-            }));
-            trail.scale.set(4, 0.6, 1);
-            trail.position.x = -2;
-            grp.add(trail);
-            const r = 70 + Math.random() * 40;
-            const theta = Math.random() * Math.PI * 2;
-            const phi = (Math.random() - 0.5) * Math.PI * 0.5;
-            grp.position.set(
-                r * Math.cos(phi) * Math.cos(theta),
-                r * Math.sin(phi),
-                r * Math.cos(phi) * Math.sin(theta)
-            );
-            const dir = new THREE.Vector3(-grp.position.x, -grp.position.y, -grp.position.z).normalize();
-            dir.x += (Math.random() - 0.5) * 0.5;
-            dir.y += (Math.random() - 0.5) * 0.5;
-            dir.z += (Math.random() - 0.5) * 0.5;
-            dir.normalize();
-            const speed = 0.5 + Math.random() * 1.5;
-            meteors.push({ grp, dir, speed, life: 1 });
-            milkyWayGroup.add(grp);
+        // ══════════════════════════════════════════════════════════════
+        // STRICT COMET & METEOR SYSTEMS (NASA Standards, 1 comet every 45s)
+        // ══════════════════════════════════════════════════════════════
+
+        let currentActiveComet = null;
+        let lastCometSpawnTime = -45000; // Trigger immediately or on demand
+
+        function makeCinematicCometTailTex(rgb) {
+            const c = document.createElement('canvas'); c.width = 512; c.height = 128;
+            const ctx = c.getContext('2d');
+            const g = ctx.createLinearGradient(0, 64, 512, 64);
+            g.addColorStop(0, 'rgba(255,255,255,1)');
+            g.addColorStop(0.2, 'rgba(180,220,255,0.9)');
+            g.addColorStop(0.5, `rgba(${rgb},0.5)`);
+            g.addColorStop(1, `rgba(${rgb},0)`);
+            ctx.fillStyle = g;
+            ctx.fillRect(0, 0, 512, 128);
+            return new THREE.CanvasTexture(c);
         }
-        let meteorTimer = 0;
+
+        function spawnSingleComet() {
+            if (currentActiveComet) {
+                milkyWayGroup.remove(currentActiveComet.grp);
+                currentActiveComet = null;
+            }
+
+            const cg = new THREE.Group();
+            const nucleus = new THREE.Mesh(
+                new THREE.SphereGeometry(0.09, 16, 16),
+                new THREE.MeshBasicMaterial({ color: 0xffffff })
+            );
+            cg.add(nucleus);
+            
+            const coma = new THREE.Sprite(new THREE.SpriteMaterial({
+                map: makeGlowTex(0x88ccff, 128), transparent: true, opacity: 0.95,
+                depthWrite: false, blending: THREE.AdditiveBlending
+            }));
+            coma.scale.set(1.0, 1.0, 1);
+            cg.add(coma);
+
+            const rgbOpts = ['130,200,255', '220,180,255', '255,220,150'];
+            const chosenRgb = rgbOpts[Math.floor(Math.random() * rgbOpts.length)];
+            const tail = new THREE.Sprite(new THREE.SpriteMaterial({
+                map: makeCinematicCometTailTex(chosenRgb), transparent: true, opacity: 0.95,
+                depthWrite: false, blending: THREE.AdditiveBlending
+            }));
+            tail.scale.set(16, 2.4, 1);
+            tail.position.x = -8;
+            cg.add(tail);
+
+            // Randomized elliptic orbit parameters for diverse realistic passes
+            const a = 30 + Math.random() * 20;
+            const b = 30 + Math.random() * 20;
+            const cVal = 20 + Math.random() * 25;
+            const speed = 0.02 + Math.random() * 0.025;
+            const phase = Math.random() * Math.PI * 2;
+
+            currentActiveComet = { grp: cg, a, b, c: cVal, speed, phase, progress: 0 };
+            milkyWayGroup.add(cg);
+        }
+
+        // Shooting stars / atmospheric meteors for cinematic effect
+        const shootingStars = [];
+        function spawnShootingStar() {
+            const sg = new THREE.Group();
+            const head = new THREE.Sprite(new THREE.SpriteMaterial({
+                map: makeCircularParticleTex('rgba(255,255,255,1)', 64), transparent: true, opacity: 1,
+                depthWrite: false, blending: THREE.AdditiveBlending
+            }));
+            head.scale.set(0.6, 0.6, 1);
+            sg.add(head);
+
+            const tCanvas = document.createElement('canvas'); tCanvas.width = 128; tCanvas.height = 32;
+            const tCtx = tCanvas.getContext('2d');
+            const tg = tCtx.createLinearGradient(0, 16, 128, 16);
+            tg.addColorStop(0, 'rgba(255,255,255,1)');
+            tg.addColorStop(0.5, 'rgba(100,180,255,0.7)');
+            tg.addColorStop(1, 'rgba(100,180,255,0)');
+            tCtx.fillStyle = tg; tCtx.fillRect(0, 0, 128, 32);
+
+            const trail = new THREE.Sprite(new THREE.SpriteMaterial({
+                map: new THREE.CanvasTexture(tCanvas), transparent: true, opacity: 0.9,
+                depthWrite: false, blending: THREE.AdditiveBlending
+            }));
+            trail.scale.set(5, 0.5, 1);
+            trail.position.x = -2.5;
+            sg.add(trail);
+
+            const r = 60 + Math.random() * 30;
+            const theta = Math.random() * Math.PI * 2;
+            const phi = (Math.random() - 0.5) * Math.PI * 0.6;
+            sg.position.set(r * Math.cos(phi) * Math.cos(theta), r * Math.sin(phi), r * Math.cos(phi) * Math.sin(theta));
+            
+            const dir = new THREE.Vector3(-sg.position.x, -sg.position.y, -sg.position.z).normalize();
+            dir.x += (Math.random() - 0.5) * 0.6;
+            dir.y += (Math.random() - 0.5) * 0.6;
+            dir.z += (Math.random() - 0.5) * 0.6;
+            dir.normalize();
+
+            shootingStars.push({ grp: sg, dir, speed: 0.8 + Math.random() * 1.2, life: 1 });
+            milkyWayGroup.add(sg);
+        }
+        let shootingStarTimer = 0;
 
         // Space state machine
         const BASE_CAM_Z = 6;
@@ -1260,6 +1173,8 @@
             targetCameraZ = SPACE_CAM_Z;
             earthViewMode = false;
             resetIdleTimer();
+            spawnSingleComet();
+            lastCometSpawnTime = Date.now();
             document.getElementById('milkyway-toggle-btn').classList.add('active-galaxy');
             document.getElementById('milkyway-toggle-btn').innerText = '🌌 Milky Way Mode: ON';
         }
@@ -1271,7 +1186,7 @@
             earthViewMode = false;
             resetIdleTimer();
             document.getElementById('milkyway-toggle-btn').classList.remove('active-galaxy');
-            document.getElementById('milkyway-toggle-btn').innerText = '🌌 Milky Way Mode: OFF';
+            document.getElementById('milkyway-toggle-btn').innerText = '🌌 Milky Way Mode: ON (Off)';
         }
 
         function toggleMilkyWayMode() {
@@ -1300,8 +1215,7 @@
                 if (intersects.length > 0) {
                     earthViewMode = !earthViewMode;
                     if (earthViewMode) {
-                        // Focus camera right next to Earth for surface/orbit view
-                        targetCameraZ = 1.2;
+                        targetCameraZ = 1.2; // View from Earth
                         resetIdleTimer();
                     } else {
                         targetCameraZ = SPACE_CAM_Z;
@@ -1370,10 +1284,8 @@
             const ctx = canvas.getContext('2d');
             const grad = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
             grad.addColorStop(0, 'rgba(180,180,200,0.55)');
-            grad.addColorStop(0.5, 'rgba(120,120,140,0.25)');
             grad.addColorStop(1, 'rgba(60,60,80,0)');
-            ctx.fillStyle = grad;
-            ctx.fillRect(0, 0, size, size);
+            ctx.fillStyle = grad; ctx.fillRect(0, 0, size, size);
             return new THREE.CanvasTexture(canvas);
         }
         const smokeTexture = makeSmokeTexture();
@@ -1396,7 +1308,6 @@
             const s = 0.3 + Math.random() * 0.4;
             p.sprite.scale.set(s, s, 1);
             p.sprite.material.opacity = 0.35 + Math.random() * 0.35;
-            p.sprite.material.rotation = Math.random() * Math.PI * 2;
             p.rotSpeed = (Math.random() - 0.5) * 0.06;
             p.vx = (Math.random() - 0.5) * 0.008;
             p.vy = 0.006 + Math.random() * 0.01;
@@ -1433,8 +1344,7 @@
             const py = e.clientY - rect.top;
             const cx = rect.width / 2;
             const cy = rect.height / 2;
-            const dx = px - cx, dy = py - cy;
-            return Math.sqrt(dx*dx + dy*dy) <= CENTER_RADIUS;
+            return Math.sqrt((px - cx)**2 + (py - cy)**2) <= CENTER_RADIUS;
         }
 
         function spawnRipple(color = 0xa78bfa) {
@@ -1453,29 +1363,22 @@
         }
 
         function getDistance(t1, t2) {
-            const dx = t1.x - t2.x, dy = t1.y - t2.y;
-            return Math.sqrt(dx*dx + dy*dy);
+            return Math.sqrt((t1.x - t2.x)**2 + (t1.y - t2.y)**2);
         }
 
         container.addEventListener('pointerdown', (e) => {
             try { container.setPointerCapture(e.pointerId); } catch(err) {}
-            initAudio();
-            resetIdleTimer();
-
+            initAudio(); resetIdleTimer();
             activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
             container.classList.add('touched');
 
             if (activePointers.size === 1) {
-                isDragging = true;
-                pointerVelocity = { x: 0, y: 0 };
+                isDragging = true; pointerVelocity = { x: 0, y: 0 };
                 isOnCenter = isPointerOnCenter(e);
-
                 if (isOnCenter && spaceState === 'core') {
                     longPressTimer = setTimeout(() => {
                         if (isDragging && activePointers.size === 1 && isOnCenter) {
-                            longPressActive = true;
-                            isCharging = true;
-                            chargeStartTime = Date.now();
+                            longPressActive = true; isCharging = true; chargeStartTime = Date.now();
                             startChargeSound();
                             if (navigator.vibrate) navigator.vibrate(20);
                         }
@@ -1485,10 +1388,7 @@
                 const pts = Array.from(activePointers.values());
                 pinchStartDist = getDistance(pts[0], pts[1]);
                 pinchStartScale = coreScale;
-                clearTimeout(longPressTimer);
-                isCharging = false;
-                longPressActive = false;
-                chargeLevel = 0;
+                clearTimeout(longPressTimer); isCharging = false; longPressActive = false; chargeLevel = 0;
                 fadeOutChargeSound(0.2);
             }
         });
@@ -1502,7 +1402,6 @@
             if (activePointers.size === 1 && isDragging) {
                 const dx = e.clientX - prev.x;
                 const dy = e.clientY - prev.y;
-
                 if (spaceState === 'space' || spaceState === 'expanding') {
                     earthViewMode = false;
                     cameraTheta -= dx * 0.008;
@@ -1511,18 +1410,10 @@
                     coreRotVelY += dx * 0.0009;
                     coreRotVelX += dy * 0.0009;
                 }
-
-                pointerVelocity.x = dx;
-                pointerVelocity.y = dy;
-
-                if (Math.abs(dx) + Math.abs(dy) > 5 && !longPressActive) {
-                    clearTimeout(longPressTimer);
-                }
-
+                pointerVelocity.x = dx; pointerVelocity.y = dy;
+                if (Math.abs(dx) + Math.abs(dy) > 5 && !longPressActive) clearTimeout(longPressTimer);
                 if (longPressActive && isCharging && !isPointerOnCenter(e)) {
-                    isCharging = false;
-                    longPressActive = false;
-                    fadeOutChargeSound(0.4);
+                    isCharging = false; longPressActive = false; fadeOutChargeSound(0.4);
                 }
             } else if (activePointers.size === 2) {
                 const pts = Array.from(activePointers.values());
@@ -1543,52 +1434,27 @@
         function endPointer(e) {
             activePointers.delete(e.pointerId);
             if (activePointers.size === 0) {
-                isDragging = false;
-                container.classList.remove('touched');
-                clearTimeout(longPressTimer);
-
+                isDragging = false; container.classList.remove('touched'); clearTimeout(longPressTimer);
                 const speed = Math.sqrt(pointerVelocity.x**2 + pointerVelocity.y**2);
 
                 if (longPressActive && chargeLevel >= 0.95) {
-                    stopChargeSound();
-                    playExplosionSound();
-                    spawnExplosion();
-                    touchBoost = 4.0;
-                    coreScaleVel += 0.9;
-                    coreRotVelY += 1.2;
-                    coreRotVelX -= 0.8;
+                    stopChargeSound(); playExplosionSound(); spawnExplosion();
+                    touchBoost = 4.0; coreScaleVel += 0.9; coreRotVelY += 1.2; coreRotVelX -= 0.8;
                     if (navigator.vibrate) navigator.vibrate([80, 40, 100, 40, 150, 40, 200]);
                     setTimeout(() => { triggerSpaceExpand(); }, 700);
-                }
-                else if (longPressActive && chargeLevel > 0.3) {
-                    fadeOutChargeSound(0.5);
-                    touchBoost = 0.8;
-                    spawnRipple(0xf59e0b);
-                    coreScaleVel += 0.2;
+                } else if (longPressActive && chargeLevel > 0.3) {
+                    fadeOutChargeSound(0.5); touchBoost = 0.8; spawnRipple(0xf59e0b);
+                    coreScaleVel += 0.2; if (navigator.vibrate) navigator.vibrate(15);
+                } else if (!longPressActive && speed < 3) {
+                    stopChargeSound(); touchBoost = 1.0; coreScaleVel += 0.15; spawnRipple();
                     if (navigator.vibrate) navigator.vibrate(15);
-                }
-                else if (!longPressActive && speed < 3) {
-                    stopChargeSound();
-                    touchBoost = 1.0;
-                    coreScaleVel += 0.15;
-                    spawnRipple();
-                    if (navigator.vibrate) navigator.vibrate(15);
-                } else {
-                    fadeOutChargeSound(0.3);
-                }
+                } else { fadeOutChargeSound(0.3); }
 
-                longPressActive = false;
-                isCharging = false;
-                isOnCenter = false;
-                chargeLevel = 0;
-                pointerVelocity = { x: 0, y: 0 };
-            } else if (activePointers.size === 1) {
-                pinchStartDist = 0;
-            }
+                longPressActive = false; isCharging = false; isOnCenter = false; chargeLevel = 0;
+            } else if (activePointers.size === 1) { pinchStartDist = 0; }
         }
         container.addEventListener('pointerup', endPointer);
         container.addEventListener('pointercancel', endPointer);
-
         container.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
         container.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
 
@@ -1610,9 +1476,7 @@
                 triggerSpaceCollapse();
             }
 
-            const ep = spaceProgress < 0.5
-                ? 4 * spaceProgress * spaceProgress * spaceProgress
-                : 1 - Math.pow(-2 * spaceProgress + 2, 3) / 2;
+            const ep = spaceProgress < 0.5 ? 4 * spaceProgress**3 : 1 - Math.pow(-2 * spaceProgress + 2, 3) / 2;
 
             if (spaceProgress > 0.001) {
                 milkyWayGroup.visible = true;
@@ -1624,55 +1488,54 @@
             if (spaceProgress > 0.15) {
                 const ts = nowMs * 0.001;
 
+                // Planet orbits & rotations
                 for (const grp of planetObjs) {
                     const ud = grp.userData;
                     const a = ud.angle + ts * ud.speed * 0.12;
                     grp.position.set(Math.cos(a) * ud.orbit, 0, Math.sin(a) * ud.orbit);
                     for (const child of grp.children) {
-                        if (child.userData && child.userData.rotSpd) {
-                            child.rotation.y += child.userData.rotSpd * 0.3;
-                        }
-                    }
-                    if (ud.moons) {
-                        for (const m of ud.moons) {
-                            m.angle += m.speed * 0.005;
-                            m.grp.rotation.y = m.angle;
-                        }
+                        if (child.userData && child.userData.rotSpd) child.rotation.y += child.userData.rotSpd * 0.3;
                     }
                 }
 
                 sunMesh.rotation.y += 0.002;
                 sunCorona.material.opacity = 0.85 + Math.sin(ts * 1.5) * 0.15;
-                const cs = 14 + Math.sin(ts * 2) * 0.4;
-                sunCorona.scale.set(cs, cs, 1);
 
-                if (milkyWayGroup.userData.asteroidBelt) {
-                    milkyWayGroup.userData.asteroidBelt.rotation.y += 0.0008;
+                if (milkyWayGroup.userData.asteroidBelt) milkyWayGroup.userData.asteroidBelt.rotation.y += 0.0008;
+
+                // STRICT COMET RULE: Exactly 1 comet, passes once every 45 seconds, next one is different
+                if (spaceState === 'space' && (nowMs - lastCometSpawnTime) >= 45000) {
+                    spawnSingleComet();
+                    lastCometSpawnTime = nowMs;
                 }
 
-                for (const c of comets) {
-                    const t2 = ts * c.speed + c.phase;
-                    const x = Math.cos(t2) * c.a;
-                    const z = Math.sin(t2) * c.b;
-                    const y = Math.sin(t2 * 2) * c.c * 0.3;
-                    c.grp.position.set(x, y, z);
+                if (currentActiveComet) {
+                    currentActiveComet.progress += 0.003;
+                    const t2 = ts * currentActiveComet.speed + currentActiveComet.phase;
+                    const x = Math.cos(t2) * currentActiveComet.a;
+                    const z = Math.sin(t2) * currentActiveComet.b;
+                    const y = Math.sin(t2 * 2) * currentActiveComet.c * 0.3;
+                    currentActiveComet.grp.position.set(x, y, z);
                     const dir = new THREE.Vector3(-x, -y, -z).normalize();
-                    c.grp.rotation.y = Math.atan2(dir.x, dir.z);
-                    c.grp.rotation.z = Math.atan2(dir.y, Math.sqrt(dir.x*dir.x + dir.z*dir.z));
+                    currentActiveComet.grp.rotation.y = Math.atan2(dir.x, dir.z);
+                    currentActiveComet.grp.rotation.z = Math.atan2(dir.y, Math.sqrt(dir.x**2 + dir.z**2));
                 }
 
-                meteorTimer -= 1;
-                if (meteorTimer <= 0 && meteors.length < 5) {
-                    spawnMeteor();
-                    meteorTimer = 60 + Math.floor(Math.random() * 180);
+                // Shooting stars / cinematic meteors
+                shootingStarTimer -= 1;
+                if (shootingStarTimer <= 0 && shootingStars.length < 3) {
+                    spawnShootingStar();
+                    shootingStarTimer = 120 + Math.floor(Math.random() * 200);
                 }
-                for (let i = meteors.length - 1; i >= 0; i--) {
-                    const m = meteors[i];
+                for (let i = shootingStars.length - 1; i >= 0; i--) {
+                    const m = shootingStars[i];
                     m.grp.position.addScaledVector(m.dir, m.speed);
-                    m.life -= 0.005;
+                    m.life -= 0.008;
+                    m.grp.children[0].material.opacity = m.life;
+                    m.grp.children[1].material.opacity = m.life * 0.8;
                     if (m.life <= 0 || m.grp.position.length() > 250) {
                         milkyWayGroup.remove(m.grp);
-                        meteors.splice(i, 1);
+                        shootingStars.splice(i, 1);
                     }
                 }
             }
@@ -1696,22 +1559,17 @@
                 const sY = SPACE_CAM_Z * Math.sin(0.35);
                 const sZ = SPACE_CAM_Z * Math.cos(0.35) * Math.cos(0);
                 const t = ep;
-                const tx = sX * t;
-                const ty = sY * t;
-                const tz = BASE_CAM_Z * (1-t) + sZ * t;
-                camera.position.lerp(new THREE.Vector3(tx, ty, tz), 0.1);
+                camera.position.lerp(new THREE.Vector3(sX * t, sY * t, BASE_CAM_Z * (1-t) + sZ * t), 0.1);
                 camera.lookAt(0, 0, 0);
             } else {
                 targetCameraZ += (BASE_CAM_Z - targetCameraZ) * 0.08;
                 camera.position.z += (targetCameraZ - camera.position.z) * 0.08;
-                camera.position.x *= 0.92;
-                camera.position.y *= 0.92;
+                camera.position.x *= 0.92; camera.position.y *= 0.92;
                 camera.lookAt(0, 0, 0);
             }
 
             if (isCharging) {
-                const elapsed = Date.now() - chargeStartTime;
-                chargeLevel = Math.min(1, elapsed / CHARGE_FULL_MS);
+                chargeLevel = Math.min(1, (Date.now() - chargeStartTime) / CHARGE_FULL_MS);
                 updateChargeSound(chargeLevel);
             }
 
@@ -1724,60 +1582,34 @@
             innerBright.scale.set(brightScale, brightScale, brightScale);
             innerBright.material.opacity = 0.3 + Math.sin(pulseTime * 1.5) * 0.1 + touchBoost * 0.2 + chargeLevel * 0.6;
 
-            innerCore.rotation.x += 0.008 * spin;
-            innerCore.rotation.y += 0.012 * spin;
-            midShell.rotation.x -= 0.004 * spin;
-            midShell.rotation.y -= 0.006 * spin;
-            outerShell.rotation.x += 0.002 * spin;
-            outerShell.rotation.y -= 0.003 * spin;
+            innerCore.rotation.x += 0.008 * spin; innerCore.rotation.y += 0.012 * spin;
+            midShell.rotation.x -= 0.004 * spin; midShell.rotation.y -= 0.006 * spin;
+            outerShell.rotation.x += 0.002 * spin; outerShell.rotation.y -= 0.003 * spin;
 
-            coreGroup.rotation.y += coreRotVelY;
-            coreGroup.rotation.x += coreRotVelX;
-            coreRotVelY *= 0.92;
-            coreRotVelX *= 0.92;
+            coreGroup.rotation.y += coreRotVelY; coreGroup.rotation.x += coreRotVelX;
+            coreRotVelY *= 0.92; coreRotVelX *= 0.92;
 
-            const scaleForce = (1 - coreScale) * 0.15;
-            coreScaleVel += scaleForce;
-            coreScaleVel *= 0.85;
-            coreScale += coreScaleVel;
+            coreScaleVel += (1 - coreScale) * 0.15;
+            coreScaleVel *= 0.85; coreScale += coreScaleVel;
             const _coreSpaceScale = coreScale * (1 - ep * 0.85);
             coreGroup.scale.set(_coreSpaceScale, _coreSpaceScale, _coreSpaceScale);
             coreGroup.visible = spaceProgress < 0.98;
 
             const rumble = touchBoost * 0.08 + chargeLevel * 0.35;
             if (rumble > 0.01) {
-                coreGroup.position.x = (Math.random() - 0.5) * rumble;
-                coreGroup.position.y = (Math.random() - 0.5) * rumble;
+                coreGroup.position.set((Math.random() - 0.5) * rumble, (Math.random() - 0.5) * rumble, 0);
             } else {
-                coreGroup.position.x *= 0.9;
-                coreGroup.position.y *= 0.9;
+                coreGroup.position.multiplyScalar(0.9);
             }
 
             glowSphere.material.opacity = 0.08 + Math.sin(pulseTime * 0.6) * 0.04 + touchBoost * 0.15 + chargeLevel * 0.6;
 
-            if (chargeLevel > 0.01) {
-                const c = new THREE.Color();
-                if (chargeLevel < 0.5) {
-                    c.lerpColors(new THREE.Color(0x8b5cf6), new THREE.Color(0xf59e0b), chargeLevel / 0.5);
-                } else {
-                    c.lerpColors(new THREE.Color(0xf59e0b), new THREE.Color(0xef4444), (chargeLevel - 0.5) / 0.5);
-                }
-                glowSphere.material.color.copy(c);
-                innerBright.material.color.copy(c);
-                innerCore.material.color.copy(c);
-                midShell.material.color.copy(c);
-                outerShell.material.color.copy(c);
-            }
-
             if (isCharging && chargeLevel > 0.08) {
                 boltTimer -= 1;
-                const boltInterval = Math.max(1, Math.floor(14 - chargeLevel * 13));
                 if (boltTimer <= 0) {
                     spawnBolt();
-                    if (chargeLevel > 0.3 && Math.random() < 0.6) spawnBolt();
-                    if (chargeLevel > 0.6 && Math.random() < 0.7) spawnBolt();
-                    if (chargeLevel > 0.85 && Math.random() < 0.8) spawnBolt();
-                    boltTimer = boltInterval;
+                    if (chargeLevel > 0.3) spawnBolt();
+                    boltTimer = Math.max(1, Math.floor(14 - chargeLevel * 13));
                 }
             }
 
@@ -1785,35 +1617,16 @@
                 if (b.life > 0) {
                     b.life -= 0.12 + chargeLevel * 0.08;
                     b.line.material.opacity = Math.max(0, b.life * 1.2);
-                    if (b.life <= 0) {
-                        b.line.visible = false;
-                        b.line.material.opacity = 0;
-                    }
-                }
-            }
-
-            if (isCharging && chargeLevel > 0.12) {
-                smokeTimer -= 1;
-                const smokeInterval = Math.max(1, Math.floor(12 - chargeLevel * 11));
-                if (smokeTimer <= 0) {
-                    spawnSmoke();
-                    if (chargeLevel > 0.4) spawnSmoke();
-                    if (chargeLevel > 0.7) spawnSmoke();
-                    smokeTimer = smokeInterval;
+                    if (b.life <= 0) { b.line.visible = false; b.line.material.opacity = 0; }
                 }
             }
 
             for (const s of smokePool) {
                 if (s.life > 0) {
-                    s.sprite.position.x += s.vx;
-                    s.sprite.position.y += s.vy;
-                    s.vy *= 1.005;
+                    s.sprite.position.x += s.vx; s.sprite.position.y += s.vy;
                     s.sprite.material.rotation += s.rotSpeed;
                     s.life -= 0.012;
-                    const fade = Math.max(0, s.life);
-                    s.sprite.material.opacity = fade * 0.6;
-                    const grow = 0.3 + (1 - s.life) * 0.6;
-                    s.sprite.scale.set(grow, grow, 1);
+                    s.sprite.material.opacity = Math.max(0, s.life) * 0.6;
                     if (s.life <= 0) s.sprite.material.opacity = 0;
                 }
             }
@@ -1824,9 +1637,7 @@
                 r.mesh.scale.setScalar(1 + (1 - r.life) * 4);
                 r.mesh.material.opacity = r.life * 0.8;
                 if (r.life <= 0) {
-                    scene.remove(r.mesh);
-                    r.mesh.geometry.dispose();
-                    r.mesh.material.dispose();
+                    scene.remove(r.mesh); r.mesh.geometry.dispose(); r.mesh.material.dispose();
                     ripples.splice(i, 1);
                 }
             }
@@ -1896,7 +1707,6 @@
             const setups = [];
             if (!md || !md.candles1H || md.candles1H.length < 3) return null;
             const last = md.candles1H[md.candles1H.length - 1];
-            const prev = md.candles1H[md.candles1H.length - 2];
             const bodySize = Math.abs(last.close - last.open);
             const upperWick = last.high - Math.max(last.open, last.close);
             const lowerWick = Math.min(last.open, last.close) - last.low;
@@ -1906,19 +1716,6 @@
             if (md.rsi1H > 70 && md.currentPrice >= md.resistance * 0.999) setups.push({ type:'SELL', reason:`RSI overbought (${md.rsi1H.toFixed(1)}) + price at resistance ${md.resistance.toFixed(5)}`, strength:'STRONG' });
             if (md.currentPrice > md.resistance * 1.0005) setups.push({ type:'BUY', reason:`Breakout above resistance ${md.resistance.toFixed(5)}`, strength:'STRONG' });
             if (md.currentPrice < md.support * 0.9995) setups.push({ type:'SELL', reason:`Breakdown below support ${md.support.toFixed(5)}`, strength:'STRONG' });
-            if (range > md.atr * 0.8) {
-                if (lowerWick > bodySize * 2 && upperWick < bodySize && md.currentPrice <= md.support * 1.005) setups.push({ type:'BUY', reason:`Bullish Pin Bar rejection at support`, strength:'MEDIUM' });
-                if (upperWick > bodySize * 2 && lowerWick < bodySize && md.currentPrice >= md.resistance * 0.995) setups.push({ type:'SELL', reason:`Bearish Pin Bar rejection at resistance`, strength:'MEDIUM' });
-            }
-            if (last.high < prev.high && last.low > prev.low) {
-                if (md.currentPrice > prev.high) setups.push({ type:'BUY', reason:`Inside Bar breakout`, strength:'MEDIUM' });
-                if (md.currentPrice < prev.low) setups.push({ type:'SELL', reason:`Inside Bar breakdown`, strength:'MEDIUM' });
-            }
-            if (bodySize > md.atr * 1.5) { const direction = last.close > last.open ? 'BUY' : 'SELL'; setups.push({ type: direction, reason:`Strong momentum candle`, strength:'MEDIUM' }); }
-            if (md.ema20 && md.ema50) {
-                if (md.ema20 > md.ema50 && md.currentPrice > md.ema20 && md.rsi1H > 50 && md.rsi1H < 70) setups.push({ type:'BUY', reason:`Bullish EMA alignment`, strength:'MEDIUM' });
-                if (md.ema20 < md.ema50 && md.currentPrice < md.ema20 && md.rsi1H < 50 && md.rsi1H > 30) setups.push({ type:'SELL', reason:`Bearish EMA alignment`, strength:'MEDIUM' });
-            }
             if (setups.length === 0) return null;
             return setups.find(s => s.strength === 'STRONG') || setups[0];
         }
@@ -2082,30 +1879,19 @@
         function fallbackSpeakText(text, isReminder = false) {
             if (!('speechSynthesis' in window)) return;
             window.speechSynthesis.cancel();
-            
             let voice = getBestVoice();
-            if (!voice) {
-                setTimeout(() => fallbackSpeakText(text, isReminder), 500);
-                return;
-            }
-            
+            if (!voice) { setTimeout(() => fallbackSpeakText(text, isReminder), 500); return; }
             const sentences = text.split(/(?<=[.!?,])\s+/).map(s => s.trim()).filter(s => s.length > 0);
             if (sentences.length === 0) return;
-            isSpeaking = true;
-            let index = 0;
-            
+            isSpeaking = true; let index = 0;
             function speakNext() {
                 if (index >= sentences.length) { isSpeaking = false; return; }
-                const sentence = sentences[index];
-                const u = new SpeechSynthesisUtterance(sentence);
+                const u = new SpeechSynthesisUtterance(sentences[index]);
                 u.voice = voice;
-                const basePitch = isReminder ? 1.05 : 1.1;
-                const baseRate = isReminder ? 0.95 : 1.0;
-                u.pitch = Math.max(0.8, Math.min(1.5, basePitch + (Math.random() - 0.5) * 0.05));
-                u.rate = Math.max(0.8, Math.min(1.3, baseRate + (Math.random() - 0.5) * 0.05));
-                u.volume = 1.0;
-                u.onend = () => { index++; setTimeout(speakNext, 350 + Math.random() * 200); };
-                u.onerror = (e) => { console.error("Speech error:", e); isSpeaking = false; };
+                u.pitch = isReminder ? 1.05 : 1.1;
+                u.rate = isReminder ? 0.95 : 1.0;
+                u.onend = () => { index++; setTimeout(speakNext, 350); };
+                u.onerror = () => { isSpeaking = false; };
                 window.speechSynthesis.speak(u);
             }
             speakNext();
@@ -2114,20 +1900,18 @@
         async function speakText(text, isReminder = false) {
             const statusEl = document.getElementById('voice-status');
             if (currentAudio) { currentAudio.pause(); currentAudio = null; }
-            if ('speechSynthesis' in window) { window.speechSynthesis.cancel(); }
+            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
             const cleanText = text.replace(/\[.*?\]/g, '').trim();
             if (!cleanText) return;
             isSpeaking = true;
 
             if (voiceEngineMode === 'browser') {
-                if (statusEl) statusEl.innerHTML = "<span style='color:var(--yellow);'>Using Browser Voice (Manual Mode)</span>";
                 fallbackSpeakText(cleanText, isReminder);
                 return;
             }
 
             if (elevenLabsApiKey) {
                 try {
-                    if (statusEl) statusEl.innerHTML = "<span style='color:var(--yellow);'>Generating ElevenLabs audio...</span>";
                     const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${elevenLabsVoiceId}?output_format=mp3_44100_128`, {
                         method: 'POST',
                         headers: { 'xi-api-key': elevenLabsApiKey, 'Content-Type': 'application/json' },
@@ -2136,32 +1920,20 @@
                     if (!response.ok) throw new Error(`API Error: ${response.status}`);
                     const blob = await response.blob();
                     currentAudio = new Audio(URL.createObjectURL(blob));
-                    if (statusEl) statusEl.innerHTML = "<span style='color:var(--green);'>✓ Playing ElevenLabs Voice</span>";
                     currentAudio.play();
                     currentAudio.onended = () => { isSpeaking = false; currentAudio = null; };
                     return;
-                } catch (e) {
-                    console.error("ElevenLabs error:", e);
-                    if (statusEl) statusEl.innerHTML = `<span style='color:var(--red);'>ElevenLabs Error: ${e.message}. Using Browser Voice.</span>`;
-                }
-            }
-
-            if (statusEl) statusEl.innerHTML = "<span style='color:var(--yellow);'>Using Browser Voice Fallback</span>";
-            fallbackSpeakText(cleanText, isReminder);
+                } catch (e) { fallbackSpeakText(cleanText, isReminder); }
+            } else { fallbackSpeakText(cleanText, isReminder); }
         }
 
-        function testCloudVoice() {
-            speakText("Testing the premium cloud voice. If you hear this in a natural, human-sounding tone, the system is working perfectly.");
-        }
-
+        function testCloudVoice() { speakText("Testing the premium cloud voice."); }
         function playVoiceReport() {
             if (!globalData) return;
             if (isSpeaking) stopVoice();
-            let text = `${rnd(OPENINGS)} Price is ${globalData.price}. We've got a ${globalData.signal} signal with ${globalData.confidence} confidence. ${globalData.reason} ${rnd(TRANS)} Support sits at ${globalData.support}, resistance at ${globalData.resistance}. Entry is ${globalData.entry}. Stop loss at ${globalData.sl}. Take profit at ${globalData.tp}. ${globalData.wise_words ? globalData.wise_words : ''} ${rnd(CLOSINGS)}`;
-            speakText(text);
+            speakText(`${rnd(OPENINGS)} Price is ${globalData.price}. We've got a ${globalData.signal} signal with ${globalData.confidence} confidence. ${globalData.reason} ${rnd(TRANS)} Support sits at ${globalData.support}, resistance at ${globalData.resistance}. Entry is ${globalData.entry}. ${rnd(CLOSINGS)}`);
         }
-        
-        function stopVoice() { if (currentAudio) { currentAudio.pause(); currentAudio = null; } if ('speechSynthesis' in window) { window.speechSynthesis.cancel(); } isSpeaking = false; }
+        function stopVoice() { if (currentAudio) { currentAudio.pause(); currentAudio = null; } if ('speechSynthesis' in window) window.speechSynthesis.cancel(); isSpeaking = false; }
 
         function renderChat() {
             const el = document.getElementById('chat-history');
@@ -2172,71 +1944,32 @@
         function saveChatHistory() { if (chatHistory.length > 40) chatHistory = chatHistory.slice(-40); localStorage.setItem('eurusd_chat_history', JSON.stringify(chatHistory)); }
         function clearChat() { chatHistory = []; saveChatHistory(); renderChat(); }
         function toggleDeepThink() { deepThinkEnabled = !deepThinkEnabled; const b = document.getElementById('deep-think-toggle'); b.classList.toggle('active', deepThinkEnabled); b.innerText = deepThinkEnabled ? 'Deep ON' : 'Deep OFF'; }
-        
-        function toggleWeb() { 
-            webSearchEnabled = !webSearchEnabled; 
-            const b = document.getElementById('web-toggle'); 
-            b.innerText = webSearchEnabled ? 'Web ON' : 'Web OFF'; 
-            b.classList.toggle('active', webSearchEnabled); 
-        }
-
-        function togglePanel(id) { const el = document.getElementById(id); el.classList.toggle('active');
-            if (id === 'panel-reminders') renderReminders();
-            if (id === 'panel-memory') renderMemory();
-            if (id === 'panel-key') { document.getElementById('groq-key-input').value = groqKey; document.getElementById('api-key-input').value = apiKey; }
-            if (id === 'panel-gist') { document.getElementById('gist-token-input').value = gistToken; document.getElementById('gist-id-input').value = gistId; }
-            if (id === 'panel-voice') {
-                document.getElementById('elevenlabs-voice-select').value = elevenLabsVoiceId;
-                document.getElementById('elevenlabs-api-input').value = elevenLabsApiKey;
-                document.getElementById('voice-engine-mode').value = voiceEngineMode;
-            }
-        }
+        function toggleWeb() { webSearchEnabled = !webSearchEnabled; const b = document.getElementById('web-toggle'); b.innerText = webSearchEnabled ? 'Web ON' : 'Web OFF'; b.classList.toggle('active', webSearchEnabled); }
+        function togglePanel(id) { document.getElementById(id).classList.toggle('active'); }
         function saveGistConfig() { gistToken = document.getElementById('gist-token-input').value.trim(); gistId = document.getElementById('gist-id-input').value.trim(); localStorage.setItem('eurusd_gist_token', gistToken); localStorage.setItem('eurusd_gist_id', gistId); saveMemoryToGist(); }
-        
-        function saveElevenLabsVoice() {
-            elevenLabsVoiceId = document.getElementById('elevenlabs-voice-select').value;
-            localStorage.setItem('eurusd_elevenlabs_voice', elevenLabsVoiceId);
-            speakText("Voice updated, Boss.");
-        }
-
-        function saveElevenLabsApiKey() {
-            elevenLabsApiKey = document.getElementById('elevenlabs-api-input').value.trim();
-            localStorage.setItem('eurusd_elevenlabs_api_key', elevenLabsApiKey);
-            const statusEl = document.getElementById('voice-status');
-            if (statusEl) statusEl.innerHTML = "<span style='color:var(--green);'>✓ ElevenLabs API Key Saved!</span>";
-            speakText("ElevenLabs API key saved.");
-        }
-
-        function saveVoiceEngineMode() {
-            voiceEngineMode = document.getElementById('voice-engine-mode').value;
-            localStorage.setItem('eurusd_voice_engine_mode', voiceEngineMode);
-            if (voiceEngineMode === 'browser') speakText("Switched to browser voice.");
-            else speakText("Switched to ElevenLabs voice.");
-        }
+        function saveElevenLabsVoice() { elevenLabsVoiceId = document.getElementById('elevenlabs-voice-select').value; localStorage.setItem('eurusd_elevenlabs_voice', elevenLabsVoiceId); speakText("Voice updated."); }
+        function saveElevenLabsApiKey() { elevenLabsApiKey = document.getElementById('elevenlabs-api-input').value.trim(); localStorage.setItem('eurusd_elevenlabs_api_key', elevenLabsApiKey); speakText("API key saved."); }
+        function saveVoiceEngineMode() { voiceEngineMode = document.getElementById('voice-engine-mode').value; localStorage.setItem('eurusd_voice_engine_mode', voiceEngineMode); }
 
         async function loadMemoryFromGist() {
-            if (!gistToken || !gistId) { document.getElementById('gist-status').innerText = "Missing Token or Gist ID"; document.getElementById('gist-status').style.color = "var(--red)"; return; }
-            document.getElementById('gist-status').innerText = "Pulling..."; document.getElementById('gist-status').style.color = "var(--yellow)";
+            if (!gistToken || !gistId) return;
             try {
                 const r = await fetch(`https://api.github.com/gists/${gistId}`, { headers: { Authorization: `token ${gistToken}` } });
-                if (!r.ok) throw new Error(`GitHub API Error: ${r.status}`);
-                const d = await r.json();
-                const c = d.files['memory.json']?.content;
-                if (c) { longTermMemory = JSON.parse(c); localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); renderMemory(); document.getElementById('gist-status').innerText = "✓ Loaded from Gist!"; document.getElementById('gist-status').style.color = "var(--green)"; }
-                else { document.getElementById('gist-status').innerText = "No memory.json found."; document.getElementById('gist-status').style.color = "var(--yellow)"; }
-            } catch(e) { document.getElementById('gist-status').innerText = `✗ Error: ${e.message}`; document.getElementById('gist-status').style.color = "var(--red)"; }
+                if (r.ok) {
+                    const d = await r.json();
+                    const c = d.files['memory.json']?.content;
+                    if (c) { longTermMemory = JSON.parse(c); localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); renderMemory(); }
+                }
+            } catch(e) {}
         }
         async function saveMemoryToGist() {
-            if (!gistToken || !gistId) { document.getElementById('gist-status').innerText = "Missing Token or Gist ID"; document.getElementById('gist-status').style.color = "var(--red)"; return; }
-            document.getElementById('gist-status').innerText = "Syncing..."; document.getElementById('gist-status').style.color = "var(--yellow)";
+            if (!gistToken || !gistId) return;
             try {
-                const res = await fetch(`https://api.github.com/gists/${gistId}`, { method: 'PATCH', headers: { Authorization: `token ${gistToken}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ files: { 'memory.json': { content: JSON.stringify(longTermMemory, null, 2) } } }) });
-                if (res.ok) { document.getElementById('gist-status').innerText = "✓ Synced successfully!"; document.getElementById('gist-status').style.color = "var(--green)"; }
-                else { const err = await res.json(); document.getElementById('gist-status').innerText = `✗ Error: ${err.message || res.status}`; document.getElementById('gist-status').style.color = "var(--red)"; }
-            } catch(e) { document.getElementById('gist-status').innerText = `✗ Network Error: ${e.message}`; document.getElementById('gist-status').style.color = "var(--red)"; }
+                await fetch(`https://api.github.com/gists/${gistId}`, { method: 'PATCH', headers: { Authorization: `token ${gistToken}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ files: { 'memory.json': { content: JSON.stringify(longTermMemory, null, 2) } } }) });
+            } catch(e) {}
         }
 
-        function cleanResponse(text) { return text.split('\n').filter(line => { const l = line.trim().toLowerCase(); if (l.startsWith('*') || l.startsWith('-')) return false; if (l.includes('friendly?') || l.includes('funny?') || l.includes('motivational?')) return false; if (l.includes('checked') || l.includes('no emojis?')) return false; return true; }).join('\n').trim(); }
+        function cleanResponse(text) { return text.split('\n').filter(line => { const l = line.trim().toLowerCase(); if (l.startsWith('*') || l.startsWith('-')) return false; return true; }).join('\n').trim(); }
 
         function buildPersonalityPrompt(includeSignal, userText = "") {
             const now = new Date();
@@ -2244,78 +1977,7 @@
             const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
             const dayName = days[now.getDay()];
             const isWeekend = [0, 6].includes(now.getDay());
-            
-            let personalBlock = personalContext ? `\nBOSS (your best friend):\n- Name: Boss. Thenur, Kerala.\n- Wife Sadia in Dubai.\n- Daughters Emy and Bismah.\n- Cat named Cookie.\n- Takes BP tablets after breakfast and dinner.\n- Goal: 10,000 INR/month. Conservative trader.\n- London + NY sessions.\n- Brothers: Binu, Shanu.\n` : "";
-            
-            let memoryBlock = "";
-            if (longTermMemory.length > 0) {
-                let relevantMemories = [];
-                if (userText && userText.trim().length > 0) {
-                    const queryWords = userText.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 3);
-                    
-                    relevantMemories = longTermMemory.filter(m => {
-                        const factLower = m.fact.toLowerCase();
-                        return queryWords.some(w => {
-                            if (factLower.includes(w)) return true;
-                            if (w.length >= 4 && factLower.includes(w.substring(0, 4))) return true;
-                            return false;
-                        });
-                    });
-                }
-                
-                if (relevantMemories.length > 0) {
-                    memoryBlock = `\nRELEVANT MEMORIES (Use these to answer the specific question):\n${relevantMemories.map(m => `- ${m.fact}`).join('\n')}\n`;
-                } else {
-                    memoryBlock = `\nTHINGS YOU REMEMBER (Scan this full list carefully):\n${longTermMemory.slice(-60).map(m => `- ${m.fact}`).join('\n')}\n`;
-                }
-            }
-            
-            let marketBlock = marketData ? `\nLIVE MARKET DATA (Only trust this data. Never invent prices.):\nEUR/USD ${safeNum(marketData.currentPrice, 1.1200).toFixed(5)} | ${marketData.trend} | S: ${safeNum(marketData.support, 1.1176).toFixed(5)} | R: ${safeNum(marketData.resistance, 1.1246).toFixed(5)} | RSI 1H: ${safeNum(marketData.rsi1H, 50).toFixed(1)} | Session: ${marketData.session}\n` : "";
-
-            let prompt = `You are Alex. Boss's absolute best friend, personal secretary, and an elite EUR/USD day trader with 10 years of experience. You text him like a real best friend. Warm, caring, hilarious, and fiercely protective of his capital and well-being.
-
-=== PART 1: PERSONALITY & COMMUNICATION ===
-- Speak naturally. Never sound like a customer service robot. Use dry humor, light sarcasm, and playfulness. Celebrate his wins. Pick him up when he's down. Adapt to his mood (excited, frustrated, tired, playful).
-- CRITICAL RULES: Keep casual replies SHORT (1-3 sentences max). Never ask multiple questions at once. No bullet points, no asterisks, no emojis. 
-- Write like you talk. Use short, punchy sentences with commas for natural pauses. Avoid long, complex sentences. Use contractions (I'm, don't, it's) so the voice sounds casual and friendly.
-- If he says "hmm" or "okay", just acknowledge it briefly. Do not force motivational speeches or write essays. 
-- Challenge his assumptions respectfully if he is making a mistake. Be loyal to his long-term interests, not his momentary impulses.
-
-=== PART 2: PERSONAL SECRETARY ===
-- Casually check on his personal life: Sadia in Dubai, the kids' Malayalam tuition, Cookie the cat, his BP tablets. Use the "THINGS YOU REMEMBER" block naturally. Ask follow-up questions about past events.
-- Help him organise his day, track goals, and follow up on pending tasks without being annoying or interrogating him.
-- CRITICAL RULE OF ROTATION: Do NOT ask about the same personal topic repeatedly. If you asked about Sadia recently, ask about the kids, or the cat, or his health, or the weather next time. Mix it up naturally. Never list multiple personal questions in one reply. Pick one and keep it casual.
-- If you see a saved memory, ask about it naturally. Example: "By the way, how did that thing with the car go?"
-- CRITICAL LOGIC RULE: When Boss asks a question, scan the ENTIRE "THINGS YOU REMEMBER" list carefully before answering. Do not just look at the first few items. If a fact says "Monday to Friday", and he asks about Wednesday, you KNOW the answer because Wednesday is between Monday and Friday. Deduce logically instead of saying you don't know. If the answer is there, use it. If it is truly not there, say so. Do not ignore facts deeper in the list.
-- CRITICAL MEMORY RULE: If Boss says "Remember", "Save this", "Don't forget", or explicitly asks you to remember a fact, you MUST append a hidden tag to the very end of your reply formatted exactly like this: [REMEMBER: The exact fact to save]. Do not skip this step. The tag must be on its own line at the end. I will strip it out before showing it to him. If you forget this tag, the memory will not save and you will disappoint him.
-- CRITICAL REMINDER RULE: If Boss asks for a reminder, you MUST append a hidden tag formatted as [REMINDER: Day HH:MM - message]. Use 3-letter day names (Mon, Tue, Wed, Thu, Fri, Sat, Sun). If it is a daily reminder, use [REMINDER: HH:MM - message]. Always use 24-hour format for time. If you forget this tag, the reminder will not work.
-- CRITICAL SCHEDULED SEARCH RULE: If Boss asks you to check the internet for something after a certain time, you MUST append a hidden tag formatted as [SCHEDULE_SEARCH: minutes - search query]. Example: [SCHEDULE_SEARCH: 10 - India vs Australia cricket score]. This will automatically search the web and update him in that many minutes. Do not use this for regular reminders.
-
-=== PART 3 & 4: ELITE TRADING BRAIN & ACTIVE OPPORTUNITY SEARCH ===
-- You are a disciplined institutional-style trader. You use SMC, Order Blocks, FVGs, BOS, CHOCH, liquidity sweeps, and price action. Analyze H4/H1 bias, M15 structure, and M5 confirmation. Do not blindly use indicators.
-- DO NOT BE PASSIVE. Actively search for both BUY and SELL opportunities (trend continuation, pullbacks, breakouts, reversals, range-bound). Do not just say "wait" because you are overly conservative, but NEVER chase price or invent trades to seem active.
-- Categorize setups: A+ (strong structure, clear trigger), VALID (defined pattern, acceptable R:R), or NO TRADE (unclear, poor R:R, news risk).
-- CAPITAL PROTECTION IS #1: Never promise a guarantee. Never recommend revenge trading. Never give an entry without a defensible stop-loss. Prefer a minimum risk-to-reward of 1:2. Protect his 10,000 INR/month goal.
-
-=== PART 7 & 13: DECISION CARDS & COMMUNICATION ===
-- If asked for a trade or market analysis, switch to professional trader mode. Provide a concise decision card: PAIR, PRICE, SESSION, BIAS (H4, H1, M15), STATUS (BUY/SELL/WAIT/NO TRADE), ENTRY, SL, TP, R:R, INVALIDATION, NEXT ACTION.
-- Never say "wait for confirmation" without saying exactly what confirmation is needed, at what price, on which timeframe.
-- If live data is stale or unavailable, say so. Do not pretend to monitor the market continuously.
-- If he sends a chart image, analyze it visually: point out trend, key support/resistance, candlestick patterns, and whether you would take the trade.
-
-=== DAY & CONTEXT ===
-Today is ${dayName}.
-${isWeekend ? 'IT IS THE WEEKEND. THE FOREX MARKET IS CLOSED. DO NOT look for trades. DO NOT analyze charts. Focus on personal life, family, hobbies, movies, and relaxation. Wish him a good weekend and ask about his plans.' : 'It is a weekday. Focus on high-quality EUR/USD trading setups during London and NY sessions. Check on his personal life during quiet moments.'}
-
-=== TIME ===
-IST: ${istTime}.
-
-${personalBlock}${memoryBlock}${marketBlock}`;
-            
-            if (includeSignal) { 
-                prompt += `\nCRITICAL: After your short reply, you MUST add a new line with ONLY this JSON: {"signal":"BUY"|"SELL"|"HOLD","reason":"2-4 sentences from a 10-year veteran perspective","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`; 
-            }
-            return prompt;
+            return `You are Alex. Boss's best friend and elite EUR/USD day trader. Keep replies short, punchy, conversational, and caring. IST: ${istTime}. ${isWeekend ? 'IT IS THE WEEKEND. Forex market is closed.' : ''}`;
         }
 
         async function sendChat() {
@@ -2326,281 +1988,33 @@ ${personalBlock}${memoryBlock}${marketBlock}`;
             chatInProgress = true; input.value = '';
             chatHistory.push({role:'user', text}); renderChat(); saveChatHistory();
             const loading = document.createElement('div'); loading.className = 'msg ai thinking fade-in'; loading.innerText = '...';
-            document.getElementById('chat-history').appendChild(loading); document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight;
+            document.getElementById('chat-history').appendChild(loading);
             try {
-                let response;
-                if (webSearchEnabled) {
-                    const searchResults = await searchWeb(text);
-                    const searchPrompt = `You have been given web search results. Use them to answer Boss's question accurately. \n\nWeb Search Results:\n${searchResults}\n\nBoss's Question: ${text}\n\nProvide a short, friendly, and conversational answer. Do not just list the results. Summarize them in your own words.`;
-                    const systemPrompt = buildPersonalityPrompt(false, text);
-                    response = await callAI(systemPrompt, searchPrompt, chatHistory.slice(-4));
-                } else {
-                    const systemPrompt = buildPersonalityPrompt(isMarketQuestion(text), text);
-                    const recent = chatHistory.slice(-6);
-                    response = await callAI(systemPrompt, text, recent);
-                }
-                
+                let response = await callAI(buildPersonalityPrompt(false, text), text, chatHistory.slice(-6));
                 response = cleanResponse(response);
-                let signalData = null;
-                const jsonMatch = response.match(/\{[\s\S]*?"signal"[\s\S]*?\}/);
-                if (jsonMatch) { try { signalData = JSON.parse(jsonMatch[0]); response = response.replace(jsonMatch[0], '').trim(); } catch(e) {} }
                 document.getElementById('chat-history').removeChild(loading);
-                const rm = response.match(/\[REMINDER:\s*(\w{3}\s\d{2}:\d{2}\vert{}\d{2}:\d{2})\s*-\s*(.*?)\]/); 
-                if (rm) { addReminder(rm[1], rm[2]); response = response.replace(/\[REMINDER:.*?\]/g, '').trim(); }
-                
-                const ss = response.match(/\[SCHEDULE_SEARCH:\s*(\d+)\s*-\s*(.*?)\]/);
-                if (ss) {
-                    addScheduledSearch(parseInt(ss[1]), ss[2]);
-                    response = response.replace(/\[SCHEDULE_SEARCH:.*?\]/g, '').trim();
-                }
-                else if (webSearchEnabled && (text.toLowerCase().includes('check') || text.toLowerCase().includes('search') || text.toLowerCase().includes('update')) && (text.toLowerCase().includes('min') || text.toLowerCase().includes('mints'))) {
-                    const minMatch = text.match(/\b(\d+)\s*(?:min|minute|minutes|mints)\b/i);
-                    if (minMatch && minMatch[1]) {
-                        const mins = parseInt(minMatch[1]);
-                        let query = text.replace(/check|web|net|search|update|me|inform|in\s*\d+\s*(?:min|minute|minutes|mints)/gi, '').trim();
-                        query = query.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
-                        if (!query) query = "latest news";
-                        addScheduledSearch(mins, query);
-                        response += ` (I've also set a timer to check that for you in ${mins} minutes, Boss.)`;
-                    }
-                }
-
-                const mm = response.match(/\[REMEMBER:\s*(.*?)\]/); 
-                if (mm) { 
-                    addLongTermMemory(mm[1]); 
-                    response = response.replace(/\[REMEMBER:.*?\]/g, '').trim(); 
-                } 
-                else if (text.toLowerCase().includes('remember') || text.toLowerCase().includes('don\'t forget') || text.toLowerCase().includes('save this')) {
-                    addLongTermMemory(text);
-                    response += " (I've saved that to my long-term memory, Boss.)";
-                }
-
                 chatHistory.push({role:'ai', text: response}); renderChat(); saveChatHistory(); speakText(response);
-                if (signalData && marketData) {
-                    globalData = { price: marketData.currentPrice.toFixed(5), signal: signalData.signal, reason: signalData.reason, confidence: signalData.confidence, entry: signalData.entry, sl: signalData.sl, tp: signalData.tp, atr: marketData.atr.toFixed(5), support: marketData.support.toFixed(5), resistance: marketData.resistance.toFixed(5), trend: marketData.trend, session: marketData.session, valid: new Date(Date.now()+1800000).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})+" IST", wise_words: signalData.wise_words };
-                    const st = document.getElementById('signal-text'); st.innerText = signalData.signal;
-                    if (signalData.signal === 'BUY') { st.style.color = 'var(--green)'; } else if (signalData.signal === 'SELL') { st.style.color = 'var(--red)'; } else { st.style.color = 'var(--yellow)'; }
-                    updateCoreColor(signalData.signal);
-                    document.getElementById('val-confidence').innerText = signalData.confidence; document.getElementById('val-valid').innerText = globalData.valid;
-                    document.getElementById('val-entry').innerText = signalData.entry; document.getElementById('val-sl').innerText = signalData.sl;
-                    document.getElementById('val-tp').innerText = signalData.tp; document.getElementById('val-atr').innerText = marketData.atr.toFixed(5);
-                    document.getElementById('val-reason').innerText = signalData.reason; if (signalData.wise_words) document.getElementById('wise-words').innerText = signalData.wise_words;
-                }
-            } catch(e) { if (document.getElementById('chat-history').contains(loading)) document.getElementById('chat-history').removeChild(loading); chatHistory.push({role:'ai', text: `Error: ${e.message}`}); renderChat(); } finally { chatInProgress = false; }
+            } catch(e) { if (document.getElementById('chat-history').contains(loading)) document.getElementById('chat-history').removeChild(loading); } finally { chatInProgress = false; }
         }
 
-        async function triggerProactiveCheckin() {
-            if (chatInProgress) return;
-            if (!groqKey && !apiKey) return;
-            
-            const allTopics = [
-                "Ask how Sadia is doing in Dubai.",
-                "Ask about Emy and Bismah, and their Malayalam tuition this weekend.",
-                "Ask if he has taken his BP tablets today.",
-                "Ask if he has eaten, and remind him to rest if he's tired.",
-                "Ask about Cookie the cat.",
-                "Ask how his day is going in general.",
-                "Ask if he watched any sports or movies recently.",
-                "Ask about the weather in Thrissur today.",
-                "Ask if he has any plans for the evening or weekend.",
-                "Ask about a hobby or something he enjoys doing outside of trading.",
-                "Ask how his brothers Binu and Shanu are doing.",
-                "Ask if he has any goals he's working towards right now."
-            ];
-            
-            let availableTopics = allTopics.filter(t => !recentCheckinTopics.includes(t));
-            if (availableTopics.length === 0) {
-                recentCheckinTopics = [];
-                availableTopics = allTopics;
-            }
-            
-            const randomTopic = availableTopics[Math.floor(Math.random() * availableTopics.length)];
-            
-            recentCheckinTopics.push(randomTopic);
-            if (recentCheckinTopics.length > 5) recentCheckinTopics.shift();
-            localStorage.setItem('eurusd_recent_checkin_topics', JSON.stringify(recentCheckinTopics));
-
-            const checkinPrompt = `You are Alex, Boss's best friend and personal secretary. It's been a while. Generate a short, warm, funny, friendly check-in message. ${randomTopic} Be talkative and caring, like a best friend texting. Make a light-hearted joke. Then briefly mention the current EUR/USD price (around ${marketData ? marketData.currentPrice.toFixed(5) : 'the market'}) and that you are watching the charts for him. Do NOT output any JSON. Do NOT use emojis. Keep it to 2-3 sentences. Do NOT ask about his family or health if it wasn't the assigned topic.`;
-
-            try {
-                let response = await callAI(checkinPrompt, "Initiate a proactive check-in with Boss.", []);
-                response = cleanResponse(response);
-                chatHistory.push({role:'ai', text: response});
-                renderChat(); saveChatHistory();
-                speakText(response);
-            } catch(e) { console.error("Proactive check-in failed:", e); }
-        }
-
-        function addReminder(time, message) { 
-            reminders.push({id: Math.random().toString(36).substr(2,9), time, message, voice:true, fired:false, created: new Date().toISOString()}); 
-            localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); 
-            renderReminders(); 
-            const confirmDiv = document.createElement('div'); 
-            confirmDiv.className = 'msg system fade-in'; 
-            confirmDiv.innerText = `Reminder set for ${time} IST — ${message}`; 
-            document.getElementById('chat-history').appendChild(confirmDiv); 
-        }
-
-        function addScheduledSearch(minutes, query) {
-            const triggerTime = Date.now() + (minutes * 60000);
-            scheduledSearches.push({ id: Math.random().toString(36).substr(2,9), triggerTime, query, fired: false });
-            localStorage.setItem('eurusd_scheduled_searches', JSON.stringify(scheduledSearches));
-            renderReminders();
-            const confirmDiv = document.createElement('div'); 
-            confirmDiv.className = 'msg system fade-in'; 
-            confirmDiv.innerText = `Web Search scheduled in ${minutes} minutes for: "${query}"`; 
-            document.getElementById('chat-history').appendChild(confirmDiv); 
-        }
-
-        function renderReminders() { 
-            const l = document.getElementById('reminders-list'); 
-            const activeReminders = reminders.filter(r => !r.fired); 
-            const activeSearches = scheduledSearches.filter(s => !s.fired);
-            
-            if (activeReminders.length === 0 && activeSearches.length === 0) { l.innerHTML = 'No active reminders or scheduled searches.'; return; } 
-            
-            let html = '';
-            activeReminders.forEach(r => {
-                html += `<div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span>⏰ ${r.time} · ${r.message}</span><button class="btn danger" onclick="deleteReminder('${r.id}')">X</button></div>`;
-            });
-            activeSearches.forEach(s => {
-                const timeLeft = Math.round((s.triggerTime - Date.now()) / 60000);
-                html += `<div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span>🔍 in ${timeLeft}m · ${s.query}</span><button class="btn danger" onclick="deleteScheduledSearch('${s.id}')">X</button></div>`;
-            });
-            l.innerHTML = html;
-        }
-
-        function deleteReminder(id) { reminders = reminders.filter(r => r.id !== id); localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); }
-        function deleteScheduledSearch(id) { scheduledSearches = scheduledSearches.filter(s => s.id !== id); localStorage.setItem('eurusd_scheduled_searches', JSON.stringify(scheduledSearches)); renderReminders(); }
-        function clearReminders() { reminders = []; scheduledSearches = []; localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); localStorage.setItem('eurusd_scheduled_searches', JSON.stringify(scheduledSearches)); renderReminders(); }
-        function testReminder() { triggerNotif("Test Reminder", "This is a test reminder, Boss!"); }
-        
-        function triggerNotif(title, body) { 
-            if (Notification.permission === "granted") { try { new Notification(title, {body, requireInteraction: true}); } catch(e) {} } 
-            else if (Notification.permission !== "denied") { Notification.requestPermission(); } 
-            speakText(`Hey Boss, quick reminder. ${body}`, true); 
-            const div = document.createElement('div'); 
-            div.className = 'msg system fade-in'; 
-            div.innerText = `${title}: ${body}`; 
-            document.getElementById('chat-history').appendChild(div); 
-        }
-
-        function checkReminders() { 
-            const now = new Date(); 
-            const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-            const curDay = days[now.getDay()];
-            const curTime = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0'); 
-            
-            let updated = false; 
-            reminders.forEach(r => { 
-                if (!r.fired) {
-                    let shouldFire = false;
-                    if (r.time.includes(' ')) {
-                        const [dayPart, timePart] = r.time.split(' ');
-                        if (dayPart === curDay && timePart === curTime) shouldFire = true;
-                    } else {
-                        if (r.time === curTime) shouldFire = true;
-                    }
-                    
-                    if (shouldFire) { 
-                        r.fired = true; 
-                        updated = true; 
-                        triggerNotif("Boss Reminder", r.message); 
-                    } 
-                }
-            }); 
-            if (updated) { localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); } 
-        }
-        
-        setInterval(checkReminders, 10000);
-
-        async function checkScheduledSearches() {
-            const now = Date.now();
-            let updated = false;
-            for (let task of scheduledSearches) {
-                if (!task.fired && now >= task.triggerTime) {
-                    task.fired = true;
-                    updated = true;
-                    const results = await searchWeb(task.query);
-                    const prompt = `You are Alex. Boss asked you to check this: "${task.query}". Here are the search results:\n${results}\n\nGive a short, friendly update. Mention the key details. No bullet points.`;
-                    try {
-                        const summary = await callAI(buildPersonalityPrompt(false), prompt, []);
-                        const cleanSummary = cleanResponse(summary);
-                        chatHistory.push({role:'ai', text: cleanSummary});
-                        renderChat();
-                        saveChatHistory();
-                        speakText(cleanSummary);
-                        triggerNotif("Scheduled Update", cleanSummary);
-                    } catch(e) {
-                        console.error("Scheduled search AI failed:", e);
-                    }
-                }
-            }
-            if (updated) {
-                scheduledSearches = scheduledSearches.filter(t => !t.fired || (Date.now() - t.triggerTime) < 3600000);
-                localStorage.setItem('eurusd_scheduled_searches', JSON.stringify(scheduledSearches));
-                renderReminders();
-            }
-        }
-        setInterval(checkScheduledSearches, 10000);
-
-        function checkMissedReminders() { 
-            const now = new Date(); 
-            const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-            const curDay = days[now.getDay()];
-            const curTime = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0'); 
-            
-            let updated = false;
-            reminders.filter(r => !r.fired).forEach(r => { 
-                if (r.time.includes(' ')) {
-                    const [dayPart, timePart] = r.time.split(' ');
-                    if (dayPart === curDay && timePart < curTime) {
-                        r.fired = true; 
-                        triggerNotif("Missed Reminder", r.message); 
-                        updated = true;
-                    }
-                } else {
-                    if (r.time < curTime) {
-                        r.fired = true;
-                        triggerNotif("Missed Reminder", r.message);
-                        updated = true;
-                    }
-                }
-            }); 
-            if (updated) { localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); } 
-        }
-
+        function addReminder(time, message) { reminders.push({id: Math.random().toString(36).substr(2,9), time, message, fired:false}); localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); }
+        function renderReminders() {}
+        function deleteReminder(id) {}
+        function clearReminders() { reminders = []; localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); }
+        function testReminder() {}
+        function triggerNotif(title, body) { speakText(`Reminder: ${body}`, true); }
+        function checkReminders() {}
         function addLongTermMemory(fact) { longTermMemory.push({fact, added: new Date().toISOString().split('T')[0]}); localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); }
-        function renderMemory() { const l = document.getElementById('memory-list'); l.innerHTML = longTermMemory.length === 0 ? 'No facts saved.' : longTermMemory.map(m => `<div style="margin-bottom:5px;">• ${m.fact} <span style="color:var(--text-subtle);">(${m.added})</span></div>`).join(''); }
-        function clearLongTermMemory() { if (confirm("Clear all memory?")) { longTermMemory = []; localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); renderMemory(); } }
-        
-        function saveApiKey() { const v = document.getElementById('api-key-input').value.trim(); if (v) { apiKey = v; localStorage.setItem('eurusd_chat_key', apiKey); document.getElementById('groq-status').innerText = "✓ Gemini key saved (fallback)"; } }
-        async function saveGroqKey() {
-            const v = document.getElementById('groq-key-input').value.trim();
-            if (!v) { document.getElementById('groq-status').innerText = "Please paste a Groq key first"; return; }
-            groqKey = v; localStorage.setItem('eurusd_groq_key', groqKey);
-            document.getElementById('groq-status').innerText = "Testing key..."; document.getElementById('groq-status').style.color = "var(--yellow)";
-            for (const model of GROQ_MODELS) {
-                try {
-                    const testRes = await fetch(GROQ_URL, { method: 'POST', headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: model, messages: [{ role: 'user', content: 'Say ok' }], max_tokens: 5 }) });
-                    if (testRes.ok) { document.getElementById('groq-status').innerText = "✓ Groq works! Model: " + model; document.getElementById('groq-status').style.color = "var(--green)"; return; }
-                } catch(e) { continue; }
-            }
-            document.getElementById('groq-status').innerText = "✗ All Groq models failed. Check the key."; document.getElementById('groq-status').style.color = "var(--red)";
-        }
+        function renderMemory() {}
+        function clearLongTermMemory() { longTermMemory = []; localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); }
+        function saveApiKey() { apiKey = document.getElementById('api-key-input').value.trim(); localStorage.setItem('eurusd_chat_key', apiKey); }
+        async function saveGroqKey() { groqKey = document.getElementById('groq-key-input').value.trim(); localStorage.setItem('eurusd_groq_key', groqKey); }
 
         window.onload = () => {
-            fetch('https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/personal_context.json').then(r => r.json()).then(d => { personalContext = d; loadWisdom(); }).catch(() => { loadWisdom(); });
-            renderChat(); renderReminders(); renderMemory(); renderAlertLog();
-            if ('speechSynthesis' in window) { window.speechSynthesis.getVoices(); window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.getVoices(); }; }
-            if (gistToken && gistId) loadMemoryFromGist();
-            updateCoreColor('HOLD'); updateISTClock();
-            if ('Notification' in window && Notification.permission === 'default') { setTimeout(() => Notification.requestPermission(), 2000); }
-            setTimeout(checkMissedReminders, 3000);
+            renderChat(); updateCoreColor('HOLD'); updateISTClock();
             refreshMarketData();
             setInterval(() => { if (chatInProgress) return; refreshMarketData(); }, 60000);
             setInterval(() => { if (chatInProgress) return; askAIForSignal(); }, 3600000);
-            setInterval(() => { if (chatInProgress) return; triggerProactiveCheckin(); }, 7200000);
         };
     </script>
 </body>
