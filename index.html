@@ -135,36 +135,29 @@
         .pulse-dot { display: inline-block; width: 6px; height: 6px; background: var(--green); border-radius: 50%; margin-right: 6px; box-shadow: 0 0 10px var(--green); animation: pulse 2s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
 
-        /* Milky Way Fixed Bottom Toggle Button */
+        /* Milky Way Fixed Bottom Toggle Button Bar */
         .milkyway-toggle-bar {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: rgba(3, 4, 8, 0.85);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-top: 1px solid rgba(139, 92, 246, 0.2);
-            padding: 12px 16px;
+            width: 100%;
             display: flex;
             justify-content: center;
             align-items: center;
-            z-index: 9999;
-            box-shadow: 0 -5px 25px rgba(0, 0, 0, 0.5);
+            margin-top: 10px;
+            padding: 10px 0;
         }
         .milkyway-btn {
             font-family: 'Space Grotesk', sans-serif;
             background: linear-gradient(135deg, rgba(124,58,237,0.2), rgba(59,130,246,0.2));
             border: 1px solid rgba(167,139,250,0.4);
             color: var(--text-main);
-            padding: 10px 24px;
-            border-radius: 12px;
-            font-size: 0.78rem;
+            padding: 12px 28px;
+            border-radius: 14px;
+            font-size: 0.8rem;
             font-weight: 600;
             cursor: pointer;
             letter-spacing: 0.05em;
             transition: all 0.3s ease;
             box-shadow: 0 0 20px rgba(139, 92, 246, 0.2);
+            width: 100%;
         }
         .milkyway-btn:hover {
             background: linear-gradient(135deg, rgba(124,58,237,0.4), rgba(59,130,246,0.4));
@@ -331,13 +324,13 @@
         <div class="card">
             <div class="card-title">AI Trader's Reasoning</div>
             <div class="reasoning-text" id="val-reason">Engine scanning. AI auto-analyzes hourly.</div>
+            
+            <!-- Milky Way Toggle Button Fixed After AI Trader's Reasoning -->
+            <div class="milkyway-toggle-bar">
+                <button id="milkyway-toggle-btn" class="milkyway-btn" onclick="toggleMilkyWayMode()">🌌 Milky Way Mode: OFF</button>
+            </div>
         </div>
     </div> 
-
-    <!-- Fixed Milky Way Toggle Button Bar -->
-    <div class="milkyway-toggle-bar">
-        <button id="milkyway-toggle-btn" class="milkyway-btn" onclick="toggleMilkyWayMode()">🌌 Milky Way Mode: OFF</button>
-    </div>
 
     <script>
         // === CONFIGURATION ===
@@ -697,7 +690,7 @@
         scene.add(coreGroup);
 
         // ═══════════════════════════════════════════════════════
-        // SPACE SCENE — Animated Solar System + Milky Way
+        // SPACE SCENE — Cinematic Realistic Solar System & Comets
         // ═══════════════════════════════════════════════════════
 
         function makeNoiseOnCanvas(ctx, w, h, rgb, count, szMin, szMax, aMin, aMax) {
@@ -1031,12 +1024,19 @@
         ];
 
         const planetObjs = [];
+        let earthGroupRef = null;
+
         for (const p of PLANET_DATA) {
             const grp = new THREE.Group();
             const mat = new THREE.MeshPhongMaterial({ map: p.tex, shininess: 10, specular: 0x222222 });
             const sphere = new THREE.Mesh(new THREE.SphereGeometry(p.r, 48, 48), mat);
             sphere.userData.rotSpd = p.rotSpd;
+            sphere.userData.planetName = p.name;
             grp.add(sphere);
+
+            if (p.name === 'Earth') {
+                earthGroupRef = grp;
+            }
 
             if (p.clouds) {
                 const cloudSphere = new THREE.Mesh(
@@ -1115,38 +1115,49 @@
             milkyWayGroup.add(grp);
         }
 
-        // Comets
+        // Realistic Cinematic Comets (Reduced to half count = 1 to 2 comets)
         const comets = [];
-        function makeCometTailTex(rgb) {
-            const c = document.createElement('canvas'); c.width = 256; c.height = 64;
+        function makeCinematicCometTailTex(rgb) {
+            const c = document.createElement('canvas'); c.width = 512; c.height = 128;
             const ctx = c.getContext('2d');
-            const g = ctx.createLinearGradient(0, 32, 256, 32);
-            g.addColorStop(0, 'rgba(255,255,255,0.9)');
-            g.addColorStop(0.2, `rgba(${rgb},0.6)`);
+            const g = ctx.createLinearGradient(0, 64, 512, 64);
+            g.addColorStop(0, 'rgba(255,255,255,1)');
+            g.addColorStop(0.15, 'rgba(200,230,255,0.85)');
+            g.addColorStop(0.4, `rgba(${rgb},0.45)`);
             g.addColorStop(1, `rgba(${rgb},0)`);
             ctx.fillStyle = g;
-            ctx.fillRect(0, 0, 256, 64);
+            ctx.fillRect(0, 0, 512, 128);
             return new THREE.CanvasTexture(c);
         }
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 2; i++) {
             const cg = new THREE.Group();
             const nucleus = new THREE.Mesh(
-                new THREE.SphereGeometry(0.1, 12, 12),
+                new THREE.SphereGeometry(0.08, 16, 16),
                 new THREE.MeshBasicMaterial({ color: 0xffffff })
             );
             cg.add(nucleus);
-            const rgb = i === 0 ? '180,220,255' : (i === 1 ? '220,200,255' : '255,220,180');
-            const tail = new THREE.Sprite(new THREE.SpriteMaterial({
-                map: makeCometTailTex(rgb), transparent: true, opacity: 0.85,
+            
+            // Glowing coma head
+            const coma = new THREE.Sprite(new THREE.SpriteMaterial({
+                map: makeGlowTex(0x99ddff, 128), transparent: true, opacity: 0.9,
                 depthWrite: false, blending: THREE.AdditiveBlending
             }));
-            tail.scale.set(6, 1.2, 1);
-            tail.position.x = -3;
+            coma.scale.set(0.8, 0.8, 1);
+            cg.add(coma);
+
+            const rgb = i === 0 ? '130,200,255' : '220,180,255';
+            const tail = new THREE.Sprite(new THREE.SpriteMaterial({
+                map: makeCinematicCometTailTex(rgb), transparent: true, opacity: 0.95,
+                depthWrite: false, blending: THREE.AdditiveBlending
+            }));
+            tail.scale.set(12, 2.0, 1);
+            tail.position.x = -6;
             cg.add(tail);
-            const a = 20 + Math.random() * 20;
-            const b = 20 + Math.random() * 20;
-            const cVal = 25 + Math.random() * 30;
-            const speed = 0.06 + Math.random() * 0.04;
+
+            const a = 25 + Math.random() * 15;
+            const b = 25 + Math.random() * 15;
+            const cVal = 30 + Math.random() * 20;
+            const speed = 0.04 + Math.random() * 0.03;
             const phase = Math.random() * Math.PI * 2;
             comets.push({ grp: cg, a, b, c: cVal, speed, phase, tail });
             milkyWayGroup.add(cg);
@@ -1227,6 +1238,7 @@
         let cameraPhi = 0.35;
         let cameraRadius = SPACE_CAM_Z;
         let targetCameraZ = BASE_CAM_Z;
+        let earthViewMode = false;
 
         let spaceState = 'core';
         let spaceProgress = 0;
@@ -1246,6 +1258,7 @@
             cameraPhi = 0.35;
             cameraRadius = SPACE_CAM_Z;
             targetCameraZ = SPACE_CAM_Z;
+            earthViewMode = false;
             resetIdleTimer();
             document.getElementById('milkyway-toggle-btn').classList.add('active-galaxy');
             document.getElementById('milkyway-toggle-btn').innerText = '🌌 Milky Way Mode: ON';
@@ -1255,6 +1268,7 @@
             if (spaceState === 'collapsing' || spaceState === 'core') return;
             spaceState = 'collapsing';
             spacePhaseStart = Date.now();
+            earthViewMode = false;
             resetIdleTimer();
             document.getElementById('milkyway-toggle-btn').classList.remove('active-galaxy');
             document.getElementById('milkyway-toggle-btn').innerText = '🌌 Milky Way Mode: OFF';
@@ -1270,11 +1284,38 @@
             }
         }
 
+        // Raycaster for Earth click detection
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        container.addEventListener('click', (e) => {
+            if (spaceState !== 'space') return;
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            
+            if (earthGroupRef) {
+                const intersects = raycaster.intersectObjects(earthGroupRef.children, true);
+                if (intersects.length > 0) {
+                    earthViewMode = !earthViewMode;
+                    if (earthViewMode) {
+                        // Focus camera right next to Earth for surface/orbit view
+                        targetCameraZ = 1.2;
+                        resetIdleTimer();
+                    } else {
+                        targetCameraZ = SPACE_CAM_Z;
+                    }
+                }
+            }
+        });
+
         container.addEventListener('wheel', (e) => {
             if (spaceState === 'space' || spaceState === 'expanding') {
                 e.preventDefault();
                 resetIdleTimer();
-                cameraRadius = Math.max(2, Math.min(220, cameraRadius + e.deltaY * 0.15));
+                earthViewMode = false;
+                cameraRadius = Math.max(1.2, Math.min(220, cameraRadius + e.deltaY * 0.15));
                 targetCameraZ = cameraRadius;
             }
         }, { passive: false });
@@ -1463,6 +1504,7 @@
                 const dy = e.clientY - prev.y;
 
                 if (spaceState === 'space' || spaceState === 'expanding') {
+                    earthViewMode = false;
                     cameraTheta -= dx * 0.008;
                     cameraPhi = Math.max(-1.4, Math.min(1.4, cameraPhi + dy * 0.008));
                 } else {
@@ -1488,7 +1530,8 @@
                 if (pinchStartDist > 0) {
                     const ratio = dist / pinchStartDist;
                     if (spaceState === 'space' || spaceState === 'expanding') {
-                        cameraRadius = Math.max(2, Math.min(220, cameraRadius / ratio));
+                        earthViewMode = false;
+                        cameraRadius = Math.max(1.2, Math.min(220, cameraRadius / ratio));
                         targetCameraZ = cameraRadius;
                     } else {
                         coreScale = Math.max(0.6, Math.min(2.2, pinchStartScale * ratio));
@@ -1635,12 +1678,19 @@
             }
 
             if (spaceState === 'space') {
-                cameraRadius += (targetCameraZ - cameraRadius) * 0.1;
-                const x = cameraRadius * Math.cos(cameraPhi) * Math.sin(cameraTheta);
-                const y = cameraRadius * Math.sin(cameraPhi);
-                const z = cameraRadius * Math.cos(cameraPhi) * Math.cos(cameraTheta);
-                camera.position.lerp(new THREE.Vector3(x, y, z), 0.1);
-                camera.lookAt(0, 0, 0);
+                if (earthViewMode && earthGroupRef) {
+                    const earthPos = earthGroupRef.position.clone();
+                    const offset = new THREE.Vector3(0.6, 0.3, 0.6);
+                    camera.position.lerp(earthPos.clone().add(offset), 0.1);
+                    camera.lookAt(earthPos);
+                } else {
+                    cameraRadius += (targetCameraZ - cameraRadius) * 0.1;
+                    const x = cameraRadius * Math.cos(cameraPhi) * Math.sin(cameraTheta);
+                    const y = cameraRadius * Math.sin(cameraPhi);
+                    const z = cameraRadius * Math.cos(cameraPhi) * Math.cos(cameraTheta);
+                    camera.position.lerp(new THREE.Vector3(x, y, z), 0.1);
+                    camera.lookAt(0, 0, 0);
+                }
             } else if (spaceState === 'expanding' || spaceState === 'collapsing') {
                 const sX = SPACE_CAM_Z * Math.cos(0.35) * Math.sin(0);
                 const sY = SPACE_CAM_Z * Math.sin(0.35);
