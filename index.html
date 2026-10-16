@@ -1960,16 +1960,29 @@ ${memoryBlock}${personalBlock}${marketBlock}`;
                 if (jsonMatch) { try { signalData = JSON.parse(jsonMatch[0]); response = response.replace(jsonMatch[0], '').trim(); } catch(e) {} }
                 document.getElementById('chat-history').removeChild(loading);
                 
-                const rm = response.match(/\[REMINDER:\s*([^\]]+)\]/i);
-                if (rm) {
-                    const inner = rm[1];
-                    const timeMatch = inner.match(/(\d{1,2}:\d{2})/);
-                    if (timeMatch) {
-                        const afterTime = inner.slice(timeMatch.index + timeMatch[0].length);
-                        const msg = afterTime.replace(/^[\s\-–—:.,]+/, '').trim() || 'Reminder';
-                        addReminder(timeMatch[1], msg);
-                    }
-                    response = response.replace(/\[REMINDER:[^\]]*\]/gi, '').trim();
+                // Robust reminder parsing — matches any [REMINDER: ...] tag, handles fullwidth
+                // colons, 12h/24h times, various dash characters, and multiple tags.
+                const rmTags = response.match(/\[\s*REMINDER\s*[:：][^\]]*\]/gi);
+                if (rmTags && rmTags.length > 0) {
+                    rmTags.forEach(tag => {
+                        const inner = tag.replace(/^\[\s*REMINDER\s*[:：]\s*/i, '').replace(/\]\s*$/, '').trim();
+                        const tMatch = inner.match(/(\d{1,2}):(\d{2})(?:\s*([ap])\.?\s*m\.?)?/i);
+                        if (tMatch) {
+                            let hour = parseInt(tMatch[1], 10);
+                            const minute = parseInt(tMatch[2], 10);
+                            const ap = (tMatch[3] || '').toLowerCase();
+                            if (ap === 'p' && hour < 12) hour += 12;
+                            if (ap === 'a' && hour === 12) hour = 0;
+                            if (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) {
+                                const normTime = String(hour).padStart(2, '0') + ':' + String(minute).padStart(2, '0');
+                                const afterTime = inner.slice(tMatch.index + tMatch[0].length);
+                                let msg = afterTime.replace(/^[\s\-–—:.,;|]+/, '').replace(/\*\*/g, '').trim();
+                                if (!msg) msg = 'Reminder';
+                                addReminder(normTime, msg);
+                            }
+                        }
+                    });
+                    response = response.replace(/\[\s*REMINDER\s*[:：][^\]]*\]/gi, '').trim();
                 }
 
                 const mm = response.match(/\[REMEMBER:\s*(.*?)\]/); 
@@ -2029,7 +2042,6 @@ Time context: ${mealContext}${askedBlock}`;
         }
 
         // === IST REMINDER HELPERS ===
-        // Computes the IST calendar (year/month/day/weekday) for a given epoch ms.
         function getISTCalendar(ms) {
             const parts = new Intl.DateTimeFormat('en-US', {
                 timeZone: 'Asia/Kolkata',
@@ -2044,16 +2056,12 @@ Time context: ${mealContext}${askedBlock}`;
                 weekday: get('weekday')
             };
         }
-        // Convert an IST wall-clock time (y-m-d hh:mm IST) to a UTC epoch ms.
-        // IST is UTC+5:30, so UTC = IST - 5h30m.
         function istWallClockToUTC(y, m, d, hh, mm) {
             let utcH = hh - 5, utcM = mm - 30, dayShift = 0;
             if (utcM < 0) { utcM += 60; utcH -= 1; }
             if (utcH < 0) { utcH += 24; dayShift = -1; }
             return Date.UTC(y, m - 1, d + dayShift, utcH, utcM, 0, 0);
         }
-        // Given a reminder time string ("HH:MM" or "Mon HH:MM"), return the next
-        // occurrence in IST as an epoch ms, at or after fromMs (with 60s tolerance).
         function computeDueAt(timeStr, fromMs) {
             fromMs = fromMs || Date.now();
             let targetDay = null, hhmm = (timeStr || '').trim();
@@ -2110,6 +2118,7 @@ Time context: ${mealContext}${askedBlock}`;
             if (activeReminders.length === 0 && activeSearches.length === 0) { l.innerHTML = 'No active reminders.'; return; } 
             let html = '';
             activeReminders.forEach(r => { html += `<div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span>⏰ ${r.time} · ${r.message}</span><button class="btn danger" onclick="deleteReminder('${r.id}')">X</button></div>`; });
+            activeSearches.forEach(s => { html += `<div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span>🔍 ${s.query}</span></div>`; });
             l.innerHTML = html;
         }
 
@@ -2122,8 +2131,6 @@ Time context: ${mealContext}${askedBlock}`;
             try { speakText(body, true); } catch(e) {}
         }
 
-        // Fires reminders the moment now >= dueAt (IST-computed). Catches up on
-        // reminders whose exact minute passed while the tab was closed or throttled.
         function checkReminders() {
             const now = Date.now();
             let updated = false;
@@ -2147,8 +2154,6 @@ Time context: ${mealContext}${askedBlock}`;
         }
         setInterval(checkReminders, 10000);
 
-        // Background wake-up: worker tick + visibility/focus events so reminders
-        // still fire when the tab is hidden or the browser is in the background.
         (function initReminderWakeups() {
             try {
                 const workerCode = "setInterval(function(){postMessage(Date.now())},1000);";
