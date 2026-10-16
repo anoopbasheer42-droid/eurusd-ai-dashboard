@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1952,8 +1951,8 @@ ${memoryBlock}${personalBlock}${marketBlock}`;
                 if (jsonMatch) { try { signalData = JSON.parse(jsonMatch[0]); response = response.replace(jsonMatch[0], '').trim(); } catch(e) {} }
                 document.getElementById('chat-history').removeChild(loading);
                 
-                const rm = response.match(/\[REMINDER:\s*(\w{3}\s\d{2}:\d{2}\vert{}\d{2}:\d{2})\s*-\s*(.*?)\]/); 
-                if (rm) { addReminder(rm[1], rm[2]); response = response.replace(/\[REMINDER:.*?\]/g, '').trim(); }
+                const rm = response.match(/\[REMINDER:\s*((?:[A-Za-z]{3}\s+)?\d{1,2}:\d{2})\s*-\s*([^\]]+)\]/i);
+                if (rm) { addReminder(rm[1].trim(), rm[2].trim()); response = response.replace(/\[REMINDER:.*?\]/g, '').trim(); }
 
                 const mm = response.match(/\[REMEMBER:\s*(.*?)\]/); 
                 if (mm) { 
@@ -2011,10 +2010,72 @@ Time context: ${mealContext}${askedBlock}`;
             } catch(e) {}
         }
 
-        function addReminder(time, message) { 
-            reminders.push({id: Math.random().toString(36).substr(2,9), time, message, voice:true, fired:false, created: new Date().toISOString()}); 
-            localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); 
-            renderReminders(); 
+        // === IST REMINDER HELPERS ===
+        // Computes the IST calendar (year/month/day/weekday) for a given epoch ms.
+        function getISTCalendar(ms) {
+            const parts = new Intl.DateTimeFormat('en-US', {
+                timeZone: 'Asia/Kolkata',
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                weekday: 'short'
+            }).formatToParts(new Date(ms));
+            const get = (t) => parts.find(p => p.type === t)?.value;
+            return {
+                y: parseInt(get('year'), 10),
+                m: parseInt(get('month'), 10),
+                d: parseInt(get('day'), 10),
+                weekday: get('weekday')
+            };
+        }
+        // Convert an IST wall-clock time (y-m-d hh:mm IST) to a UTC epoch ms.
+        // IST is UTC+5:30, so UTC = IST - 5h30m.
+        function istWallClockToUTC(y, m, d, hh, mm) {
+            let utcH = hh - 5, utcM = mm - 30, dayShift = 0;
+            if (utcM < 0) { utcM += 60; utcH -= 1; }
+            if (utcH < 0) { utcH += 24; dayShift = -1; }
+            return Date.UTC(y, m - 1, d + dayShift, utcH, utcM, 0, 0);
+        }
+        // Given a reminder time string ("HH:MM" or "Mon HH:MM"), return the next
+        // occurrence in IST as an epoch ms, at or after fromMs (with 60s tolerance).
+        function computeDueAt(timeStr, fromMs) {
+            fromMs = fromMs || Date.now();
+            let targetDay = null, hhmm = (timeStr || '').trim();
+            if (hhmm.includes(' ')) {
+                const parts = hhmm.split(/\s+/);
+                targetDay = parts[0];
+                hhmm = parts[1] || '';
+            }
+            const segs = hhmm.split(':');
+            const th = parseInt(segs[0], 10), tm = parseInt(segs[1], 10);
+            if (isNaN(th) || isNaN(tm)) return null;
+            const start = getISTCalendar(fromMs);
+            const startUTC = Date.UTC(start.y, start.m - 1, start.d);
+            const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+            for (let offset = 0; offset <= 7; offset++) {
+                const probe = new Date(startUTC + offset * 86400000);
+                const pwd = dayNames[probe.getUTCDay()];
+                if (targetDay && pwd !== targetDay) continue;
+                const ts = istWallClockToUTC(probe.getUTCFullYear(), probe.getUTCMonth() + 1, probe.getUTCDate(), th, tm);
+                if (ts >= fromMs - 60000) return ts;
+            }
+            return null;
+        }
+        function normalizeReminderTime(timeStr) {
+            let t = (timeStr || '').trim();
+            if (t.includes(' ')) {
+                const parts = t.split(/\s+/);
+                const hm = (parts[1] || '00:00').split(':');
+                return parts[0] + ' ' + hm[0].padStart(2, '0') + ':' + (hm[1] || '00').padStart(2, '0');
+            }
+            const hm = t.split(':');
+            return (hm[0] || '00').padStart(2, '0') + ':' + (hm[1] || '00').padStart(2, '0');
+        }
+
+        function addReminder(time, message) {
+            const normTime = normalizeReminderTime(time);
+            const dueAt = computeDueAt(normTime);
+            reminders.push({id: Math.random().toString(36).substr(2,9), time: normTime, message, voice:true, fired:false, created: new Date().toISOString(), dueAt});
+            localStorage.setItem('eurusd_reminders', JSON.stringify(reminders));
+            renderReminders();
         }
 
         function addScheduledSearch(minutes, query) {
@@ -2040,28 +2101,31 @@ Time context: ${mealContext}${askedBlock}`;
         
         function triggerNotif(title, body) { 
             if (Notification.permission === "granted") { try { new Notification(title, {body, requireInteraction: true}); } catch(e) {} } 
-            speakText(body, true); 
+            try { speakText(body, true); } catch(e) {}
         }
 
-        function checkReminders() { 
-            const now = new Date(); 
-            const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-            const curDay = days[now.getDay()];
-            const curTime = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0'); 
-            let updated = false; 
-            reminders.forEach(r => { 
-                if (!r.fired) {
-                    let shouldFire = false;
-                    if (r.time.includes(' ')) {
-                        const [dayPart, timePart] = r.time.split(' ');
-                        if (dayPart === curDay && timePart === curTime) shouldFire = true;
-                    } else {
-                        if (r.time === curTime) shouldFire = true;
-                    }
-                    if (shouldFire) { r.fired = true; updated = true; triggerNotif("Reminder", r.message); } 
+        // Fires reminders the moment now >= dueAt (IST-computed). Catches up on
+        // reminders whose exact minute passed while the tab was closed or throttled.
+        function checkReminders() {
+            const now = Date.now();
+            let updated = false;
+            reminders.forEach(r => {
+                if (r.fired) return;
+                if (!r.dueAt) {
+                    const createdMs = r.created ? new Date(r.created).getTime() : now;
+                    r.dueAt = computeDueAt(normalizeReminderTime(r.time), createdMs);
+                    updated = true;
                 }
-            }); 
-            if (updated) { localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); } 
+                if (r.dueAt && now >= r.dueAt) {
+                    r.fired = true;
+                    updated = true;
+                    try { triggerNotif("Reminder", r.message); } catch(e) { console.error('Reminder fire error:', e); }
+                }
+            });
+            if (updated) {
+                localStorage.setItem('eurusd_reminders', JSON.stringify(reminders));
+                renderReminders();
+            }
         }
         setInterval(checkReminders, 10000);
 
@@ -2187,5 +2251,3 @@ Time context: ${mealContext}${askedBlock}`;
     </script>
 </body>
 </html>
-
-
