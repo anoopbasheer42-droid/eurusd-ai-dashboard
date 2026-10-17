@@ -248,7 +248,7 @@
             </div>
             <div class="chat-input-row">
                 <input type="text" id="chat-input" placeholder="Talk to your trader, Boss..." onkeypress="if(event.key==='Enter') sendChat()">
-                <button id="mic-btn" onclick="toggleSpeechRecognition()" style="background: rgba(139, 92, 246, 0.2); border: 1px solid rgba(139, 92, 246, 0.4); padding: 0 14px; font-size: 1rem;" title="Tap to speak">🎙️</button>
+                <button id="voice-chat-toggle-btn" onclick="toggleVoiceAssistantMode()" style="background: rgba(139, 92, 246, 0.2); border: 1px solid rgba(139, 92, 246, 0.4); padding: 0 14px; font-size: 1rem;" title="Toggle Continuous Voice Chat">🎙️ OFF</button>
                 <button onclick="sendChat()">Send</button>
             </div>
             <div style="text-align:right; margin-top:10px;"><button class="btn" onclick="clearChat()">Clear chat (memory stays)</button></div>
@@ -1976,7 +1976,11 @@
             isSpeaking = true;
             let index = 0;
             function speakNext() {
-                if (index >= sentences.length) { isSpeaking = false; return; }
+                if (index >= sentences.length) { 
+                    isSpeaking = false; 
+                    checkVoiceChatRestart();
+                    return; 
+                }
                 const sentence = sentences[index];
                 const u = new SpeechSynthesisUtterance(sentence);
                 u.voice = voice;
@@ -1984,7 +1988,11 @@
                 u.rate = 1.02;
                 u.volume = 1.0;
                 u.onend = () => { index++; setTimeout(speakNext, 350 + Math.random() * 200); };
-                u.onerror = (e) => { console.error("Speech error:", e); isSpeaking = false; };
+                u.onerror = (e) => { 
+                    console.error("Speech error:", e); 
+                    isSpeaking = false; 
+                    checkVoiceChatRestart();
+                };
                 window.speechSynthesis.speak(u);
             }
             speakNext();
@@ -1995,7 +2003,7 @@
             if (currentAudio) { currentAudio.pause(); currentAudio = null; }
             if ('speechSynthesis' in window) { window.speechSynthesis.cancel(); }
             const cleanText = sanitizeForSpeech(text.replace(/\[.*?\]/g, ''));
-            if (!cleanText) { isSpeaking = false; return; }
+            if (!cleanText) { isSpeaking = false; checkVoiceChatRestart(); return; }
             isSpeaking = true;
             if (voiceEngineMode === 'browser') {
                 if (statusEl) statusEl.innerHTML = "<span style='color:var(--yellow);'>Using Browser Voice (Manual Mode)</span>";
@@ -2015,7 +2023,11 @@
                     currentAudio = new Audio(URL.createObjectURL(blob));
                     if (statusEl) statusEl.innerHTML = "<span style='color:var(--green);'>✓ Playing ElevenLabs Voice</span>";
                     currentAudio.play();
-                    currentAudio.onended = () => { isSpeaking = false; currentAudio = null; };
+                    currentAudio.onended = () => { 
+                        isSpeaking = false; 
+                        currentAudio = null; 
+                        checkVoiceChatRestart();
+                    };
                     return;
                 } catch (e) {
                     console.error("ElevenLabs error:", e);
@@ -2035,62 +2047,81 @@
         }
         function stopVoice() { if (currentAudio) { currentAudio.pause(); currentAudio = null; } if ('speechSynthesis' in window) { window.speechSynthesis.cancel(); } isSpeaking = false; }
 
-        // === SPEECH RECOGNITION (HANDS-FREE MIC INPUT) ===
-        let recognition = null;
-        let isListening = false;
-        function toggleSpeechRecognition() {
+        // === CONTINUOUS VOICE ASSISTANT CHAT MODE (FEATURE 5) ===
+        let voiceAssistantActive = false;
+        let continuousRecognition = null;
+
+        function toggleVoiceAssistantMode() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRecognition) {
                 alert("Speech recognition is not supported in this browser. Try Chrome or Edge, Boss.");
                 return;
             }
-            const micBtn = document.getElementById('mic-btn');
-            if (isListening) {
-                if (recognition) { recognition.stop(); }
-                return;
-            }
-            recognition = new SpeechRecognition();
-            recognition.lang = 'en-US';
-            recognition.interimResults = false;
-            recognition.maxAlternatives = 1;
+            const btn = document.getElementById('voice-chat-toggle-btn');
+            voiceAssistantActive = !voiceAssistantActive;
 
-            recognition.onstart = () => {
-                isListening = true;
-                micBtn.style.background = 'rgba(239, 68, 68, 0.4)';
-                micBtn.style.borderColor = '#ef4444';
-                micBtn.innerText = '🛑';
-            };
-
-            recognition.onresult = (event) => {
-                const speechResult = event.results[0][0].transcript;
-                document.getElementById('chat-input').value = speechResult;
-                sendChat();
-            };
-
-            recognition.onerror = (event) => {
-                console.warn("Speech recognition error:", event.error);
-                stopRecognitionUI();
-            };
-
-            recognition.onend = () => {
-                stopRecognitionUI();
-            };
-
-            try {
-                recognition.start();
-            } catch(e) {
-                console.error("Speech start error:", e);
-                stopRecognitionUI();
+            if (voiceAssistantActive) {
+                btn.style.background = 'rgba(16, 185, 129, 0.4)';
+                btn.style.borderColor = '#10b981';
+                btn.innerText = '🎙️ ON';
+                speakText("Voice chat assistant online, Boss. I'm listening.");
+                setTimeout(() => startContinuousListening(), 1200);
+            } else {
+                btn.style.background = 'rgba(139, 92, 246, 0.2)';
+                btn.style.borderColor = 'rgba(139, 92, 246, 0.4)';
+                btn.innerText = '🎙️ OFF';
+                if (continuousRecognition) {
+                    try { continuousRecognition.stop(); } catch(e) {}
+                    continuousRecognition = null;
+                }
             }
         }
 
-        function stopRecognitionUI() {
-            isListening = false;
-            const micBtn = document.getElementById('mic-btn');
-            if (micBtn) {
-                micBtn.style.background = 'rgba(139, 92, 246, 0.2)';
-                micBtn.style.borderColor = 'rgba(139, 92, 246, 0.4)';
-                micBtn.innerText = '🎙️';
+        function startContinuousListening() {
+            if (!voiceAssistantActive || isSpeaking || chatInProgress) return;
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) return;
+
+            if (continuousRecognition) {
+                try { continuousRecognition.stop(); } catch(e) {}
+            }
+
+            continuousRecognition = new SpeechRecognition();
+            continuousRecognition.lang = 'en-US';
+            continuousRecognition.interimResults = false;
+            continuousRecognition.maxAlternatives = 1;
+
+            continuousRecognition.onresult = (event) => {
+                const speechResult = event.results[0][0].transcript.trim();
+                if (speechResult) {
+                    document.getElementById('chat-input').value = speechResult;
+                    sendChat();
+                }
+            };
+
+            continuousRecognition.onerror = (event) => {
+                console.warn("Continuous voice error:", event.error);
+                if (voiceAssistantActive && !isSpeaking && !chatInProgress) {
+                    setTimeout(() => startContinuousListening(), 1000);
+                }
+            };
+
+            continuousRecognition.onend = () => {
+                if (voiceAssistantActive && !isSpeaking && !chatInProgress) {
+                    setTimeout(() => startContinuousListening(), 500);
+                }
+            };
+
+            try {
+                continuousRecognition.start();
+            } catch(e) {
+                console.warn("Continuous voice start error:", e);
+            }
+        }
+
+        function checkVoiceChatRestart() {
+            if (voiceAssistantActive && !chatInProgress) {
+                setTimeout(() => startContinuousListening(), 1000);
             }
         }
 
