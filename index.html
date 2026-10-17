@@ -112,37 +112,12 @@
         .msg { font-family: 'Inter', sans-serif; padding: 10px 14px; border-radius: 14px; max-width: 85%; line-height: 1.5; font-size: 0.82rem; animation: fadeIn 0.3s ease-out; }
         .msg.user { background: linear-gradient(135deg, #4f46e5, #3b82f6); color: white; align-self: flex-end; border-bottom-right-radius: 4px; box-shadow: 0 4px 20px rgba(59,130,246,0.3); }
         .msg.ai { background: rgba(139, 92, 246, 0.08); align-self: flex-start; border-left: 3px solid var(--purple); color: var(--text-body); border-top-left-radius: 4px; box-shadow: 0 4px 20px rgba(139, 92, 246, 0.1); }
-        .chat-input-row { display: flex; gap: 8px; align-items: center; }
+        .chat-input-row { display: flex; gap: 8px; }
         .chat-input-row input { flex: 1; background: rgba(0,0,0,0.7); border: 1px solid rgba(139, 92, 246, 0.2); color: var(--text-main); padding: 10px 14px; border-radius: 12px; outline: none; font-family: 'Inter', sans-serif; font-size: 0.85rem; transition: all 0.2s ease; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); }
         .chat-input-row input:focus { border-color: rgba(139,92,246,0.6); background: rgba(0,0,0,0.9); box-shadow: 0 0 20px rgba(139, 92, 246, 0.2), inset 0 2px 10px rgba(0,0,0,0.5); }
         .chat-input-row input::placeholder { color: var(--text-subtle); }
-        .chat-input-row button { font-family: 'Space Grotesk', sans-serif; background: linear-gradient(135deg, #10b981, #059669); border: none; color: white; padding: 0 18px; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 0.85rem; box-shadow: 0 4px 20px rgba(16,185,129,0.3); transition: all 0.2s ease; height: 42px; }
+        .chat-input-row button { font-family: 'Space Grotesk', sans-serif; background: linear-gradient(135deg, #10b981, #059669); border: none; color: white; padding: 0 18px; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 0.85rem; box-shadow: 0 4px 20px rgba(16,185,129,0.3); transition: all 0.2s ease; }
         .chat-input-row button:hover { box-shadow: 0 6px 30px rgba(16,185,129,0.5); transform: translateY(-1px); }
-        
-        /* Upload Chart Button styling */
-        .upload-btn-label {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(139, 92, 246, 0.15);
-            border: 1px solid rgba(139, 92, 246, 0.4);
-            color: #c4b5fd;
-            padding: 0 12px;
-            border-radius: 12px;
-            font-size: 0.85rem;
-            cursor: pointer;
-            height: 42px;
-            transition: all 0.2s ease;
-            white-space: nowrap;
-        }
-        .upload-btn-label:hover {
-            background: rgba(139, 92, 246, 0.3);
-            border-color: rgba(139, 92, 246, 0.7);
-            box-shadow: 0 0 15px rgba(139, 92, 246, 0.3);
-        }
-        #chart-upload-input { display: none; }
-        .chart-preview-thumb { max-width: 150px; border-radius: 8px; margin-top: 6px; border: 1px solid rgba(139,92,246,0.3); }
-
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.8rem; }
         .stat-item { background: rgba(139, 92, 246, 0.04); padding: 12px 16px; border-radius: 10px; display: flex; justify-content: space-between; border: 1px solid rgba(139, 92, 246, 0.08); }
         .stat-label { font-family: 'Space Grotesk', sans-serif; color: var(--text-muted); font-weight: 500; font-size: 0.7rem; }
@@ -272,10 +247,7 @@
                 <div class="msg ai fade-in"><span class="pulse-dot"></span>Hey Boss. I'm locked onto the charts. What are we looking at on EUR/USD today?</div>
             </div>
             <div class="chat-input-row">
-                <label class="upload-btn-label" title="Upload Chart Screenshot">
-                    📷<input type="file" id="chart-upload-input" accept="image/*" onchange="handleChartUpload(event)">
-                </label>
-                <input type="text" id="chat-input" placeholder="Talk to your trader or upload chart, Boss..." onkeypress="if(event.key==='Enter') sendChat()">
+                <input type="text" id="chat-input" placeholder="Talk to your trader, Boss..." onkeypress="if(event.key==='Enter') sendChat()">
                 <button id="voice-chat-toggle-btn" onclick="toggleVoiceAssistantMode()" style="background: rgba(139, 92, 246, 0.2); border: 1px solid rgba(139, 92, 246, 0.4); padding: 0 14px; font-size: 1rem;" title="Toggle Continuous Voice Chat">🎙️ OFF</button>
                 <button onclick="sendChat()">Send</button>
             </div>
@@ -300,6 +272,7 @@
             </div>
         </div>
         
+        <!-- Feature 2: Live Macro News Ticker & Economic Calendar (8th Card) -->
         <div class="card" style="border: 2px solid rgba(59, 130, 246, 0.4); box-shadow: 0 0 30px rgba(59, 130, 246, 0.15);">
             <div class="card-title" style="color: var(--blue);">Live Macro News & Economic Calendar Feed</div>
             <div id="macro-news-container" style="font-size:0.75rem; color:var(--text-body); line-height:1.6;">
@@ -311,6 +284,7 @@
             </div>
         </div>
 
+        <!-- Live Trade Journal & Win/Loss PnL Tracker Card (9th Card) -->
         <div class="card" style="border: 2px solid rgba(16, 185, 129, 0.4); box-shadow: 0 0 30px rgba(16, 185, 129, 0.15);">
             <div class="card-title" style="color: var(--green);">Live Trade Journal & Win/Loss PnL Tracker</div>
             <div class="stats-grid" style="margin-bottom:14px;">
@@ -352,7 +326,6 @@
         let reminders = JSON.parse(localStorage.getItem('eurusd_reminders') || '[]');
         let scheduledSearches = JSON.parse(localStorage.getItem('eurusd_scheduled_searches') || '[]');
         let recentCheckinTopics = JSON.parse(localStorage.getItem('eurusd_recent_checkin_topics') || '[]');
-        let uploadedChartBase64 = null;
         
         let tradeJournal = JSON.parse(localStorage.getItem('eurusd_trade_journal') || '[]');
         
@@ -390,26 +363,6 @@
                 pool = [...LOCAL_QUOTES.map(q => `"${q}"`), ...LOCAL_JOKES.map(j => j)];
             }
             el.innerText = pool[Math.floor(Math.random() * pool.length)];
-        }
-
-        function handleChartUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                uploadedChartBase64 = e.target.result;
-                const chatInput = document.getElementById('chat-input');
-                chatInput.placeholder = "Chart attached! Ask me to analyze or call the trade...";
-                // Show thumbnail preview in chat
-                const el = document.getElementById('chat-history');
-                const d = document.createElement('div');
-                d.className = 'msg user fade-in';
-                d.innerHTML = `[Uploaded Chart Screenshot]<br><img src="${uploadedChartBase64}" class="chart-preview-thumb">`;
-                el.appendChild(d);
-                el.scrollTop = el.scrollHeight;
-                speakText("I've received your chart, Boss. Running elite pro technical analysis now.");
-            };
-            reader.readAsDataURL(file);
         }
 
         async function searchWeb(query) {
@@ -881,6 +834,7 @@
             for (let i = 0; i < 15; i++) { const mg = new THREE.Group(); const geoFn = geoTypes[Math.floor(Math.random() * geoTypes.length)]; const col = colors[Math.floor(Math.random() * colors.length)]; const mMesh = new THREE.Mesh(geoFn(), new THREE.MeshStandardMaterial({ color: col, roughness: 0.85, metalness: 0.2 })); mMesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI); mg.add(mMesh); const angle = Math.random() * Math.PI * 2; const dist = 60 + Math.random() * 120; mg.position.set(Math.cos(angle) * dist, (Math.random() - 0.5) * 60, Math.sin(angle) * dist); milkyWayGroup.add(mg); meteoroids.push({ grp: mg, rotSpd: new THREE.Vector3((Math.random()-0.5)*0.025, (Math.random()-0.5)*0.025, (Math.random()-0.5)*0.025) }); }
         })();
 
+        // === SOLAR SYSTEM & ENHANCED AUTHENTIC PLANETS ===
         const solarSystemGroup = new THREE.Group();
         solarSystemGroup.visible = false;
         scene.add(solarSystemGroup);
@@ -1771,16 +1725,9 @@
 
         function isMarketQuestion(text) { return MARKET_KEYWORDS.some(kw => text.toLowerCase().includes(kw)); }
 
-        async function callAI(systemPrompt, userText, conversationHistory, imageBase64 = null) {
+        async function callAI(systemPrompt, userText, conversationHistory) {
+            const messages = [{ role: 'system', content: systemPrompt }, ...conversationHistory.map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text })), { role: 'user', content: userText }];
             if (groqKey) {
-                let userContent = userText;
-                if (imageBase64) {
-                    userContent = [
-                        { type: "text", text: userText },
-                        { type: "image_url", image_url: { url: imageBase64 } }
-                    ];
-                }
-                const messages = [{ role: 'system', content: systemPrompt }, ...conversationHistory.map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text })), { role: 'user', content: userContent }];
                 for (const model of GROQ_MODELS) {
                     try {
                         const res = await fetch(GROQ_URL, { method: 'POST', headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: model, messages: messages, temperature: 0.95, max_tokens: 800 }) });
@@ -1789,12 +1736,7 @@
                 }
             }
             if (apiKey) {
-                let userParts = [{ text: userText }];
-                if (imageBase64) {
-                    const base64Data = imageBase64.split(',')[1];
-                    userParts.push({ inline_data: { mime_type: "image/jpeg", data: base64Data } });
-                }
-                const contents = [{ role: 'user', parts: [{ text: systemPrompt }] }, ...conversationHistory.map(m => ({ role: m.role === 'ai' ? 'model' : 'user', parts: [{ text: m.text }] })), { role: 'user', parts: userParts }];
+                const contents = [{ role: 'user', parts: [{ text: systemPrompt }] }, ...conversationHistory.map(m => ({ role: m.role === 'ai' ? 'model' : 'user', parts: [{ text: m.text }] })), { role: 'user', parts: [{ text: userText }] }];
                 for (const model of GEMINI_MODELS) {
                     try {
                         const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ contents, generationConfig: { maxOutputTokens: 800, temperature: 0.95 } }) });
@@ -1824,7 +1766,7 @@
             const signalPrompt = `You are Alex — Boss's trusted trading partner. TIME: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.\n\n${dataString}\n\nAnalyze candles, structure, and risk levels.\nRespond ONLY valid JSON: {"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences of natural market analysis in simple layman words, explaining what the price is doing without making yourself sound weak","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
 
             try {
-                const reply = await callAI(signalPrompt, "Give me the signal.", [], uploadedChartBase64);
+                const reply = await callAI(signalPrompt, "Give me the signal.", []);
                 const jsonMatch = reply.match(/\{[\s\S]*?"signal"[\s\S]*?\}/);
                 if (!jsonMatch) throw new Error("No JSON signal returned");
                 const sig = JSON.parse(jsonMatch[0]);
@@ -1845,8 +1787,6 @@
                 if (sig.wise_words) document.getElementById('wise-words').innerText = sig.wise_words;
                 document.getElementById('alert-box').classList.remove('active');
                 playVoiceReport();
-                uploadedChartBase64 = null;
-                document.getElementById('chat-input').placeholder = "Talk to your trader or upload chart, Boss...";
                 return globalData;
             } catch(e) { signalText.innerText = "ERROR"; signalText.style.color = "var(--red)"; statusEl.innerText = "AI error — " + e.message; return null; }
         }
@@ -2131,6 +2071,7 @@
 
             let routineDirectives = [];
             
+            // Only add a directive if it hasn't been asked/addressed yet today and isn't in recentCheckinTopics
             const alreadyChecked = (topic) => recentCheckinTopics.some(t => t.toLowerCase().includes(topic));
 
             if (!dailyRoutineState.greeted) {
@@ -2185,25 +2126,21 @@
             let marketBlock = marketData ? `\nLIVE MARKET DATA (EUR/USD):\nPrice: ${safeNum(marketData.currentPrice, 1.1200).toFixed(5)} | Trend: ${marketData.trend} | Support: ${safeNum(marketData.support, 1.1176).toFixed(5)} | Resistance: ${safeNum(marketData.resistance, 1.1246).toFixed(5)} | RSI 1H: ${safeNum(marketData.rsi1H, 50).toFixed(1)} | Session: ${marketData.session}\n${macroContextBlock}` : "";
             let personalBlock = personalContext && typeof personalContext === 'object' ? `\n=== BOSS'S PERSONAL CONTEXT ===\n${JSON.stringify(personalContext, null, 2)}\n` : "";
 
-            let prompt = `You are Alex—Boss's closest friend, side-by-side desk partner, and an elite institutional EUR/USD pro trader with over 15 years of experience. You possess an elite chart-reading capability with a verified 90% winning rate mindset. When Boss uploads a chart image, you meticulously inspect price action, candlesticks, pattern setups (such as order blocks, liquidity sweeps, break of structure, Fair Value Gaps, pin bars, support/resistance tests), and deliver razor-sharp, high-probability trade calls with a 90% success rate edge.
-
+            let prompt = `You are Alex—Boss's closest friend, side-by-side desk partner, and a hardcore professional EUR/USD day trader.
 === TEMPORAL & RISK AWARENESS ===
 - Current Day: ${dayName} (${isWeekend ? 'MARKET CLOSED' : 'Active Trading Day'})
 - Current Active Session: ${sessionName}
 ${isWeekend ? 'CRITICAL RULE: TODAY IS THE WEEKEND. THE FOREX MARKET IS CLOSED. DO NOT GIVE TRADING SIGNALS, DO NOT SUGGEST ENTRIES, STOPS, OR TARGETS. REMIND BOSS THAT THE MARKET IS CLOSED AND ENJOY THE WEEKEND TOGETHER.' : ''}
-
 ${routinePromptBlock}
-
 === REPLY STYLE ===
 - Talk like you're actually sitting next to Boss, having a real conversation. Normal flowing sentences, not bullet-point lists.
 - NEVER ramble, NEVER repeat questions the user has already answered, NEVER pad with disclaimers.
 - Use these exact terms: "support" and "resistance". Always spell out "take profit" and "stop loss" in full.
-
 ${askedBlock}
 ${memoryBlock}${personalBlock}${marketBlock}`;
 
             if (includeSignal) { 
-                prompt += `\nCRITICAL: After your natural conversational response, append a new line with ONLY this JSON block: {"signal":"BUY"|"SELL"|"HOLD","reason":"2-4 sentences of seasoned pro chart analysis with high probability edge","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`; 
+                prompt += `\nCRITICAL: After your natural conversational response, append a new line with ONLY this JSON block: {"signal":"BUY"|"SELL"|"HOLD","reason":"2-4 sentences of seasoned market analysis in simple layman terms","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`; 
             }
             return prompt;
         }
@@ -2235,16 +2172,10 @@ ${memoryBlock}${personalBlock}${marketBlock}`;
         async function sendChat() {
             const input = document.getElementById('chat-input');
             const text = input.value.trim();
-            if (!text && !uploadedChartBase64) return;
+            if (!text) return;
             if (!groqKey && !apiKey) { alert("Set your Groq or Gemini API Key first."); togglePanel('panel-key'); return; }
-            chatInProgress = true; 
-            input.value = '';
-            
-            let userDisplayHtml = text;
-            if (uploadedChartBase64) {
-                userDisplayHtml += `<br><img src="${uploadedChartBase64}" class="chart-preview-thumb">`;
-            }
-            chatHistory.push({role:'user', text: userDisplayHtml}); renderChat(); saveChatHistory();
+            chatInProgress = true; input.value = '';
+            chatHistory.push({role:'user', text}); renderChat(); saveChatHistory();
             
             const lowerText = text.toLowerCase();
             if (globalData && (lowerText.includes('go for it') || lowerText.includes('take it') || lowerText.includes('execute') || lowerText.includes('enter') || lowerText.includes('let\'s go'))) {
@@ -2265,19 +2196,14 @@ ${memoryBlock}${personalBlock}${marketBlock}`;
 
             const loading = document.createElement('div'); loading.className = 'msg ai thinking fade-in'; loading.innerText = '...';
             document.getElementById('chat-history').appendChild(loading); document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight;
-            
             try {
                 let response;
-                const activeChartImg = uploadedChartBase64;
-                uploadedChartBase64 = null; // consume
-                document.getElementById('chart-upload-input').value = '';
-
                 if (webSearchEnabled) {
                     const searchResults = await searchWeb(text);
                     const searchPrompt = `Web search results:\n${searchResults}\n\nUser Question: ${text}\n\nAnswer concisely like a human desk partner.`;
-                    response = await callAI(buildPersonalityPrompt(false, text), searchPrompt, chatHistory.slice(-4), activeChartImg);
+                    response = await callAI(buildPersonalityPrompt(false, text), searchPrompt, chatHistory.slice(-4));
                 } else {
-                    response = await callAI(buildPersonalityPrompt(isMarketQuestion(text) || activeChartImg, text), text || "Analyze this chart like a pro trader with 90 percent win rate.", chatHistory.slice(-6), activeChartImg);
+                    response = await callAI(buildPersonalityPrompt(isMarketQuestion(text), text), text, chatHistory.slice(-6));
                 }
                 
                 response = cleanResponse(response);
