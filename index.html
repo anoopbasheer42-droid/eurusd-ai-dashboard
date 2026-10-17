@@ -1827,15 +1827,24 @@
             const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
             const dayName = days[now.getDay()];
             const isWeekend = [0, 6].includes(now.getDay());
+            const utcHour = now.getUTCHours();
+            const utcDay = now.getUTCDay();
             
+            let sessionName = "Off-Session";
+            if (utcHour >= 7 && utcHour < 16) sessionName = "London Session";
+            if (utcHour >= 12 && utcHour < 21) sessionName = "New York Session";
+            if (utcHour >= 0 && utcHour < 8) sessionName = "Asian Session";
+            if (utcHour >= 12 && utcHour < 16) sessionName = "London / NY Overlap";
+            if (isWeekend) sessionName = "Weekend (Market Closed)";
+
             const istHour = parseInt(now.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', hour12: false }), 10);
             let mealContext = "";
-            if (istHour < 10) mealContext = "IST time NOW = MORNING (before 10 AM). Breakfast is the ONLY meal relevant now. Lunch and dinner are NOT yet.";
-            else if (istHour < 12) mealContext = "IST time NOW = LATE MORNING. Breakfast is done. Lunch is NOT yet.";
-            else if (istHour < 15) mealContext = "IST time NOW = MIDDAY/LUNCH. Lunch is the only relevant meal now. Breakfast is done, dinner is far.";
-            else if (istHour < 18) mealContext = "IST time NOW = AFTERNOON. Lunch is done. Dinner is NOT yet.";
-            else if (istHour < 22) mealContext = "IST time NOW = EVENING/DINNER. Dinner is the relevant meal now. Breakfast and lunch are done.";
-            else mealContext = "IST time NOW = NIGHT. All meals for today are done. Do NOT ask about any meal now.";
+            if (istHour < 10) mealContext = "IST time NOW = MORNING (before 10 AM). Breakfast is the ONLY meal relevant now.";
+            else if (istHour < 12) mealContext = "IST time NOW = LATE MORNING.";
+            else if (istHour < 15) mealContext = "IST time NOW = MIDDAY/LUNCH.";
+            else if (istHour < 18) mealContext = "IST time NOW = AFTERNOON.";
+            else if (istHour < 22) mealContext = "IST time NOW = EVENING/DINNER.";
+            else mealContext = "IST time NOW = NIGHT.";
             
             let askedBlock = "";
             if (recentCheckinTopics && recentCheckinTopics.length > 0) {
@@ -1868,15 +1877,21 @@
 
             let prompt = `You are Alex—Boss's closest friend, side-by-side desk partner, and a hardcore professional EUR/USD day trader.
 
+=== TEMPORAL & RISK AWARENESS (CRITICAL) ===
+- Current Day: ${dayName} (${isWeekend ? 'MARKET CLOSED' : 'Active Trading Day'})
+- Current Active Session: ${sessionName}
+- When Boss asks about a trade or a signal, you MUST factor in the current day, active session, and time left in the day/week.
+- Always provide available trade options (e.g., waiting for pullback, breakout, or standing aside), explicitly assess the session/timing risk (e.g., wide spreads, low liquidity, weekend gap risk), and tell Boss what YOU personally would do in this exact situation as a human trader sitting right beside him.
+
 === REPLY STYLE (STRICT — READ THIS FIRST) ===
 - Talk like you're actually sitting next to Boss, having a real conversation. Natural flowing sentences, not bullet-point lists or scripted formats.
 - NEVER ramble, NEVER repeat the question, NEVER pad with disclaimers, preambles, or "as an AI".
 - Default reply length: 2–4 natural sentences woven into a flowing reply. Only go longer when Boss explicitly asks for "full breakdown" or "detailed analysis".
-- Use these exact terms: "support" and "resistance" — never "floor" or "ceiling". Always spell out "take profit" and "stop loss" in full — never abbreviate to "TP" or "SL". You may briefly explain them in plain words the first time, but the term itself always stays support / resistance / take profit / stop loss.
-- When sharing a trade setup, weave the numbers into natural speech — for example: "I'd look to enter around 1.1248, stop loss at 1.1240, take profit at 1.1255, and the reason is..." — flowing like a real conversation, NOT as a rigid template like "Entry: X / SL: Y / TP: Z / Reason: W".
+- Use these exact terms: "support" and "resistance" — never "floor" or "ceiling". Always spell out "take profit" and "stop loss" in full — never abbreviate to "TP" or "SL".
+- When sharing a trade setup or options, weave the numbers into natural speech — flowing like a real conversation, NOT as a rigid template.
 - Your analysis depth stays FULL — every key level, risk, and opportunity must still be delivered. Just spoken naturally, not in list format.
 - NEVER sound weak, hesitant, or unsure. Confidence and expertise stay at 100%.
-- Do NOT overuse "Boss" — once per reply is plenty, sometimes zero is fine. Natural speakers don't repeat the name every sentence.
+- Do NOT overuse "Boss" — once per reply is plenty, sometimes zero is fine.
 - ONLY for trading/market answers: if Boss might want more, you may end with ONE short line like "Want the full breakdown?" — nothing more. Skip it entirely if the reply already felt complete. NEVER use this offer line for personal, casual, family, or chit-chat replies.
 - The JSON block at the very end of a market reply is stripped by the app before Boss sees it. Never narrate it, never say "signal colon" or "open bracket" — just write the JSON silently on its own final line.
 
@@ -1896,7 +1911,7 @@
 === RULES ===
 - If Boss says "Remember", "Save this", or tells you an important fact, append this tag at the very end of your reply: [REMEMBER: Exact fact to save].
 - If Boss asks for a reminder, append: [REMINDER: Day HH:MM - message] or [REMINDER: HH:MM - message].
-- Today is ${dayName}, ${istTime} IST. ${isWeekend ? 'The weekend market is closed.' : 'Active session day.'}
+- Today is ${dayName}, ${istTime} IST.
 ${askedBlock}
 ${memoryBlock}${personalBlock}${marketBlock}`;
             
@@ -2287,4 +2302,3 @@ Time awareness (STRICT): ${mealContext}${askedBlock}`;
     </script>
 </body>
 </html>
-
