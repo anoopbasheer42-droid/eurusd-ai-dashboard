@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1999,4 +1998,490 @@
         function saveChatHistory() { if (chatHistory.length > 40) chatHistory = chatHistory.slice(-40); localStorage.setItem('eurusd_chat_history', JSON.stringify(chatHistory)); }
         function clearChat() { chatHistory = []; saveChatHistory(); renderChat(); }
         function toggleDeepThink() { deepThinkEnabled = !deepThinkEnabled; const b = document.getElementById('deep-think-toggle'); b.classList.toggle('active', deepThinkEnabled); b.innerText = deepThinkEnabled ? 'Deep ON' : 'Deep OFF'; }
-        function toggleWeb() { webSearchEnabled = !webSearchEnabled; const b = document.getElementById('web-toggle'); b.innerText = w
+        function toggleWeb() { webSearchEnabled = !webSearchEnabled; const b = document.getElementById('web-toggle'); b.innerText = webSearchEnabled ? 'Web ON' : 'Web OFF'; b.classList.toggle('active', webSearchEnabled); }
+        function togglePanel(id) { const el = document.getElementById(id); el.classList.toggle('active');
+            if (id === 'panel-reminders') renderReminders();
+            if (id === 'panel-memory') renderMemory();
+            if (id === 'panel-key') { document.getElementById('groq-key-input').value = groqKey; document.getElementById('api-key-input').value = apiKey; }
+            if (id === 'panel-gist') { document.getElementById('gist-token-input').value = gistToken; document.getElementById('gist-id-input').value = gistId; }
+            if (id === 'panel-voice') {
+                document.getElementById('elevenlabs-voice-select').value = elevenLabsVoiceId;
+                document.getElementById('elevenlabs-api-input').value = elevenLabsApiKey;
+                document.getElementById('voice-engine-mode').value = voiceEngineMode;
+            }
+        }
+        function saveGistConfig() { gistToken = document.getElementById('gist-token-input').value.trim(); gistId = document.getElementById('gist-id-input').value.trim(); localStorage.setItem('eurusd_gist_token', gistToken); localStorage.setItem('eurusd_gist_id', gistId); saveMemoryToGist(); }
+        function saveElevenLabsVoice() { elevenLabsVoiceId = document.getElementById('elevenlabs-voice-select').value; localStorage.setItem('eurusd_elevenlabs_voice', elevenLabsVoiceId); speakText("Voice updated, Boss."); }
+        function saveElevenLabsApiKey() { elevenLabsApiKey = document.getElementById('elevenlabs-api-input').value.trim(); localStorage.setItem('eurusd_elevenlabs_api_key', elevenLabsApiKey); const statusEl = document.getElementById('voice-status'); if (statusEl) statusEl.innerHTML = "<span style='color:var(--green);'>✓ ElevenLabs API Key Saved!</span>"; speakText("ElevenLabs API key saved."); }
+        function saveVoiceEngineMode() { voiceEngineMode = document.getElementById('voice-engine-mode').value; localStorage.setItem('eurusd_voice_engine_mode', voiceEngineMode); if (voiceEngineMode === 'browser') speakText("Switched to browser voice."); else speakText("Switched to ElevenLabs voice."); }
+
+        async function loadMemoryFromGist() {
+            if (!gistToken || !gistId) { document.getElementById('gist-status').innerText = "Missing Token or Gist ID"; document.getElementById('gist-status').style.color = "var(--red)"; return; }
+            document.getElementById('gist-status').innerText = "Pulling..."; document.getElementById('gist-status').style.color = "var(--yellow)";
+            try {
+                const r = await fetch(`https://api.github.com/gists/${gistId}`, { headers: { Authorization: `token ${gistToken}` } });
+                if (!r.ok) throw new Error(`GitHub API Error: ${r.status}`);
+                const d = await r.json();
+                const c = d.files['memory.json']?.content;
+                if (c) { longTermMemory = JSON.parse(c); localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); renderMemory(); document.getElementById('gist-status').innerText = "✓ Loaded from Gist!"; document.getElementById('gist-status').style.color = "var(--green)"; }
+                else { document.getElementById('gist-status').innerText = "No memory.json found."; document.getElementById('gist-status').style.color = "var(--yellow)"; }
+            } catch(e) { document.getElementById('gist-status').innerText = `✗ Error: ${e.message}`; document.getElementById('gist-status').style.color = "var(--red)"; }
+        }
+        async function saveMemoryToGist() {
+            if (!gistToken || !gistId) { document.getElementById('gist-status').innerText = "Missing Token or Gist ID"; document.getElementById('gist-status').style.color = "var(--red)"; return; }
+            document.getElementById('gist-status').innerText = "Syncing..."; document.getElementById('gist-status').style.color = "var(--yellow)";
+            try {
+                const res = await fetch(`https://api.github.com/gists/${gistId}`, { method: 'PATCH', headers: { Authorization: `token ${gistToken}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ files: { 'memory.json': { content: JSON.stringify(longTermMemory, null, 2) } } }) });
+                if (res.ok) { document.getElementById('gist-status').innerText = "✓ Synced successfully!"; document.getElementById('gist-status').style.color = "var(--green)"; }
+                else { const err = await res.json(); document.getElementById('gist-status').innerText = `✗ Error: ${err.message || res.status}`; document.getElementById('gist-status').style.color = "var(--red)"; }
+            } catch(e) { document.getElementById('gist-status').innerText = `✗ Network Error: ${e.message}`; document.getElementById('gist-status').style.color = "var(--red)"; }
+        }
+
+        function cleanResponse(text) {
+            if (!text) return '';
+            let cleaned = text.replace(/\{[\s\S]*?"signal"[\s\S]*?\}/g, '');
+            cleaned = cleaned.replace(/```json[\s\S]*?```/g, '');
+            cleaned = cleaned.replace(/```[\s\S]*?```/g, '');
+            return cleaned.split('\n').map(l => l.trim()).filter(l => l.length > 0).join(' ');
+        }
+
+        function buildPersonalityPrompt(includeSignal, userText = "") {
+            const now = new Date();
+            const istTime = now.toLocaleString('en-IN', {timeZone:'Asia/Kolkata'});
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const dayName = days[now.getDay()];
+            const isWeekend = [0, 6].includes(now.getDay());
+            const utcHour = now.getUTCHours();
+            
+            let sessionName = "Off-Session";
+            if (utcHour >= 7 && utcHour < 16) sessionName = "London Session";
+            if (utcHour >= 12 && utcHour < 21) sessionName = "New York Session";
+            if (utcHour >= 0 && utcHour < 8) sessionName = "Asian Session";
+            if (utcHour >= 12 && utcHour < 16) sessionName = "London / NY Overlap";
+            if (isWeekend) sessionName = "Weekend (Market Closed)";
+
+            const istHour = parseInt(now.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', hour12: false }), 10);
+            const istMinute = parseInt(now.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', minute: '2-digit', hour12: false }), 10);
+            const timeInMinutes = istHour * 60 + istMinute;
+            const todayStr = now.toISOString().split('T')[0];
+
+            if (!dailyRoutineState.date || dailyRoutineState.date !== todayStr) {
+                dailyRoutineState = { date: todayStr, greeted: false, bpAsked: false, bpReminderSent: false, bpAskTime: null, dinnerAsked: false, schoolBusAsked: false, schoolPickAsked: false, schoolBackAsked: false, sadiaCalledAsked: false, cookieCheckCount: 0, lastCookieCheckTime: 0 };
+            }
+
+            let routineDirectives = [];
+            
+            // Only add a directive if it hasn't been asked/addressed yet today and isn't in recentCheckinTopics
+            const alreadyChecked = (topic) => recentCheckinTopics.some(t => t.toLowerCase().includes(topic));
+
+            if (!dailyRoutineState.greeted) {
+                const greeting = istHour < 12 ? "Good morning" : (istHour < 17 ? "Good afternoon" : "Good evening");
+                routineDirectives.push(`Start your reply with a natural greeting like "${greeting}, Boss!" (vary the wording so it's not robotic).`);
+                dailyRoutineState.greeted = true;
+            }
+
+            if (timeInMinutes >= 570 && !dailyRoutineState.bpAsked && !alreadyChecked('bp')) {
+                routineDirectives.push(`Naturally check if Boss has taken his BP tablets today.`);
+                dailyRoutineState.bpAsked = true;
+            }
+
+            if (istHour >= 20 && !dailyRoutineState.dinnerAsked && !alreadyChecked('dinner')) {
+                routineDirectives.push(`Naturally check if Boss has had his dinner and taken his BP tablets.`);
+                dailyRoutineState.dinnerAsked = true;
+            }
+
+            if (!isWeekend) {
+                if (timeInMinutes >= 480 && timeInMinutes <= 525 && !dailyRoutineState.schoolBusAsked && !alreadyChecked('school')) {
+                    routineDirectives.push(`Naturally ask if Boss dropped the kids off at the school bus.`);
+                    dailyRoutineState.schoolBusAsked = true;
+                }
+                if (timeInMinutes >= 930 && timeInMinutes <= 955 && !dailyRoutineState.schoolPickAsked && !alreadyChecked('pickup')) {
+                    routineDirectives.push(`Naturally remind Boss to pick up the kids from school.`);
+                    dailyRoutineState.schoolPickAsked = true;
+                }
+            }
+
+            if (timeInMinutes >= 630 && timeInMinutes <= 675 && !dailyRoutineState.sadiaCalledAsked && !alreadyChecked('sadia')) {
+                routineDirectives.push(`Naturally ask if Sadia has called from Dubai yet today.`);
+                dailyRoutineState.sadiaCalledAsked = true;
+            }
+
+            if (timeInMinutes >= 540 && !dailyRoutineState.cookieAsked && !alreadyChecked('cookie')) {
+                routineDirectives.push(`Naturally ask how Cookie (the cat) is doing.`);
+                dailyRoutineState.cookieAsked = true;
+            }
+
+            localStorage.setItem('eurusd_daily_routine_state', JSON.stringify(dailyRoutineState));
+
+            let routinePromptBlock = routineDirectives.length > 0 ? `\n=== DAILY CHECK-IN GUIDELINE ===\nPick AT MOST ONE of these if natural: ${routineDirectives.join(' ')}\n` : "";
+            let askedBlock = recentCheckinTopics && recentCheckinTopics.length > 0 ? `\n=== ALREADY DISCUSSED (DO NOT REPEAT) ===\n${recentCheckinTopics.slice(-20).map(t => `- ${t}`).join('\n')}\n` : "";
+            let memoryBlock = longTermMemory.length > 0 ? `\nLONG-TERM MEMORY:\n${longTermMemory.slice(-80).map(m => `- ${m.fact} (${m.added})`).join('\n')}\n` : "";
+            let macroContextBlock = "";
+            if (macroEvents && macroEvents.length > 0) {
+                const activeHighs = macroEvents.filter(e => e.isHighImpactWindow);
+                if (activeHighs.length > 0) {
+                    macroContextBlock = `\nCRITICAL MACRO WARNING: High-impact economic news (${activeHighs.map(e => e.title).join(', ')}) is currently within the -15m / +15m safety window!\n`;
+                }
+            }
+            let marketBlock = marketData ? `\nLIVE MARKET DATA (EUR/USD):\nPrice: ${safeNum(marketData.currentPrice, 1.1200).toFixed(5)} | Trend: ${marketData.trend} | Support: ${safeNum(marketData.support, 1.1176).toFixed(5)} | Resistance: ${safeNum(marketData.resistance, 1.1246).toFixed(5)} | RSI 1H: ${safeNum(marketData.rsi1H, 50).toFixed(1)} | Session: ${marketData.session}\n${macroContextBlock}` : "";
+            let personalBlock = personalContext && typeof personalContext === 'object' ? `\n=== BOSS'S PERSONAL CONTEXT ===\n${JSON.stringify(personalContext, null, 2)}\n` : "";
+
+            let prompt = `You are Alex—Boss's closest friend, side-by-side desk partner, and a hardcore professional EUR/USD day trader.
+=== TEMPORAL & RISK AWARENESS ===
+- Current Day: ${dayName} (${isWeekend ? 'MARKET CLOSED' : 'Active Trading Day'})
+- Current Active Session: ${sessionName}
+${isWeekend ? 'CRITICAL RULE: TODAY IS THE WEEKEND. THE FOREX MARKET IS CLOSED. DO NOT GIVE TRADING SIGNALS, DO NOT SUGGEST ENTRIES, STOPS, OR TARGETS. REMIND BOSS THAT THE MARKET IS CLOSED AND ENJOY THE WEEKEND TOGETHER.' : ''}
+${routinePromptBlock}
+=== REPLY STYLE ===
+- Talk like you're actually sitting next to Boss, having a real conversation. Normal flowing sentences, not bullet-point lists.
+- NEVER ramble, NEVER repeat questions the user has already answered, NEVER pad with disclaimers.
+- Use these exact terms: "support" and "resistance". Always spell out "take profit" and "stop loss" in full.
+${askedBlock}
+${memoryBlock}${personalBlock}${marketBlock}`;
+
+            if (includeSignal) { 
+                prompt += `\nCRITICAL: After your natural conversational response, append a new line with ONLY this JSON block: {"signal":"BUY"|"SELL"|"HOLD","reason":"2-4 sentences of seasoned market analysis in simple layman terms","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`; 
+            }
+            return prompt;
+        }
+
+        function trackPersonalTopics(aiResponse) {
+            const topicKeywords = [
+                { kw: 'breakfast', topic: 'breakfast' },
+                { kw: 'lunch', topic: 'lunch' },
+                { kw: 'dinner', topic: 'dinner' },
+                { kw: 'bp tablet', topic: 'bp' },
+                { kw: 'blood pressure', topic: 'bp' },
+                { kw: 'tablet', topic: 'bp' },
+                { kw: 'sadia', topic: 'sadia' },
+                { kw: 'cookie', topic: 'cookie' },
+                { kw: 'school', topic: 'school' }
+            ];
+            const lower = (aiResponse || '').toLowerCase();
+            let changed = false;
+            topicKeywords.forEach(({kw, topic}) => {
+                if (lower.includes(kw) && !recentCheckinTopics.includes(topic)) {
+                    recentCheckinTopics.push(topic);
+                    changed = true;
+                }
+            });
+            if (recentCheckinTopics.length > 25) recentCheckinTopics = recentCheckinTopics.slice(-25);
+            if (changed) localStorage.setItem('eurusd_recent_checkin_topics', JSON.stringify(recentCheckinTopics));
+        }
+
+        async function sendChat() {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text) return;
+            if (!groqKey && !apiKey) { alert("Set your Groq or Gemini API Key first."); togglePanel('panel-key'); return; }
+            chatInProgress = true; input.value = '';
+            chatHistory.push({role:'user', text}); renderChat(); saveChatHistory();
+            
+            const lowerText = text.toLowerCase();
+            if (globalData && (lowerText.includes('go for it') || lowerText.includes('take it') || lowerText.includes('execute') || lowerText.includes('enter') || lowerText.includes('let\'s go'))) {
+                const newTrade = {
+                    id: Math.random().toString(36).substr(2, 9),
+                    type: globalData.signal,
+                    entry: parseFloat(globalData.entry) || (marketData ? marketData.currentPrice : 1.1200),
+                    sl: parseFloat(globalData.sl) || 1.1150,
+                    tp: parseFloat(globalData.tp) || 1.1250,
+                    status: 'ACTIVE',
+                    pnl: 0,
+                    time: new Date().toLocaleTimeString('en-IN', {timeZone:'Asia/Kolkata', hour:'2-digit', minute:'2-digit'})
+                };
+                tradeJournal.push(newTrade);
+                localStorage.setItem('eurusd_trade_journal', JSON.stringify(tradeJournal));
+                updateTradeJournalUI();
+            }
+
+            const loading = document.createElement('div'); loading.className = 'msg ai thinking fade-in'; loading.innerText = '...';
+            document.getElementById('chat-history').appendChild(loading); document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight;
+            try {
+                let response;
+                if (webSearchEnabled) {
+                    const searchResults = await searchWeb(text);
+                    const searchPrompt = `Web search results:\n${searchResults}\n\nUser Question: ${text}\n\nAnswer concisely like a human desk partner.`;
+                    response = await callAI(buildPersonalityPrompt(false, text), searchPrompt, chatHistory.slice(-4));
+                } else {
+                    response = await callAI(buildPersonalityPrompt(isMarketQuestion(text), text), text, chatHistory.slice(-6));
+                }
+                
+                response = cleanResponse(response);
+                let signalData = null;
+                const jsonMatch = response.match(/\{[\s\S]*?"signal"[\s\S]*?\}/);
+                if (jsonMatch) { try { signalData = JSON.parse(jsonMatch[0]); response = response.replace(jsonMatch[0], '').trim(); } catch(e) {} }
+                document.getElementById('chat-history').removeChild(loading);
+                
+                const rmTags = response.match(/\[\s*REMINDER\s*[:：][^\]]*\]/gi);
+                if (rmTags && rmTags.length > 0) {
+                    rmTags.forEach(tag => {
+                        const inner = tag.replace(/^\[\s*REMINDER\s*[:：]\s*/i, '').replace(/\]\s*$/, '').trim();
+                        const tMatch = inner.match(/(\d{1,2}):(\d{2})(?:\s*([ap])\.?\s*m\.?)?/i);
+                        if (tMatch) {
+                            let hour = parseInt(tMatch[1], 10);
+                            const minute = parseInt(tMatch[2], 10);
+                            const ap = (tMatch[3] || '').toLowerCase();
+                            if (ap === 'p' && hour < 12) hour += 12;
+                            if (ap === 'a' && hour === 12) hour = 0;
+                            if (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) {
+                                const normTime = String(hour).padStart(2, '0') + ':' + String(minute).padStart(2, '0');
+                                const afterTime = inner.slice(tMatch.index + tMatch[0].length);
+                                let msg = afterTime.replace(/^[\s\-–—:.,;|]+/, '').replace(/\*\*/g, '').trim();
+                                if (!msg) msg = 'Reminder';
+                                addReminder(normTime, msg);
+                            }
+                        }
+                    });
+                    response = response.replace(/\[\s*REMINDER\s*[:：][^\]]*\]/gi, '').trim();
+                }
+
+                const mm = response.match(/\[REMEMBER:\s*(.*?)\]/); 
+                if (mm) { 
+                    addLongTermMemory(mm[1]); 
+                    response = response.replace(/\[REMEMBER:.*?\]/g, '').trim(); 
+                } else if (text.toLowerCase().includes('remember') || text.toLowerCase().includes('don\'t forget') || text.toLowerCase().includes('save this')) {
+                    addLongTermMemory(text);
+                    response += " (Got it locked in my memory, Boss.)";
+                }
+
+                trackPersonalTopics(response);
+                chatHistory.push({role:'ai', text: response}); renderChat(); saveChatHistory(); speakText(response);
+                
+                if (signalData && marketData) {
+                    globalData = { price: marketData.currentPrice.toFixed(5), signal: signalData.signal, reason: signalData.reason, confidence: signalData.confidence, entry: signalData.entry, sl: signalData.sl, tp: signalData.tp, atr: marketData.atr.toFixed(5), support: marketData.support.toFixed(5), resistance: marketData.resistance.toFixed(5), trend: marketData.trend, session: marketData.session, valid: new Date(Date.now()+1800000).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})+" IST", wise_words: signalData.wise_words };
+                    const st = document.getElementById('signal-text'); st.innerText = signalData.signal;
+                    if (signalData.signal === 'BUY') { st.style.color = 'var(--green)'; } else if (signalData.signal === 'SELL') { st.style.color = 'var(--red)'; } else { st.style.color = 'var(--yellow)'; }
+                    updateCoreColor(signalData.signal);
+                    document.getElementById('val-confidence').innerText = signalData.confidence; document.getElementById('val-valid').innerText = globalData.valid;
+                    document.getElementById('val-entry').innerText = signalData.entry; document.getElementById('val-sl').innerText = signalData.sl;
+                    document.getElementById('val-tp').innerText = signalData.tp; document.getElementById('val-atr').innerText = marketData.atr.toFixed(5);
+                    document.getElementById('val-reason').innerText = signalData.reason; if (signalData.wise_words) document.getElementById('wise-words').innerText = signalData.wise_words;
+                }
+            } catch(e) { if (document.getElementById('chat-history').contains(loading)) document.getElementById('chat-history').removeChild(loading); chatHistory.push({role:'ai', text: `My connection slipped, Boss: ${e.message}`}); renderChat(); } finally { chatInProgress = false; }
+        }
+
+        async function triggerProactiveCheckin() {
+            if (chatInProgress) return;
+            if (!groqKey && !apiKey) return;
+            const now = new Date();
+            const istHour = parseInt(now.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', hour12: false }), 10);
+            let mealContext = "";
+            if (istHour < 10) mealContext = "It's MORNING in IST.";
+            else if (istHour < 12) mealContext = "It's LATE MORNING in IST.";
+            else if (istHour < 15) mealContext = "It's LUNCH time in IST.";
+            else if (istHour < 18) mealContext = "It's AFTERNOON in IST.";
+            else if (istHour < 22) mealContext = "It's DINNER time in IST.";
+            else mealContext = "It's NIGHT in IST.";
+            let askedBlock = recentCheckinTopics && recentCheckinTopics.length > 0 ? `\nDO NOT ask about any of these again: ${recentCheckinTopics.slice(-15).join(', ')}` : "";
+            const prompt = `You are Alex, elite EUR/USD day trader and best friend. Check in on Boss casually in simple human words. Keep it to 1-2 short sentences.\nSTRICT: Ask AT MOST ONE casual question.\nTime awareness: ${mealContext}${askedBlock}`;
+            try {
+                let response = await callAI(prompt, "Check in on Boss.", []);
+                response = cleanResponse(response);
+                trackPersonalTopics(response);
+                chatHistory.push({role:'ai', text: response});
+                renderChat(); saveChatHistory();
+                speakText(response);
+            } catch(e) {}
+        }
+
+        function getISTCalendar(ms) {
+            const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short' }).formatToParts(new Date(ms));
+            const get = (t) => parts.find(p => p.type === t)?.value;
+            return { y: parseInt(get('year'), 10), m: parseInt(get('month'), 10), d: parseInt(get('day'), 10), weekday: get('weekday') };
+        }
+        function istWallClockToUTC(y, m, d, hh, mm) {
+            let utcH = hh - 5, utcM = mm - 30, dayShift = 0;
+            if (utcM < 0) { utcM += 60; utcH -= 1; }
+            if (utcH < 0) { utcH += 24; dayShift = -1; }
+            return Date.UTC(y, m - 1, d + dayShift, utcH, utcM, 0, 0);
+        }
+        function computeDueAt(timeStr, fromMs) {
+            fromMs = fromMs || Date.now();
+            let targetDay = null, hhmm = (timeStr || '').trim();
+            if (hhmm.includes(' ')) {
+                const parts = hhmm.split(/\s+/);
+                targetDay = parts[0];
+                hhmm = parts[1] || '';
+            }
+            const segs = hhmm.split(':');
+            const th = parseInt(segs[0], 10), tm = parseInt(segs[1], 10);
+            if (isNaN(th) || isNaN(tm)) return null;
+            const start = getISTCalendar(fromMs);
+            const startUTC = Date.UTC(start.y, start.m - 1, start.d);
+            const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+            for (let offset = 0; offset <= 7; offset++) {
+                const probe = new Date(startUTC + offset * 86400000);
+                const pwd = dayNames[probe.getUTCDay()];
+                if (targetDay && pwd !== targetDay) continue;
+                const ts = istWallClockToUTC(probe.getUTCFullYear(), probe.getUTCMonth() + 1, probe.getUTCDate(), th, tm);
+                if (ts >= fromMs - 60000) return ts;
+            }
+            return null;
+        }
+        function normalizeReminderTime(timeStr) {
+            let t = (timeStr || '').trim();
+            if (t.includes(' ')) {
+                const parts = t.split(/\s+/);
+                const hm = (parts[1] || '00:00').split(':');
+                return parts[0] + ' ' + hm[0].padStart(2, '0') + ':' + (hm[1] || '00').padStart(2, '0');
+            }
+            const hm = t.split(':');
+            return (hm[0] || '00').padStart(2, '0') + ':' + (hm[1] || '00').padStart(2, '0');
+        }
+        function addReminder(time, message) {
+            const normTime = normalizeReminderTime(time);
+            const dueAt = computeDueAt(normTime);
+            reminders.push({id: Math.random().toString(36).substr(2,9), time: normTime, message, voice:true, fired:false, created: new Date().toISOString(), dueAt});
+            localStorage.setItem('eurusd_reminders', JSON.stringify(reminders));
+            renderReminders();
+        }
+        function renderReminders() { 
+            const l = document.getElementById('reminders-list'); 
+            const activeReminders = reminders.filter(r => !r.fired); 
+            const activeSearches = scheduledSearches.filter(s => !s.fired);
+            if (activeReminders.length === 0 && activeSearches.length === 0) { l.innerHTML = 'No active reminders.'; return; } 
+            let html = '';
+            activeReminders.forEach(r => { html += `<div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span>⏰ ${r.time} · ${r.message}</span><button class="btn danger" onclick="deleteReminder('${r.id}')">X</button></div>`; });
+            activeSearches.forEach(s => { html += `<div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span>🔍 ${s.query}</span></div>`; });
+            l.innerHTML = html;
+        }
+        function deleteReminder(id) { reminders = reminders.filter(r => r.id !== id); localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); }
+        function clearReminders() { reminders = []; scheduledSearches = []; localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); localStorage.setItem('eurusd_scheduled_searches', JSON.stringify(scheduledSearches)); renderReminders(); }
+        function testReminder() { triggerNotif("Test Reminder", "System test operational, Boss."); }
+        function triggerNotif(title, body) { if (Notification.permission === "granted") { try { new Notification(title, {body, requireInteraction: true}); } catch(e) {} } try { speakText(body, true); } catch(e) {} }
+        function checkReminders() {
+            const now = Date.now();
+            let updated = false;
+            reminders.forEach(r => {
+                if (r.fired) return;
+                if (!r.dueAt) {
+                    const createdMs = r.created ? new Date(r.created).getTime() : now;
+                    r.dueAt = computeDueAt(normalizeReminderTime(r.time), createdMs);
+                    updated = true;
+                }
+                if (r.dueAt && now >= r.dueAt) {
+                    r.fired = true;
+                    updated = true;
+                    try { triggerNotif("Reminder", r.message); } catch(e) {}
+                }
+            });
+            if (updated) { localStorage.setItem('eurusd_reminders', JSON.stringify(reminders)); renderReminders(); }
+        }
+        setInterval(checkReminders, 10000);
+
+        (function initReminderWakeups() {
+            try {
+                const workerCode = "setInterval(function(){postMessage(Date.now())},1000);";
+                const blob = new Blob([workerCode], { type: 'application/javascript' });
+                const worker = new Worker(URL.createObjectURL(blob));
+                worker.onmessage = () => { try { checkReminders(); } catch(e) {} };
+            } catch(e) {}
+            document.addEventListener('visibilitychange', () => { if (!document.hidden) { try { checkReminders(); } catch(e) {} } });
+            window.addEventListener('focus', () => { try { checkReminders(); } catch(e) {} });
+            window.addEventListener('pageshow', () => { try { checkReminders(); } catch(e) {} });
+            window.addEventListener('online', () => { try { checkReminders(); } catch(e) {} });
+        })();
+
+        async function checkScheduledSearches() {
+            const now = Date.now();
+            for (let task of scheduledSearches) {
+                if (!task.fired && now >= task.triggerTime) {
+                    task.fired = true;
+                    const results = await searchWeb(task.query);
+                    chatHistory.push({role:'ai', text: `Update on "${task.query}":\n${results}`});
+                    renderChat(); saveChatHistory();
+                }
+            }
+        }
+        setInterval(checkScheduledSearches, 10000);
+
+        function addLongTermMemory(fact) { longTermMemory.push({fact, added: new Date().toISOString().split('T')[0]}); localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); }
+        function renderMemory() { const l = document.getElementById('memory-list'); l.innerHTML = longTermMemory.length === 0 ? 'No facts saved.' : longTermMemory.map(m => `<div>• ${m.fact} <span style="color:var(--text-subtle);">(${m.added})</span></div>`).join(''); }
+        function clearLongTermMemory() { if (confirm("Clear memory?")) { longTermMemory = []; localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); renderMemory(); } }
+        function saveApiKey() { const v = document.getElementById('api-key-input').value.trim(); if (v) { apiKey = v; localStorage.setItem('eurusd_chat_key', apiKey); document.getElementById('groq-status').innerText = "✓ Gemini key saved"; } }
+        async function saveGroqKey() {
+            const v = document.getElementById('groq-key-input').value.trim();
+            if (!v) return;
+            groqKey = v; localStorage.setItem('eurusd_groq_key', groqKey);
+            document.getElementById('groq-status').innerText = "✓ Groq Key Saved!"; document.getElementById('groq-status').style.color = "var(--green)";
+        }
+
+        let map = null;
+        let userMarker = null;
+        function initMap() {
+            if (map) { map.remove(); map = null; }
+            document.getElementById('street-view-container').style.display = 'none';
+            document.getElementById('btn-dubai').style.display = 'none';
+            map = L.map('map', { zoomControl: false, attributionControl: false }).setView([20.0, 30.0], 2);
+            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }).addTo(map);
+            runCinematicDescent();
+        }
+
+        function runCinematicDescent() {
+            if (!map) return;
+            map.setView([20.0, 30.0], 2, { animate: false });
+            setTimeout(() => { if (map) map.flyTo([25.0, 95.0], 4, { duration: 2.4 }); }, 1400);
+            setTimeout(() => { if (map) map.flyTo([21.0, 78.9629], 5.5, { duration: 2.4 }); }, 4200);
+            setTimeout(() => { if (map) map.flyTo([10.8505, 76.2711], 7.5, { duration: 2.4 }); }, 7000);
+            setTimeout(() => { if (map) map.flyTo([10.7867, 76.6548], 10, { duration: 2.4 }); }, 9800);
+            setTimeout(() => { flyToLiveLocation(); }, 12800);
+        }
+
+        function flyToLiveLocation() {
+            if (!navigator.geolocation) return;
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    const lat = pos.coords.latitude;
+                    const lng = pos.coords.longitude;
+                    const acc = Math.round(pos.coords.accuracy || 0);
+                    if (!map) return;
+                    map.flyTo([lat, lng], 17, { duration: 3 });
+                    if (userMarker) { try { map.removeLayer(userMarker); } catch(e) {} }
+                    userMarker = L.circleMarker([lat, lng], { radius: 10, color: '#a78bfa', fillColor: '#8b5cf6', fillOpacity: 0.9, weight: 3 }).addTo(map);
+                    userMarker.bindPopup(`<div style="font-family:Inter,sans-serif;font-size:13px;color:#000;"><strong>You are here, Boss</strong><br>${lat.toFixed(6)}, ${lng.toFixed(6)}<br><span style="color:#666;">Accuracy ±${acc} m</span></div>`).openPopup();
+                    setTimeout(() => { showStreetView(lat, lng); }, 3400);
+                },
+                (err) => {},
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+            );
+        }
+
+        function showStreetView(lat, lng) {
+            const iframe = document.getElementById('street-view-iframe');
+            iframe.src = `https://maps.google.com/maps?q=&layer=c&cbll=${lat},${lng}&cbp=11,0,0,0,0&output=svembed`;
+            document.getElementById('street-view-container').style.display = 'block';
+        }
+        function closeStreetView() { document.getElementById('street-view-container').style.display = 'none'; }
+        function flyToDubai() { map.flyTo([25.2854, 55.3742], 17, { duration: 3 }); }
+
+        let mapLastTapTime = 0;
+        const mapOverlay = document.getElementById('map-overlay');
+        mapOverlay.addEventListener('pointerdown', (e) => {
+            resetIdleTimer();
+            const now = Date.now();
+            if (now - mapLastTapTime < 400) {
+                exitMap();
+                setTimeout(() => { triggerSpaceCollapse(); }, 1600);
+                mapLastTapTime = 0;
+            } else {
+                mapLastTapTime = now;
+            }
+        });
+
+        window.onload = () => {
+            fetch('https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/personal_context.json').then(r => r.json()).then(d => { personalContext = d; loadWisdom(); }).catch(() => { loadWisdom(); });
+            renderChat(); renderReminders(); renderMemory(); renderAlertLog(); updateTradeJournalUI();
+            if ('speechSynthesis' in window) { window.speechSynthesis.getVoices(); window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.getVoices(); }; }
+            if (gistToken && gistId) loadMemoryFromGist();
+            updateCoreColor('HOLD'); updateISTClock();
+            if ('Notification' in window && Notification.permission === 'default') { setTimeout(() => Notification.requestPermission(), 2000); }
+            refreshMarketData();
+            refreshMacroNews();
+            setInterval(() => { if (chatInProgress) return; refreshMarketData(); }, 60000);
+            setInterval(() => { if (chatInProgress) return; refreshMacroNews(); }, 300000);
+            setInterval(() => { if (chatInProgress) return; askAIForSignal(); }, 3600000);
+            setInterval(() => { if (chatInProgress) return; triggerProactiveCheckin(); }, 7200000);
+        };
+    </script>
+</body>
+</html>
