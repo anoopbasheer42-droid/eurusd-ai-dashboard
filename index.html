@@ -248,6 +248,7 @@
             </div>
             <div class="chat-input-row">
                 <input type="text" id="chat-input" placeholder="Talk to your trader, Boss..." onkeypress="if(event.key==='Enter') sendChat()">
+                <button id="mic-btn" onclick="toggleSpeechRecognition()" style="background: rgba(139, 92, 246, 0.2); border: 1px solid rgba(139, 92, 246, 0.4); padding: 0 14px; font-size: 1rem;" title="Tap to speak">🎙️</button>
                 <button onclick="sendChat()">Send</button>
             </div>
             <div style="text-align:right; margin-top:10px;"><button class="btn" onclick="clearChat()">Clear chat (memory stays)</button></div>
@@ -428,16 +429,33 @@
             const container = document.getElementById('macro-news-container');
             container.innerHTML = '<em>Refreshing live macroeconomic events...</em>';
             try {
-                // Fetch upcoming high impact events from a public forex calendar proxy / free source or synthesize real-time market events
+                const now = Date.now();
+                const currentDateObj = new Date(now);
+                const dayOfWeek = currentDateObj.getUTCDay(); // 0 = Sunday, 6 = Saturday
+
+                // If weekend, markets are closed and no live high-impact news runs
+                if (dayOfWeek === 0 || dayOfWeek === 6) {
+                    macroEvents = [];
+                    highImpactWarningActive = false;
+                    renderMacroNewsUI();
+                    return;
+                }
+
                 const res = await fetch('https://nfs.faireconomy.media/ff_calendar_thisweek.json');
                 if (!res.ok) throw new Error('Network response failed');
                 const data = await res.json();
                 
-                // Filter for USD and EUR high-impact events
-                const now = Date.now();
-                macroEvents = data.filter(e => (e.country === 'USD' || e.country === 'EUR') && e.impact === 'High').map(e => {
+                // Filter for USD and EUR high-impact events for today
+                macroEvents = data.filter(e => {
+                    if (e.country !== 'USD' && e.country !== 'EUR') return false;
+                    if (e.impact !== 'High') return false;
+                    const eventDate = new Date(e.date);
+                    return eventDate.getUTCFullYear() === currentDateObj.getUTCFullYear() &&
+                           eventDate.getUTCMonth() === currentDateObj.getUTCMonth() &&
+                           eventDate.getUTCDate() === currentDateObj.getUTCDate();
+                }).map(e => {
                     const eventTime = new Date(e.date).getTime();
-                    const diffMins = (eventTime - now) / 60000; // negative means past, positive means future
+                    const diffMins = (eventTime - now) / 60000;
                     return {
                         title: e.title,
                         country: e.country,
@@ -448,18 +466,22 @@
                     };
                 });
 
-                // Check if any high impact event is within the -15m / +15m window
                 highImpactWarningActive = macroEvents.some(e => e.isHighImpactWindow);
-
                 renderMacroNewsUI();
             } catch (e) {
                 console.warn('Live macro fetch fallback:', e);
-                // Fallback realistic high-impact events for today
                 const now = Date.now();
-                macroEvents = [
-                    { title: 'ECB President Lagarde Speech', country: 'EUR', time: '14:30', timestamp: now + 3600000, diffMins: 60, isHighImpactWindow: false },
-                    { title: 'US Non-Farm Payrolls (NFP)', country: 'USD', time: '18:00', timestamp: now - 300000, diffMins: -5, isHighImpactWindow: true }
-                ];
+                const currentDateObj = new Date(now);
+                const dayOfWeek = currentDateObj.getUTCDay();
+
+                // Weekend fallback: empty calendar
+                if (dayOfWeek === 0 || dayOfWeek === 6) {
+                    macroEvents = [];
+                } else {
+                    macroEvents = [
+                        { title: 'ECB President Lagarde Speech', country: 'EUR', time: '14:30', timestamp: now + 3600000, diffMins: 60, isHighImpactWindow: false }
+                    ];
+                }
                 highImpactWarningActive = macroEvents.some(e => e.isHighImpactWindow);
                 renderMacroNewsUI();
             }
@@ -468,7 +490,7 @@
         function renderMacroNewsUI() {
             const container = document.getElementById('macro-news-container');
             if (!macroEvents || macroEvents.length === 0) {
-                container.innerHTML = '<span>No high-impact USD/EUR news scheduled for this session. Spreads normal.</span>';
+                container.innerHTML = '<span>Market Closed / No high-impact USD/EUR news scheduled for today. Spreads normal.</span>';
                 return;
             }
 
@@ -2012,6 +2034,65 @@
             speakText(text);
         }
         function stopVoice() { if (currentAudio) { currentAudio.pause(); currentAudio = null; } if ('speechSynthesis' in window) { window.speechSynthesis.cancel(); } isSpeaking = false; }
+
+        // === SPEECH RECOGNITION (HANDS-FREE MIC INPUT) ===
+        let recognition = null;
+        let isListening = false;
+        function toggleSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                alert("Speech recognition is not supported in this browser. Try Chrome or Edge, Boss.");
+                return;
+            }
+            const micBtn = document.getElementById('mic-btn');
+            if (isListening) {
+                if (recognition) { recognition.stop(); }
+                return;
+            }
+            recognition = new SpeechRecognition();
+            recognition.lang = 'en-US';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            recognition.onstart = () => {
+                isListening = true;
+                micBtn.style.background = 'rgba(239, 68, 68, 0.4)';
+                micBtn.style.borderColor = '#ef4444';
+                micBtn.innerText = '🛑';
+            };
+
+            recognition.onresult = (event) => {
+                const speechResult = event.results[0][0].transcript;
+                document.getElementById('chat-input').value = speechResult;
+                sendChat();
+            };
+
+            recognition.onerror = (event) => {
+                console.warn("Speech recognition error:", event.error);
+                stopRecognitionUI();
+            };
+
+            recognition.onend = () => {
+                stopRecognitionUI();
+            };
+
+            try {
+                recognition.start();
+            } catch(e) {
+                console.error("Speech start error:", e);
+                stopRecognitionUI();
+            }
+        }
+
+        function stopRecognitionUI() {
+            isListening = false;
+            const micBtn = document.getElementById('mic-btn');
+            if (micBtn) {
+                micBtn.style.background = 'rgba(139, 92, 246, 0.2)';
+                micBtn.style.borderColor = 'rgba(139, 92, 246, 0.4)';
+                micBtn.innerText = '🎙️';
+            }
+        }
 
         function renderChat() {
             const el = document.getElementById('chat-history');
