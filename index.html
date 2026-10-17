@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -275,9 +274,9 @@
             </div>
         </div>
         
-        <!-- NEW: Live Trade Journal & Win/Loss PnL Tracker Card -->
-        <div class="card">
-            <div class="card-title">Live Trade Journal & PnL Tracker</div>
+        <!-- Live Trade Journal & Win/Loss PnL Tracker Card (Prominently Placed at the Bottom) -->
+        <div class="card" style="border: 2px solid rgba(16, 185, 129, 0.4); box-shadow: 0 0 30px rgba(16, 185, 129, 0.15);">
+            <div class="card-title" style="color: var(--green);">Live Trade Journal & Win/Loss PnL Tracker</div>
             <div class="stats-grid" style="margin-bottom:14px;">
                 <div class="stat-item"><span class="stat-label">Win / Loss</span><span id="pnl-win-loss">0W / 0L</span></div>
                 <div class="stat-item"><span class="stat-label">Win Rate</span><span id="pnl-win-rate">0.0%</span></div>
@@ -2070,7 +2069,7 @@ ${routinePromptBlock}
 - The JSON block at the very end of a market reply is stripped by the app before Boss sees it. Never narrate it, never say "signal colon" or "open bracket" — just write the JSON silently on its own final line.
 
 === PERSONALITY & TONE GUIDELINES ===
-- Talk like a real friend on a trading desk. Use simple, everyday words. Short sentences. Contractions ("don't", "you're", "let's"). Never robotic or overly formal. Warm, direct, genuinely helpful.
+- Talk like a real friend on a trading desk. Use simple, everyday words. Short sentences. Contractions ("don't", "you're", "let's"). Neither robotic nor overly formal. Warm, direct, genuinely helpful.
 
 === TRADING TIPS & LAYMAN EXPLANATIONS (VERY IMPORTANT) ===
 - When Boss asks for trading tips, advice, or market breakdowns, respond in **simple, everyday layman's words**.
@@ -2493,5 +2492,3 @@ Time awareness (STRICT): ${mealContext}${askedBlock}`;
     </script>
 </body>
 </html>
-
-```
