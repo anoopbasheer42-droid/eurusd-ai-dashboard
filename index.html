@@ -2199,6 +2199,9 @@
                 routineDirectives.push(`[DIRECTIVE 2: BP TABLET] Ask naturally if Boss has taken his BP tablets today (ask only once in your own words, caring and friendly).`);
                 dailyRoutineState.bpAsked = true;
                 dailyRoutineState.bpAskTime = Date.now();
+            } else if (timeInMinutes > 630 && !dailyRoutineState.bpAsked) {
+                routineDirectives.push(`[DIRECTIVE 2-CATCHUP: BP TABLET] The allotted morning time for checking on BP tablets has passed and you missed asking. On this very next message, naturally check if Boss has taken his BP tablets.`);
+                dailyRoutineState.bpAsked = true;
             } else if (dailyRoutineState.bpAsked && !dailyRoutineState.bpReminderSent && dailyRoutineState.bpAskTime && (Date.now() - dailyRoutineState.bpAskTime >= 3600000)) {
                 routineDirectives.push(`[DIRECTIVE 2B: BP REMINDER] It's been 1 hour since Boss was asked about BP tablets and hasn't replied. Gently remind him once about taking his BP tablets in a friendly way.`);
                 dailyRoutineState.bpReminderSent = true;
@@ -2213,19 +2216,33 @@
                 if (timeInMinutes >= 480 && timeInMinutes <= 525 && !dailyRoutineState.schoolBusAsked) {
                     routineDirectives.push(`[DIRECTIVE 4A: SCHOOL BUS] It's morning school bus time (Mon-Fri). Naturally and warmly ask if Boss dropped the kids off at the school bus. Change the wording so it doesn't sound like a template.`);
                     dailyRoutineState.schoolBusAsked = true;
+                } else if (timeInMinutes > 525 && !dailyRoutineState.schoolBusAsked) {
+                    routineDirectives.push(`[DIRECTIVE 4A-CATCHUP: SCHOOL BUS] The morning school bus window has passed and you missed asking. On this very next message, naturally ask if the kids made it to the school bus safely.`);
+                    dailyRoutineState.schoolBusAsked = true;
                 }
+
                 if (timeInMinutes >= 930 && timeInMinutes <= 955 && !dailyRoutineState.schoolPickAsked) {
                     routineDirectives.push(`[DIRECTIVE 4B: SCHOOL PICKUP] It's afternoon school pickup time (3:30 to 3:55 PM). Remind Boss naturally to go pick up the kids from school.`);
                     dailyRoutineState.schoolPickAsked = true;
+                } else if (timeInMinutes > 955 && !dailyRoutineState.schoolPickAsked) {
+                    routineDirectives.push(`[DIRECTIVE 4B-CATCHUP: SCHOOL PICKUP] The afternoon school pickup window has passed and you missed reminding Boss. On this very next message, naturally ask if he went or managed to pick up the kids from school.`);
+                    dailyRoutineState.schoolPickAsked = true;
                 }
+
                 if (timeInMinutes >= 855 && timeInMinutes <= 880 && !dailyRoutineState.schoolBackAsked) {
                     routineDirectives.push(`[DIRECTIVE 4C: KIDS BACK] Check naturally if the kids are back safely from school.`);
+                    dailyRoutineState.schoolBackAsked = true;
+                } else if (timeInMinutes > 880 && !dailyRoutineState.schoolBackAsked) {
+                    routineDirectives.push(`[DIRECTIVE 4C-CATCHUP: KIDS BACK] The school return window has passed and you missed asking. On this very next message, naturally check if the kids are back safely from school.`);
                     dailyRoutineState.schoolBackAsked = true;
                 }
             }
 
             if (timeInMinutes >= 630 && timeInMinutes <= 675 && !dailyRoutineState.sadiaCalledAsked) {
                 routineDirectives.push(`[DIRECTIVE 5: SADIA CALL] Ask naturally if Sadia has called from Dubai yet today.`);
+                dailyRoutineState.sadiaCalledAsked = true;
+            } else if (timeInMinutes > 675 && !dailyRoutineState.sadiaCalledAsked) {
+                routineDirectives.push(`[DIRECTIVE 5-CATCHUP: SADIA CALL] The time window for checking on Sadia's call has passed and you missed asking. On this very next message, naturally ask if Sadia has called from Dubai yet today.`);
                 dailyRoutineState.sadiaCalledAsked = true;
             }
 
