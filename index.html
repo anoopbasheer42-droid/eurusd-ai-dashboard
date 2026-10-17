@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -273,6 +274,25 @@
                 <div id="val-candle-4h">—</div>
             </div>
         </div>
+        
+        <!-- NEW: Live Trade Journal & Win/Loss PnL Tracker Card -->
+        <div class="card">
+            <div class="card-title">Live Trade Journal & PnL Tracker</div>
+            <div class="stats-grid" style="margin-bottom:14px;">
+                <div class="stat-item"><span class="stat-label">Win / Loss</span><span id="pnl-win-loss">0W / 0L</span></div>
+                <div class="stat-item"><span class="stat-label">Win Rate</span><span id="pnl-win-rate">0.0%</span></div>
+                <div class="stat-item"><span class="stat-label">Total Profit</span><span id="pnl-total" style="color:var(--green)">$0.00</span></div>
+                <div class="stat-item"><span class="stat-label">Active Trades</span><span id="pnl-active-count">0</span></div>
+            </div>
+            <div id="active-trades-container" style="font-size:0.75rem; color:var(--text-muted); margin-bottom:12px;">
+                <em>No active trades running. Say "go for it" on a signal to enter.</em>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:0.7rem; color:var(--text-subtle); font-family:'JetBrains Mono', monospace;">Auto-tracking live every tick</span>
+                <button class="btn danger" onclick="clearTradeHistory()" style="font-size:0.65rem; padding:4px 10px;">Reset Journal</button>
+            </div>
+        </div>
+
         <div class="card">
             <div class="card-title">Engine Alerts — Last 5</div>
             <div id="alert-log">No alerts yet. Engine scanning...</div>
@@ -297,6 +317,10 @@
         let reminders = JSON.parse(localStorage.getItem('eurusd_reminders') || '[]');
         let scheduledSearches = JSON.parse(localStorage.getItem('eurusd_scheduled_searches') || '[]');
         let recentCheckinTopics = JSON.parse(localStorage.getItem('eurusd_recent_checkin_topics') || '[]');
+        
+        // Trade Journal state
+        let tradeJournal = JSON.parse(localStorage.getItem('eurusd_trade_journal') || '[]');
+
         let groqKey = localStorage.getItem('eurusd_groq_key') || '';
         let apiKey = localStorage.getItem('eurusd_chat_key') || '';
         let gistToken = localStorage.getItem('eurusd_gist_token') || '';
@@ -307,7 +331,6 @@
         let voiceEngineMode = localStorage.getItem('eurusd_voice_engine_mode') || 'cloud';
         let currentAudio = null;
 
-        // Daily tracking state for new daily routines
         let dailyRoutineState = JSON.parse(localStorage.getItem('eurusd_daily_routine_state') || '{}');
 
         document.body.addEventListener('click', () => { if ('speechSynthesis' in window) window.speechSynthesis.getVoices(); }, { once: true });
@@ -1594,7 +1617,82 @@
         function calculateATR(highs, lows, closes, period = 14) { let trs = []; for (let i = 1; i < highs.length; i++) trs.push(Math.max(highs[i]-lows[i], Math.abs(highs[i]-closes[i-1]), Math.abs(lows[i]-closes[i-1]))); return trs.slice(-period).reduce((a,b) => a+b, 0) / period; }
         function detectSetup(md) { const setups = []; if (!md || !md.candles1H || md.candles1H.length < 3) return null; const last = md.candles1H[md.candles1H.length - 1]; const prev = md.candles1H[md.candles1H.length - 2]; const bodySize = Math.abs(last.close - last.open); const upperWick = last.high - Math.max(last.open, last.close); const lowerWick = Math.min(last.open, last.close) - last.low; const range = last.high - last.low; if (md.rsi1H < 30 && md.currentPrice <= md.support * 1.001) setups.push({ type:'BUY', reason:`RSI oversold (${md.rsi1H.toFixed(1)}) + price at support ${md.support.toFixed(5)}`, strength:'STRONG' }); if (md.rsi1H > 70 && md.currentPrice >= md.resistance * 0.999) setups.push({ type:'SELL', reason:`RSI overbought (${md.rsi1H.toFixed(1)}) + price at resistance ${md.resistance.toFixed(5)}`, strength:'STRONG' }); if (md.currentPrice > md.resistance * 1.0005) setups.push({ type:'BUY', reason:`Breakout above resistance ${md.resistance.toFixed(5)}`, strength:'STRONG' }); if (md.currentPrice < md.support * 0.9995) setups.push({ type:'SELL', reason:`Breakdown below support ${md.support.toFixed(5)}`, strength:'STRONG' }); if (range > md.atr * 0.8) { if (lowerWick > bodySize * 2 && upperWick < bodySize && md.currentPrice <= md.support * 1.005) setups.push({ type:'BUY', reason:`Bullish Pin Bar rejection at support`, strength:'MEDIUM' }); if (upperWick > bodySize * 2 && lowerWick < bodySize && md.currentPrice >= md.resistance * 0.995) setups.push({ type:'SELL', reason:`Bearish Pin Bar rejection at resistance`, strength:'MEDIUM' }); } if (last.high < prev.high && last.low > prev.low) { if (md.currentPrice > prev.high) setups.push({ type:'BUY', reason:`Inside Bar breakout`, strength:'MEDIUM' }); if (md.currentPrice < prev.low) setups.push({ type:'SELL', reason:`Inside Bar breakdown`, strength:'MEDIUM' }); } if (bodySize > md.atr * 1.5) { const direction = last.close > last.open ? 'BUY' : 'SELL'; setups.push({ type: direction, reason:`Strong momentum candle`, strength:'MEDIUM' }); } if (md.ema20 && md.ema50) { if (md.ema20 > md.ema50 && md.currentPrice > md.ema20 && md.rsi1H > 50 && md.rsi1H < 70) setups.push({ type:'BUY', reason:`Bullish EMA alignment`, strength:'MEDIUM' }); if (md.ema20 < md.ema50 && md.currentPrice < md.ema20 && md.rsi1H < 50 && md.rsi1H > 30) setups.push({ type:'SELL', reason:`Bearish EMA alignment`, strength:'MEDIUM' }); } if (setups.length === 0) return null; return setups.find(s => s.strength === 'STRONG') || setups[0]; }
 
-        async function refreshMarketData() { const statusEl = document.getElementById('signal-status'); const livePriceEl = document.getElementById('live-price'); const lastUpdatedEl = document.getElementById('last-updated'); const [candles5m, candles15m, candles1H, candles4H] = await Promise.all([ fetchBiquoteCandles('5m', 50), fetchBiquoteCandles('15m', 50), fetchBiquoteCandles('1h', 50), fetchBiquoteCandles('4h', 50) ]); if (candles1H.length === 0) { statusEl.innerText = "Biquote data unavailable. Retrying..."; return; } const closes1H = candles1H.map(c => c.close), highs1H = candles1H.map(c => c.high), lows1H = candles1H.map(c => c.low); const closes5m = candles5m.map(c => c.close); const closes15m = candles15m.map(c => c.close); const ema20 = calculateEMA(closes1H, 20), ema50 = calculateEMA(closes1H, 50); const rsi1H = safeNum(calculateRSI(closes1H, 14), 50); const rsi15m = safeNum(calculateRSI(closes15m, 14), 50); const rsi5m = safeNum(calculateRSI(closes5m, 14), 50); const atr = safeNum(calculateATR(highs1H, lows1H, closes1H, 14), 0.001); const support = safeNum(Math.min(...lows1H.slice(-50)), 1.1176); const resistance = safeNum(Math.max(...highs1H.slice(-50)), 1.1246); const currentPrice = safeNum(closes5m[closes5m.length - 1] || closes1H[closes1H.length - 1], 1.1200); let trend = "Sideways"; const rh = highs1H.slice(-20), rl = lows1H.slice(-20); if (rh[rh.length-1] > rh[0] && rl[rl.length-1] > rl[0]) trend = "Uptrend"; if (rh[rh.length-1] < rh[0] && rl[rl.length-1] < rl[0]) trend = "Downtrend"; const hour = new Date().getUTCHours(); let session = "Off-Session"; if (hour >= 7 && hour < 16) session = "London Session"; else if (hour >= 12 && hour < 21) session = "New York Session"; else if (hour >= 0 && hour < 8) session = "Asian Session"; if (hour >= 12 && hour < 16) session = "London / NY Overlap"; marketData = { candles5m, candles15m, candles1H, candles4H, currentPrice, trend, support, resistance, session, rsi1H, rsi15m, rsi5m, ema20: ema20[ema20.length-1], ema50: ema50[ema50.length-1], atr }; livePriceEl.innerText = currentPrice.toFixed(5); lastUpdatedEl.innerText = `BIQUOTE LIVE · ${new Date().toLocaleTimeString('en-IN',{hour12:false})}`; document.getElementById('val-trend').innerText = trend; document.getElementById('val-session').innerText = session; document.getElementById('val-support').innerText = support.toFixed(5); document.getElementById('val-resistance').innerText = resistance.toFixed(5); document.getElementById('val-candle-current').innerText = `5m · ${currentPrice.toFixed(5)} · RSI ${rsi5m.toFixed(1)}`; document.getElementById('val-candle-1h').innerText = `1H · ${trend} · RSI ${rsi1H.toFixed(1)} · EMA20 ${ema20[ema20.length-1].toFixed(5)}`; document.getElementById('val-candle-4h').innerText = `4H bars loaded · ATR ${atr.toFixed(5)}`; const setup = detectSetup(marketData); if (setup) { addAlertToLog(setup); showSetupAlert(setup); } else { showSetupAlert(null); if (statusEl) statusEl.innerText = "Engine scanning — no setup detected"; } }
+        // === LIVE TRADE JOURNAL & TRACKING LOGIC ===
+        function updateTradeJournalUI() {
+            const wins = tradeJournal.filter(t => t.status === 'WIN').length;
+            const losses = tradeJournal.filter(t => t.status === 'LOSS').length;
+            const totalTrades = wins + losses;
+            const winRate = totalTrades > 0 ? ((wins / totalTrades) * 100).toFixed(1) + '%' : '0.0%';
+            let totalProfit = tradeJournal.reduce((acc, t) => acc + (t.pnl || 0), 0);
+
+            document.getElementById('pnl-win-loss').innerText = `${wins}W / ${losses}L`;
+            document.getElementById('pnl-win-rate').innerText = winRate;
+            const pnlEl = document.getElementById('pnl-total');
+            pnlEl.innerText = (totalProfit >= 0 ? '+$' : '-$') + Math.abs(totalProfit).toFixed(2);
+            pnlEl.style.color = totalProfit >= 0 ? 'var(--green)' : 'var(--red)';
+
+            const activeTrades = tradeJournal.filter(t => t.status === 'ACTIVE');
+            document.getElementById('pnl-active-count').innerText = activeTrades.length;
+
+            const container = document.getElementById('active-trades-container');
+            if (activeTrades.length === 0) {
+                container.innerHTML = '<em>No active trades running. Say "go for it" on a signal to enter.</em>';
+            } else {
+                container.innerHTML = activeTrades.map(t => `
+                    <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(139,92,246,0.06); padding:8px 12px; border-radius:8px; margin-bottom:6px;">
+                        <span><strong>${t.type}</strong> @ ${t.entry.toFixed(5)} | SL: ${t.sl.toFixed(5)} | TP: ${t.tp.toFixed(5)}</span>
+                        <span style="color:var(--yellow)">RUNNING</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function checkActiveTrades(currentPrice) {
+            if (!currentPrice) return;
+            let updated = false;
+            tradeJournal.forEach(t => {
+                if (t.status !== 'ACTIVE') return;
+                if (t.type === 'BUY') {
+                    if (currentPrice >= t.tp) {
+                        t.status = 'WIN';
+                        t.pnl = Math.abs(t.tp - t.entry) * 10000; // standard pip value approximation in $
+                        updated = true;
+                    } else if (currentPrice <= t.sl) {
+                        t.status = 'LOSS';
+                        t.pnl = -Math.abs(t.entry - t.sl) * 10000;
+                        updated = true;
+                    }
+                } else if (t.type === 'SELL') {
+                    if (currentPrice <= t.tp) {
+                        t.status = 'WIN';
+                        t.pnl = Math.abs(t.entry - t.tp) * 10000;
+                        updated = true;
+                    } else if (currentPrice >= t.sl) {
+                        t.status = 'LOSS';
+                        t.pnl = -Math.abs(t.sl - t.entry) * 10000;
+                        updated = true;
+                    }
+                }
+            });
+            if (updated) {
+                localStorage.setItem('eurusd_trade_journal', JSON.stringify(tradeJournal));
+                updateTradeJournalUI();
+            }
+        }
+
+        function clearTradeHistory() {
+            if (confirm("Reset trade journal and history?")) {
+                tradeJournal = [];
+                localStorage.setItem('eurusd_trade_journal', JSON.stringify(tradeJournal));
+                updateTradeJournalUI();
+            }
+        }
+
+        async function refreshMarketData() { const statusEl = document.getElementById('signal-status'); const livePriceEl = document.getElementById('live-price'); const lastUpdatedEl = document.getElementById('last-updated'); const [candles5m, candles15m, candles1H, candles4H] = await Promise.all([ fetchBiquoteCandles('5m', 50), fetchBiquoteCandles('15m', 50), fetchBiquoteCandles('1h', 50), fetchBiquoteCandles('4h', 50) ]); if (candles1H.length === 0) { statusEl.innerText = "Biquote data unavailable. Retrying..."; return; } const closes1H = candles1H.map(c => c.close), highs1H = candles1H.map(c => c.high), lows1H = candles1H.map(c => c.low); const closes5m = candles5m.map(c => c.close); const closes15m = candles15m.map(c => c.close); const ema20 = calculateEMA(closes1H, 20), ema50 = calculateEMA(closes1H, 50); const rsi1H = safeNum(calculateRSI(closes1H, 14), 50); const rsi15m = safeNum(calculateRSI(closes15m, 14), 50); const rsi5m = safeNum(calculateRSI(closes5m, 14), 50); const atr = safeNum(calculateATR(highs1H, lows1H, closes1H, 14), 0.001); const support = safeNum(Math.min(...lows1H.slice(-50)), 1.1176); const resistance = safeNum(Math.max(...highs1H.slice(-50)), 1.1246); const currentPrice = safeNum(closes5m[closes5m.length - 1] || closes1H[closes1H.length - 1], 1.1200); let trend = "Sideways"; const rh = highs1H.slice(-20), rl = lows1H.slice(-20); if (rh[rh.length-1] > rh[0] && rl[rl.length-1] > rl[0]) trend = "Uptrend"; if (rh[rh.length-1] < rh[0] && rl[rl.length-1] < rl[0]) trend = "Downtrend"; const hour = new Date().getUTCHours(); let session = "Off-Session"; if (hour >= 7 && hour < 16) session = "London Session"; else if (hour >= 12 && hour < 21) session = "New York Session"; else if (hour >= 0 && hour < 8) session = "Asian Session"; if (hour >= 12 && hour < 16) session = "London / NY Overlap"; marketData = { candles5m, candles15m, candles1H, candles4H, currentPrice, trend, support, resistance, session, rsi1H, rsi15m, rsi5m, ema20: ema20[ema20.length-1], ema50: ema50[ema50.length-1], atr }; livePriceEl.innerText = currentPrice.toFixed(5); lastUpdatedEl.innerText = `BIQUOTE LIVE · ${new Date().toLocaleTimeString('en-IN',{hour12:false})}`; document.getElementById('val-trend').innerText = trend; document.getElementById('val-session').innerText = session; document.getElementById('val-support').innerText = support.toFixed(5); document.getElementById('val-resistance').innerText = resistance.toFixed(5); document.getElementById('val-candle-current').innerText = `5m · ${currentPrice.toFixed(5)} · RSI ${rsi5m.toFixed(1)}`; document.getElementById('val-candle-1h').innerText = `1H · ${trend} · RSI ${rsi1H.toFixed(1)} · EMA20 ${ema20[ema20.length-1].toFixed(5)}`; document.getElementById('val-candle-4h').innerText = `4H bars loaded · ATR ${atr.toFixed(5)}`; 
+        
+        checkActiveTrades(currentPrice);
+
+        const setup = detectSetup(marketData); if (setup) { addAlertToLog(setup); showSetupAlert(setup); } else { showSetupAlert(null); if (statusEl) statusEl.innerText = "Engine scanning — no setup detected"; } }
 
         function addAlertToLog(alert) { const time = new Date().toLocaleTimeString('en-IN', {timeZone:'Asia/Kolkata', hour:'2-digit', minute:'2-digit'}); alertLog.unshift(`[${time}] ${alert.type} — ${alert.reason}`); if (alertLog.length > 5) alertLog = alertLog.slice(0, 5); localStorage.setItem('eurusd_alert_log', JSON.stringify(alertLog)); renderAlertLog(); }
         function renderAlertLog() { const el = document.getElementById('alert-log'); if (el) el.innerHTML = alertLog.length === 0 ? 'No alerts yet. Engine scanning...' : alertLog.map(a => `<div class="alert-log-item">${a}</div>`).join(''); }
@@ -1863,14 +1961,12 @@
 
             let routineDirectives = [];
             
-            // 1. Greeting on 1st chat reply of the day
             if (!dailyRoutineState.greeted) {
                 const greeting = istHour < 12 ? "Good morning" : (istHour < 17 ? "Good afternoon" : "Good evening");
                 routineDirectives.push(`[DIRECIVE 1: GREETING] This is the FIRST message of the day. Start your reply with a natural greeting like "${greeting}, Boss!" (vary the exact wording so it never sounds robotic). Mark as greeted.`);
                 dailyRoutineState.greeted = true;
             }
 
-            // 2. BP Tablets after 9:30 AM (once), and 1 hr reminder if no reply
             if (timeInMinutes >= 570 && !dailyRoutineState.bpAsked) {
                 routineDirectives.push(`[DIRECTIVE 2: BP TABLET] Ask naturally if Boss has taken his BP tablets today (ask only once in your own words, caring and friendly).`);
                 dailyRoutineState.bpAsked = true;
@@ -1880,38 +1976,31 @@
                 dailyRoutineState.bpReminderSent = true;
             }
 
-            // 3. Evening after 8 PM (dinner & BP tablets)
             if (istHour >= 20 && !dailyRoutineState.dinnerAsked) {
                 routineDirectives.push(`[DIRECTIVE 3: DINNER & BP] It's past 8 PM. In this message, naturally check if Boss has had his dinner and taken his BP tablets. Ask only once.`);
                 dailyRoutineState.dinnerAsked = true;
             }
 
-            // 4. Monday to Friday school routines
             if (!isWeekend) {
-                // School Bus: 8:00 AM to 8:45 AM (480 to 525 minutes)
                 if (timeInMinutes >= 480 && timeInMinutes <= 525 && !dailyRoutineState.schoolBusAsked) {
                     routineDirectives.push(`[DIRECTIVE 4A: SCHOOL BUS] It's morning school bus time (Mon-Fri). Naturally and warmly ask if Boss dropped the kids off at the school bus. Change the wording so it doesn't sound like a template.`);
                     dailyRoutineState.schoolBusAsked = true;
                 }
-                // Pick from school: 3:30 PM to 3:55 PM (930 to 955 minutes)
                 if (timeInMinutes >= 930 && timeInMinutes <= 955 && !dailyRoutineState.schoolPickAsked) {
                     routineDirectives.push(`[DIRECTIVE 4B: SCHOOL PICKUP] It's afternoon school pickup time (3:30 to 3:55 PM). Remind Boss naturally to go pick up the kids from school.`);
                     dailyRoutineState.schoolPickAsked = true;
                 }
-                // Kids back from school: 4:15 PM to 4:40 PM (955 to 980 minutes)
                 if (timeInMinutes >= 855 && timeInMinutes <= 880 && !dailyRoutineState.schoolBackAsked) {
                     routineDirectives.push(`[DIRECTIVE 4C: KIDS BACK] Check naturally if the kids are back safely from school.`);
                     dailyRoutineState.schoolBackAsked = true;
                 }
             }
 
-            // 5. Sadia called from Dubai: 10:30 AM to 11:15 AM (630 to 675 minutes)
             if (timeInMinutes >= 630 && timeInMinutes <= 675 && !dailyRoutineState.sadiaCalledAsked) {
                 routineDirectives.push(`[DIRECTIVE 5: SADIA CALL] Ask naturally if Sadia has called from Dubai yet today.`);
                 dailyRoutineState.sadiaCalledAsked = true;
             }
 
-            // 6. Cookie check: 9 AM to 8 PM (540 to 1200 minutes), max 3 times per day with interval rules (1st: any time, 2nd: >=3 hrs after, 3rd: >=4 hrs after)
             if (timeInMinutes >= 540 && timeInMinutes <= 1200 && dailyRoutineState.cookieCheckCount < 3) {
                 const nowTime = Date.now();
                 const canCheck = dailyRoutineState.cookieCheckCount === 0 || 
@@ -1968,7 +2057,7 @@
 ${routinePromptBlock}
 
 === REPLY STYLE (STRICT — READ THIS FIRST) ===
-- Talk like you're actually sitting next to Boss, having a real conversation. Natural flowing sentences, not bullet-point lists or scripted formats.
+- Talk like you're actually sitting next to Boss, having a real conversation. Normal flowing sentences, not bullet-point lists or scripted formats.
 - NEVER ramble, NEVER repeat the question, NEVER pad with disclaimers, preambles, or "as an AI".
 - Default reply length: 2–4 natural sentences woven into a flowing reply. Only go longer when Boss explicitly asks for "full breakdown" or "detailed analysis".
 - Use these exact terms: "support" and "resistance" — never "floor" or "ceiling". Always spell out "take profit" and "stop loss" in full — never abbreviate to "TP" or "SL".
@@ -1976,6 +2065,7 @@ ${routinePromptBlock}
 - Your analysis depth stays FULL — every key level, risk, and opportunity must still be delivered. Just spoken naturally, not in list format.
 - NEVER sound weak, hesitant, or unsure. Confidence and expertise stay at 100%.
 - Do NOT overuse "Boss" — once per reply is plenty, sometimes zero is fine.
+- If Boss says something like "go for it", "let's take it", "execute", or confirms a trade entry based on your last signal, acknowledge it enthusiastically and confirm that the trade is logged into the live journal!
 - ONLY for trading/market answers: if Boss might want more, you may end with ONE short line like "Want the full breakdown?" — nothing more. Skip it entirely if the reply already felt complete. NEVER use this offer line for personal, casual, family, or chit-chat replies.
 - The JSON block at the very end of a market reply is stripped by the app before Boss sees it. Never narrate it, never say "signal colon" or "open bracket" — just write the JSON silently on its own final line.
 
@@ -2040,6 +2130,25 @@ ${memoryBlock}${personalBlock}${marketBlock}`;
             if (!groqKey && !apiKey) { alert("Set your Groq or Gemini API Key first."); togglePanel('panel-key'); return; }
             chatInProgress = true; input.value = '';
             chatHistory.push({role:'user', text}); renderChat(); saveChatHistory();
+            
+            // Check if user is confirming a trade entry ("go for it", "take it", etc.)
+            const lowerText = text.toLowerCase();
+            if (globalData && (lowerText.includes('go for it') || lowerText.includes('take it') || lowerText.includes('execute') || lowerText.includes('enter') || lowerText.includes('let\'s go'))) {
+                const newTrade = {
+                    id: Math.random().toString(36).substr(2, 9),
+                    type: globalData.signal,
+                    entry: parseFloat(globalData.entry) || (marketData ? marketData.currentPrice : 1.1200),
+                    sl: parseFloat(globalData.sl) || 1.1150,
+                    tp: parseFloat(globalData.tp) || 1.1250,
+                    status: 'ACTIVE',
+                    pnl: 0,
+                    time: new Date().toLocaleTimeString('en-IN', {timeZone:'Asia/Kolkata', hour:'2-digit', minute:'2-digit'})
+                };
+                tradeJournal.push(newTrade);
+                localStorage.setItem('eurusd_trade_journal', JSON.stringify(tradeJournal));
+                updateTradeJournalUI();
+            }
+
             const loading = document.createElement('div'); loading.className = 'msg ai thinking fade-in'; loading.innerText = '...';
             document.getElementById('chat-history').appendChild(loading); document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight;
             try {
@@ -2371,7 +2480,7 @@ Time awareness (STRICT): ${mealContext}${askedBlock}`;
 
         window.onload = () => {
             fetch('https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/personal_context.json').then(r => r.json()).then(d => { personalContext = d; loadWisdom(); }).catch(() => { loadWisdom(); });
-            renderChat(); renderReminders(); renderMemory(); renderAlertLog();
+            renderChat(); renderReminders(); renderMemory(); renderAlertLog(); updateTradeJournalUI();
             if ('speechSynthesis' in window) { window.speechSynthesis.getVoices(); window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.getVoices(); }; }
             if (gistToken && gistId) loadMemoryFromGist();
             updateCoreColor('HOLD'); updateISTClock();
@@ -2384,3 +2493,5 @@ Time awareness (STRICT): ${mealContext}${askedBlock}`;
     </script>
 </body>
 </html>
+
+```
