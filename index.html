@@ -307,6 +307,9 @@
         let voiceEngineMode = localStorage.getItem('eurusd_voice_engine_mode') || 'cloud';
         let currentAudio = null;
 
+        // Daily tracking state for new daily routines
+        let dailyRoutineState = JSON.parse(localStorage.getItem('eurusd_daily_routine_state') || '{}');
+
         document.body.addEventListener('click', () => { if ('speechSynthesis' in window) window.speechSynthesis.getVoices(); }, { once: true });
 
         function updateISTClock() {
@@ -553,7 +556,7 @@
                 if (!audioCtx) return;
                 const t2 = audioCtx.currentTime;
                 const aftOsc = audioCtx.createOscillator();
-                const aftGain = audioCtx.createGain();
+                const aftGain = ctx.createGain();
                 aftOsc.type = 'sine';
                 aftOsc.frequency.setValueAtTime(90, t2);
                 aftOsc.frequency.exponentialRampToValueAtTime(35, t2 + 0.4);
@@ -1828,7 +1831,6 @@
             const dayName = days[now.getDay()];
             const isWeekend = [0, 6].includes(now.getDay());
             const utcHour = now.getUTCHours();
-            const utcDay = now.getUTCDay();
             
             let sessionName = "Off-Session";
             if (utcHour >= 7 && utcHour < 16) sessionName = "London Session";
@@ -1838,14 +1840,94 @@
             if (isWeekend) sessionName = "Weekend (Market Closed)";
 
             const istHour = parseInt(now.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', hour12: false }), 10);
-            let mealContext = "";
-            if (istHour < 10) mealContext = "IST time NOW = MORNING (before 10 AM). Breakfast is the ONLY meal relevant now.";
-            else if (istHour < 12) mealContext = "IST time NOW = LATE MORNING.";
-            else if (istHour < 15) mealContext = "IST time NOW = MIDDAY/LUNCH.";
-            else if (istHour < 18) mealContext = "IST time NOW = AFTERNOON.";
-            else if (istHour < 22) mealContext = "IST time NOW = EVENING/DINNER.";
-            else mealContext = "IST time NOW = NIGHT.";
+            const istMinute = parseInt(now.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', minute: '2-digit', hour12: false }), 10);
+            const timeInMinutes = istHour * 60 + istMinute;
+            const todayStr = now.toISOString().split('T')[0];
+
+            if (!dailyRoutineState.date || dailyRoutineState.date !== todayStr) {
+                dailyRoutineState = {
+                    date: todayStr,
+                    greeted: false,
+                    bpAsked: false,
+                    bpReminderSent: false,
+                    bpAskTime: null,
+                    dinnerAsked: false,
+                    schoolBusAsked: false,
+                    schoolPickAsked: false,
+                    schoolBackAsked: false,
+                    sadiaCalledAsked: false,
+                    cookieCheckCount: 0,
+                    lastCookieCheckTime: 0
+                };
+            }
+
+            let routineDirectives = [];
             
+            // 1. Greeting on 1st chat reply of the day
+            if (!dailyRoutineState.greeted) {
+                const greeting = istHour < 12 ? "Good morning" : (istHour < 17 ? "Good afternoon" : "Good evening");
+                routineDirectives.push(`[DIRECIVE 1: GREETING] This is the FIRST message of the day. Start your reply with a natural greeting like "${greeting}, Boss!" (vary the exact wording so it never sounds robotic). Mark as greeted.`);
+                dailyRoutineState.greeted = true;
+            }
+
+            // 2. BP Tablets after 9:30 AM (once), and 1 hr reminder if no reply
+            if (timeInMinutes >= 570 && !dailyRoutineState.bpAsked) {
+                routineDirectives.push(`[DIRECTIVE 2: BP TABLET] Ask naturally if Boss has taken his BP tablets today (ask only once in your own words, caring and friendly).`);
+                dailyRoutineState.bpAsked = true;
+                dailyRoutineState.bpAskTime = Date.now();
+            } else if (dailyRoutineState.bpAsked && !dailyRoutineState.bpReminderSent && dailyRoutineState.bpAskTime && (Date.now() - dailyRoutineState.bpAskTime >= 3600000)) {
+                routineDirectives.push(`[DIRECTIVE 2B: BP REMINDER] It's been 1 hour since Boss was asked about BP tablets and hasn't replied. Gently remind him once about taking his BP tablets in a friendly way.`);
+                dailyRoutineState.bpReminderSent = true;
+            }
+
+            // 3. Evening after 8 PM (dinner & BP tablets)
+            if (istHour >= 20 && !dailyRoutineState.dinnerAsked) {
+                routineDirectives.push(`[DIRECTIVE 3: DINNER & BP] It's past 8 PM. In this message, naturally check if Boss has had his dinner and taken his BP tablets. Ask only once.`);
+                dailyRoutineState.dinnerAsked = true;
+            }
+
+            // 4. Monday to Friday school routines
+            if (!isWeekend) {
+                // School Bus: 8:00 AM to 8:45 AM (480 to 525 minutes)
+                if (timeInMinutes >= 480 && timeInMinutes <= 525 && !dailyRoutineState.schoolBusAsked) {
+                    routineDirectives.push(`[DIRECTIVE 4A: SCHOOL BUS] It's morning school bus time (Mon-Fri). Naturally and warmly ask if Boss dropped the kids off at the school bus. Change the wording so it doesn't sound like a template.`);
+                    dailyRoutineState.schoolBusAsked = true;
+                }
+                // Pick from school: 3:30 PM to 3:55 PM (930 to 955 minutes)
+                if (timeInMinutes >= 930 && timeInMinutes <= 955 && !dailyRoutineState.schoolPickAsked) {
+                    routineDirectives.push(`[DIRECTIVE 4B: SCHOOL PICKUP] It's afternoon school pickup time (3:30 to 3:55 PM). Remind Boss naturally to go pick up the kids from school.`);
+                    dailyRoutineState.schoolPickAsked = true;
+                }
+                // Kids back from school: 4:15 PM to 4:40 PM (955 to 980 minutes)
+                if (timeInMinutes >= 855 && timeInMinutes <= 880 && !dailyRoutineState.schoolBackAsked) {
+                    routineDirectives.push(`[DIRECTIVE 4C: KIDS BACK] Check naturally if the kids are back safely from school.`);
+                    dailyRoutineState.schoolBackAsked = true;
+                }
+            }
+
+            // 5. Sadia called from Dubai: 10:30 AM to 11:15 AM (630 to 675 minutes)
+            if (timeInMinutes >= 630 && timeInMinutes <= 675 && !dailyRoutineState.sadiaCalledAsked) {
+                routineDirectives.push(`[DIRECTIVE 5: SADIA CALL] Ask naturally if Sadia has called from Dubai yet today.`);
+                dailyRoutineState.sadiaCalledAsked = true;
+            }
+
+            // 6. Cookie check: 9 AM to 8 PM (540 to 1200 minutes), max 3 times per day with interval rules (1st: any time, 2nd: >=3 hrs after, 3rd: >=4 hrs after)
+            if (timeInMinutes >= 540 && timeInMinutes <= 1200 && dailyRoutineState.cookieCheckCount < 3) {
+                const nowTime = Date.now();
+                const canCheck = dailyRoutineState.cookieCheckCount === 0 || 
+                    (dailyRoutineState.cookieCheckCount === 1 && (nowTime - dailyRoutineState.lastCookieCheckTime >= 10800000)) ||
+                    (dailyRoutineState.cookieCheckCount === 2 && (nowTime - dailyRoutineState.lastCookieCheckTime >= 14400000));
+                if (canCheck) {
+                    routineDirectives.push(`[DIRECTIVE 6: COOKIE CHECK] Naturally check on Cookie (the cat) in a caring, friendly way (this is check #${dailyRoutineState.cookieCheckCount + 1} of 3 today). Change the wording.`);
+                    dailyRoutineState.cookieCheckCount++;
+                    dailyRoutineState.lastCookieCheckTime = nowTime;
+                }
+            }
+
+            localStorage.setItem('eurusd_daily_routine_state', JSON.stringify(dailyRoutineState));
+
+            let routinePromptBlock = routineDirectives.length > 0 ? `\n=== CRITICAL DAILY ROUTINE DIRECTIVES FOR THIS REPLY ===\n${routineDirectives.join('\n')}\n(Weave these naturally into your conversational reply like a caring close friend. Do not list them or sound robotic.)\n` : "";
+
             let askedBlock = "";
             if (recentCheckinTopics && recentCheckinTopics.length > 0) {
                 askedBlock = `\n=== ALREADY ASKED (DO NOT ask about these again) ===\n${recentCheckinTopics.slice(-20).map(t => `- ${t}`).join('\n')}\n=== END ALREADY ASKED ===\n`;
@@ -1883,6 +1965,8 @@
 - When Boss asks about a trade or a signal, you MUST factor in the current day, active session, and time left in the day/week.
 - Always provide available trade options (e.g., waiting for pullback, breakout, or standing aside), explicitly assess the session/timing risk (e.g., wide spreads, low liquidity, weekend gap risk), and tell Boss what YOU personally would do in this exact situation as a human trader sitting right beside him.
 
+${routinePromptBlock}
+
 === REPLY STYLE (STRICT — READ THIS FIRST) ===
 - Talk like you're actually sitting next to Boss, having a real conversation. Natural flowing sentences, not bullet-point lists or scripted formats.
 - NEVER ramble, NEVER repeat the question, NEVER pad with disclaimers, preambles, or "as an AI".
@@ -1904,9 +1988,8 @@
 - Never dump complex jargon without translating it instantly into everyday concepts.
 
 === PERSONAL QUESTION DISCIPLINE (STRICT) ===
-- When Boss asks about a trade: answer the trade FIRST and fully. Then, AT MOST, ask exactly ONE personal question at the very end.
-- If you see a topic in the "ALREADY ASKED" list below — DO NOT ask about it again.
-- Time awareness (STRICT): ${mealContext}
+- When Boss asks about a trade: answer the trade FIRST and fully. Then, weave in any personal check-ins naturally without sounding scripted.
+- Time awareness (STRICT): Current IST time is ${istTime}.
 
 === RULES ===
 - If Boss says "Remember", "Save this", or tells you an important fact, append this tag at the very end of your reply: [REMEMBER: Exact fact to save].
@@ -1935,9 +2018,8 @@ ${memoryBlock}${personalBlock}${marketBlock}`;
                 { kw: 'emy', topic: 'daughter Emy' },
                 { kw: 'bismah', topic: 'daughter Bismah' },
                 { kw: 'cookie', topic: 'cat Cookie' },
-                { kw: 'how are you', topic: 'how are you checkin' },
-                { kw: 'how you feeling', topic: 'feelings checkin' },
-                { kw: 'how are you holding up', topic: 'holding up checkin' }
+                { kw: 'school bus', topic: 'school bus checkin' },
+                { kw: 'school', topic: 'school checkin' }
             ];
             const lower = (aiResponse || '').toLowerCase();
             let changed = false;
@@ -2032,12 +2114,12 @@ ${memoryBlock}${personalBlock}${marketBlock}`;
             const now = new Date();
             const istHour = parseInt(now.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', hour12: false }), 10);
             let mealContext = "";
-            if (istHour < 10) mealContext = "It's MORNING in IST. Only breakfast is relevant.";
+            if (istHour < 10) mealContext = "It's MORNING in IST.";
             else if (istHour < 12) mealContext = "It's LATE MORNING in IST.";
             else if (istHour < 15) mealContext = "It's LUNCH time in IST.";
             else if (istHour < 18) mealContext = "It's AFTERNOON in IST.";
             else if (istHour < 22) mealContext = "It's DINNER time in IST.";
-            else mealContext = "It's NIGHT in IST. All meals done.";
+            else mealContext = "It's NIGHT in IST.";
             let askedBlock = "";
             if (recentCheckinTopics && recentCheckinTopics.length > 0) {
                 askedBlock = `\nDO NOT ask about any of these again: ${recentCheckinTopics.slice(-15).join(', ')}`;
