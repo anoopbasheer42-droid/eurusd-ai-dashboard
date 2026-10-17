@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -2067,83 +2066,55 @@
             const todayStr = now.toISOString().split('T')[0];
 
             if (!dailyRoutineState.date || dailyRoutineState.date !== todayStr) {
-                dailyRoutineState = { date: todayStr, greeted: false, bpAsked: false, bpReminderSent: false, bpAskTime: null, dinnerAsked: false, schoolBusAsked: false, schoolPickAsked: false, schoolBackAsked: false, sadiaCalledAsked: false, cookieCheckCount: 0, lastCookieCheckTime: 0 };
+                dailyRoutineState = { date: todayStr, greeted: false, bpAsked: false, bpReminderSent: false, dinnerAsked: false, schoolBusAsked: false, schoolPickAsked: false, schoolBackAsked: false, sadiaCalledAsked: false, cookieAsked: false };
             }
 
             let routineDirectives = [];
+            
+            // Only add a directive if it hasn't been asked/addressed yet today and isn't in recentCheckinTopics
+            const alreadyChecked = (topic) => recentCheckinTopics.some(t => t.toLowerCase().includes(topic));
+
             if (!dailyRoutineState.greeted) {
                 const greeting = istHour < 12 ? "Good morning" : (istHour < 17 ? "Good afternoon" : "Good evening");
-                routineDirectives.push(`[DIRECIVE 1: GREETING] This is the FIRST message of the day. Start your reply with a natural greeting like "${greeting}, Boss!" (vary the exact wording so it never sounds robotic). Mark as greeted.`);
+                routineDirectives.push(`Start your reply with a natural greeting like "${greeting}, Boss!" (vary the wording so it's not robotic).`);
                 dailyRoutineState.greeted = true;
             }
 
-            if (timeInMinutes >= 570 && !dailyRoutineState.bpAsked) {
-                routineDirectives.push(`[DIRECTIVE 2: BP TABLET] Ask naturally if Boss has taken his BP tablets today (ask only once in your own words, caring and friendly).`);
+            if (timeInMinutes >= 570 && !dailyRoutineState.bpAsked && !alreadyChecked('bp')) {
+                routineDirectives.push(`Naturally check if Boss has taken his BP tablets today.`);
                 dailyRoutineState.bpAsked = true;
-                dailyRoutineState.bpAskTime = Date.now();
-            } else if (timeInMinutes > 630 && !dailyRoutineState.bpAsked) {
-                routineDirectives.push(`[DIRECTIVE 2-CATCHUP: BP TABLET] The allotted morning time for checking on BP tablets has passed and you missed asking. On this very next message, naturally check if Boss has taken his BP tablets.`);
-                dailyRoutineState.bpAsked = true;
-            } else if (dailyRoutineState.bpAsked && !dailyRoutineState.bpReminderSent && dailyRoutineState.bpAskTime && (Date.now() - dailyRoutineState.bpAskTime >= 3600000)) {
-                routineDirectives.push(`[DIRECTIVE 2B: BP REMINDER] It's been 1 hour since Boss was asked about BP tablets and hasn't replied. Gently remind him once about taking his BP tablets in a friendly way.`);
-                dailyRoutineState.bpReminderSent = true;
             }
 
-            if (istHour >= 20 && !dailyRoutineState.dinnerAsked) {
-                routineDirectives.push(`[DIRECTIVE 3: DINNER & BP] It's past 8 PM. In this message, naturally check if Boss has had his dinner and taken his BP tablets. Ask only once.`);
+            if (istHour >= 20 && !dailyRoutineState.dinnerAsked && !alreadyChecked('dinner')) {
+                routineDirectives.push(`Naturally check if Boss has had his dinner and taken his BP tablets.`);
                 dailyRoutineState.dinnerAsked = true;
             }
 
             if (!isWeekend) {
-                if (timeInMinutes >= 480 && timeInMinutes <= 525 && !dailyRoutineState.schoolBusAsked) {
-                    routineDirectives.push(`[DIRECTIVE 4A: SCHOOL BUS] It's morning school bus time (Mon-Fri). Naturally and warmly ask if Boss dropped the kids off at the school bus.`);
-                    dailyRoutineState.schoolBusAsked = true;
-                } else if (timeInMinutes > 525 && !dailyRoutineState.schoolBusAsked) {
-                    routineDirectives.push(`[DIRECTIVE 4A-CATCHUP: SCHOOL BUS] The morning school bus window has passed and you missed asking. On this very next message, naturally ask if the kids made it to the school bus safely.`);
+                if (timeInMinutes >= 480 && timeInMinutes <= 525 && !dailyRoutineState.schoolBusAsked && !alreadyChecked('school')) {
+                    routineDirectives.push(`Naturally ask if Boss dropped the kids off at the school bus.`);
                     dailyRoutineState.schoolBusAsked = true;
                 }
-
-                if (timeInMinutes >= 930 && timeInMinutes <= 955 && !dailyRoutineState.schoolPickAsked) {
-                    routineDirectives.push(`[DIRECTIVE 4B: SCHOOL PICKUP] It's afternoon school pickup time (3:30 to 3:55 PM). Remind Boss naturally to go pick up the kids from school.`);
+                if (timeInMinutes >= 930 && timeInMinutes <= 955 && !dailyRoutineState.schoolPickAsked && !alreadyChecked('pickup')) {
+                    routineDirectives.push(`Naturally remind Boss to pick up the kids from school.`);
                     dailyRoutineState.schoolPickAsked = true;
-                } else if (timeInMinutes > 955 && !dailyRoutineState.schoolPickAsked) {
-                    routineDirectives.push(`[DIRECTIVE 4B-CATCHUP: SCHOOL PICKUP] The afternoon school pickup window has passed and you missed reminding Boss. On this very next message, naturally ask if he went or managed to pick up the kids from school.`);
-                    dailyRoutineState.schoolPickAsked = true;
-                }
-
-                if (timeInMinutes >= 855 && timeInMinutes <= 880 && !dailyRoutineState.schoolBackAsked) {
-                    routineDirectives.push(`[DIRECTIVE 4C: KIDS BACK] Check naturally if the kids are back safely from school.`);
-                    dailyRoutineState.schoolBackAsked = true;
-                } else if (timeInMinutes > 880 && !dailyRoutineState.schoolBackAsked) {
-                    routineDirectives.push(`[DIRECTIVE 4C-CATCHUP: KIDS BACK] The school return window has passed and you missed asking. On this very next message, naturally check if the kids are back safely from school.`);
-                    dailyRoutineState.schoolBackAsked = true;
                 }
             }
 
-            if (timeInMinutes >= 630 && timeInMinutes <= 675 && !dailyRoutineState.sadiaCalledAsked) {
-                routineDirectives.push(`[DIRECTIVE 5: SADIA CALL] Ask naturally if Sadia has called from Dubai yet today.`);
-                dailyRoutineState.sadiaCalledAsked = true;
-            } else if (timeInMinutes > 675 && !dailyRoutineState.sadiaCalledAsked) {
-                routineDirectives.push(`[DIRECTIVE 5-CATCHUP: SADIA CALL] The time window for checking on Sadia's call has passed and you missed asking. On this very next message, naturally ask if Sadia has called from Dubai yet today.`);
+            if (timeInMinutes >= 630 && timeInMinutes <= 675 && !dailyRoutineState.sadiaCalledAsked && !alreadyChecked('sadia')) {
+                routineDirectives.push(`Naturally ask if Sadia has called from Dubai yet today.`);
                 dailyRoutineState.sadiaCalledAsked = true;
             }
 
-            if (timeInMinutes >= 540 && timeInMinutes <= 1200 && dailyRoutineState.cookieCheckCount < 3) {
-                const nowTime = Date.now();
-                const canCheck = dailyRoutineState.cookieCheckCount === 0 || 
-                    (dailyRoutineState.cookieCheckCount === 1 && (nowTime - dailyRoutineState.lastCookieCheckTime >= 10800000)) ||
-                    (dailyRoutineState.cookieCheckCount === 2 && (nowTime - dailyRoutineState.lastCookieCheckTime >= 14400000));
-                if (canCheck) {
-                    routineDirectives.push(`[DIRECTIVE 6: COOKIE CHECK] Naturally check on Cookie (the cat) in a caring, friendly way.`);
-                    dailyRoutineState.cookieCheckCount++;
-                    dailyRoutineState.lastCookieCheckTime = nowTime;
-                }
+            if (timeInMinutes >= 540 && !dailyRoutineState.cookieAsked && !alreadyChecked('cookie')) {
+                routineDirectives.push(`Naturally ask how Cookie (the cat) is doing.`);
+                dailyRoutineState.cookieAsked = true;
             }
 
             localStorage.setItem('eurusd_daily_routine_state', JSON.stringify(dailyRoutineState));
 
-            let routinePromptBlock = routineDirectives.length > 0 ? `\n=== CRITICAL DAILY ROUTINE DIRECTIVES FOR THIS REPLY ===\n${routineDirectives.join('\n')}\n` : "";
-            let askedBlock = recentCheckinTopics && recentCheckinTopics.length > 0 ? `\n=== ALREADY ASKED ===\n${recentCheckinTopics.slice(-20).map(t => `- ${t}`).join('\n')}\n` : "";
+            let routinePromptBlock = routineDirectives.length > 0 ? `\n=== DAILY CHECK-IN GUIDELINE ===\nPick AT MOST ONE of these if natural: ${routineDirectives.join(' ')}\n` : "";
+            let askedBlock = recentCheckinTopics && recentCheckinTopics.length > 0 ? `\n=== ALREADY DISCUSSED (DO NOT REPEAT) ===\n${recentCheckinTopics.slice(-20).map(t => `- ${t}`).join('\n')}\n` : "";
             let memoryBlock = longTermMemory.length > 0 ? `\nLONG-TERM MEMORY:\n${longTermMemory.slice(-80).map(m => `- ${m.fact} (${m.added})`).join('\n')}\n` : "";
             let macroContextBlock = "";
             if (macroEvents && macroEvents.length > 0) {
@@ -2162,7 +2133,7 @@
 ${routinePromptBlock}
 === REPLY STYLE ===
 - Talk like you're actually sitting next to Boss, having a real conversation. Normal flowing sentences, not bullet-point lists.
-- NEVER ramble, NEVER repeat the question, NEVER pad with disclaimers.
+- NEVER ramble, NEVER repeat questions the user has already answered, NEVER pad with disclaimers.
 - Use these exact terms: "support" and "resistance". Always spell out "take profit" and "stop loss" in full.
 ${askedBlock}
 ${memoryBlock}${personalBlock}${marketBlock}`;
@@ -2175,20 +2146,15 @@ ${memoryBlock}${personalBlock}${marketBlock}`;
 
         function trackPersonalTopics(aiResponse) {
             const topicKeywords = [
-                { kw: 'breakfast', topic: 'breakfast question' },
-                { kw: 'lunch', topic: 'lunch question' },
-                { kw: 'dinner', topic: 'dinner question' },
-                { kw: 'bp tablet', topic: 'BP tablet reminder' },
-                { kw: 'blood pressure', topic: 'BP reminder' },
-                { kw: 'tablet', topic: 'tablet reminder' },
-                { kw: 'cook', topic: 'cook for the girls' },
-                { kw: 'girls get home', topic: 'girls coming home' },
-                { kw: 'sadia', topic: 'wife Sadia' },
-                { kw: 'emy', topic: 'daughter Emy' },
-                { kw: 'bismah', topic: 'daughter Bismah' },
-                { kw: 'cookie', topic: 'cat Cookie' },
-                { kw: 'school bus', topic: 'school bus checkin' },
-                { kw: 'school', topic: 'school checkin' }
+                { kw: 'breakfast', topic: 'breakfast' },
+                { kw: 'lunch', topic: 'lunch' },
+                { kw: 'dinner', topic: 'dinner' },
+                { kw: 'bp tablet', topic: 'bp' },
+                { kw: 'blood pressure', topic: 'bp' },
+                { kw: 'tablet', topic: 'bp' },
+                { kw: 'sadia', topic: 'sadia' },
+                { kw: 'cookie', topic: 'cookie' },
+                { kw: 'school', topic: 'school' }
             ];
             const lower = (aiResponse || '').toLowerCase();
             let changed = false;
@@ -2518,4 +2484,3 @@ ${memoryBlock}${personalBlock}${marketBlock}`;
     </script>
 </body>
 </html>
-
