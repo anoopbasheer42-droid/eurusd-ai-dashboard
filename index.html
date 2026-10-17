@@ -1,3 +1,10 @@
+Here is the complete, full file with the NSE button fully integrated.
+
+Save this as your main dashboard file. When you click "Open NSE Scalper ⚡", it will open a full-screen overlay and load your NSE dashboard.
+
+(Note: By default, it is set to load http://localhost:8002, which means you should have your Termux server running just like you normally do. If you renamed your NSE file to nse.html and put it in the same folder, just change the line in the script to iframe.src = './nse.html';)
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -147,9 +154,38 @@
         .book-input:focus { border-color: #d4af37; box-shadow: 0 0 15px rgba(212,175,55,0.2); }
         .book-textarea { width: 100%; padding: 12px 14px; background: rgba(0,0,0,0.6); border: 1px solid rgba(212,175,55,0.3); border-radius: 10px; color: var(--text-main); font-family: 'Inter', sans-serif; font-size: 0.82rem; outline: none; margin-bottom: 10px; resize: vertical; min-height: 100px; }
         .book-textarea:focus { border-color: #d4af37; box-shadow: 0 0 15px rgba(212,175,55,0.2); }
+
+        /* NSE Overlay Styles */
+        #nse-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(3, 4, 8, 0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            z-index: 9999999; display: none; flex-direction: column; opacity: 0; transition: opacity 0.3s ease;
+        }
+        .nse-header {
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 16px 24px; background: #0b0e14; border-bottom: 1px solid rgba(41, 98, 255, 0.3);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        .nse-header h2 {
+            font-family: 'Space Grotesk', sans-serif; color: #fff; font-size: 1.2rem; display: flex; align-items: center; gap: 8px;
+        }
+        #nse-iframe {
+            width: 100%; flex: 1; border: none; background: #0b0e14;
+        }
     </style>
 </head>
 <body>
+
+    <!-- NSE Dashboard Overlay -->
+    <div id="nse-overlay">
+        <div class="nse-header">
+            <h2><span style="color: #2962ff;">⚡</span> NSE Options Elite Scalper</h2>
+            <button class="btn danger" onclick="toggleNSE()">Close NSE ✕</button>
+        </div>
+        <!-- The iframe loads your NSE Dashboard. Change src to your NSE file path or localhost -->
+        <iframe id="nse-iframe" src="about:blank"></iframe>
+    </div>
+
     <!-- Personal Book View Overlay -->
     <div id="personal-overlay">
         <div class="book-container">
@@ -523,11 +559,15 @@
             <div class="reasoning-text" id="val-reason">Engine scanning. AI auto-analyzers hourly.</div>
         </div>
 
-        <!-- PERSONAL BOOK BUTTON MOVED TO BOTTOM OF DASHBOARD -->
+        <!-- PERSONAL BOOK & NSE BUTTONS -->
         <div class="card" style="background: linear-gradient(135deg, rgba(212,175,55,0.15), rgba(10,12,20,0.8)); border: 1px solid rgba(212,175,55,0.4); text-align: center; padding: 20px;">
-            <div class="card-title" style="color: #f3e7c4; justify-content: center; margin-bottom: 12px;">📖 Personal Book & Vault</div>
-            <div style="font-size: 0.78rem; color: var(--text-body); margin-bottom: 16px;">Manage your expenses, upcoming bills, calendar events, contacts, and secure notes.</div>
-            <button class="btn primary" onclick="togglePersonalBook()" style="width: 100%; background: linear-gradient(135deg,#d4af37,#aa7c11); color: #030408; font-weight: 700; padding: 12px; font-size: 0.85rem;">Open Personal Book 📖</button>
+            <div class="card-title" style="color: #f3e7c4; justify-content: center; margin-bottom: 12px;">📖 Personal Book & Vault + ⚡ NSE Scalper</div>
+            <div style="font-size: 0.78rem; color: var(--text-body); margin-bottom: 16px;">Access your personal life management tools or switch to the NSE Options Trading Dashboard.</div>
+            
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <button class="btn primary" onclick="togglePersonalBook()" style="flex: 1; min-width: 200px; background: linear-gradient(135deg,#d4af37,#aa7c11); color: #030408; font-weight: 700; padding: 14px; font-size: 0.85rem;">Open Personal Book 📖</button>
+                <button class="btn primary" onclick="toggleNSE()" style="flex: 1; min-width: 200px; background: linear-gradient(135deg,#2962ff,#1e40af); color: #fff; font-weight: 700; padding: 14px; font-size: 0.85rem;">Open NSE Scalper ⚡</button>
+            </div>
         </div>
     </div>
 
@@ -587,6 +627,28 @@
         let dailyRoutineState = JSON.parse(localStorage.getItem('eurusd_daily_routine_state') || '{}');
 
         document.body.addEventListener('click', () => { if ('speechSynthesis' in window) window.speechSynthesis.getVoices(); }, { once: true });
+
+        // NSE Dashboard Toggle Logic
+        function toggleNSE() {
+            const overlay = document.getElementById('nse-overlay');
+            const iframe = document.getElementById('nse-iframe');
+            const isActive = overlay.style.display === 'flex';
+            
+            if (!isActive) {
+                // If the iframe is empty, load the NSE dashboard
+                if (iframe.src === 'about:blank' || iframe.src === '') {
+                    // Change this URL to match where your NSE file is hosted!
+                    // If you open this HTML locally, put: './nse.html'
+                    // If you run the Python server, put: 'http://localhost:8002'
+                    iframe.src = 'http://localhost:8002'; 
+                }
+                overlay.style.display = 'flex';
+                setTimeout(() => overlay.style.opacity = '1', 10); // Fade in
+            } else {
+                overlay.style.opacity = '0';
+                setTimeout(() => overlay.style.display = 'none', 300); // Fade out
+            }
+        }
 
         function togglePersonalBook() {
             const overlay = document.getElementById('personal-overlay');
@@ -2552,3 +2614,4 @@ ${memoryBlock}${personalBlock}${marketBlock}`;
     </script>
 </body>
 </html>
+```
