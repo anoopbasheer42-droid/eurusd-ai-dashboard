@@ -2066,7 +2066,7 @@
             const todayStr = now.toISOString().split('T')[0];
 
             if (!dailyRoutineState.date || dailyRoutineState.date !== todayStr) {
-                dailyRoutineState = { date: todayStr, greeted: false, bpAsked: false, bpReminderSent: false, dinnerAsked: false, schoolBusAsked: false, schoolPickAsked: false, schoolBackAsked: false, sadiaCalledAsked: false, cookieAsked: false };
+                dailyRoutineState = { date: todayStr, greeted: false, bpAsked: false, bpReminderSent: false, bpAskTime: null, dinnerAsked: false, schoolBusAsked: false, schoolPickAsked: false, schoolBackAsked: false, sadiaCalledAsked: false, cookieCheckCount: 0, lastCookieCheckTime: 0 };
             }
 
             let routineDirectives = [];
@@ -2130,6 +2130,7 @@
 === TEMPORAL & RISK AWARENESS ===
 - Current Day: ${dayName} (${isWeekend ? 'MARKET CLOSED' : 'Active Trading Day'})
 - Current Active Session: ${sessionName}
+${isWeekend ? 'CRITICAL RULE: TODAY IS THE WEEKEND. THE FOREX MARKET IS CLOSED. DO NOT GIVE TRADING SIGNALS, DO NOT SUGGEST ENTRIES, STOPS, OR TARGETS. REMIND BOSS THAT THE MARKET IS CLOSED AND ENJOY THE WEEKEND TOGETHER.' : ''}
 ${routinePromptBlock}
 === REPLY STYLE ===
 - Talk like you're actually sitting next to Boss, having a real conversation. Normal flowing sentences, not bullet-point lists.
