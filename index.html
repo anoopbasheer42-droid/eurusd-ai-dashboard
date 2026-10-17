@@ -143,6 +143,12 @@
         .fade-in { animation: fadeIn 0.3s ease-in; }
         .pulse-dot { display: inline-block; width: 6px; height: 6px; background: var(--green); border-radius: 50%; margin-right: 6px; box-shadow: 0 0 10px var(--green); animation: pulse 2s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+
+        /* Form Inputs inside Book */
+        .book-input { width: 100%; padding: 10px 14px; background: rgba(0,0,0,0.6); border: 1px solid rgba(212,175,55,0.3); border-radius: 10px; color: var(--text-main); font-family: 'Inter', sans-serif; font-size: 0.82rem; outline: none; margin-bottom: 10px; }
+        .book-input:focus { border-color: #d4af37; box-shadow: 0 0 15px rgba(212,175,55,0.2); }
+        .book-textarea { width: 100%; padding: 12px 14px; background: rgba(0,0,0,0.6); border: 1px solid rgba(212,175,55,0.3); border-radius: 10px; color: var(--text-main); font-family: 'Inter', sans-serif; font-size: 0.82rem; outline: none; margin-bottom: 10px; resize: vertical; min-height: 100px; }
+        .book-textarea:focus { border-color: #d4af37; box-shadow: 0 0 15px rgba(212,175,55,0.2); }
     </style>
 </head>
 <body>
@@ -164,8 +170,8 @@
                     <div style="font-size:0.8rem; color:var(--text-body); margin-bottom:14px;">Here's your personal overview for today.</div>
                     <div class="stats-grid" style="margin-bottom:14px;">
                         <div class="stat-item"><span class="stat-label">Next Birthday</span><span>10 days (Father)</span></div>
-                        <div class="stat-item"><span class="stat-label">Upcoming Bills</span><span>2 due (This month)</span></div>
-                        <div class="stat-item"><span class="stat-label">Today's Tasks</span><span>3 completed</span></div>
+                        <div class="stat-item"><span class="stat-label">Upcoming Bills</span><span id="home-bills-count">2 due (This month)</span></div>
+                        <div class="stat-item"><span class="stat-label">Reminders</span><span id="home-reminders-count">0 active</span></div>
                     </div>
                 </div>
 
@@ -186,23 +192,9 @@
                 <div class="card">
                     <div class="card-title">Monthly Expense Planner</div>
                     <div class="stats-grid">
-                        <div class="stat-item"><span class="stat-label">Total Income</span><span style="color:var(--green)">₹50,000</span></div>
-                        <div class="stat-item"><span class="stat-label">Total Expenses</span><span style="color:var(--red)">₹30,000</span></div>
-                        <div class="stat-item"><span class="stat-label">Remaining</span><span style="color:var(--blue)">₹20,000</span></div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-title">Emergency Contacts</div>
-                    <div style="font-size:0.78rem; color:var(--text-body); display:flex; flex-direction:column; gap:8px;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.4); padding:8px 12px; border-radius:8px;">
-                            <span>👨‍👦 Dad — +91 98765 43210</span>
-                            <a href="tel:+919876543210" class="btn primary" style="padding:4px 10px; font-size:0.65rem;">Call</a>
-                        </div>
-                        <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.4); padding:8px 12px; border-radius:8px;">
-                            <span>🏥 Doctor Sharma — +91 91234 56789</span>
-                            <a href="tel:+919123456789" class="btn primary" style="padding:4px 10px; font-size:0.65rem;">Call</a>
-                        </div>
+                        <div class="stat-item"><span class="stat-label">Total Income</span><span style="color:var(--green)" id="home-total-income">₹50,000</span></div>
+                        <div class="stat-item"><span class="stat-label">Total Expenses</span><span style="color:var(--red)" id="home-total-expenses">₹30,000</span></div>
+                        <div class="stat-item"><span class="stat-label">Remaining</span><span style="color:var(--blue)" id="home-remaining">₹20,000</span></div>
                     </div>
                 </div>
             </div>
@@ -210,29 +202,43 @@
             <!-- SECTION 2: EXPENSES -->
             <div id="book-sec-expenses" class="book-section">
                 <div class="card">
-                    <div class="card-title">📊 Expense Tracker & Budget</div>
-                    <div style="font-size:0.8rem; color:var(--text-body); margin-bottom:12px;">Track monthly spending and category breakdown.</div>
-                    <div class="stats-grid" style="margin-bottom:14px;">
-                        <div class="stat-item"><span class="stat-label">Groceries</span><span style="color:var(--red)">₹8,000</span></div>
-                        <div class="stat-item"><span class="stat-label">Utilities & Bills</span><span style="color:var(--red)">₹5,000</span></div>
-                        <div class="stat-item"><span class="stat-label">Trading Capital</span><span style="color:var(--green)">₹12,000</span></div>
-                        <div class="stat-item"><span class="stat-label">Savings</span><span style="color:var(--blue)">₹5,000</span></div>
+                    <div class="card-title">📊 Expense Tracker & Budget Planner</div>
+                    <div style="font-size:0.8rem; color:var(--text-body); margin-bottom:14px;">Add and track your monthly expenses and income.</div>
+                    
+                    <div style="background:rgba(0,0,0,0.4); padding:14px; border-radius:12px; margin-bottom:16px; border:1px solid rgba(212,175,55,0.2);">
+                        <strong style="color:#d4af37; font-size:0.75rem; display:block; margin-bottom:10px;">ADD NEW EXPENSE / INCOME</strong>
+                        <input type="text" id="exp-title" class="book-input" placeholder="Title (e.g. Groceries, Electricity, Trading Deposit)">
+                        <input type="number" id="exp-amount" class="book-input" placeholder="Amount in ₹ (e.g. 2500)">
+                        <select id="exp-type" class="book-input">
+                            <option value="expense">Expense (-)</option>
+                            <option value="income">Income (+)</option>
+                        </select>
+                        <button class="btn primary" onclick="addCustomExpense()" style="width:100%; background:linear-gradient(135deg,#d4af37,#aa7c11); color:#030408; font-weight:700;">Save Entry</button>
                     </div>
-                    <button class="btn primary" onclick="alert('Add Expense feature coming soon!')">+ Add New Expense</button>
+
+                    <div class="stats-grid" style="margin-bottom:14px;">
+                        <div class="stat-item"><span class="stat-label">Total Income</span><span style="color:var(--green)" id="exp-total-inc">₹50,000</span></div>
+                        <div class="stat-item"><span class="stat-label">Total Expenses</span><span style="color:var(--red)" id="exp-total-exp">₹30,000</span></div>
+                    </div>
+
+                    <div style="font-size:0.8rem; color:var(--text-body);" id="expenses-list-container">
+                        <!-- Dynamic items will load here -->
+                    </div>
                 </div>
             </div>
 
             <!-- SECTION 3: CALENDAR -->
             <div id="book-sec-calendar" class="book-section">
                 <div class="card">
-                    <div class="card-title">📅 Calendar & Birthdays</div>
-                    <div style="font-size:0.8rem; color:var(--text-body); display:flex; flex-direction:column; gap:10px;">
-                        <div style="background:rgba(0,0,0,0.4); padding:10px 14px; border-radius:10px;">
-                            <strong>🎂 Father's Birthday</strong><div style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;">In 10 days (October 27, 2026)</div>
-                        </div>
-                        <div style="background:rgba(0,0,0,0.4); padding:10px 14px; border-radius:10px;">
-                            <strong>⚡ High-Impact USD Fed Meeting</strong><div style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;">Next Wednesday at 18:30 IST</div>
-                        </div>
+                    <div class="card-title">📅 Calendar & Events Manager</div>
+                    <div style="background:rgba(0,0,0,0.4); padding:14px; border-radius:12px; margin-bottom:16px; border:1px solid rgba(212,175,55,0.2);">
+                        <strong style="color:#d4af37; font-size:0.75rem; display:block; margin-bottom:10px;">ADD EVENT / BIRTHDAY / MEETING</strong>
+                        <input type="text" id="cal-title" class="book-input" placeholder="Event Title (e.g. Dad's Birthday, Fed Meeting)">
+                        <input type="date" id="cal-date" class="book-input">
+                        <button class="btn primary" onclick="addCustomEvent()" style="width:100%; background:linear-gradient(135deg,#d4af37,#aa7c11); color:#030408; font-weight:700;">Save Event</button>
+                    </div>
+                    <div style="font-size:0.8rem; color:var(--text-body); display:flex; flex-direction:column; gap:10px;" id="calendar-list-container">
+                        <!-- Dynamic events -->
                     </div>
                 </div>
             </div>
@@ -240,16 +246,15 @@
             <!-- SECTION 4: REMINDERS -->
             <div id="book-sec-reminders" class="book-section">
                 <div class="card">
-                    <div class="card-title">⏰ Personal Reminders</div>
+                    <div class="card-title">⏰ Personal Reminders & Alarms</div>
+                    <div style="background:rgba(0,0,0,0.4); padding:14px; border-radius:12px; margin-bottom:16px; border:1px solid rgba(212,175,55,0.2);">
+                        <strong style="color:#d4af37; font-size:0.75rem; display:block; margin-bottom:10px;">ADD NEW REMINDER</strong>
+                        <input type="text" id="rem-msg" class="book-input" placeholder="Reminder message (e.g. Take BP Tablet)">
+                        <input type="time" id="rem-time" class="book-input">
+                        <button class="btn primary" onclick="addNewReminderFromBook()" style="width:100%; background:linear-gradient(135deg,#d4af37,#aa7c11); color:#030408; font-weight:700;">Set Reminder</button>
+                    </div>
                     <div style="font-size:0.8rem; color:var(--text-body); display:flex; flex-direction:column; gap:8px;" id="book-reminders-list">
-                        <div style="background:rgba(0,0,0,0.4); padding:10px 14px; border-radius:10px; display:flex; justify-content:space-between;">
-                            <span>💊 Take BP Tablet — 09:00 AM IST</span>
-                            <span style="color:var(--green)">Active</span>
-                        </div>
-                        <div style="background:rgba(0,0,0,0.4); padding:10px 14px; border-radius:10px; display:flex; justify-content:space-between;">
-                            <span>🏫 Pick up kids from school — 03:30 PM IST</span>
-                            <span style="color:var(--green)">Active</span>
-                        </div>
+                        <!-- Dynamic Reminders -->
                     </div>
                 </div>
             </div>
@@ -258,19 +263,14 @@
             <div id="book-sec-contacts" class="book-section">
                 <div class="card">
                     <div class="card-title">📞 Emergency & Important Contacts</div>
-                    <div style="font-size:0.8rem; color:var(--text-body); display:flex; flex-direction:column; gap:8px;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.4); padding:10px 12px; border-radius:10px;">
-                            <span>👨‍👦 Dad — +91 98765 43210</span>
-                            <a href="tel:+919876543210" class="btn primary" style="padding:4px 10px; font-size:0.65rem;">Call</a>
-                        </div>
-                        <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.4); padding:10px 12px; border-radius:10px;">
-                            <span>🏥 Doctor Sharma — +91 91234 56789</span>
-                            <a href="tel:+919123456789" class="btn primary" style="padding:4px 10px; font-size:0.65rem;">Call</a>
-                        </div>
-                        <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.4); padding:10px 12px; border-radius:10px;">
-                            <span>🏫 School Office — +91 95555 12345</span>
-                            <a href="tel:+919555512345" class="btn primary" style="padding:4px 10px; font-size:0.65rem;">Call</a>
-                        </div>
+                    <div style="background:rgba(0,0,0,0.4); padding:14px; border-radius:12px; margin-bottom:16px; border:1px solid rgba(212,175,55,0.2);">
+                        <strong style="color:#d4af37; font-size:0.75rem; display:block; margin-bottom:10px;">ADD NEW CONTACT</strong>
+                        <input type="text" id="con-name" class="book-input" placeholder="Name & Relationship (e.g. Brother — Rahul)">
+                        <input type="text" id="con-phone" class="book-input" placeholder="Phone Number (e.g. +91 98765 43210)">
+                        <button class="btn primary" onclick="addCustomContact()" style="width:100%; background:linear-gradient(135deg,#d4af37,#aa7c11); color:#030408; font-weight:700;">Save Contact</button>
+                    </div>
+                    <div style="font-size:0.8rem; color:var(--text-body); display:flex; flex-direction:column; gap:8px;" id="contacts-list-container">
+                        <!-- Dynamic Contacts -->
                     </div>
                 </div>
             </div>
@@ -279,11 +279,18 @@
             <div id="book-sec-health" class="book-section">
                 <div class="card">
                     <div class="card-title">❤️ Health & Vitals Tracker</div>
-                    <div class="stats-grid">
-                        <div class="stat-item"><span class="stat-label">Blood Pressure</span><span style="color:var(--green)">120 / 80 (Normal)</span></div>
+                    <div style="background:rgba(0,0,0,0.4); padding:14px; border-radius:12px; margin-bottom:16px; border:1px solid rgba(212,175,55,0.2);">
+                        <strong style="color:#d4af37; font-size:0.75rem; display:block; margin-bottom:10px;">UPDATE TODAY'S VITALS</strong>
+                        <input type="text" id="health-bp" class="book-input" placeholder="Blood Pressure (e.g. 120 / 80)">
+                        <input type="text" id="health-water" class="book-input" placeholder="Water Intake (e.g. 2.5 L)">
+                        <input type="text" id="health-sleep" class="book-input" placeholder="Sleep Hours (e.g. 7.5 Hours)">
+                        <button class="btn primary" onclick="saveHealthVitals()" style="width:100%; background:linear-gradient(135deg,#d4af37,#aa7c11); color:#030408; font-weight:700;">Save Vitals</button>
+                    </div>
+                    <div class="stats-grid" id="health-display-grid">
+                        <div class="stat-item"><span class="stat-label">Blood Pressure</span><span style="color:var(--green)" id="disp-bp">120 / 80 (Normal)</span></div>
                         <div class="stat-item"><span class="stat-label">BP Tablets</span><span style="color:var(--green)">Taken Today</span></div>
-                        <div class="stat-item"><span class="stat-label">Water Intake</span><span style="color:var(--blue)">2.5 L / 3.0 L</span></div>
-                        <div class="stat-item"><span class="stat-label">Sleep</span><span style="color:var(--purple)">7.5 Hours</span></div>
+                        <div class="stat-item"><span class="stat-label">Water Intake</span><span style="color:var(--blue)" id="disp-water">2.5 L / 3.0 L</span></div>
+                        <div class="stat-item"><span class="stat-label">Sleep</span><span style="color:var(--purple)" id="disp-sleep">7.5 Hours</span></div>
                     </div>
                 </div>
             </div>
@@ -292,13 +299,14 @@
             <div id="book-sec-documents" class="book-section">
                 <div class="card">
                     <div class="card-title">📁 Secure Documents Vault</div>
-                    <div style="font-size:0.8rem; color:var(--text-body); display:flex; flex-direction:column; gap:8px;">
-                        <div style="background:rgba(0,0,0,0.4); padding:10px 12px; border-radius:10px; display:flex; justify-content:space-between;">
-                            <span>📄 PAN Card Copy</span><span style="color:var(--text-muted)">Encrypted</span>
-                        </div>
-                        <div style="background:rgba(0,0,0,0.4); padding:10px 12px; border-radius:10px; display:flex; justify-content:space-between;">
-                            <span>📄 Forex Broker Agreement</span><span style="color:var(--text-muted)">Encrypted</span>
-                        </div>
+                    <div style="background:rgba(0,0,0,0.4); padding:14px; border-radius:12px; margin-bottom:16px; border:1px solid rgba(212,175,55,0.2);">
+                        <strong style="color:#d4af37; font-size:0.75rem; display:block; margin-bottom:10px;">ADD SECURE DOCUMENT RECORD</strong>
+                        <input type="text" id="doc-title" class="book-input" placeholder="Document Name (e.g. Passport Copy, Insurance Policy)">
+                        <input type="text" id="doc-info" class="book-input" placeholder="Details / Number (e.g. Encrypted Vault ID #402)">
+                        <button class="btn primary" onclick="addCustomDocument()" style="width:100%; background:linear-gradient(135deg,#d4af37,#aa7c11); color:#030408; font-weight:700;">Save to Vault</button>
+                    </div>
+                    <div style="font-size:0.8rem; color:var(--text-body); display:flex; flex-direction:column; gap:8px;" id="documents-list-container">
+                        <!-- Dynamic Documents -->
                     </div>
                 </div>
             </div>
@@ -307,11 +315,14 @@
             <div id="book-sec-notes" class="book-section">
                 <div class="card">
                     <div class="card-title">📝 Personal Notes & Trading Strategies</div>
-                    <div style="font-size:0.8rem; color:var(--text-body); line-height:1.6; background:rgba(0,0,0,0.4); padding:14px; border-radius:10px;">
-                        <strong>EUR/USD Scalping Rules:</strong><br>
-                        1. Never trade during high-impact news windows (-15m / +15m).<br>
-                        2. Always wait for support or resistance rejection candles on 15M or 1H timeframes.<br>
-                        3. Risk max 1% per trade. Discipline is key.
+                    <div style="background:rgba(0,0,0,0.4); padding:14px; border-radius:12px; margin-bottom:16px; border:1px solid rgba(212,175,55,0.2);">
+                        <strong style="color:#d4af37; font-size:0.75rem; display:block; margin-bottom:10px;">ADD NEW NOTE</strong>
+                        <input type="text" id="note-title" class="book-input" placeholder="Note Title">
+                        <textarea id="note-content" class="book-textarea" placeholder="Write your strategy or personal note here..."></textarea>
+                        <button class="btn primary" onclick="addCustomNote()" style="width:100%; background:linear-gradient(135deg,#d4af37,#aa7c11); color:#030408; font-weight:700;">Save Note</button>
+                    </div>
+                    <div style="font-size:0.8rem; color:var(--text-body); display:flex; flex-direction:column; gap:12px;" id="notes-list-container">
+                        <!-- Dynamic Notes -->
                     </div>
                 </div>
             </div>
@@ -477,7 +488,7 @@
             </div>
         </div>
         
-        <!-- Feature 2: Live Macro News Ticker & Economic Calendar (8th Card) -->
+        <!-- Macro News Ticker & Economic Calendar -->
         <div class="card" style="border: 2px solid rgba(59, 130, 246, 0.4); box-shadow: 0 0 30px rgba(59, 130, 246, 0.15);">
             <div class="card-title" style="color: var(--blue);">Live Macro News & Economic Calendar Feed</div>
             <div id="macro-news-container" style="font-size:0.75rem; color:var(--text-body); line-height:1.6;">
@@ -489,7 +500,7 @@
             </div>
         </div>
 
-        <!-- Live Trade Journal & Win/Loss PnL Tracker Card (9th Card) -->
+        <!-- Live Trade Journal & Win/Loss PnL Tracker -->
         <div class="card" style="border: 2px solid rgba(16, 185, 129, 0.4); box-shadow: 0 0 30px rgba(16, 185, 129, 0.15);">
             <div class="card-title" style="color: var(--green);">Live Trade Journal & Win/Loss PnL Tracker</div>
             <div class="stats-grid" style="margin-bottom:14px;">
@@ -532,6 +543,31 @@
         let scheduledSearches = JSON.parse(localStorage.getItem('eurusd_scheduled_searches') || '[]');
         let recentCheckinTopics = JSON.parse(localStorage.getItem('eurusd_recent_checkin_topics') || '[]');
         
+        // Personal Book Persistent Data
+        let bookExpenses = JSON.parse(localStorage.getItem('eurusd_book_expenses') || JSON.stringify([
+            { title: 'Groceries', amount: 8000, type: 'expense' },
+            { title: 'Utilities & Bills', amount: 5000, type: 'expense' },
+            { title: 'Trading Capital', amount: 12000, type: 'income' },
+            { title: 'Savings', amount: 5000, type: 'income' }
+        ]));
+        let bookEvents = JSON.parse(localStorage.getItem('eurusd_book_events') || JSON.stringify([
+            { title: "🎂 Father's Birthday", date: "2026-10-27" },
+            { title: "⚡ High-Impact USD Fed Meeting", date: "2026-10-21" }
+        ]));
+        let bookContacts = JSON.parse(localStorage.getItem('eurusd_book_contacts') || JSON.stringify([
+            { name: "👨‍👦 Dad", phone: "+91 98765 43210" },
+            { name: "🏥 Doctor Sharma", phone: "+91 91234 56789" },
+            { name: "🏫 School Office", phone: "+91 95555 12345" }
+        ]));
+        let bookHealth = JSON.parse(localStorage.getItem('eurusd_book_health') || JSON.stringify({ bp: "120 / 80", water: "2.5 L", sleep: "7.5 Hours" }));
+        let bookDocuments = JSON.parse(localStorage.getItem('eurusd_book_documents') || JSON.stringify([
+            { title: "📄 PAN Card Copy", info: "Encrypted Vault #1" },
+            { title: "📄 Forex Broker Agreement", info: "Encrypted Vault #2" }
+        ]));
+        let bookNotes = JSON.parse(localStorage.getItem('eurusd_book_notes') || JSON.stringify([
+            { title: "EUR/USD Scalping Rules", content: "1. Never trade during high-impact news windows (-15m / +15m).\n2. Always wait for support or resistance rejection candles on 15M or 1H timeframes.\n3. Risk max 1% per trade. Discipline is key." }
+        ]));
+
         let tradeJournal = JSON.parse(localStorage.getItem('eurusd_trade_journal') || '[]');
         
         let macroEvents = [];
@@ -556,6 +592,7 @@
             overlay.classList.toggle('active');
             if (overlay.classList.contains('active')) {
                 switchBookSection('home');
+                renderBookUI();
             }
         }
 
@@ -568,6 +605,241 @@
                 const overlay = document.getElementById('personal-overlay');
                 if (overlay) overlay.scrollTop = 0;
             }
+        }
+
+        // Render functions for Personal Book interactive tabs
+        function renderBookUI() {
+            renderExpensesUI();
+            renderCalendarUI();
+            renderBookRemindersUI();
+            renderContactsUI();
+            renderHealthUI();
+            renderDocumentsUI();
+            renderNotesUI();
+            renderHomeOverview();
+        }
+
+        function renderHomeOverview() {
+            let totalInc = bookExpenses.filter(e => e.type === 'income').reduce((a, b) => a + Number(b.amount), 0);
+            let totalExp = bookExpenses.filter(e => e.type === 'expense').reduce((a, b) => a + Number(b.amount), 0);
+            let rem = totalInc - totalExp;
+            document.getElementById('home-total-income').innerText = `₹${totalInc.toLocaleString()}`;
+            document.getElementById('home-total-expenses').innerText = `₹${totalExp.toLocaleString()}`;
+            document.getElementById('home-remaining').innerText = `₹${rem.toLocaleString()}`;
+            document.getElementById('home-reminders-count').innerText = `${reminders.filter(r => !r.fired).length} active`;
+        }
+
+        function addCustomExpense() {
+            const title = document.getElementById('exp-title').value.trim();
+            const amount = parseFloat(document.getElementById('exp-amount').value);
+            const type = document.getElementById('exp-type').value;
+            if (!title || isNaN(amount)) { alert("Please enter valid title and amount."); return; }
+            bookExpenses.push({ title, amount, type });
+            localStorage.setItem('eurusd_book_expenses', JSON.stringify(bookExpenses));
+            document.getElementById('exp-title').value = '';
+            document.getElementById('exp-amount').value = '';
+            renderExpensesUI();
+            renderHomeOverview();
+        }
+        function deleteExpense(index) {
+            bookExpenses.splice(index, 1);
+            localStorage.setItem('eurusd_book_expenses', JSON.stringify(bookExpenses));
+            renderExpensesUI();
+            renderHomeOverview();
+        }
+        function renderExpensesUI() {
+            let totalInc = bookExpenses.filter(e => e.type === 'income').reduce((a, b) => a + Number(b.amount), 0);
+            let totalExp = bookExpenses.filter(e => e.type === 'expense').reduce((a, b) => a + Number(b.amount), 0);
+            document.getElementById('exp-total-inc').innerText = `₹${totalInc.toLocaleString()}`;
+            document.getElementById('exp-total-exp').innerText = `₹${totalExp.toLocaleString()}`;
+            
+            const container = document.getElementById('expenses-list-container');
+            if (bookExpenses.length === 0) {
+                container.innerHTML = '<em>No expense records added yet.</em>';
+                return;
+            }
+            container.innerHTML = bookExpenses.map((e, idx) => `
+                <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.4); padding:10px 14px; border-radius:10px; margin-bottom:8px; border:1px solid rgba(139,92,246,0.1);">
+                    <div>
+                        <strong>${e.title}</strong>
+                        <div style="font-size:0.68rem; color:${e.type==='income'?'var(--green)':'var(--red)'}">${e.type.toUpperCase()}: ₹${Number(e.amount).toLocaleString()}</div>
+                    </div>
+                    <button class="btn danger" onclick="deleteExpense(${idx})" style="padding:4px 10px; font-size:0.65rem;">Delete</button>
+                </div>
+            `).join('');
+        }
+
+        function addCustomEvent() {
+            const title = document.getElementById('cal-title').value.trim();
+            const date = document.getElementById('cal-date').value;
+            if (!title || !date) { alert("Please enter title and date."); return; }
+            bookEvents.push({ title, date });
+            localStorage.setItem('eurusd_book_events', JSON.stringify(bookEvents));
+            document.getElementById('cal-title').value = '';
+            document.getElementById('cal-date').value = '';
+            renderCalendarUI();
+        }
+        function deleteEvent(index) {
+            bookEvents.splice(index, 1);
+            localStorage.setItem('eurusd_book_events', JSON.stringify(bookEvents));
+            renderCalendarUI();
+        }
+        function renderCalendarUI() {
+            const container = document.getElementById('calendar-list-container');
+            if (bookEvents.length === 0) {
+                container.innerHTML = '<em>No calendar events added yet.</em>';
+                return;
+            }
+            container.innerHTML = bookEvents.map((ev, idx) => `
+                <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.4); padding:10px 14px; border-radius:10px; border:1px solid rgba(139,92,246,0.1);">
+                    <div>
+                        <strong>${ev.title}</strong>
+                        <div style="font-size:0.68rem; color:var(--text-muted); margin-top:2px;">Date: ${ev.date}</div>
+                    </div>
+                    <button class="btn danger" onclick="deleteEvent(${idx})" style="padding:4px 10px; font-size:0.65rem;">Delete</button>
+                </div>
+            `).join('');
+        }
+
+        function addNewReminderFromBook() {
+            const msg = document.getElementById('rem-msg').value.trim();
+            const time = document.getElementById('rem-time').value.trim();
+            if (!msg || !time) { alert("Please enter reminder message and time."); return; }
+            addReminder(time, msg);
+            document.getElementById('rem-msg').value = '';
+            document.getElementById('rem-time').value = '';
+            renderBookRemindersUI();
+            renderHomeOverview();
+        }
+        function renderBookRemindersUI() {
+            const container = document.getElementById('book-reminders-list');
+            const activeReminders = reminders.filter(r => !r.fired);
+            if (activeReminders.length === 0) {
+                container.innerHTML = '<em>No active reminders set.</em>';
+                return;
+            }
+            container.innerHTML = activeReminders.map(r => `
+                <div style="background:rgba(0,0,0,0.4); padding:10px 14px; border-radius:10px; display:flex; justify-content:space-between; align-items:center; border:1px solid rgba(139,92,246,0.1);">
+                    <div>
+                        <span>⏰ ${r.time} — <strong>${r.message}</strong></span>
+                    </div>
+                    <button class="btn danger" onclick="deleteReminder('${r.id}'); renderBookRemindersUI(); renderHomeOverview();" style="padding:4px 10px; font-size:0.65rem;">Delete</button>
+                </div>
+            `).join('');
+        }
+
+        function addCustomContact() {
+            const name = document.getElementById('con-name').value.trim();
+            const phone = document.getElementById('con-phone').value.trim();
+            if (!name || !phone) { alert("Please enter name and phone number."); return; }
+            bookContacts.push({ name, phone });
+            localStorage.setItem('eurusd_book_contacts', JSON.stringify(bookContacts));
+            document.getElementById('con-name').value = '';
+            document.getElementById('con-phone').value = '';
+            renderContactsUI();
+        }
+        function deleteContact(index) {
+            bookContacts.splice(index, 1);
+            localStorage.setItem('eurusd_book_contacts', JSON.stringify(bookContacts));
+            renderContactsUI();
+        }
+        function renderContactsUI() {
+            const container = document.getElementById('contacts-list-container');
+            if (bookContacts.length === 0) {
+                container.innerHTML = '<em>No contacts saved yet.</em>';
+                return;
+            }
+            container.innerHTML = bookContacts.map((c, idx) => `
+                <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.4); padding:10px 12px; border-radius:10px; border:1px solid rgba(139,92,246,0.1);">
+                    <div>
+                        <strong>${c.name}</strong>
+                        <div style="font-size:0.68rem; color:var(--text-muted);">${c.phone}</div>
+                    </div>
+                    <div style="display:flex; gap:6px;">
+                        <a href="tel:${c.phone}" class="btn primary" style="padding:4px 10px; font-size:0.65rem;">Call</a>
+                        <button class="btn danger" onclick="deleteContact(${idx})" style="padding:4px 10px; font-size:0.65rem;">Delete</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function saveHealthVitals() {
+            const bp = document.getElementById('health-bp').value.trim();
+            const water = document.getElementById('health-water').value.trim();
+            const sleep = document.getElementById('health-sleep').value.trim();
+            if (bp) bookHealth.bp = bp;
+            if (water) bookHealth.water = water;
+            if (sleep) bookHealth.sleep = sleep;
+            localStorage.setItem('eurusd_book_health', JSON.stringify(bookHealth));
+            renderHealthUI();
+            alert("Health vitals updated successfully!");
+        }
+        function renderHealthUI() {
+            document.getElementById('disp-bp').innerText = bookHealth.bp;
+            document.getElementById('disp-water').innerText = bookHealth.water;
+            document.getElementById('disp-sleep').innerText = bookHealth.sleep;
+        }
+
+        function addCustomDocument() {
+            const title = document.getElementById('doc-title').value.trim();
+            const info = document.getElementById('doc-info').value.trim();
+            if (!title) { alert("Please enter document title."); return; }
+            bookDocuments.push({ title, info: info || "Encrypted Vault" });
+            localStorage.setItem('eurusd_book_documents', JSON.stringify(bookDocuments));
+            document.getElementById('doc-title').value = '';
+            document.getElementById('doc-info').value = '';
+            renderDocumentsUI();
+        }
+        function deleteDocument(index) {
+            bookDocuments.splice(index, 1);
+            localStorage.setItem('eurusd_book_documents', JSON.stringify(bookDocuments));
+            renderDocumentsUI();
+        }
+        function renderDocumentsUI() {
+            const container = document.getElementById('documents-list-container');
+            if (bookDocuments.length === 0) {
+                container.innerHTML = '<em>No secure documents stored.</em>';
+                return;
+            }
+            container.innerHTML = bookDocuments.map((d, idx) => `
+                <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.4); padding:10px 12px; border-radius:10px; border:1px solid rgba(139,92,246,0.1);">
+                    <div>
+                        <strong>${d.title}</strong>
+                        <div style="font-size:0.68rem; color:var(--text-muted);">${d.info}</div>
+                    </div>
+                    <button class="btn danger" onclick="deleteDocument(${idx})" style="padding:4px 10px; font-size:0.65rem;">Delete</button>
+                </div>
+            `).join('');
+        }
+
+        function addCustomNote() {
+            const title = document.getElementById('note-title').value.trim();
+            const content = document.getElementById('note-content').value.trim();
+            if (!title || !content) { alert("Please enter note title and content."); return; }
+            bookNotes.push({ title, content });
+            localStorage.setItem('eurusd_book_notes', JSON.stringify(bookNotes));
+            document.getElementById('note-title').value = '';
+            document.getElementById('note-content').value = '';
+            renderNotesUI();
+        }
+        function deleteNote(index) {
+            bookNotes.splice(index, 1);
+            localStorage.setItem('eurusd_book_notes', JSON.stringify(bookNotes));
+            renderNotesUI();
+        }
+        function renderNotesUI() {
+            const container = document.getElementById('notes-list-container');
+            if (bookNotes.length === 0) {
+                container.innerHTML = '<em>No personal notes added yet.</em>';
+                return;
+            }
+            container.innerHTML = bookNotes.map((n, idx) => `
+                <div style="background:rgba(0,0,0,0.4); padding:14px; border-radius:12px; border:1px solid rgba(139,92,246,0.1); position:relative;">
+                    <strong style="color:#d4af37; display:block; margin-bottom:6px;">${n.title}</strong>
+                    <div style="font-size:0.78rem; line-height:1.6; white-space:pre-wrap; color:var(--text-body); margin-bottom:10px;">${n.content}</div>
+                    <button class="btn danger" onclick="deleteNote(${idx})" style="padding:4px 10px; font-size:0.65rem;">Delete Note</button>
+                </div>
+            `).join('');
         }
 
         function updateISTClock() {
@@ -1058,7 +1330,7 @@
             for (let i = 0; i < 15; i++) { const mg = new THREE.Group(); const geoFn = geoTypes[Math.floor(Math.random() * geoTypes.length)]; const col = colors[Math.floor(Math.random() * colors.length)]; const mMesh = new THREE.Mesh(geoFn(), new THREE.MeshStandardMaterial({ color: col, roughness: 0.85, metalness: 0.2 })); mMesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI); mg.add(mMesh); const angle = Math.random() * Math.PI * 2; const dist = 60 + Math.random() * 120; mg.position.set(Math.cos(angle) * dist, (Math.random() - 0.5) * 60, Math.sin(angle) * dist); milkyWayGroup.add(mg); meteoroids.push({ grp: mg, rotSpd: new THREE.Vector3((Math.random()-0.5)*0.025, (Math.random()-0.5)*0.025, (Math.random()-0.5)*0.025) }); }
         })();
 
-        // === SOLAR SYSTEM & ENHANCED AUTHENTIC PLANETS ===
+        // === SOLAR SYSTEM & PLANETS ===
         const solarSystemGroup = new THREE.Group();
         solarSystemGroup.visible = false;
         scene.add(solarSystemGroup);
@@ -2693,7 +2965,7 @@ ${memoryBlock}${personalBlock}${marketBlock}`;
 
         window.onload = () => {
             fetch('https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/personal_context.json').then(r => r.json()).then(d => { personalContext = d; loadWisdom(); }).catch(() => { loadWisdom(); });
-            renderChat(); renderReminders(); renderMemory(); renderAlertLog(); updateTradeJournalUI();
+            renderChat(); renderReminders(); renderMemory(); renderAlertLog(); updateTradeJournalUI(); renderBookUI();
             if ('speechSynthesis' in window) { window.speechSynthesis.getVoices(); window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.getVoices(); }; }
             if (gistToken && gistId) loadMemoryFromGist();
             updateCoreColor('HOLD'); updateISTClock();
