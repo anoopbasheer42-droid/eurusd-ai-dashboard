@@ -112,22 +112,6 @@
         .msg { font-family: 'Inter', sans-serif; padding: 10px 14px; border-radius: 14px; max-width: 85%; line-height: 1.5; font-size: 0.82rem; animation: fadeIn 0.3s ease-out; }
         .msg.user { background: linear-gradient(135deg, #4f46e5, #3b82f6); color: white; align-self: flex-end; border-bottom-right-radius: 4px; box-shadow: 0 4px 20px rgba(59,130,246,0.3); }
         .msg.ai { background: rgba(139, 92, 246, 0.08); align-self: flex-start; border-left: 3px solid var(--purple); color: var(--text-body); border-top-left-radius: 4px; box-shadow: 0 4px 20px rgba(139, 92, 246, 0.1); }
-        
-        /* Image Attachment Preview Styling */
-        #chat-image-preview-container {
-            display: none;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 12px;
-            background: rgba(139, 92, 246, 0.08);
-            border: 1px solid rgba(139, 92, 246, 0.2);
-            border-radius: 10px;
-            margin-bottom: 8px;
-        }
-        #chat-image-preview-container.active { display: flex; }
-        #chat-image-preview-container img { width: 40px; height: 40px; object-fit: cover; border-radius: 6px; border: 1px solid rgba(139, 92, 246, 0.4); }
-        #chat-image-preview-container span { font-size: 0.75rem; color: var(--text-muted); flex: 1; }
-
         .chat-input-row { display: flex; gap: 8px; }
         .chat-input-row input { flex: 1; background: rgba(0,0,0,0.7); border: 1px solid rgba(139, 92, 246, 0.2); color: var(--text-main); padding: 10px 14px; border-radius: 12px; outline: none; font-family: 'Inter', sans-serif; font-size: 0.85rem; transition: all 0.2s ease; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); }
         .chat-input-row input:focus { border-color: rgba(139,92,246,0.6); background: rgba(0,0,0,0.9); box-shadow: 0 0 20px rgba(139, 92, 246, 0.2), inset 0 2px 10px rgba(0,0,0,0.5); }
@@ -259,26 +243,11 @@
                 <input type="password" id="api-key-input" placeholder="AIzaSy..." style="width:100%; padding:10px; margin-top:8px; border-radius:8px; border:1px solid rgba(139,92,246,0.2); background:rgba(0,0,0,0.4); color:white;">
                 <button class="btn" style="margin-top:10px;" onclick="saveApiKey()">Save Gemini Key</button>
             </div>
-            
             <div class="chat-history" id="chat-history">
                 <div class="msg ai fade-in"><span class="pulse-dot"></span>Hey Boss. I'm locked onto the charts. What are we looking at on EUR/USD today?</div>
             </div>
-
-            <!-- Hidden file input for chart attachments -->
-            <input type="file" id="chat-file-input" accept="image/*" style="display: none;" onchange="handleImageSelected(event)">
-
-            <div id="chat-image-preview-container">
-                <img id="chat-preview-thumb" src="" alt="Chart Preview">
-                <span id="chat-preview-name">Chart attached</span>
-                <button class="btn danger" style="padding: 2px 6px; font-size: 0.65rem;" onclick="clearAttachedImage()">Remove</button>
-            </div>
-
             <div class="chat-input-row">
                 <input type="text" id="chat-input" placeholder="Talk to your trader, Boss..." onkeypress="if(event.key==='Enter') sendChat()">
-                
-                <!-- Chart Attachment Button -->
-                <button onclick="document.getElementById('chat-file-input').click()" style="background: rgba(139, 92, 246, 0.2); border: 1px solid rgba(139, 92, 246, 0.4); padding: 0 12px; font-size: 1rem;" title="Attach Chart Screenshot">📎</button>
-                
                 <button id="voice-chat-toggle-btn" onclick="toggleVoiceAssistantMode()" style="background: rgba(139, 92, 246, 0.2); border: 1px solid rgba(139, 92, 246, 0.4); padding: 0 14px; font-size: 1rem;" title="Toggle Continuous Voice Chat">🎙️ OFF</button>
                 <button onclick="sendChat()">Send</button>
             </div>
@@ -303,6 +272,7 @@
             </div>
         </div>
         
+        <!-- Feature 2: Live Macro News Ticker & Economic Calendar (8th Card) -->
         <div class="card" style="border: 2px solid rgba(59, 130, 246, 0.4); box-shadow: 0 0 30px rgba(59, 130, 246, 0.15);">
             <div class="card-title" style="color: var(--blue);">Live Macro News & Economic Calendar Feed</div>
             <div id="macro-news-container" style="font-size:0.75rem; color:var(--text-body); line-height:1.6;">
@@ -314,6 +284,7 @@
             </div>
         </div>
 
+        <!-- Live Trade Journal & Win/Loss PnL Tracker Card (9th Card) -->
         <div class="card" style="border: 2px solid rgba(16, 185, 129, 0.4); box-shadow: 0 0 30px rgba(16, 185, 129, 0.15);">
             <div class="card-title" style="color: var(--green);">Live Trade Journal & Win/Loss PnL Tracker</div>
             <div class="stats-grid" style="margin-bottom:14px;">
@@ -356,7 +327,10 @@
         let scheduledSearches = JSON.parse(localStorage.getItem('eurusd_scheduled_searches') || '[]');
         let recentCheckinTopics = JSON.parse(localStorage.getItem('eurusd_recent_checkin_topics') || '[]');
         
+        // Trade Journal state
         let tradeJournal = JSON.parse(localStorage.getItem('eurusd_trade_journal') || '[]');
+        
+        // Macro News state
         let macroEvents = [];
         let highImpactWarningActive = false;
 
@@ -371,28 +345,6 @@
         let currentAudio = null;
 
         let dailyRoutineState = JSON.parse(localStorage.getItem('eurusd_daily_routine_state') || '{}');
-
-        // Image Attachment State
-        let attachedImageBase64 = null;
-
-        function handleImageSelected(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                attachedImageBase64 = e.target.result;
-                document.getElementById('chat-preview-thumb').src = attachedImageBase64;
-                document.getElementById('chat-preview-name').innerText = file.name || 'Chart attached';
-                document.getElementById('chat-image-preview-container').classList.add('active');
-            };
-            reader.readAsDataURL(file);
-        }
-
-        function clearAttachedImage() {
-            attachedImageBase64 = null;
-            document.getElementById('chat-file-input').value = '';
-            document.getElementById('chat-image-preview-container').classList.remove('active');
-        }
 
         document.body.addEventListener('click', () => { if ('speechSynthesis' in window) window.speechSynthesis.getVoices(); }, { once: true });
 
@@ -472,14 +424,16 @@
             }
         }
 
+        // === LIVE MACRO NEWS & ECONOMIC CALENDAR LOGIC ===
         async function refreshMacroNews() {
             const container = document.getElementById('macro-news-container');
             container.innerHTML = '<em>Refreshing live macroeconomic events...</em>';
             try {
                 const now = Date.now();
                 const currentDateObj = new Date(now);
-                const dayOfWeek = currentDateObj.getUTCDay();
+                const dayOfWeek = currentDateObj.getUTCDay(); // 0 = Sunday, 6 = Saturday
 
+                // If weekend, markets are closed and no live high-impact news runs
                 if (dayOfWeek === 0 || dayOfWeek === 6) {
                     macroEvents = [];
                     highImpactWarningActive = false;
@@ -491,6 +445,7 @@
                 if (!res.ok) throw new Error('Network response failed');
                 const data = await res.json();
                 
+                // Filter for USD and EUR high-impact events for today
                 macroEvents = data.filter(e => {
                     if (e.country !== 'USD' && e.country !== 'EUR') return false;
                     if (e.impact !== 'High') return false;
@@ -519,6 +474,7 @@
                 const currentDateObj = new Date(now);
                 const dayOfWeek = currentDateObj.getUTCDay();
 
+                // Weekend fallback: empty calendar
                 if (dayOfWeek === 0 || dayOfWeek === 6) {
                     macroEvents = [];
                 } else {
@@ -559,6 +515,7 @@
             }).join('');
         }
 
+        // === AUDIO ENGINE ===
         let audioCtx = null;
         let chargeOsc1 = null, chargeOsc2 = null, chargeGain = null, chargeTickGain = null, chargeTickOsc = null;
         function initAudio() {
@@ -739,6 +696,7 @@
             }, 350);
         }
 
+        // === THREE.JS COSMIC ENGINE ===
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 8000);
@@ -883,6 +841,7 @@
             for (let i = 0; i < 15; i++) { const mg = new THREE.Group(); const geoFn = geoTypes[Math.floor(Math.random() * geoTypes.length)]; const col = colors[Math.floor(Math.random() * colors.length)]; const mMesh = new THREE.Mesh(geoFn(), new THREE.MeshStandardMaterial({ color: col, roughness: 0.85, metalness: 0.2 })); mMesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI); mg.add(mMesh); const angle = Math.random() * Math.PI * 2; const dist = 60 + Math.random() * 120; mg.position.set(Math.cos(angle) * dist, (Math.random() - 0.5) * 60, Math.sin(angle) * dist); milkyWayGroup.add(mg); meteoroids.push({ grp: mg, rotSpd: new THREE.Vector3((Math.random()-0.5)*0.025, (Math.random()-0.5)*0.025, (Math.random()-0.5)*0.025) }); }
         })();
 
+        // === SOLAR SYSTEM ===
         const solarSystemGroup = new THREE.Group();
         solarSystemGroup.visible = false;
         scene.add(solarSystemGroup);
@@ -1756,6 +1715,7 @@
         function calculateATR(highs, lows, closes, period = 14) { let trs = []; for (let i = 1; i < highs.length; i++) trs.push(Math.max(highs[i]-lows[i], Math.abs(highs[i]-closes[i-1]), Math.abs(lows[i]-closes[i-1]))); return trs.slice(-period).reduce((a,b) => a+b, 0) / period; }
         function detectSetup(md) { const setups = []; if (!md || !md.candles1H || md.candles1H.length < 3) return null; const last = md.candles1H[md.candles1H.length - 1]; const prev = md.candles1H[md.candles1H.length - 2]; const bodySize = Math.abs(last.close - last.open); const upperWick = last.high - Math.max(last.open, last.close); const lowerWick = Math.min(last.open, last.close) - last.low; const range = last.high - last.low; if (md.rsi1H < 30 && md.currentPrice <= md.support * 1.001) setups.push({ type:'BUY', reason:`RSI oversold (${md.rsi1H.toFixed(1)}) + price at support ${md.support.toFixed(5)}`, strength:'STRONG' }); if (md.rsi1H > 70 && md.currentPrice >= md.resistance * 0.999) setups.push({ type:'SELL', reason:`RSI overbought (${md.rsi1H.toFixed(1)}) + price at resistance ${md.resistance.toFixed(5)}`, strength:'STRONG' }); if (md.currentPrice > md.resistance * 1.0005) setups.push({ type:'BUY', reason:`Breakout above resistance ${md.resistance.toFixed(5)}`, strength:'STRONG' }); if (md.currentPrice < md.support * 0.9995) setups.push({ type:'SELL', reason:`Breakdown below support ${md.support.toFixed(5)}`, strength:'STRONG' }); if (range > md.atr * 0.8) { if (lowerWick > bodySize * 2 && upperWick < bodySize && md.currentPrice <= md.support * 1.005) setups.push({ type:'BUY', reason:`Bullish Pin Bar rejection at support`, strength:'MEDIUM' }); if (upperWick > bodySize * 2 && lowerWick < bodySize && md.currentPrice >= md.resistance * 0.995) setups.push({ type:'SELL', reason:`Bearish Pin Bar rejection at resistance`, strength:'MEDIUM' }); } if (last.high < prev.high && last.low > prev.low) { if (md.currentPrice > prev.high) setups.push({ type:'BUY', reason:`Inside Bar breakout`, strength:'MEDIUM' }); if (md.currentPrice < prev.low) setups.push({ type:'SELL', reason:`Inside Bar breakdown`, strength:'MEDIUM' }); } if (bodySize > md.atr * 1.5) { const direction = last.close > last.open ? 'BUY' : 'SELL'; setups.push({ type: direction, reason:`Strong momentum candle`, strength:'MEDIUM' }); } if (md.ema20 && md.ema50) { if (md.ema20 > md.ema50 && md.currentPrice > md.ema20 && md.rsi1H > 50 && md.rsi1H < 70) setups.push({ type:'BUY', reason:`Bullish EMA alignment`, strength:'MEDIUM' }); if (md.ema20 < md.ema50 && md.currentPrice < md.ema20 && md.rsi1H < 50 && md.rsi1H > 30) setups.push({ type:'SELL', reason:`Bearish EMA alignment`, strength:'MEDIUM' }); } if (setups.length === 0) return null; return setups.find(s => s.strength === 'STRONG') || setups[0]; }
 
+        // === LIVE TRADE JOURNAL & TRACKING LOGIC ===
         function updateTradeJournalUI() {
             const wins = tradeJournal.filter(t => t.status === 'WIN').length;
             const losses = tradeJournal.filter(t => t.status === 'LOSS').length;
@@ -1902,55 +1862,21 @@
 
         function isMarketQuestion(text) { return MARKET_KEYWORDS.some(kw => text.toLowerCase().includes(kw)); }
 
-        async function callAI(systemPrompt, userText, conversationHistory, base64Image = null) {
-            const messages = [{ role: 'system', content: systemPrompt }];
-            
-            conversationHistory.forEach(m => {
-                messages.push({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text });
-            });
-
-            if (base64Image) {
-                messages.push({
-                    role: 'user',
-                    content: [
-                        { type: "text", text: userText || "Analyze this chart." },
-                        { type: "image_url", image_url: { url: base64Image } }
-                    ]
-                });
-            } else {
-                messages.push({ role: 'user', content: userText });
-            }
-
+        async function callAI(systemPrompt, userText, conversationHistory) {
+            const messages = [{ role: 'system', content: systemPrompt }, ...conversationHistory.map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text })), { role: 'user', content: userText }];
             if (groqKey) {
-                const visionModels = ['meta-llama/llama-4-scout-17b-16e-instruct', 'llama-3.2-11b-vision-preview', 'llama-3.3-70b-versatile'];
-                for (const model of visionModels) {
+                for (const model of GROQ_MODELS) {
                     try {
-                        const res = await fetch(GROQ_URL, {
-                            method: 'POST',
-                            headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ model: model, messages: messages, temperature: 0.95, max_tokens: 800 })
-                        });
+                        const res = await fetch(GROQ_URL, { method: 'POST', headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: model, messages: messages, temperature: 0.95, max_tokens: 800 }) });
                         if (res.ok) return (await res.json()).choices[0].message.content;
                     } catch(e) {}
                 }
             }
-
             if (apiKey) {
-                const geminiParts = [{ text: systemPrompt }];
-                ...conversationHistory.map(m => ({ role: m.role === 'ai' ? 'model' : 'user', parts: [{ text: m.text }] }));
-                if (base64Image) {
-                    const base64Data = base64Image.split(',')[1];
-                    geminiParts.push({ inline_data: { mime_type: "image/jpeg", data: base64Data } });
-                }
-                geminiParts.push({ text: userText });
-
+                const contents = [{ role: 'user', parts: [{ text: systemPrompt }] }, ...conversationHistory.map(m => ({ role: m.role === 'ai' ? 'model' : 'user', parts: [{ text: m.text }] })), { role: 'user', parts: [{ text: userText }] }];
                 for (const model of GEMINI_MODELS) {
                     try {
-                        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-                            method: 'POST',
-                            headers: {'Content-Type':'application/json'},
-                            body: JSON.stringify({ contents: [{ role: 'user', parts: geminiParts }], generationConfig: { maxOutputTokens: 800, temperature: 0.95 } })
-                        });
+                        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ contents, generationConfig: { maxOutputTokens: 800, temperature: 0.95 } }) });
                         if (r.ok) return (await r.json()).candidates[0].content.parts[0].text;
                     } catch(e) {}
                 }
@@ -1976,7 +1902,7 @@
             const dataString = `PRICE: ${md.currentPrice.toFixed(5)} | Trend: ${md.trend} | RSI 1H: ${md.rsi1H.toFixed(1)} | RSI 15m: ${md.rsi15m.toFixed(1)} | RSI 5m: ${md.rsi5m.toFixed(1)} | EMA20: ${md.ema20.toFixed(5)} | EMA50: ${md.ema50.toFixed(5)} | ATR: ${md.atr.toFixed(5)} | Support: ${md.support.toFixed(5)} | Resistance: ${md.resistance.toFixed(5)} | Session: ${md.session}\n\n5m:\n${fmt(md.candles5m)}\n\n15m:\n${fmt(md.candles15m)}\n\n1H:\n${fmt(md.candles1H)}\n\n4H:\n${fmt(md.candles4H)}`;
             const signalPrompt = `You are Alex — Boss's trusted trading partner. TIME: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.\n\n${dataString}\n\nAnalyze candles, structure, and risk levels.\nRespond ONLY valid JSON: {"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences of natural market analysis in simple layman words, explaining what the price is doing without making yourself sound weak","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
             try {
-                const reply = await callAI(signalPrompt, "Give me the signal.", [], null);
+                const reply = await callAI(signalPrompt, "Give me the signal.", []);
                 const jsonMatch = reply.match(/\{[\s\S]*?"signal"[\s\S]*?\}/);
                 if (!jsonMatch) throw new Error("No JSON signal returned");
                 const sig = JSON.parse(jsonMatch[0]);
@@ -2063,6 +1989,7 @@
                 u.volume = 1.0;
                 u.onend = () => { index++; setTimeout(speakNext, 350 + Math.random() * 200); };
                 u.onerror = (e) => { 
+                    console.error("Speech error:", e); 
                     isSpeaking = false; 
                     checkVoiceChatRestart();
                 };
@@ -2103,6 +2030,7 @@
                     };
                     return;
                 } catch (e) {
+                    console.error("ElevenLabs error:", e);
                     if (statusEl) statusEl.innerHTML = `<span style='color:var(--red);'>ElevenLabs Error: ${e.message}. Using Browser Voice.</span>`;
                 }
             }
@@ -2119,6 +2047,7 @@
         }
         function stopVoice() { if (currentAudio) { currentAudio.pause(); currentAudio = null; } if ('speechSynthesis' in window) { window.speechSynthesis.cancel(); } isSpeaking = false; }
 
+        // === CONTINUOUS VOICE ASSISTANT CHAT MODE (FEATURE 5) ===
         let voiceAssistantActive = false;
         let continuousRecognition = null;
 
@@ -2171,6 +2100,7 @@
             };
 
             continuousRecognition.onerror = (event) => {
+                console.warn("Continuous voice error:", event.error);
                 if (voiceAssistantActive && !isSpeaking && !chatInProgress) {
                     setTimeout(() => startContinuousListening(), 1000);
                 }
@@ -2184,7 +2114,9 @@
 
             try {
                 continuousRecognition.start();
-            } catch(e) {}
+            } catch(e) {
+                console.warn("Continuous voice start error:", e);
+            }
         }
 
         function checkVoiceChatRestart() {
@@ -2290,66 +2222,158 @@
             
             if (!dailyRoutineState.greeted) {
                 const greeting = istHour < 12 ? "Good morning" : (istHour < 17 ? "Good afternoon" : "Good evening");
-                routineDirectives.push(`[DIRECIVE 1: GREETING] This is the FIRST message of the day. Start your reply with a natural greeting like "${greeting}, Boss!" (vary exact wording).`);
+                routineDirectives.push(`[DIRECIVE 1: GREETING] This is the FIRST message of the day. Start your reply with a natural greeting like "${greeting}, Boss!" (vary the exact wording so it never sounds robotic). Mark as greeted.`);
                 dailyRoutineState.greeted = true;
             }
 
             if (timeInMinutes >= 570 && !dailyRoutineState.bpAsked) {
-                routineDirectives.push(`[DIRECTIVE 2: BP TABLET] Ask naturally if Boss has taken his BP tablets today.`);
+                routineDirectives.push(`[DIRECTIVE 2: BP TABLET] Ask naturally if Boss has taken his BP tablets today (ask only once in your own words, caring and friendly).`);
                 dailyRoutineState.bpAsked = true;
                 dailyRoutineState.bpAskTime = Date.now();
+            } else if (timeInMinutes > 630 && !dailyRoutineState.bpAsked) {
+                routineDirectives.push(`[DIRECTIVE 2-CATCHUP: BP TABLET] The allotted morning time for checking on BP tablets has passed and you missed asking. On this very next message, naturally check if Boss has taken his BP tablets.`);
+                dailyRoutineState.bpAsked = true;
+            } else if (dailyRoutineState.bpAsked && !dailyRoutineState.bpReminderSent && dailyRoutineState.bpAskTime && (Date.now() - dailyRoutineState.bpAskTime >= 3600000)) {
+                routineDirectives.push(`[DIRECTIVE 2B: BP REMINDER] It's been 1 hour since Boss was asked about BP tablets and hasn't replied. Gently remind him once about taking his BP tablets in a friendly way.`);
+                dailyRoutineState.bpReminderSent = true;
             }
 
             if (istHour >= 20 && !dailyRoutineState.dinnerAsked) {
-                routineDirectives.push(`[DIRECTIVE 3: DINNER & BP] Naturally check if Boss has had his dinner and taken his BP tablets.`);
+                routineDirectives.push(`[DIRECTIVE 3: DINNER & BP] It's past 8 PM. In this message, naturally check if Boss has had his dinner and taken his BP tablets. Ask only once.`);
                 dailyRoutineState.dinnerAsked = true;
             }
 
             if (!isWeekend) {
                 if (timeInMinutes >= 480 && timeInMinutes <= 525 && !dailyRoutineState.schoolBusAsked) {
-                    routineDirectives.push(`[DIRECTIVE 4A: SCHOOL BUS] Naturally ask if Boss dropped the kids off at the school bus.`);
+                    routineDirectives.push(`[DIRECTIVE 4A: SCHOOL BUS] It's morning school bus time (Mon-Fri). Naturally and warmly ask if Boss dropped the kids off at the school bus. Change the wording so it doesn't sound like a template.`);
+                    dailyRoutineState.schoolBusAsked = true;
+                } else if (timeInMinutes > 525 && !dailyRoutineState.schoolBusAsked) {
+                    routineDirectives.push(`[DIRECTIVE 4A-CATCHUP: SCHOOL BUS] The morning school bus window has passed and you missed asking. On this very next message, naturally ask if the kids made it to the school bus safely.`);
                     dailyRoutineState.schoolBusAsked = true;
                 }
+
                 if (timeInMinutes >= 930 && timeInMinutes <= 955 && !dailyRoutineState.schoolPickAsked) {
-                    routineDirectives.push(`[DIRECTIVE 4B: SCHOOL PICKUP] Remind Boss naturally to go pick up the kids from school.`);
+                    routineDirectives.push(`[DIRECTIVE 4B: SCHOOL PICKUP] It's afternoon school pickup time (3:30 to 3:55 PM). Remind Boss naturally to go pick up the kids from school.`);
                     dailyRoutineState.schoolPickAsked = true;
+                } else if (timeInMinutes > 955 && !dailyRoutineState.schoolPickAsked) {
+                    routineDirectives.push(`[DIRECTIVE 4B-CATCHUP: SCHOOL PICKUP] The afternoon school pickup window has passed and you missed reminding Boss. On this very next message, naturally ask if he went or managed to pick up the kids from school.`);
+                    dailyRoutineState.schoolPickAsked = true;
+                }
+
+                if (timeInMinutes >= 855 && timeInMinutes <= 880 && !dailyRoutineState.schoolBackAsked) {
+                    routineDirectives.push(`[DIRECTIVE 4C: KIDS BACK] Check naturally if the kids are back safely from school.`);
+                    dailyRoutineState.schoolBackAsked = true;
+                } else if (timeInMinutes > 880 && !dailyRoutineState.schoolBackAsked) {
+                    routineDirectives.push(`[DIRECTIVE 4C-CATCHUP: KIDS BACK] The school return window has passed and you missed asking. On this very next message, naturally check if the kids are back safely from school.`);
+                    dailyRoutineState.schoolBackAsked = true;
                 }
             }
 
             if (timeInMinutes >= 630 && timeInMinutes <= 675 && !dailyRoutineState.sadiaCalledAsked) {
                 routineDirectives.push(`[DIRECTIVE 5: SADIA CALL] Ask naturally if Sadia has called from Dubai yet today.`);
                 dailyRoutineState.sadiaCalledAsked = true;
+            } else if (timeInMinutes > 675 && !dailyRoutineState.sadiaCalledAsked) {
+                routineDirectives.push(`[DIRECTIVE 5-CATCHUP: SADIA CALL] The time window for checking on Sadia's call has passed and you missed asking. On this very next message, naturally ask if Sadia has called from Dubai yet today.`);
+                dailyRoutineState.sadiaCalledAsked = true;
+            }
+
+            if (timeInMinutes >= 540 && timeInMinutes <= 1200 && dailyRoutineState.cookieCheckCount < 3) {
+                const nowTime = Date.now();
+                const canCheck = dailyRoutineState.cookieCheckCount === 0 || 
+                    (dailyRoutineState.cookieCheckCount === 1 && (nowTime - dailyRoutineState.lastCookieCheckTime >= 10800000)) ||
+                    (dailyRoutineState.cookieCheckCount === 2 && (nowTime - dailyRoutineState.lastCookieCheckTime >= 14400000));
+                if (canCheck) {
+                    routineDirectives.push(`[DIRECTIVE 6: COOKIE CHECK] Naturally check on Cookie (the cat) in a caring, friendly way (this is check #${dailyRoutineState.cookieCheckCount + 1} of 3 today). Change the wording.`);
+                    dailyRoutineState.cookieCheckCount++;
+                    dailyRoutineState.lastCookieCheckTime = nowTime;
+                }
             }
 
             localStorage.setItem('eurusd_daily_routine_state', JSON.stringify(dailyRoutineState));
 
-            let routinePromptBlock = routineDirectives.length > 0 ? `\n=== DAILY ROUTINE DIRECTIVES ===\n${routineDirectives.join('\n')}\n` : "";
-            let askedBlock = recentCheckinTopics && recentCheckinTopics.length > 0 ? `\n=== ALREADY ASKED ===\n${recentCheckinTopics.slice(-20).map(t => `- ${t}`).join('\n')}\n` : "";
-            let memoryBlock = longTermMemory.length > 0 ? `\nLONG-TERM MEMORY:\n${longTermMemory.slice(-80).map(m => `- ${m.fact} (${m.added})`).join('\n')}\n` : "";
-            let macroContextBlock = highImpactWarningActive ? `\nCRITICAL MACRO WARNING: High-impact economic news is currently within the -15m / +15m safety window! Warn Boss to stay cautious.\n` : "";
+            let routinePromptBlock = routineDirectives.length > 0 ? `\n=== CRITICAL DAILY ROUTINE DIRECTIVES FOR THIS REPLY ===\n${routineDirectives.join('\n')}\n(Weave these naturally into your conversational reply like a caring close friend. Do not list them or sound robotic.)\n` : "";
+
+            let askedBlock = "";
+            if (recentCheckinTopics && recentCheckinTopics.length > 0) {
+                askedBlock = `\n=== ALREADY ASKED (DO NOT ask about these again) ===\n${recentCheckinTopics.slice(-20).map(t => `- ${t}`).join('\n')}\n=== END ALREADY ASKED ===\n`;
+            }
+            
+            let memoryBlock = "";
+            if (longTermMemory.length > 0) {
+                let relevantMemories = [];
+                if (userText && userText.trim().length > 0) {
+                    const queryWords = userText.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 3);
+                    relevantMemories = longTermMemory.filter(m => {
+                        const factLower = m.fact.toLowerCase();
+                        return queryWords.some(w => factLower.includes(w) || (w.length >= 4 && factLower.includes(w.substring(0, 4))));
+                    });
+                }
+                if (relevantMemories.length > 0) {
+                    memoryBlock = `\nRELEVANT MEMORIES (Recall these naturally when relevant):\n${relevantMemories.map(m => `- ${m.fact} (${m.added})`).join('\n')}\n`;
+                } else {
+                    memoryBlock = `\nLONG-TERM MEMORY:\n${longTermMemory.slice(-80).map(m => `- ${m.fact} (${m.added})`).join('\n')}\n`;
+                }
+            }
+            
+            let macroContextBlock = "";
+            if (macroEvents && macroEvents.length > 0) {
+                const activeHighs = macroEvents.filter(e => e.isHighImpactWindow);
+                if (activeHighs.length > 0) {
+                    macroContextBlock = `\nCRITICAL MACRO WARNING: High-impact economic news (${activeHighs.map(e => e.title).join(', ')}) is currently within the -15m / +15m safety window! Warn Boss immediately to stay cautious or stand aside due to wide spreads.\n`;
+                }
+            }
+
             let marketBlock = marketData ? `\nLIVE MARKET DATA (EUR/USD):\nPrice: ${safeNum(marketData.currentPrice, 1.1200).toFixed(5)} | Trend: ${marketData.trend} | Support: ${safeNum(marketData.support, 1.1176).toFixed(5)} | Resistance: ${safeNum(marketData.resistance, 1.1246).toFixed(5)} | RSI 1H: ${safeNum(marketData.rsi1H, 50).toFixed(1)} | Session: ${marketData.session}\n${macroContextBlock}` : "";
-            let personalBlock = personalContext ? `\n=== BOSS'S PERSONAL CONTEXT ===\n${JSON.stringify(personalContext, null, 2)}\n` : "";
+
+            let personalBlock = "";
+            if (personalContext && typeof personalContext === 'object') {
+                personalBlock = `\n=== BOSS'S PERSONAL CONTEXT (You already know all of this — never say you don't know) ===\n${JSON.stringify(personalContext, null, 2)}\n=== END PERSONAL CONTEXT ===\n`;
+            }
 
             let prompt = `You are Alex—Boss's closest friend, side-by-side desk partner, and a hardcore professional EUR/USD day trader.
 
-=== TEMPORAL & RISK AWARENESS ===
+=== TEMPORAL & RISK AWARENESS (CRITICAL) ===
 - Current Day: ${dayName} (${isWeekend ? 'MARKET CLOSED' : 'Active Trading Day'})
 - Current Active Session: ${sessionName}
-- Current IST Time: ${istTime}
+- When Boss asks about a trade or a signal, you MUST factor in the current day, active session, and time left in the day/week.
+- Always provide available trade options (e.g., waiting for pullback, breakout, or standing aside), explicitly assess the session/timing risk (e.g., wide spreads, low liquidity, weekend gap risk), and tell Boss what YOU personally would do in this exact situation as a human trader sitting right beside him.
 
 ${routinePromptBlock}
 
-=== REPLY STYLE ===
-- Talk like you're sitting next to Boss. Normal flowing sentences, no bullet-point lists or robotic phrasing.
-- Default length: 2–4 natural sentences. 
-- Use "support" and "resistance", never "floor" or "ceiling". Always spell out "take profit" and "stop loss".
-- If Boss says "go for it" or confirms a trade entry based on your signal, confirm the trade is logged into the live journal!
-- The JSON block at the very end of a market reply is stripped by the app. Never narrate it.
+=== REPLY STYLE (STRICT — READ THIS FIRST) ===
+- Talk like you're actually sitting next to Boss, having a real conversation. Normal flowing sentences, not bullet-point lists or scripted formats.
+- NEVER ramble, NEVER repeat the question, NEVER pad with disclaimers, preambles, or "as an AI".
+- Default reply length: 2–4 natural sentences woven into a flowing reply. Only go longer when Boss explicitly asks for "full breakdown" or "detailed analysis".
+- Use these exact terms: "support" and "resistance" — never "floor" or "ceiling". Always spell out "take profit" and "stop loss" in full — never abbreviate to "TP" or "SL".
+- When sharing a trade setup or options, weave the numbers into natural speech — flowing like a real conversation, NOT as a rigid template.
+- Your analysis depth stays FULL — every key level, risk, and opportunity must still be delivered. Just spoken naturally, not in list format.
+- NEVER sound weak, hesitant, or unsure. Confidence and expertise stay at 100%.
+- Do NOT overuse "Boss" — once per reply is plenty, sometimes zero is fine.
+- If Boss says something like "go for it", "let's take it", "execute", or confirms a trade entry based on your last signal, acknowledge it enthusiastically and confirm that the trade is logged into the live journal!
+- ONLY for trading/market answers: if Boss might want more, you may end with ONE short line like "Want the full breakdown?" — nothing more. Skip it entirely if the reply already felt complete. NEVER use this offer line for personal, casual, family, or chit-chat replies.
+- The JSON block at the very end of a market reply is stripped by the app before Boss sees it. Never narrate it, never say "signal colon" or "open bracket" — just write the JSON silently on its own final line.
 
-${askedBlock}${memoryBlock}${personalBlock}${marketBlock}`;
+=== PERSONALITY & TONE GUIDELINES ===
+- Talk like a real friend on a trading desk. Use simple, everyday words. Short sentences. Contractions ("don't", "you're", "let's"). Neither robotic nor overly formal. Warm, direct, genuinely helpful.
+
+=== TRADING TIPS & LAYMAN EXPLANATIONS (VERY IMPORTANT) ===
+- When Boss asks for trading tips, advice, or market breakdowns, respond in **simple, everyday layman's words**.
+- Keep full trading ability and confidence — explain using clear, plain analogies and straightforward language.
+- Never dump complex jargon without translating it instantly into everyday concepts.
+
+=== PERSONAL QUESTION DISCIPLINE (STRICT) ===
+- When Boss asks about a trade: answer the trade FIRST and fully. Then, weave in any personal check-ins naturally without sounding scripted.
+- Time awareness (STRICT): Current IST time is ${istTime}.
+
+=== RULES ===
+- If Boss says "Remember", "Save this", or tells you an important fact, append this tag at the very end of your reply: [REMEMBER: Exact fact to save].
+- If Boss asks for a reminder, append: [REMINDER: Day HH:MM - message] or [REMINDER: HH:MM - message].
+- Today is ${dayName}, ${istTime} IST.
+${askedBlock}
+${memoryBlock}${personalBlock}${marketBlock}`;
             
             if (includeSignal) { 
-                prompt += `\nCRITICAL: Append a new line with ONLY this JSON block: {"signal":"BUY"|"SELL"|"HOLD","reason":"2-4 sentences of market analysis","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`; 
+                prompt += `\nCRITICAL: After your natural conversational response, append a new line with ONLY this JSON block: {"signal":"BUY"|"SELL"|"HOLD","reason":"2-4 sentences of seasoned market analysis in simple layman terms","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`; 
             }
             return prompt;
         }
@@ -2361,9 +2385,15 @@ ${askedBlock}${memoryBlock}${personalBlock}${marketBlock}`;
                 { kw: 'dinner', topic: 'dinner question' },
                 { kw: 'bp tablet', topic: 'BP tablet reminder' },
                 { kw: 'blood pressure', topic: 'BP reminder' },
+                { kw: 'tablet', topic: 'tablet reminder' },
+                { kw: 'cook', topic: 'cook for the girls' },
+                { kw: 'girls get home', topic: 'girls coming home' },
                 { kw: 'sadia', topic: 'wife Sadia' },
+                { kw: 'emy', topic: 'daughter Emy' },
+                { kw: 'bismah', topic: 'daughter Bismah' },
                 { kw: 'cookie', topic: 'cat Cookie' },
-                { kw: 'school bus', topic: 'school bus checkin' }
+                { kw: 'school bus', topic: 'school bus checkin' },
+                { kw: 'school', topic: 'school checkin' }
             ];
             const lower = (aiResponse || '').toLowerCase();
             let changed = false;
@@ -2380,13 +2410,10 @@ ${askedBlock}${memoryBlock}${personalBlock}${marketBlock}`;
         async function sendChat() {
             const input = document.getElementById('chat-input');
             const text = input.value.trim();
-            if (!text && !attachedImageBase64) return;
+            if (!text) return;
             if (!groqKey && !apiKey) { alert("Set your Groq or Gemini API Key first."); togglePanel('panel-key'); return; }
-            chatInProgress = true; 
-            
-            const userMsgText = text + (attachedImageBase64 ? " [Chart Attached]" : "");
-            input.value = '';
-            chatHistory.push({role:'user', text: userMsgText}); renderChat(); saveChatHistory();
+            chatInProgress = true; input.value = '';
+            chatHistory.push({role:'user', text}); renderChat(); saveChatHistory();
             
             const lowerText = text.toLowerCase();
             if (globalData && (lowerText.includes('go for it') || lowerText.includes('take it') || lowerText.includes('execute') || lowerText.includes('enter') || lowerText.includes('let\'s go'))) {
@@ -2407,19 +2434,14 @@ ${askedBlock}${memoryBlock}${personalBlock}${marketBlock}`;
 
             const loading = document.createElement('div'); loading.className = 'msg ai thinking fade-in'; loading.innerText = '...';
             document.getElementById('chat-history').appendChild(loading); document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight;
-            
-            // Capture current image before clearing
-            const currentImage = attachedImageBase64;
-            clearAttachedImage();
-
             try {
                 let response;
                 if (webSearchEnabled) {
                     const searchResults = await searchWeb(text);
                     const searchPrompt = `Web search results:\n${searchResults}\n\nUser Question: ${text}\n\nAnswer concisely like a human desk partner.`;
-                    response = await callAI(buildPersonalityPrompt(false, text), searchPrompt, chatHistory.slice(-4), currentImage);
+                    response = await callAI(buildPersonalityPrompt(false, text), searchPrompt, chatHistory.slice(-4));
                 } else {
-                    response = await callAI(buildPersonalityPrompt(isMarketQuestion(text), text), text, chatHistory.slice(-6), currentImage);
+                    response = await callAI(buildPersonalityPrompt(isMarketQuestion(text), text), text, chatHistory.slice(-6));
                 }
                 
                 response = cleanResponse(response);
@@ -2456,6 +2478,10 @@ ${askedBlock}${memoryBlock}${personalBlock}${marketBlock}`;
                     addLongTermMemory(mm[1]); 
                     response = response.replace(/\[REMEMBER:.*?\]/g, '').trim(); 
                 } 
+                else if (text.toLowerCase().includes('remember') || text.toLowerCase().includes('don\'t forget') || text.toLowerCase().includes('save this')) {
+                    addLongTermMemory(text);
+                    response += " (Got it locked in my memory, Boss.)";
+                }
 
                 trackPersonalTopics(response);
 
@@ -2479,10 +2505,22 @@ ${askedBlock}${memoryBlock}${personalBlock}${marketBlock}`;
             if (!groqKey && !apiKey) return;
             const now = new Date();
             const istHour = parseInt(now.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', hour12: false }), 10);
-            let mealContext = istHour < 10 ? "It's MORNING." : (istHour < 15 ? "It's LUNCH time." : "It's DINNER time.");
-            const prompt = `You are Alex, elite EUR/USD day trader and best friend. Check in on Boss casually in simple human words. Keep it to 1-2 short sentences.\nTime: ${mealContext}`;
+            let mealContext = "";
+            if (istHour < 10) mealContext = "It's MORNING in IST.";
+            else if (istHour < 12) mealContext = "It's LATE MORNING in IST.";
+            else if (istHour < 15) mealContext = "It's LUNCH time in IST.";
+            else if (istHour < 18) mealContext = "It's AFTERNOON in IST.";
+            else if (istHour < 22) mealContext = "It's DINNER time in IST.";
+            else mealContext = "It's NIGHT in IST.";
+            let askedBlock = "";
+            if (recentCheckinTopics && recentCheckinTopics.length > 0) {
+                askedBlock = `\nDO NOT ask about any of these again: ${recentCheckinTopics.slice(-15).join(', ')}`;
+            }
+            const prompt = `You are Alex, elite EUR/USD day trader and best friend. Check in on Boss casually in simple human words. Keep it to 1-2 short sentences.
+STRICT: Ask AT MOST ONE casual question.
+Time awareness (STRICT): ${mealContext}${askedBlock}`;
             try {
-                let response = await callAI(prompt, "Check in on Boss.", [], null);
+                let response = await callAI(prompt, "Check in on Boss.", []);
                 response = cleanResponse(response);
                 trackPersonalTopics(response);
                 chatHistory.push({role:'ai', text: response});
@@ -2553,12 +2591,21 @@ ${askedBlock}${memoryBlock}${personalBlock}${marketBlock}`;
             renderReminders();
         }
 
+        function addScheduledSearch(minutes, query) {
+            const triggerTime = Date.now() + (minutes * 60000);
+            scheduledSearches.push({ id: Math.random().toString(36).substr(2,9), triggerTime, query, fired: false });
+            localStorage.setItem('eurusd_scheduled_searches', JSON.stringify(scheduledSearches));
+            renderReminders();
+        }
+
         function renderReminders() { 
             const l = document.getElementById('reminders-list'); 
             const activeReminders = reminders.filter(r => !r.fired); 
-            if (activeReminders.length === 0) { l.innerHTML = 'No active reminders.'; return; } 
+            const activeSearches = scheduledSearches.filter(s => !s.fired);
+            if (activeReminders.length === 0 && activeSearches.length === 0) { l.innerHTML = 'No active reminders.'; return; } 
             let html = '';
             activeReminders.forEach(r => { html += `<div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span>⏰ ${r.time} · ${r.message}</span><button class="btn danger" onclick="deleteReminder('${r.id}')">X</button></div>`; });
+            activeSearches.forEach(s => { html += `<div style="display:flex; justify-content:space-between; margin-bottom:6px;"><span>🔍 ${s.query}</span></div>`; });
             l.innerHTML = html;
         }
 
@@ -2584,7 +2631,7 @@ ${askedBlock}${memoryBlock}${personalBlock}${marketBlock}`;
                 if (r.dueAt && now >= r.dueAt) {
                     r.fired = true;
                     updated = true;
-                    try { triggerNotif("Reminder", r.message); } catch(e) {}
+                    try { triggerNotif("Reminder", r.message); } catch(e) { console.error('Reminder fire error:', e); }
                 }
             });
             if (updated) {
@@ -2594,6 +2641,33 @@ ${askedBlock}${memoryBlock}${personalBlock}${marketBlock}`;
         }
         setInterval(checkReminders, 10000);
 
+        (function initReminderWakeups() {
+            try {
+                const workerCode = "setInterval(function(){postMessage(Date.now())},1000);";
+                const blob = new Blob([workerCode], { type: 'application/javascript' });
+                const worker = new Worker(URL.createObjectURL(blob));
+                worker.onmessage = () => { try { checkReminders(); } catch(e) {} };
+            } catch(e) { console.warn('Reminder worker unavailable:', e); }
+            document.addEventListener('visibilitychange', () => { if (!document.hidden) { try { checkReminders(); } catch(e) {} } });
+            window.addEventListener('focus', () => { try { checkReminders(); } catch(e) {} });
+            window.addEventListener('pageshow', () => { try { checkReminders(); } catch(e) {} });
+            window.addEventListener('online', () => { try { checkReminders(); } catch(e) {} });
+        })();
+
+        async function checkScheduledSearches() {
+            const now = Date.now();
+            for (let task of scheduledSearches) {
+                if (!task.fired && now >= task.triggerTime) {
+                    task.fired = true;
+                    const results = await searchWeb(task.query);
+                    chatHistory.push({role:'ai', text: `Update on "${task.query}":\n${results}`});
+                    renderChat(); saveChatHistory();
+                }
+            }
+        }
+        setInterval(checkScheduledSearches, 10000);
+
+        function checkMissedReminders() {}
         function addLongTermMemory(fact) { longTermMemory.push({fact, added: new Date().toISOString().split('T')[0]}); localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); }
         function renderMemory() { const l = document.getElementById('memory-list'); l.innerHTML = longTermMemory.length === 0 ? 'No facts saved.' : longTermMemory.map(m => `<div>• ${m.fact} <span style="color:var(--text-subtle);">(${m.added})</span></div>`).join(''); }
         function clearLongTermMemory() { if (confirm("Clear memory?")) { longTermMemory = []; localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); renderMemory(); } }
@@ -2629,7 +2703,10 @@ ${askedBlock}${memoryBlock}${personalBlock}${marketBlock}`;
         }
 
         function flyToLiveLocation() {
-            if (!navigator.geolocation) return;
+            if (!navigator.geolocation) {
+                console.warn("Geolocation not supported");
+                return;
+            }
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
                     const lat = pos.coords.latitude;
@@ -2639,12 +2716,24 @@ ${askedBlock}${memoryBlock}${personalBlock}${marketBlock}`;
                     map.flyTo([lat, lng], 17, { duration: 3 });
                     if (userMarker) { try { map.removeLayer(userMarker); } catch(e) {} }
                     userMarker = L.circleMarker([lat, lng], {
-                        radius: 10, color: '#a78bfa', fillColor: '#8b5cf6', fillOpacity: 0.9, weight: 3
+                        radius: 10,
+                        color: '#a78bfa',
+                        fillColor: '#8b5cf6',
+                        fillOpacity: 0.9,
+                        weight: 3
                     }).addTo(map);
-                    userMarker.bindPopup(`<div style="font-family:Inter,sans-serif;font-size:13px;color:#000;"><strong>You are here, Boss</strong><br>${lat.toFixed(6)}, ${lng.toFixed(6)}</div>`).openPopup();
+                    userMarker.bindPopup(
+                        `<div style="font-family:Inter,sans-serif;font-size:13px;color:#000;">
+                            <strong>You are here, Boss</strong><br>
+                            ${lat.toFixed(6)}, ${lng.toFixed(6)}<br>
+                            <span style="color:#666;">Accuracy ±${acc} m</span>
+                        </div>`
+                    ).openPopup();
                     setTimeout(() => { showStreetView(lat, lng); }, 3400);
                 },
-                (err) => {},
+                (err) => {
+                    console.warn("Geolocation error:", err);
+                },
                 { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
             );
         }
@@ -2658,6 +2747,20 @@ ${askedBlock}${memoryBlock}${personalBlock}${marketBlock}`;
         function closeStreetView() { document.getElementById('street-view-container').style.display = 'none'; }
         function flyToDubai() { map.flyTo([25.2854, 55.3742], 17, { duration: 3 }); }
 
+        let mapLastTapTime = 0;
+        const mapOverlay = document.getElementById('map-overlay');
+        mapOverlay.addEventListener('pointerdown', (e) => {
+            resetIdleTimer();
+            const now = Date.now();
+            if (now - mapLastTapTime < 400) {
+                exitMap();
+                setTimeout(() => { triggerSpaceCollapse(); }, 1600);
+                mapLastTapTime = 0;
+            } else {
+                mapLastTapTime = now;
+            }
+        });
+
         window.onload = () => {
             fetch('https://raw.githubusercontent.com/anoopbasheer42-droid/eurusd-ai-dashboard/main/personal_context.json').then(r => r.json()).then(d => { personalContext = d; loadWisdom(); }).catch(() => { loadWisdom(); });
             renderChat(); renderReminders(); renderMemory(); renderAlertLog(); updateTradeJournalUI();
@@ -2668,7 +2771,7 @@ ${askedBlock}${memoryBlock}${personalBlock}${marketBlock}`;
             refreshMarketData();
             refreshMacroNews();
             setInterval(() => { if (chatInProgress) return; refreshMarketData(); }, 60000);
-            setInterval(() => { if (chatInProgress) return; refreshMacroNews(); }, 300000);
+            setInterval(() => { if (chatInProgress) return; refreshMacroNews(); }, 300000); // Check macro news every 5 mins
             setInterval(() => { if (chatInProgress) return; askAIForSignal(); }, 3600000);
             setInterval(() => { if (chatInProgress) return; triggerProactiveCheckin(); }, 7200000);
         };
