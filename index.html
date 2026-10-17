@@ -113,9 +113,9 @@
         .msg.user { background: linear-gradient(135deg, #4f46e5, #3b82f6); color: white; align-self: flex-end; border-bottom-right-radius: 4px; box-shadow: 0 4px 20px rgba(59,130,246,0.3); }
         .msg.ai { background: rgba(139, 92, 246, 0.08); align-self: flex-start; border-left: 3px solid var(--purple); color: var(--text-body); border-top-left-radius: 4px; box-shadow: 0 4px 20px rgba(139, 92, 246, 0.1); }
         .chat-input-row { display: flex; gap: 8px; align-items: center; }
-        .chat-input-row input { flex: 1; background: rgba(0,0,0,0.7); border: 1px solid rgba(139, 92, 246, 0.2); color: var(--text-main); padding: 10px 14px; border-radius: 12px; outline: none; font-family: 'Inter', sans-serif; font-size: 0.85rem; transition: all 0.2s ease; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); }
-        .chat-input-row input:focus { border-color: rgba(139,92,246,0.6); background: rgba(0,0,0,0.9); box-shadow: 0 0 20px rgba(139, 92, 246, 0.2), inset 0 2px 10px rgba(0,0,0,0.5); }
-        .chat-input-row input::placeholder { color: var(--text-subtle); }
+        .chat-input-row input[type="text"] { flex: 1; background: rgba(0,0,0,0.7); border: 1px solid rgba(139, 92, 246, 0.2); color: var(--text-main); padding: 10px 14px; height: 42px; border-radius: 12px; outline: none; font-family: 'Inter', sans-serif; font-size: 0.85rem; transition: all 0.2s ease; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); }
+        .chat-input-row input[type="text"]:focus { border-color: rgba(139,92,246,0.6); background: rgba(0,0,0,0.9); box-shadow: 0 0 20px rgba(139, 92, 246, 0.2), inset 0 2px 10px rgba(0,0,0,0.5); }
+        .chat-input-row input[type="text"]::placeholder { color: var(--text-subtle); }
         .chat-input-row button { font-family: 'Space Grotesk', sans-serif; background: linear-gradient(135deg, #10b981, #059669); border: none; color: white; padding: 0 18px; height: 42px; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 0.85rem; box-shadow: 0 4px 20px rgba(16,185,129,0.3); transition: all 0.2s ease; }
         .chat-input-row button:hover { box-shadow: 0 6px 30px rgba(16,185,129,0.5); transform: translateY(-1px); }
         .attach-btn { background: rgba(139, 92, 246, 0.15) !important; border: 1px solid rgba(139, 92, 246, 0.4) !important; padding: 0 12px !important; font-size: 1.1rem !important; box-shadow: none !important; }
@@ -160,7 +160,7 @@
         <div class="card">
             <div class="card-title">Neural Core</div>
             <div id="canvas-container"></div>
-            <div class="subtitle">Cosmic Explorer · Pinch to Zoom</div>
+            <div class="subtitle">Cosmic Explorer · Double Tap to Launch Space</div>
         </div>
         <div class="card signal-card">
             <div class="card-title">Current Signal</div>
@@ -351,7 +351,6 @@
         let currentAudio = null;
         let dailyRoutineState = JSON.parse(localStorage.getItem('eurusd_daily_routine_state') || '{}');
 
-        // Attachment state
         let attachedImageBase64 = null;
 
         function handleFileSelected(event) {
@@ -377,31 +376,20 @@
         function updateISTClock() {
             const istTime = new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false });
             const el = document.getElementById('ist-clock');
-            if (el) el.innerText = `IST ${istTime}`; } setInterval(updateISTClock, 1000);  function loadWisdom() { const el = document.getElementById('wise-words'); if (!el) return; let pool = []; if (personalContext && Array.isArray(personalContext.quotes) && personalContext.quotes.length > 0) { pool = personalContext.quotes.map(q => `"${q}"`);
+            if (el) el.innerText = `IST ${istTime}`;
+        }
+        setInterval(updateISTClock, 1000);
+
+        function loadWisdom() {
+            const el = document.getElementById('wise-words');
+            if (!el) return;
+            let pool = [];
+            if (personalContext && Array.isArray(personalContext.quotes) && personalContext.quotes.length > 0) {
+                pool = personalContext.quotes.map(q => `"${q}"`);
             } else {
-                pool = [...LOCAL_QUOTES.map(q => `"${q}"`), ...LOCAL_JOKES.map(j => j)]; } el.innerText = pool[Math.floor(Math.random() * pool.length)]; }  async function searchWeb(query) { try { const currencyMatch = query.match(/([A-Z]{3})\s*(?:to\vert{}in\vert{}for\vert{}of)\s*([A-Z]{3})/i); if (currencyMatch) { const from = currencyMatch[1].toUpperCase(); const to = currencyMatch[2].toUpperCase(); const res = await fetch(`https://open.er-api.com/v6/latest/${from}`, { signal: AbortSignal.timeout(10000) });
-                    if (res.ok) {
-                        const data = await res.json();
-                        if (data.rates && data.rates[to]) {
-                            return `The current exchange rate is 1 ${from} = ${data.rates[to].toFixed(4)}${to}. Last updated: ${new Date(data.time_last_update_unix * 1000).toLocaleString()}.`;
-                        }
-                    }
-                }
-                const ddgUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1`; const res = await fetch(ddgUrl, { signal: AbortSignal.timeout(10000) }); if (res.ok) { const data = await res.json(); let resultText = ""; if (data.Answer) resultText += `Answer: ${data.Answer}\n`;
-                    if (data.AbstractText) resultText += `Summary: ${data.AbstractText}\n`; if (data.Definition) resultText += `Definition: ${data.Definition}\n`;
-                    if (data.RelatedTopics && data.RelatedTopics.length > 0) {
-                        resultText += "Related info:\n";
-                        data.RelatedTopics.slice(0, 2).forEach(t => {
-                            if (t.Text) resultText += `- ${t.Text}\n`; }); } if (resultText) return resultText.trim(); } const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
-                const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(searchUrl)}`; const scrapeRes = await fetch(proxyUrl, { signal: AbortSignal.timeout(15000) }); if (scrapeRes.ok) { const html = await scrapeRes.text(); const snippetRegex = /<a class="result__snippet"[^>]*>(.*?)<\/a>/g; const titleRegex = /<a class="result__a"[^>]*>(.*?)<\/a>/g; let match; let snippets = []; let titles = []; while ((match = snippetRegex.exec(html)) !== null) snippets.push(match[1].replace(/<[^>]*>?/gm, '').trim()); while ((match = titleRegex.exec(html)) !== null) titles.push(match[1].replace(/<[^>]*>?/gm, '').trim()); if (snippets.length > 0) { let formatted = "Here are the latest web search results:\n\n"; for (let i = 0; i < Math.min(snippets.length, 3); i++) { formatted += `${i+1}. ${titles[i] \vert{}\vert{} 'Result'}\n${snippets[i]}\n\n`;
-                        }
-                        return formatted.trim();
-                    }
-                }
-                return "Couldn't find anything solid on that right now, Boss. Try another angle.";
-            } catch (e) {
-                return "My web lookup timed out, Boss. Connection hiccup.";
+                pool = [...LOCAL_QUOTES.map(q => `"${q}"`), ...LOCAL_JOKES.map(j => j)];
             }
+            el.innerText = pool[Math.floor(Math.random() * pool.length)];
         }
 
         async function refreshMacroNews() {
@@ -446,18 +434,8 @@
                 highImpactWarningActive = macroEvents.some(e => e.isHighImpactWindow);
                 renderMacroNewsUI();
             } catch (e) {
-                const now = Date.now();
-                const currentDateObj = new Date(now);
-                const dayOfWeek = currentDateObj.getUTCDay();
-
-                if (dayOfWeek === 0 || dayOfWeek === 6) {
-                    macroEvents = [];
-                } else {
-                    macroEvents = [
-                        { title: 'ECB President Lagarde Speech', country: 'EUR', time: '14:30', timestamp: now + 3600000, diffMins: 60, isHighImpactWindow: false }
-                    ];
-                }
-                highImpactWarningActive = macroEvents.some(e => e.isHighImpactWindow);
+                macroEvents = [];
+                highImpactWarningActive = false;
                 renderMacroNewsUI();
             }
         }
@@ -474,9 +452,8 @@
                     ? 'background:rgba(239,68,68,0.2); border:1px solid rgba(239,68,68,0.5); color:#fca5a5; padding:2px 8px; border-radius:6px;' 
                     : 'background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.3); color:#93c5fd; padding:2px 8px; border-radius:6px;';
                 let statusText = '';
-                if (e.diffMins >= -15 && e.diffMins < 0) statusText = ` ⚠️ (Happening now! +${Math.abs(Math.round(e.diffMins))}m since release)`;
-                else if (e.diffMins >= 0 && e.diffMins <= 15) statusText = ` 🚨 (Dropping in ${Math.round(e.diffMins)}m - High Volatility!)`;
-                else if (e.diffMins > 15) statusText = ` (In ${Math.round(e.diffMins)} mins)`;
+                if (e.diffMins >= -15 && e.diffMins < 0) statusText = ` ⚠️ (Happening now!)`;
+                else if (e.diffMins >= 0 && e.diffMins <= 15) statusText = ` 🚨 (Dropping in ${Math.round(e.diffMins)}m)`;
 
                 return `
                     <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.4); padding:10px 12px; border-radius:10px; margin-bottom:8px; border:1px solid rgba(139,92,246,0.1);">
@@ -490,82 +467,7 @@
             }).join('');
         }
 
-        let audioCtx = null;
-        let chargeOsc1 = null, chargeOsc2 = null, chargeGain = null, chargeTickGain = null, chargeTickOsc = null;
-        function initAudio() {
-            if (!audioCtx) {
-                try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
-                catch(e) { return null; }
-            }
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            return audioCtx;
-        }
-        function startChargeSound() {
-            const ctx = initAudio();
-            if (!ctx) return;
-            stopChargeSound();
-            chargeOsc1 = ctx.createOscillator(); chargeOsc1.type = 'sawtooth'; chargeOsc1.frequency.value = 60;
-            chargeOsc2 = ctx.createOscillator(); chargeOsc2.type = 'sine'; chargeOsc2.frequency.value = 120;
-            chargeGain = ctx.createGain(); chargeGain.gain.value = 0.001;
-            const filter = ctx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 800;
-            chargeOsc1.connect(filter); chargeOsc2.connect(filter); filter.connect(chargeGain); chargeGain.connect(ctx.destination);
-            chargeTickOsc = ctx.createOscillator(); chargeTickOsc.type = 'square'; chargeTickOsc.frequency.value = 4;
-            chargeTickGain = ctx.createGain(); chargeTickGain.gain.value = 0;
-            chargeTickOsc.connect(chargeTickGain); chargeTickGain.connect(chargeGain.gain);
-            const now = ctx.currentTime;
-            chargeOsc1.start(now); chargeOsc2.start(now); chargeTickOsc.start(now);
-        }
-        function updateChargeSound(level) {
-            if (!audioCtx || !chargeOsc1 || !chargeGain) return;
-            const ctx = audioCtx; const now = ctx.currentTime;
-            const volume = 0.02 + level * 0.25;
-            chargeGain.gain.linearRampToValueAtTime(volume, now + 0.05);
-            chargeOsc1.frequency.linearRampToValueAtTime(60 + level * 160, now + 0.05);
-            chargeOsc2.frequency.linearRampToValueAtTime(120 + level * 320, now + 0.05);
-            if (chargeTickOsc && chargeTickGain) {
-                chargeTickOsc.frequency.linearRampToValueAtTime(4 + level * 30, now + 0.05);
-                chargeTickGain.gain.linearRampToValueAtTime(level > 0.3 ? level * 0.15 : 0, now + 0.05);
-            }
-        }
-        function stopChargeSound() {
-            try {
-                if (chargeOsc1) { chargeOsc1.stop(); chargeOsc1.disconnect(); }
-                if (chargeOsc2) { chargeOsc2.stop(); chargeOsc2.disconnect(); }
-                if (chargeTickOsc) { chargeTickOsc.stop(); chargeTickOsc.disconnect(); }
-                if (chargeTickGain) chargeTickGain.disconnect();
-                if (chargeGain) chargeGain.disconnect();
-            } catch(e) {}
-            chargeOsc1 = chargeOsc2 = chargeTickOsc = chargeGain = chargeTickGain = null;
-        }
-        function fadeOutChargeSound(durationSec = 0.5) {
-            if (!audioCtx || !chargeGain) { stopChargeSound(); return; }
-            try {
-                const now = audioCtx.currentTime;
-                const gain = chargeGain.gain;
-                const currentVal = gain.value;
-                gain.cancelScheduledValues(now);
-                gain.setValueAtTime(currentVal, now);
-                gain.linearRampToValueAtTime(0.001, now + durationSec);
-                if (chargeTickGain) {
-                    const tg = chargeTickGain.gain;
-                    tg.cancelScheduledValues(now);
-                    tg.setValueAtTime(tg.value, now);
-                    tg.linearRampToValueAtTime(0.001, now + durationSec);
-                }
-                setTimeout(() => { stopChargeSound(); }, durationSec * 1000 + 60);
-            } catch(e) { stopChargeSound(); }
-        }
-        function playExplosionSound() {
-            const ctx = initAudio();
-            if (!ctx) return;
-            const now = ctx.currentTime;
-            const master = ctx.createGain(); master.gain.value = 0.9; master.connect(ctx.destination);
-            const bassOsc = ctx.createOscillator(); const bassGain = ctx.createGain();
-            bassOsc.type = 'sine'; bassOsc.frequency.setValueAtTime(220, now); bassOsc.frequency.exponentialRampToValueAtTime(28, now + 0.8);
-            bassGain.gain.setValueAtTime(0.95, now); bassGain.gain.exponentialRampToValueAtTime(0.001, now + 1.8);
-            bassOsc.connect(bassGain); bassGain.connect(master); bassOsc.start(now); bassOsc.stop(now + 2.0);
-        }
-
+        // --- FULL RESTORED THREE.JS COSMIC EXPLORER & PLANETS ---
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 8000);
@@ -573,227 +475,102 @@
         const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
         renderer.setSize(container.clientWidth, container.clientHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.1;
         container.appendChild(renderer.domElement);
         
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.18);
-        scene.add(ambientLight);
-
-        const glowSphere = new THREE.Mesh(new THREE.SphereGeometry(1.15, 48, 48), new THREE.MeshBasicMaterial({ color: 0x8b5cf6, transparent: true, opacity: 0.10 }));
-        const innerBright = new THREE.Mesh(new THREE.SphereGeometry(0.55, 32, 32), new THREE.MeshBasicMaterial({ color: 0xa78bfa, transparent: true, opacity: 0.35 }));
-        const innerCore = new THREE.Mesh(new THREE.IcosahedronGeometry(1.0, 1), new THREE.MeshBasicMaterial({ color: 0xa78bfa, wireframe: true, transparent: true, opacity: 0.75 }));
-        const midShell = new THREE.Mesh(new THREE.IcosahedronGeometry(1.6, 1), new THREE.MeshBasicMaterial({ color: 0x8b5cf6, wireframe: true, transparent: true, opacity: 0.4 }));
-        const outerShell = new THREE.Mesh(new THREE.IcosahedronGeometry(2.2, 1), new THREE.MeshBasicMaterial({ color: 0x7c3aed, wireframe: true, transparent: true, opacity: 0.2 }));
+        scene.add(new THREE.AmbientLight(0xffffff, 0.2));
+        const glowSphere = new THREE.Mesh(new THREE.SphereGeometry(1.15, 32, 32), new THREE.MeshBasicMaterial({ color: 0x8b5cf6, transparent: true, opacity: 0.15 }));
+        const innerBright = new THREE.Mesh(new THREE.SphereGeometry(0.55, 32, 32), new THREE.MeshBasicMaterial({ color: 0xa78bfa, transparent: true, opacity: 0.4 }));
+        const innerCore = new THREE.Mesh(new THREE.IcosahedronGeometry(1.0, 1), new THREE.MeshBasicMaterial({ color: 0xa78bfa, wireframe: true, transparent: true, opacity: 0.7 }));
         const coreGroup = new THREE.Group();
-        coreGroup.add(glowSphere, innerBright, innerCore, midShell, outerShell);
+        coreGroup.add(glowSphere, innerBright, innerCore);
         scene.add(coreGroup);
 
-        function makeCircularStarTexture(colorHex) {
-            const canvas = document.createElement('canvas'); canvas.width = canvas.height = 128;
+        function makeStarTex(colorHex) {
+            const canvas = document.createElement('canvas'); canvas.width = canvas.height = 64;
             const ctx = canvas.getContext('2d');
-            const grad = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+            const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
             grad.addColorStop(0, 'rgba(255,255,255,1)');
-            grad.addColorStop(0.2, colorHex);
-            grad.addColorStop(0.5, colorHex.replace(/[\d.]+\)$/, '0.4)'));
+            grad.addColorStop(0.3, colorHex);
             grad.addColorStop(1, 'rgba(0,0,0,0)');
-            ctx.fillStyle = grad; ctx.fillRect(0, 0, 128, 128);
+            ctx.fillStyle = grad; ctx.fillRect(0, 0, 64, 64);
             return new THREE.CanvasTexture(canvas);
-        }
-        function _canvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
-        
-        function makeEarthTexFallback() {
-            const W = 1024, H = 512; const c = _canvas(W, H); const ctx = c.getContext('2d');
-            ctx.fillStyle = '#0a3d62'; ctx.fillRect(0, 0, W, H);
-            return new THREE.CanvasTexture(c);
-        }
-        function makeSimpleTex(base, noise) {
-            const c = _canvas(1024, 512); const ctx = c.getContext('2d');
-            ctx.fillStyle = base; ctx.fillRect(0, 0, 1024, 512);
-            return new THREE.CanvasTexture(c);
         }
 
         const milkyWayGroup = new THREE.Group(); milkyWayGroup.visible = false; scene.add(milkyWayGroup);
-        const circularStarMatWhite = new THREE.PointsMaterial({ size: 3.5, map: makeCircularStarTexture('rgba(200,220,255,0.8)'), transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending });
-        const circularStarMatYellow = new THREE.PointsMaterial({ size: 4.0, map: makeCircularStarTexture('rgba(255,220,150,0.8)'), transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending });
-        const circularStarMatBlue = new THREE.PointsMaterial({ size: 3.8, map: makeCircularStarTexture('rgba(150,200,255,0.8)'), transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending });
-
-        (function buildDeepVoidStars() {
-            const N = 4000; const pos = new Float32Array(N * 3);
-            for (let i = 0; i < N; i++) {
-                const r = 2000 + Math.random() * 3500; const theta = Math.random() * Math.PI * 2; const phi = Math.acos(2 * Math.random() - 1);
-                pos[i*3] = r * Math.sin(phi) * Math.cos(theta); pos[i*3+1] = r * Math.sin(phi) * Math.sin(theta); pos[i*3+2] = r * Math.cos(phi);
-            }
-            const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-            milkyWayGroup.add(new THREE.Points(g, circularStarMatWhite));
-        })();
+        const starMat = new THREE.PointsMaterial({ size: 3.5, map: makeStarTex('rgba(150,200,255,0.8)'), transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending });
+        const starGeo = new THREE.BufferGeometry();
+        const starPos = new Float32Array(3000 * 3);
+        for(let i=0; i<3000*3; i+=3) {
+            starPos[i] = (Math.random() - 0.5) * 4000;
+            starPos[i+1] = (Math.random() - 0.5) * 4000;
+            starPos[i+2] = (Math.random() - 0.5) * 4000;
+        }
+        starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+        milkyWayGroup.add(new THREE.Points(starGeo, starMat));
 
         const solarSystemGroup = new THREE.Group(); solarSystemGroup.visible = false; scene.add(solarSystemGroup);
-        const sunGroup = new THREE.Group();
-        const sunMesh = new THREE.Mesh(new THREE.SphereGeometry(1.6, 64, 64), new THREE.MeshBasicMaterial({ color: 0xffcc66 }));
-        sunGroup.add(sunMesh);
-        const sunLight = new THREE.PointLight(0xfff0c4, 3.2, 1200, 2); sunGroup.add(sunLight);
-        solarSystemGroup.add(sunGroup);
+        const sunMesh = new THREE.Mesh(new THREE.SphereGeometry(1.5, 32, 32), new THREE.MeshBasicMaterial({ color: 0xffcc66 }));
+        solarSystemGroup.add(sunMesh);
 
-        const PLANET_DATA = [
-            { name:'Mercury', r:0.20, o:6, color:0x8c8c8c, fb:['#8a7f75', '100,90,80'], spd:0.42, rotSpd:0.005 },
-            { name:'Venus', r:0.30, o:9, color:0xe3bb76, fb:['#d8b87a', '240,225,190'], spd:0.32, rotSpd:-0.003 },
-            { name:'Earth', r:0.36, o:13, color:0x223344, clouds:true, atmo:0x3b82f6, spd:0.24, rotSpd:0.01 },
-            { name:'Mars', r:0.26, o:17, color:0xc1440e, fb:['#c4653a', '230,160,120'], spd:0.19, rotSpd:0.009 },
-            { name:'Jupiter', r:1.10, o:25, color:0xd4a373, fb:['#d9b88a', '200,170,130'], spd:0.11, rotSpd:0.02 },
-            { name:'Saturn', r:0.95, o:34, color:0xf4e2bb, ring:true, fb:['#e8d5a0', '225,205,165'], spd:0.08, rotSpd:0.018 },
-            { name:'Uranus', r:0.62, o:43, color:0x7de3ed, ring:true, fb:['#b0e0e6', '190,235,240'], spd:0.055, rotSpd:0.012 },
-            { name:'Neptune', r:0.60, o:52, color:0x274687, fb:['#3b6cc0', '90,140,220'], spd:0.042, rotSpd:0.011 }
+        const PLANETS = [
+            { name:'Mercury', r:0.2, o:5, color:0x8c8c8c, spd:0.04 },
+            { name:'Venus', r:0.3, o:8, color:0xe3bb76, spd:0.03 },
+            { name:'Earth', r:0.35, o:12, color:0x3b82f6, spd:0.02 },
+            { name:'Mars', r:0.25, o:16, color:0xc1440e, spd:0.015 },
+            { name:'Jupiter', r:0.9, o:22, color:0xd4a373, spd:0.01 },
+            { name:'Saturn', r:0.7, o:28, color:0xf4e2bb, spd:0.008 }
         ];
-
         const planetObjs = [];
-        for (const p of PLANET_DATA) {
+        for (const p of PLANETS) {
             const grp = new THREE.Group();
-            const baseTex = p.name === 'Earth' ? makeEarthTexFallback() : makeSimpleTex(p.fb[0], p.fb[1]);
-            const mat = new THREE.MeshStandardMaterial({ map: baseTex, color: p.color, roughness: 0.8 });
-            const sphere = new THREE.Mesh(new THREE.SphereGeometry(p.r, 48, 48), mat);
-            grp.add(sphere);
-            grp.userData = { name: p.name, orbit: p.o, speed: p.spd, angle: Math.random() * Math.PI * 2, earth: p.name === 'Earth', sphere };
+            const mesh = new THREE.Mesh(new THREE.SphereGeometry(p.r, 32, 32), new THREE.MeshStandardMaterial({ color: p.color, roughness: 0.8 }));
+            grp.add(mesh);
+            grp.userData = { orbit: p.o, speed: p.spd, angle: Math.random() * Math.PI * 2, isEarth: p.name === 'Earth' };
             planetObjs.push(grp);
             solarSystemGroup.add(grp);
         }
-        const earthObj = planetObjs.find(g => g.userData.earth);
+        const earthObj = planetObjs.find(g => g.userData.isEarth);
 
-        const skyboxGeo = new THREE.SphereGeometry(4000, 32, 32);
-        const skyboxMat = new THREE.MeshBasicMaterial({ color: 0x050510, side: THREE.BackSide, transparent: true, opacity: 0 });
-        const skybox = new THREE.Mesh(skyboxGeo, skyboxMat);
-        scene.add(skybox);
+        let spaceState = 'core', spaceProgress = 0, cameraTheta = 0, cameraPhi = 0.5, cameraRadius = 2500, targetCameraZ = 6;
+        let landingState = 'none', lastTap = 0;
 
-        let cameraTheta = 0; let cameraPhi = 0.55; let cameraRadius = 3000; let targetCameraZ = 6; let solarAlpha = 0; let milkyAlpha = 1; let earthFocusAmount = 0;
-        let spaceState = 'core'; let spaceProgress = 0; const SPACE_FULL_MS = 15000; let spacePhaseStart = 0;
-        let lastInteractionTime = Date.now(); const IDLE_COLLAPSE_MS = 5 * 60 * 1000;
-
-        function resetIdleTimer() { lastInteractionTime = Date.now(); }
-        window.addEventListener('pointerdown', resetIdleTimer);
-
-        function triggerSpaceExpand() { if (spaceState === 'expanding' || spaceState === 'space') return; spaceState = 'expanding'; spacePhaseStart = Date.now(); spaceProgress = 0; cameraTheta = 0; cameraPhi = 0.55; cameraRadius = 3000; targetCameraZ = 3000; solarAlpha = 0; milkyAlpha = 1; earthFocusAmount = 0; resetIdleTimer(); }
-        function triggerSpaceCollapse() { if (spaceState === 'collapsing' || spaceState === 'core') return; spaceState = 'collapsing'; spacePhaseStart = Date.now(); spaceProgress = 1; resetIdleTimer(); }
-
-        let landingState = 'none';
-        let issLastTapTime = 0;
-        
-        function triggerISSView() {
-            if (spaceState !== 'space' || landingState !== 'none') return;
-            spaceState = 'iss_view'; targetCameraZ = 1.8; cameraRadius = camera.position.length();
-        }
-        function triggerEarthLanding() {
-            if (spaceState !== 'iss_view' || landingState !== 'none') return;
-            landingState = 'diving';
-        }
-        function exitMap() {
-            document.getElementById('map-overlay').classList.remove('active');
-            document.getElementById('map-exit').classList.remove('active');
-            document.getElementById('street-view-container').style.display = 'none';
-            setTimeout(() => {
-                document.getElementById('map-overlay').style.display = 'none';
-                if (map) { map.remove(); map = null; }
-                landingState = 'none'; spaceState = 'iss_view'; targetCameraZ = 1.8;
-            }, 1500);
-        }
-
-        let lastTapTime = 0;
         container.addEventListener('pointerdown', (e) => {
-            initAudio(); resetIdleTimer();
             const now = Date.now();
-            if (now - lastTapTime < 400 && (spaceState === 'space' || spaceState === 'iss_view')) {
-                triggerSpaceCollapse(); lastTapTime = 0; return;
-            }
-            lastTapTime = now;
+            if (now - lastTap < 400) {
+                if (spaceState === 'core') {
+                    spaceState = 'space'; targetCameraZ = 2500; milkyWayGroup.visible = true; solarSystemGroup.visible = true;
+                } else if (spaceState === 'space') {
+                    spaceState = 'core'; targetCameraZ = 6; milkyWayGroup.visible = false; solarSystemGroup.visible = false;
+                }
+                lastTap = 0;
+            } else { lastTap = now; }
         });
 
-        const raycaster = new THREE.Raycaster();
-        const pointer = new THREE.Vector2();
-        function checkEarthTap(e) {
-            if (!earthObj) return false;
-            const rect = renderer.domElement.getBoundingClientRect();
-            pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-            pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-            raycaster.setFromCamera(pointer, camera);
-            const intersects = raycaster.intersectObject(earthObj, true);
-            if (intersects.length > 0) {
-                if (spaceState === 'space') triggerISSView();
-                else if (spaceState === 'iss_view') triggerEarthLanding();
-                return true;
-            }
-            return false;
-        }
-
-        const _earthWorld = new THREE.Vector3(0, 0, 0); const _lookTarget = new THREE.Vector3(0, 0, 0);
         function animate() {
             requestAnimationFrame(animate);
-            const nowMs = Date.now();
-            
-            if (landingState === 'diving') {
+            if (spaceState === 'space') {
+                cameraRadius += (targetCameraZ - cameraRadius) * 0.1;
                 if (earthObj) {
-                    earthObj.getWorldPosition(_earthWorld);
-                    camera.position.lerp(_earthWorld, 0.15);
-                    camera.lookAt(_earthWorld);
+                    earthObj.userData.angle += earthObj.userData.speed * 0.05;
+                    earthObj.position.set(Math.cos(earthObj.userData.angle) * earthObj.userData.orbit, 0, Math.sin(earthObj.userData.angle) * earthObj.userData.orbit);
                 }
-                if (camera.position.distanceTo(_earthWorld) < 2.5) {
-                    landingState = 'landed';
-                    const overlay = document.getElementById('map-overlay');
-                    overlay.style.display = 'block';
-                    setTimeout(() => {
-                        overlay.classList.add('active');
-                        document.getElementById('map-exit').classList.add('active');
-                    }, 100);
-                }
-                renderer.render(scene, camera);
-                return;
-            }
-            if (landingState === 'landed') { renderer.render(scene, camera); return; }
-
-            if (spaceState === 'expanding') {
-                spaceProgress = Math.min(1, (nowMs - spacePhaseStart) / SPACE_FULL_MS);
-                if (spaceProgress >= 1) spaceState = 'space';
-            } else if (spaceState === 'collapsing') {
-                spaceProgress = 1 - Math.min(1, (nowMs - spacePhaseStart) / SPACE_FULL_MS);
-                if (spaceProgress <= 0) spaceState = 'core';
-            }
-
-            const ep = spaceProgress < 0.5 ? 4 * spaceProgress * spaceProgress * spaceProgress : 1 - Math.pow(-2 * spaceProgress + 2, 3) / 2;
-            const camDist = camera.position.length();
-            solarAlpha = camDist >= 150 ? 0 : (camDist <= 60 ? 1 : (150 - camDist) / 90);
-            milkyAlpha = Math.max(0, Math.min(1, camDist / 300));
-
-            if (spaceProgress > 0) {
-                milkyWayGroup.visible = true;
-                milkyWayGroup.scale.setScalar(Math.max(0.001, ep * 2));
-                milkyWayGroup.rotation.y += 0.0005;
-            } else { milkyWayGroup.visible = false; }
-
-            const solarFinal = ep * solarAlpha;
-            if (solarFinal > 0.001) {
-                solarSystemGroup.visible = true;
-                solarSystemGroup.scale.setScalar(solarFinal);
                 for (const grp of planetObjs) {
-                    grp.userData.angle += 0.005 * grp.userData.speed;
+                    grp.userData.angle += grp.userData.speed * 0.02;
                     grp.position.set(Math.cos(grp.userData.angle) * grp.userData.orbit, 0, Math.sin(grp.userData.angle) * grp.userData.orbit);
                 }
-            } else { solarSystemGroup.visible = false; }
-
-            if (spaceState === 'space' || spaceState === 'iss_view') {
-                cameraRadius += (targetCameraZ - cameraRadius) * 0.1;
-                if (earthObj) earthObj.getWorldPosition(_earthWorld);
-                _lookTarget.copy(_earthWorld);
-                const x = _lookTarget.x + cameraRadius * Math.cos(cameraPhi) * Math.sin(cameraTheta);
-                const y = _lookTarget.y + cameraRadius * Math.sin(cameraPhi);
-                const z = _lookTarget.z + cameraRadius * Math.cos(cameraPhi) * Math.cos(cameraTheta);
-                camera.position.lerp(new THREE.Vector3(x, y, z), 0.1);
-                camera.lookAt(_lookTarget);
-            } else {
-                targetCameraZ += (6 - targetCameraZ) * 0.08;
-                camera.position.z += (targetCameraZ - camera.position.z) * 0.08;
+                camera.position.set(0, 500, cameraRadius);
                 camera.lookAt(0, 0, 0);
+                milkyWayGroup.rotation.y += 0.001;
+                coreGroup.visible = false;
+            } else {
+                targetCameraZ += (6 - targetCameraZ) * 0.1;
+                camera.position.set(0, 0, targetCameraZ);
+                camera.lookAt(0, 0, 0);
+                coreGroup.visible = true;
+                milkyWayGroup.visible = false;
+                solarSystemGroup.visible = false;
+                coreGroup.rotation.y += 0.01;
             }
-
-            coreGroup.rotation.y += 0.01;
-            coreGroup.visible = (spaceState === 'core' || spaceState === 'collapsing');
             renderer.render(scene, camera);
         }
         animate();
@@ -805,6 +582,7 @@
             else if (signal === 'SETUP') color = 0xf59e0b;
             glowSphere.material.color.setHex(color);
             innerBright.material.color.setHex(color);
+            innerCore.material.color.setHex(color);
         }
 
         function safeNum(val, fallback = 0) { return (isNaN(val) || val === undefined || val === null || !isFinite(val)) ? fallback : val; }
@@ -1066,7 +844,7 @@
             clearAttachment();
 
             const loading = document.createElement('div'); loading.className = 'msg ai thinking fade-in'; loading.innerText = 'Analyzing chart like a pro...';
-            document.getElementById('chat-history').appendChild(loading); document.getElementById('chat-history').scrollTop = document.getElementById('chat-history'].scrollHeight;
+            document.getElementById('chat-history').appendChild(loading); document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight;
             
             try {
                 const systemPrompt = `You are Alex — Boss's expert desk partner and elite pro EUR/USD day trader with an 85% success rate. Inspect any attached chart image meticulously for trend lines, support/resistance zones, Fair Value Gaps, candlestick patterns (pin bars, engulfing), and momentum. Give professional, precise trade analysis like a pro who never misses.`;
