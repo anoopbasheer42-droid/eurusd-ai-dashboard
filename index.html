@@ -83,6 +83,17 @@
         }
         #map-exit.active { display: flex; animation: fadeIn 0.5s ease; }
 
+        /* Personal Book Overlay Styling matching Dashboard theme */
+        #personal-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(3, 4, 8, 0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            z-index: 999999; display: none; flex-direction: column; align-items: center; padding: 24px 16px; overflow-y: auto;
+            opacity: 0; transition: opacity 0.4s ease;
+        }
+        #personal-overlay.active { display: flex; opacity: 1; }
+        .book-container { width: 100%; max-width: 680px; display: flex; flex-direction: column; gap: 16px; padding-bottom: 40px; animation: bookFlipIn 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes bookFlipIn { from { transform: perspective(1000px) rotateY(-15deg) scale(0.95); opacity: 0; } to { transform: perspective(1000px) rotateY(0deg) scale(1); opacity: 1; } }
+
         .signal-card { text-align: center; padding: 30px 24px; }
         #signal-text { font-family: 'Space Grotesk', sans-serif; font-size: 2.8rem; font-weight: 700; letter-spacing: 0.08em; color: var(--text-subtle); transition: all 0.4s ease; margin-bottom: 12px; line-height: 1; text-shadow: 0 0 30px currentColor; }
         .signal-status-line { font-family: 'JetBrains Mono', monospace; font-size: 0.66rem; color: var(--text-subtle); letter-spacing: 0.15em; margin-bottom: 24px; text-transform: uppercase; font-weight: 500; }
@@ -132,6 +143,74 @@
     </style>
 </head>
 <body>
+    <!-- Personal Book View Overlay -->
+    <div id="personal-overlay">
+        <div class="book-container">
+            <header style="border-bottom: 1px solid rgba(212,175,55,0.3); margin-bottom: 0;">
+                <div class="logo-wrap">
+                    <div class="logo"><span class="bolt" style="color:#d4af37;">📖</span><span>MY PERSONAL</span><span class="accent" style="background:linear-gradient(135deg,#f3e7c4,#d4af37,#aa7c11); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">BOOK</span></div>
+                    <div class="ist-clock">Your Life • Your Plans • Your Privacy</div>
+                </div>
+                <button class="btn primary" onclick="togglePersonalBook()" style="background:linear-gradient(135deg,#d4af37,#aa7c11); color:#030408; font-weight:700;">Close Book ✕</button>
+            </header>
+
+            <!-- Personal Home Card -->
+            <div class="card" style="border: 1px solid rgba(212,175,55,0.3); box-shadow: 0 0 35px rgba(212,175,55,0.1);">
+                <div class="card-title" style="color: #f3e7c4;">Good Morning, Boss!</div>
+                <div style="font-size:0.8rem; color:var(--text-body); margin-bottom:14px;">Here's your personal overview for today.</div>
+                <div class="stats-grid" style="margin-bottom:14px;">
+                    <div class="stat-item"><span class="stat-label">Next Birthday</span><span>10 days (Father)</span></div>
+                    <div class="stat-item"><span class="stat-label">Upcoming Bills</span><span>2 due (This month)</span></div>
+                    <div class="stat-item"><span class="stat-label">Today's Tasks</span><span>3 completed</span></div>
+                </div>
+            </div>
+
+            <!-- Quick Access Grid -->
+            <div class="card" style="border: 1px solid rgba(212,175,55,0.2);">
+                <div class="card-title" style="color: #f3e7c4;">Quick Access Modules</div>
+                <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; text-align:center; font-size:0.72rem;">
+                    <div class="btn" style="padding:12px 6px;" onclick="alert('Opening Monthly Expenses...')">📊<br>Expenses</div>
+                    <div class="btn" style="padding:12px 6px;" onclick="alert('Opening Calendar & Birthdays...')">📅<br>Calendar</div>
+                    <div class="btn" style="padding:12px 6px;" onclick="alert('Opening Reminders...')">⏰<br>Reminders</div>
+                    <div class="btn" style="padding:12px 6px;" onclick="alert('Opening Emergency Contacts...')">📞<br>Contacts</div>
+                    <div class="btn" style="padding:12px 6px;" onclick="alert('Opening Health Tracker...')">❤️<br>Health</div>
+                    <div class="btn" style="padding:12px 6px;" onclick="alert('Opening Documents Vault...')">📁<br>Documents</div>
+                    <div class="btn" style="padding:12px 6px;" onclick="alert('Opening Notes...')">📝<br>Notes</div>
+                    <div class="btn" style="padding:12px 6px;" onclick="alert('Opening Settings...')">⚙️<br>Settings</div>
+                </div>
+            </div>
+
+            <!-- Monthly Expense Planner Summary -->
+            <div class="card">
+                <div class="card-title">Monthly Expense Planner</div>
+                <div class="stats-grid">
+                    <div class="stat-item"><span class="stat-label">Total Income</span><span style="color:var(--green)">₹50,000</span></div>
+                    <div class="stat-item"><span class="stat-label">Total Expenses</span><span style="color:var(--red)">₹30,000</span></div>
+                    <div class="stat-item"><span class="stat-label">Remaining</span><span style="color:var(--blue)">₹20,000</span></div>
+                </div>
+            </div>
+
+            <!-- Emergency Contacts Preview -->
+            <div class="card">
+                <div class="card-title">Emergency Contacts</div>
+                <div style="font-size:0.78rem; color:var(--text-body); display:flex; flex-direction:column; gap:8px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.4); padding:8px 12px; border-radius:8px;">
+                        <span>👨‍👦 Dad — +91 98765 43210</span>
+                        <a href="tel:+919876543210" class="btn primary" style="padding:4px 10px; font-size:0.65rem;">Call</a>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.4); padding:8px 12px; border-radius:8px;">
+                        <span>🏥 Doctor Sharma — +91 91234 56789</span>
+                        <a href="tel:+919123456789" class="btn primary" style="padding:4px 10px; font-size:0.65rem;">Call</a>
+                    </div>
+                </div>
+            </div>
+
+            <div style="text-align:center; padding:10px;">
+                <button class="btn primary" onclick="togglePersonalBook()" style="background:linear-gradient(135deg,#d4af37,#aa7c11); color:#030408; font-weight:700; width:100%;">Return to Trader Dashboard</button>
+            </div>
+        </div>
+    </div>
+
     <div id="map-overlay">
         <div id="map"></div>
         <div id="street-view-container">
@@ -190,6 +269,8 @@
                     <button class="btn" onclick="togglePanel('panel-gist')">Gist</button>
                     <button class="btn" onclick="togglePanel('panel-key')">Key</button>
                     <button class="btn" onclick="togglePanel('panel-voice')">Voice</button>
+                    <!-- Personal Book Trigger Button -->
+                    <button class="btn primary" onclick="togglePersonalBook()" style="background:linear-gradient(135deg,#d4af37,#aa7c11); color:#030408; font-weight:700;">Personal</button>
                 </div>
             </div>
             <div class="panel" id="panel-reminders">
@@ -345,6 +426,11 @@
         let dailyRoutineState = JSON.parse(localStorage.getItem('eurusd_daily_routine_state') || '{}');
 
         document.body.addEventListener('click', () => { if ('speechSynthesis' in window) window.speechSynthesis.getVoices(); }, { once: true });
+
+        function togglePersonalBook() {
+            const overlay = document.getElementById('personal-overlay');
+            overlay.classList.toggle('active');
+        }
 
         function updateISTClock() {
             const istTime = new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false });
