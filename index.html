@@ -94,6 +94,9 @@
         .book-container { width: 100%; max-width: 680px; display: flex; flex-direction: column; gap: 16px; padding-bottom: 40px; animation: bookFlipIn 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
         @keyframes bookFlipIn { from { transform: perspective(1000px) rotateY(-15deg) scale(0.95); opacity: 0; } to { transform: perspective(1000px) rotateY(0deg) scale(1); opacity: 1; } }
 
+        .book-section { display: none; }
+        .book-section.active { display: flex; flex-direction: column; gap: 16px; animation: fadeIn 0.3s ease; }
+
         .signal-card { text-align: center; padding: 30px 24px; }
         #signal-text { font-family: 'Space Grotesk', sans-serif; font-size: 2.8rem; font-weight: 700; letter-spacing: 0.08em; color: var(--text-subtle); transition: all 0.4s ease; margin-bottom: 12px; line-height: 1; text-shadow: 0 0 30px currentColor; }
         .signal-status-line { font-family: 'JetBrains Mono', monospace; font-size: 0.66rem; color: var(--text-subtle); letter-spacing: 0.15em; margin-bottom: 24px; text-transform: uppercase; font-weight: 500; }
@@ -154,59 +157,180 @@
                 <button class="btn primary" onclick="togglePersonalBook()" style="background:linear-gradient(135deg,#d4af37,#aa7c11); color:#030408; font-weight:700;">Close Book ✕</button>
             </header>
 
-            <!-- Personal Home Card -->
-            <div class="card" style="border: 1px solid rgba(212,175,55,0.3); box-shadow: 0 0 35px rgba(212,175,55,0.1);">
-                <div class="card-title" style="color: #f3e7c4;">Good Morning, Boss!</div>
-                <div style="font-size:0.8rem; color:var(--text-body); margin-bottom:14px;">Here's your personal overview for today.</div>
-                <div class="stats-grid" style="margin-bottom:14px;">
-                    <div class="stat-item"><span class="stat-label">Next Birthday</span><span>10 days (Father)</span></div>
-                    <div class="stat-item"><span class="stat-label">Upcoming Bills</span><span>2 due (This month)</span></div>
-                    <div class="stat-item"><span class="stat-label">Today's Tasks</span><span>3 completed</span></div>
-                </div>
-            </div>
-
-            <!-- Quick Access Grid -->
-            <div class="card" style="border: 1px solid rgba(212,175,55,0.2);">
-                <div class="card-title" style="color: #f3e7c4;">Quick Access Modules</div>
-                <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; text-align:center; font-size:0.72rem;">
-                    <div class="btn" style="padding:12px 6px;" onclick="alert('Opening Monthly Expenses...')">📊<br>Expenses</div>
-                    <div class="btn" style="padding:12px 6px;" onclick="alert('Opening Calendar & Birthdays...')">📅<br>Calendar</div>
-                    <div class="btn" style="padding:12px 6px;" onclick="alert('Opening Reminders...')">⏰<br>Reminders</div>
-                    <div class="btn" style="padding:12px 6px;" onclick="alert('Opening Emergency Contacts...')">📞<br>Contacts</div>
-                    <div class="btn" style="padding:12px 6px;" onclick="alert('Opening Health Tracker...')">❤️<br>Health</div>
-                    <div class="btn" style="padding:12px 6px;" onclick="alert('Opening Documents Vault...')">📁<br>Documents</div>
-                    <div class="btn" style="padding:12px 6px;" onclick="alert('Opening Notes...')">📝<br>Notes</div>
-                    <div class="btn" style="padding:12px 6px;" onclick="alert('Opening Settings...')">⚙️<br>Settings</div>
-                </div>
-            </div>
-
-            <!-- Monthly Expense Planner Summary -->
-            <div class="card">
-                <div class="card-title">Monthly Expense Planner</div>
-                <div class="stats-grid">
-                    <div class="stat-item"><span class="stat-label">Total Income</span><span style="color:var(--green)">₹50,000</span></div>
-                    <div class="stat-item"><span class="stat-label">Total Expenses</span><span style="color:var(--red)">₹30,000</span></div>
-                    <div class="stat-item"><span class="stat-label">Remaining</span><span style="color:var(--blue)">₹20,000</span></div>
-                </div>
-            </div>
-
-            <!-- Emergency Contacts Preview -->
-            <div class="card">
-                <div class="card-title">Emergency Contacts</div>
-                <div style="font-size:0.78rem; color:var(--text-body); display:flex; flex-direction:column; gap:8px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.4); padding:8px 12px; border-radius:8px;">
-                        <span>👨‍👦 Dad — +91 98765 43210</span>
-                        <a href="tel:+919876543210" class="btn primary" style="padding:4px 10px; font-size:0.65rem;">Call</a>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.4); padding:8px 12px; border-radius:8px;">
-                        <span>🏥 Doctor Sharma — +91 91234 56789</span>
-                        <a href="tel:+919123456789" class="btn primary" style="padding:4px 10px; font-size:0.65rem;">Call</a>
+            <!-- SECTION 1: HOME / DASHBOARD OVERVIEW -->
+            <div id="book-sec-home" class="book-section active">
+                <div class="card" style="border: 1px solid rgba(212,175,55,0.3); box-shadow: 0 0 35px rgba(212,175,55,0.1);">
+                    <div class="card-title" style="color: #f3e7c4;">Good Morning, Boss!</div>
+                    <div style="font-size:0.8rem; color:var(--text-body); margin-bottom:14px;">Here's your personal overview for today.</div>
+                    <div class="stats-grid" style="margin-bottom:14px;">
+                        <div class="stat-item"><span class="stat-label">Next Birthday</span><span>10 days (Father)</span></div>
+                        <div class="stat-item"><span class="stat-label">Upcoming Bills</span><span>2 due (This month)</span></div>
+                        <div class="stat-item"><span class="stat-label">Today's Tasks</span><span>3 completed</span></div>
                     </div>
                 </div>
+
+                <div class="card" style="border: 1px solid rgba(212,175,55,0.2);">
+                    <div class="card-title" style="color: #f3e7c4;">Quick Access Modules</div>
+                    <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; text-align:center; font-size:0.72rem;">
+                        <div class="btn" style="padding:12px 6px;" onclick="switchBookSection('expenses')">📊<br>Expenses</div>
+                        <div class="btn" style="padding:12px 6px;" onclick="switchBookSection('calendar')">📅<br>Calendar</div>
+                        <div class="btn" style="padding:12px 6px;" onclick="switchBookSection('reminders')">⏰<br>Reminders</div>
+                        <div class="btn" style="padding:12px 6px;" onclick="switchBookSection('contacts')">📞<br>Contacts</div>
+                        <div class="btn" style="padding:12px 6px;" onclick="switchBookSection('health')">❤️<br>Health</div>
+                        <div class="btn" style="padding:12px 6px;" onclick="switchBookSection('documents')">📁<br>Documents</div>
+                        <div class="btn" style="padding:12px 6px;" onclick="switchBookSection('notes')">📝<br>Notes</div>
+                        <div class="btn" style="padding:12px 6px;" onclick="switchBookSection('settings')">⚙️<br>Settings</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Monthly Expense Planner</div>
+                    <div class="stats-grid">
+                        <div class="stat-item"><span class="stat-label">Total Income</span><span style="color:var(--green)">₹50,000</span></div>
+                        <div class="stat-item"><span class="stat-label">Total Expenses</span><span style="color:var(--red)">₹30,000</span></div>
+                        <div class="stat-item"><span class="stat-label">Remaining</span><span style="color:var(--blue)">₹20,000</span></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Emergency Contacts</div>
+                    <div style="font-size:0.78rem; color:var(--text-body); display:flex; flex-direction:column; gap:8px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.4); padding:8px 12px; border-radius:8px;">
+                            <span>👨‍👦 Dad — +91 98765 43210</span>
+                            <a href="tel:+919876543210" class="btn primary" style="padding:4px 10px; font-size:0.65rem;">Call</a>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.4); padding:8px 12px; border-radius:8px;">
+                            <span>🏥 Doctor Sharma — +91 91234 56789</span>
+                            <a href="tel:+919123456789" class="btn primary" style="padding:4px 10px; font-size:0.65rem;">Call</a>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div style="text-align:center; padding:10px;">
-                <button class="btn primary" onclick="togglePersonalBook()" style="background:linear-gradient(135deg,#d4af37,#aa7c11); color:#030408; font-weight:700; width:100%;">Return to Trader Dashboard</button>
+            <!-- SECTION 2: EXPENSES -->
+            <div id="book-sec-expenses" class="book-section">
+                <div class="card">
+                    <div class="card-title">📊 Expense Tracker & Budget</div>
+                    <div style="font-size:0.8rem; color:var(--text-body); margin-bottom:12px;">Track monthly spending and category breakdown.</div>
+                    <div class="stats-grid" style="margin-bottom:14px;">
+                        <div class="stat-item"><span class="stat-label">Groceries</span><span style="color:var(--red)">₹8,000</span></div>
+                        <div class="stat-item"><span class="stat-label">Utilities & Bills</span><span style="color:var(--red)">₹5,000</span></div>
+                        <div class="stat-item"><span class="stat-label">Trading Capital</span><span style="color:var(--green)">₹12,000</span></div>
+                        <div class="stat-item"><span class="stat-label">Savings</span><span style="color:var(--blue)">₹5,000</span></div>
+                    </div>
+                    <button class="btn primary" onclick="alert('Add Expense feature coming soon!')">+ Add New Expense</button>
+                </div>
+            </div>
+
+            <!-- SECTION 3: CALENDAR -->
+            <div id="book-sec-calendar" class="book-section">
+                <div class="card">
+                    <div class="card-title">📅 Calendar & Birthdays</div>
+                    <div style="font-size:0.8rem; color:var(--text-body); display:flex; flex-direction:column; gap:10px;">
+                        <div style="background:rgba(0,0,0,0.4); padding:10px 14px; border-radius:10px;">
+                            <strong>🎂 Father's Birthday</strong><div style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;">In 10 days (October 27, 2026)</div>
+                        </div>
+                        <div style="background:rgba(0,0,0,0.4); padding:10px 14px; border-radius:10px;">
+                            <strong>⚡ High-Impact USD Fed Meeting</strong><div style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;">Next Wednesday at 18:30 IST</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 4: REMINDERS -->
+            <div id="book-sec-reminders" class="book-section">
+                <div class="card">
+                    <div class="card-title">⏰ Personal Reminders</div>
+                    <div style="font-size:0.8rem; color:var(--text-body); display:flex; flex-direction:column; gap:8px;" id="book-reminders-list">
+                        <div style="background:rgba(0,0,0,0.4); padding:10px 14px; border-radius:10px; display:flex; justify-content:space-between;">
+                            <span>💊 Take BP Tablet — 09:00 AM IST</span>
+                            <span style="color:var(--green)">Active</span>
+                        </div>
+                        <div style="background:rgba(0,0,0,0.4); padding:10px 14px; border-radius:10px; display:flex; justify-content:space-between;">
+                            <span>🏫 Pick up kids from school — 03:30 PM IST</span>
+                            <span style="color:var(--green)">Active</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 5: CONTACTS -->
+            <div id="book-sec-contacts" class="book-section">
+                <div class="card">
+                    <div class="card-title">📞 Emergency & Important Contacts</div>
+                    <div style="font-size:0.8rem; color:var(--text-body); display:flex; flex-direction:column; gap:8px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.4); padding:10px 12px; border-radius:10px;">
+                            <span>👨‍👦 Dad — +91 98765 43210</span>
+                            <a href="tel:+919876543210" class="btn primary" style="padding:4px 10px; font-size:0.65rem;">Call</a>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.4); padding:10px 12px; border-radius:10px;">
+                            <span>🏥 Doctor Sharma — +91 91234 56789</span>
+                            <a href="tel:+919123456789" class="btn primary" style="padding:4px 10px; font-size:0.65rem;">Call</a>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.4); padding:10px 12px; border-radius:10px;">
+                            <span>🏫 School Office — +91 95555 12345</span>
+                            <a href="tel:+919555512345" class="btn primary" style="padding:4px 10px; font-size:0.65rem;">Call</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 6: HEALTH -->
+            <div id="book-sec-health" class="book-section">
+                <div class="card">
+                    <div class="card-title">❤️ Health & Vitals Tracker</div>
+                    <div class="stats-grid">
+                        <div class="stat-item"><span class="stat-label">Blood Pressure</span><span style="color:var(--green)">120 / 80 (Normal)</span></div>
+                        <div class="stat-item"><span class="stat-label">BP Tablets</span><span style="color:var(--green)">Taken Today</span></div>
+                        <div class="stat-item"><span class="stat-label">Water Intake</span><span style="color:var(--blue)">2.5 L / 3.0 L</span></div>
+                        <div class="stat-item"><span class="stat-label">Sleep</span><span style="color:var(--purple)">7.5 Hours</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 7: DOCUMENTS -->
+            <div id="book-sec-documents" class="book-section">
+                <div class="card">
+                    <div class="card-title">📁 Secure Documents Vault</div>
+                    <div style="font-size:0.8rem; color:var(--text-body); display:flex; flex-direction:column; gap:8px;">
+                        <div style="background:rgba(0,0,0,0.4); padding:10px 12px; border-radius:10px; display:flex; justify-content:space-between;">
+                            <span>📄 PAN Card Copy</span><span style="color:var(--text-muted)">Encrypted</span>
+                        </div>
+                        <div style="background:rgba(0,0,0,0.4); padding:10px 12px; border-radius:10px; display:flex; justify-content:space-between;">
+                            <span>📄 Forex Broker Agreement</span><span style="color:var(--text-muted)">Encrypted</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 8: NOTES -->
+            <div id="book-sec-notes" class="book-section">
+                <div class="card">
+                    <div class="card-title">📝 Personal Notes & Trading Strategies</div>
+                    <div style="font-size:0.8rem; color:var(--text-body); line-height:1.6; background:rgba(0,0,0,0.4); padding:14px; border-radius:10px;">
+                        <strong>EUR/USD Scalping Rules:</strong><br>
+                        1. Never trade during high-impact news windows (-15m / +15m).<br>
+                        2. Always wait for support or resistance rejection candles on 15M or 1H timeframes.<br>
+                        3. Risk max 1% per trade. Discipline is key.
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 9: SETTINGS -->
+            <div id="book-sec-settings" class="book-section">
+                <div class="card">
+                    <div class="card-title">⚙️ Personal Book Settings</div>
+                    <div style="font-size:0.8rem; color:var(--text-body); display:flex; flex-direction:column; gap:12px;">
+                        <div>Theme: <span style="color:var(--purple);">Futuristic Dark + Gold Accents</span></div>
+                        <div>Encryption: <span style="color:var(--green);">Active (Local Storage)</span></div>
+                        <button class="btn danger" onclick="if(confirm('Reset all personal data?')) { localStorage.clear(); location.reload(); }">Factory Reset Personal Data</button>
+                    </div>
+                </div>
+            </div>
+
+            <div style="text-align:center; padding:10px; display:flex; gap:10px;">
+                <button class="btn" onclick="switchBookSection('home')" style="flex:1;">← Back to Book Home</button>
+                <button class="btn primary" onclick="togglePersonalBook()" style="background:linear-gradient(135deg,#d4af37,#aa7c11); color:#030408; font-weight:700; flex:1;">Close Book ✕</button>
             </div>
         </div>
     </div>
@@ -430,6 +554,20 @@
         function togglePersonalBook() {
             const overlay = document.getElementById('personal-overlay');
             overlay.classList.toggle('active');
+            if (overlay.classList.contains('active')) {
+                switchBookSection('home');
+            }
+        }
+
+        function switchBookSection(sectionId) {
+            const sections = document.querySelectorAll('.book-section');
+            sections.forEach(s => s.classList.remove('active'));
+            const target = document.getElementById(`book-sec-${sectionId}`);
+            if (target) {
+                target.classList.add('active');
+                const overlay = document.getElementById('personal-overlay');
+                if (overlay) overlay.scrollTop = 0;
+            }
         }
 
         function updateISTClock() {
@@ -2157,7 +2295,6 @@
 
             let routineDirectives = [];
             
-            // Only add a directive if it hasn't been asked/addressed yet today and isn't in recentCheckinTopics
             const alreadyChecked = (topic) => recentCheckinTopics.some(t => t.toLowerCase().includes(topic));
 
             if (!dailyRoutineState.greeted) {
