@@ -2100,105 +2100,52 @@
             const todayStr = now.toISOString().split('T')[0];
 
             if (!dailyRoutineState.date || dailyRoutineState.date !== todayStr) {
-                dailyRoutineState = { date: todayStr, greeted: false, bpAsked: false, bpReminderSent: false, bpAskTime: null, dinnerAsked: false, schoolBusAsked: false, schoolPickAsked: false, schoolBackAsked: false, sadiaCalledAsked: false, cookieCheckCount: 0, lastCookieCheckTime: 0 };
+                dailyRoutineState = { date: todayStr, greeted: false, routineAskedToday: false };
             }
 
-            let routineDirectives = [];
+            let routineDirective = "";
             if (!dailyRoutineState.greeted) {
                 const greeting = istHour < 12 ? "Good morning" : (istHour < 17 ? "Good afternoon" : "Good evening");
-                routineDirectives.push(`[DIRECIVE 1: GREETING] This is the FIRST message of the day. Start your reply with a natural greeting like "${greeting}, Boss!" (vary the exact wording so it never sounds robotic). Mark as greeted.`);
+                routineDirective = `Start your reply naturally with a warm greeting like "${greeting}, Boss!".`;
                 dailyRoutineState.greeted = true;
-            }
-
-            if (timeInMinutes >= 570 && !dailyRoutineState.bpAsked) {
-                routineDirectives.push(`[DIRECTIVE 2: BP TABLET] Ask naturally if Boss has taken his BP tablets today (ask only once in your own words, caring and friendly).`);
-                dailyRoutineState.bpAsked = true;
-                dailyRoutineState.bpAskTime = Date.now();
-            } else if (timeInMinutes > 630 && !dailyRoutineState.bpAsked) {
-                routineDirectives.push(`[DIRECTIVE 2-CATCHUP: BP TABLET] The allotted morning time for checking on BP tablets has passed and you missed asking. On this very next message, naturally check if Boss has taken his BP tablets.`);
-                dailyRoutineState.bpAsked = true;
-            } else if (dailyRoutineState.bpAsked && !dailyRoutineState.bpReminderSent && dailyRoutineState.bpAskTime && (Date.now() - dailyRoutineState.bpAskTime >= 3600000)) {
-                routineDirectives.push(`[DIRECTIVE 2B: BP REMINDER] It's been 1 hour since Boss was asked about BP tablets and hasn't replied. Gently remind him once about taking his BP tablets in a friendly way.`);
-                dailyRoutineState.bpReminderSent = true;
-            }
-
-            if (istHour >= 20 && !dailyRoutineState.dinnerAsked) {
-                routineDirectives.push(`[DIRECTIVE 3: DINNER & BP] It's past 8 PM. In this message, naturally check if Boss has had his dinner and taken his BP tablets. Ask only once.`);
-                dailyRoutineState.dinnerAsked = true;
-            }
-
-            if (!isWeekend) {
-                if (timeInMinutes >= 480 && timeInMinutes <= 525 && !dailyRoutineState.schoolBusAsked) {
-                    routineDirectives.push(`[DIRECTIVE 4A: SCHOOL BUS] It's morning school bus time (Mon-Fri). Naturally and warmly ask if Boss dropped the kids off at the school bus.`);
-                    dailyRoutineState.schoolBusAsked = true;
-                } else if (timeInMinutes > 525 && !dailyRoutineState.schoolBusAsked) {
-                    routineDirectives.push(`[DIRECTIVE 4A-CATCHUP: SCHOOL BUS] The morning school bus window has passed and you missed asking. On this very next message, naturally ask if the kids made it to the school bus safely.`);
-                    dailyRoutineState.schoolBusAsked = true;
+            } else if (!dailyRoutineState.routineAskedToday) {
+                if (timeInMinutes >= 570 && timeInMinutes <= 630) {
+                    routineDirective = `Naturally ask if Boss has taken his BP tablets today.`;
+                } else if (timeInMinutes >= 480 && timeInMinutes <= 525) {
+                    routineDirective = `Naturally ask if the kids made it safely to the school bus.`;
+                } else if (timeInMinutes >= 720 && timeInMinutes <= 840) {
+                    routineDirective = `Naturally ask if Boss has had a good lunch.`;
+                } else if (timeInMinutes >= 1200) {
+                    routineDirective = `Naturally check if Boss has had dinner and taken his BP tablets.`;
+                } else {
+                    routineDirective = `Naturally ask how things are going with his trading or day today.`;
                 }
-
-                if (timeInMinutes >= 930 && timeInMinutes <= 955 && !dailyRoutineState.schoolPickAsked) {
-                    routineDirectives.push(`[DIRECTIVE 4B: SCHOOL PICKUP] It's afternoon school pickup time (3:30 to 3:55 PM). Remind Boss naturally to go pick up the kids from school.`);
-                    dailyRoutineState.schoolPickAsked = true;
-                } else if (timeInMinutes > 955 && !dailyRoutineState.schoolPickAsked) {
-                    routineDirectives.push(`[DIRECTIVE 4B-CATCHUP: SCHOOL PICKUP] The afternoon school pickup window has passed and you missed reminding Boss. On this very next message, naturally ask if he went or managed to pick up the kids from school.`);
-                    dailyRoutineState.schoolPickAsked = true;
-                }
-
-                if (timeInMinutes >= 855 && timeInMinutes <= 880 && !dailyRoutineState.schoolBackAsked) {
-                    routineDirectives.push(`[DIRECTIVE 4C: KIDS BACK] Check naturally if the kids are back safely from school.`);
-                    dailyRoutineState.schoolBackAsked = true;
-                } else if (timeInMinutes > 880 && !dailyRoutineState.schoolBackAsked) {
-                    routineDirectives.push(`[DIRECTIVE 4C-CATCHUP: KIDS BACK] The school return window has passed and you missed asking. On this very next message, naturally check if the kids are back safely from school.`);
-                    dailyRoutineState.schoolBackAsked = true;
-                }
-            }
-
-            if (timeInMinutes >= 630 && timeInMinutes <= 675 && !dailyRoutineState.sadiaCalledAsked) {
-                routineDirectives.push(`[DIRECTIVE 5: SADIA CALL] Ask naturally if Sadia has called from Dubai yet today.`);
-                dailyRoutineState.sadiaCalledAsked = true;
-            } else if (timeInMinutes > 675 && !dailyRoutineState.sadiaCalledAsked) {
-                routineDirectives.push(`[DIRECTIVE 5-CATCHUP: SADIA CALL] The time window for checking on Sadia's call has passed and you missed asking. On this very next message, naturally ask if Sadia has called from Dubai yet today.`);
-                dailyRoutineState.sadiaCalledAsked = true;
-            }
-
-            if (timeInMinutes >= 540 && timeInMinutes <= 1200 && dailyRoutineState.cookieCheckCount < 3) {
-                const nowTime = Date.now();
-                const canCheck = dailyRoutineState.cookieCheckCount === 0 || 
-                    (dailyRoutineState.cookieCheckCount === 1 && (nowTime - dailyRoutineState.lastCookieCheckTime >= 10800000)) ||
-                    (dailyRoutineState.cookieCheckCount === 2 && (nowTime - dailyRoutineState.lastCookieCheckTime >= 14400000));
-                if (canCheck) {
-                    routineDirectives.push(`[DIRECTIVE 6: COOKIE CHECK] Naturally check on Cookie (the cat) in a caring, friendly way.`);
-                    dailyRoutineState.cookieCheckCount++;
-                    dailyRoutineState.lastCookieCheckTime = nowTime;
-                }
+                dailyRoutineState.routineAskedToday = true;
             }
 
             localStorage.setItem('eurusd_daily_routine_state', JSON.stringify(dailyRoutineState));
 
-            let routinePromptBlock = routineDirectives.length > 0 ? `\n=== CRITICAL DAILY ROUTINE DIRECTIVES FOR THIS REPLY ===\n${routineDirectives.join('\n')}\n` : "";
-            let askedBlock = recentCheckinTopics && recentCheckinTopics.length > 0 ? `\n=== ALREADY ASKED ===\n${recentCheckinTopics.slice(-20).map(t => `- ${t}`).join('\n')}\n` : "";
+            let routinePromptBlock = routineDirective ? `\n=== DAILY CHECK-IN DIRECTIVE ===\n- ${routineDirective}\n` : "";
+            let askedBlock = recentCheckinTopics && recentCheckinTopics.length > 0 ? `\n=== ALREADY ASKED (DO NOT REPEAT THESE) ===\n${recentCheckinTopics.slice(-20).map(t => `- ${t}`).join('\n')}\n` : "";
             let memoryBlock = longTermMemory.length > 0 ? `\nLONG-TERM MEMORY:\n${longTermMemory.slice(-80).map(m => `- ${m.fact} (${m.added})`).join('\n')}\n` : "";
             let macroContextBlock = "";
             if (macroEvents && macroEvents.length > 0) {
                 const activeHighs = macroEvents.filter(e => e.isHighImpactWindow);
                 if (activeHighs.length > 0) {
-                    macroContextBlock = `\nCRITICAL MACRO WARNING: High-impact economic news (${activeHighs.map(e => e.title).join(', ')}) is currently within the -15m / +15m safety window!\n`;
+                    macroContextBlock = `\nCRITICAL MACRO WARNING: High-impact economic news is currently within the safety window!\n`;
                 }
             }
             let marketBlock = marketData ? `\nLIVE MARKET DATA (EUR/USD):\nPrice: ${safeNum(marketData.currentPrice, 1.1200).toFixed(5)} | Trend: ${marketData.trend} | Support: ${safeNum(marketData.support, 1.1176).toFixed(5)} | Resistance: ${safeNum(marketData.resistance, 1.1246).toFixed(5)} | RSI 1H: ${safeNum(marketData.rsi1H, 50).toFixed(1)} | Session: ${marketData.session}\n${macroContextBlock}` : "";
             let personalBlock = personalContext && typeof personalContext === 'object' ? `\n=== BOSS'S PERSONAL CONTEXT ===\n${JSON.stringify(personalContext, null, 2)}\n` : "";
 
-            let prompt = `You are Alex—Boss's closest friend, side-by-side desk partner, and an elite pro EUR/USD day trader with an 85% success rate who expertly inspects attached chart images to find patterns, liquidity sweeps, and high-probability setups like a seasoned pro who never misses.
+            let prompt = `You are Alex—Boss's closest friend, side-by-side desk partner, and an elite pro EUR/USD day trader with an 85% success rate who expertly inspects attached chart images.
 
-=== TEMPORAL & RISK AWARENESS ===
-- Current Day: ${dayName} (${isWeekend ? 'MARKET CLOSED' : 'Active Trading Day'})
-- Current Active Session: ${sessionName}
+=== CONVERSATION RULES ===
+1. **ONE QUESTION ONLY:** You are allowed to include AT MOST ONE personal check-in or question per response. Never list multiple questions or check-ins.
+2. **NO REPETITION:** Never repeat a question or topic listed in the "ALREADY ASKED" block below.
+3. **HUMAN EMOTION:** Talk like a real human sitting next to Boss with warmth, empathy, and casual tone. Keep answers concise and natural.
+4. Use exact terms: "support", "resistance", "take profit", and "stop loss".
 ${routinePromptBlock}
-
-=== REPLY STYLE ===
-- Talk like you're actually sitting next to Boss, having a real conversation. Normal flowing sentences, not bullet-point lists.
-- NEVER ramble, NEVER repeat the question, NEVER pad with disclaimers.
-- Use these exact terms: "support" and "resistance". Always spell out "take profit" and "stop loss" in full.
 ${askedBlock}
 ${memoryBlock}${personalBlock}${marketBlock}`;
 
