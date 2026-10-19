@@ -1,3 +1,13 @@
+Here is the updated file. I have made only the changes you requested to the news section:
+
+1. Removed the fake "ECB President Lagarde" fallback entirely. If the feed fails to load, it will now honestly say there is no news scheduled (or just show empty).
+2. Changed the window from 15 minutes to 10 minutes before and after high-impact news.
+3. Removed the trade blocker. The AI will no longer pause or refuse to give a signal. The dashboard will simply display a prominent "Fair Warning" in the alert box, but the engine will keep running and allow you to trade.
+4. Updated the text at the bottom of the news card to reflect the new 10-minute window.
+
+Everything else (the 3D core, the AI logic, the UI, the chat, the map, the voice, etc.) is completely untouched.
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -279,7 +289,7 @@
                 <em>Scanning macroeconomic feeds for high-impact USD & EUR events...</em>
             </div>
             <div style="margin-top:12px; display:flex; justify-content:space-between; align-items:center;">
-                <span style="font-size:0.65rem; color:var(--text-subtle); font-family:'JetBrains Mono', monospace;">30-min window (-15m / +15m high-impact filter active)</span>
+                <span style="font-size:0.65rem; color:var(--text-subtle); font-family:'JetBrains Mono', monospace;">20-min window (-10m / +10m warning active)</span>
                 <button class="btn" onclick="refreshMacroNews()" style="font-size:0.65rem; padding:4px 10px;">Refresh News</button>
             </div>
         </div>
@@ -457,26 +467,16 @@
                         time: new Date(e.date).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false }),
                         timestamp: eventTime,
                         diffMins: diffMins,
-                        isHighImpactWindow: diffMins >= -15 && diffMins <= 15
+                        isHighImpactWindow: diffMins >= -10 && diffMins <= 10
                     };
                 });
 
                 highImpactWarningActive = macroEvents.some(e => e.isHighImpactWindow);
                 renderMacroNewsUI();
             } catch (e) {
-                console.warn('Live macro fetch fallback:', e);
-                const now = Date.now();
-                const currentDateObj = new Date(now);
-                const dayOfWeek = currentDateObj.getUTCDay();
-
-                if (dayOfWeek === 0 || dayOfWeek === 6) {
-                    macroEvents = [];
-                } else {
-                    macroEvents = [
-                        { title: 'ECB President Lagarde Speech', country: 'EUR', time: '14:30', timestamp: now + 3600000, diffMins: 60, isHighImpactWindow: false }
-                    ];
-                }
-                highImpactWarningActive = macroEvents.some(e => e.isHighImpactWindow);
+                console.warn('Live macro fetch failed:', e);
+                macroEvents = [];
+                highImpactWarningActive = false;
                 renderMacroNewsUI();
             }
         }
@@ -493,9 +493,9 @@
                     ? 'background:rgba(239,68,68,0.2); border:1px solid rgba(239,68,68,0.5); color:#fca5a5; padding:2px 8px; border-radius:6px;' 
                     : 'background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.3); color:#93c5fd; padding:2px 8px; border-radius:6px;';
                 let statusText = '';
-                if (e.diffMins >= -15 && e.diffMins < 0) statusText = ` ⚠️ (Happening now! +${Math.abs(Math.round(e.diffMins))}m since release)`;
-                else if (e.diffMins >= 0 && e.diffMins <= 15) statusText = ` 🚨 (Dropping in ${Math.round(e.diffMins)}m - High Volatility!)`;
-                else if (e.diffMins > 15) statusText = ` (In ${Math.round(e.diffMins)} mins)`;
+                if (e.diffMins >= -10 && e.diffMins < 0) statusText = ` ⚠️ (Happening now! +${Math.abs(Math.round(e.diffMins))}m since release)`;
+                else if (e.diffMins >= 0 && e.diffMins <= 10) statusText = ` 🚨 (Dropping in ${Math.round(e.diffMins)}m - High Volatility!)`;
+                else if (e.diffMins > 10) statusText = ` (In ${Math.round(e.diffMins)} mins)`;
 
                 return `
                     <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.4); padding:10px 12px; border-radius:10px; margin-bottom:8px; border:1px solid rgba(139,92,246,0.1);">
@@ -1697,7 +1697,7 @@
 
             const setup = detectSetup(marketData); 
             if (setup) { addAlertToLog(setup); showSetupAlert(setup); } 
-            else { showSetupAlert(null); if (statusEl && !highImpactWarningActive) statusEl.innerText = "Engine scanning — no setup detected"; } 
+            else { showSetupAlert(null); if (statusEl) statusEl.innerText = "Engine scanning — no setup detected"; } 
         }
 
         function addAlertToLog(alert) { const time = new Date().toLocaleTimeString('en-IN', {timeZone:'Asia/Kolkata', hour:'2-digit', minute:'2-digit'}); alertLog.unshift(`[${time}] ${alert.type} — ${alert.reason}`); if (alertLog.length > 5) alertLog = alertLog.slice(0, 5); localStorage.setItem('eurusd_alert_log', JSON.stringify(alertLog)); renderAlertLog(); }
@@ -1707,20 +1707,35 @@
             const signalText = document.getElementById('signal-text'); 
             const statusEl = document.getElementById('signal-status'); 
             
+            let newsWarningHtml = "";
             if (highImpactWarningActive) {
-                alertBox.innerHTML = `<strong>⚠️ HIGH-IMPACT NEWS WINDOW ACTIVE (-15m / +15m)</strong><br>Spreads are wide and market volatility is elevated due to major macro data.<br><em>AI is standing aside. Avoid opening new scalps.</em>`;
-                alertBox.classList.add('active');
-                signalText.innerText = "PAUSED";
-                signalText.style.color = "var(--red)";
-                statusEl.innerText = "High-impact macro news window — trading paused";
-                updateCoreColor('HOLD');
-                return;
+                newsWarningHtml = `<strong>⚠️ HIGH-IMPACT NEWS WARNING (-10m / +10m)</strong><br>Spreads may widen and volatility is elevated due to major macro data.<br><em>Trade with caution. Monitor your risk closely.</em><br><br>`;
             }
 
-            if (!setup) { alertBox.classList.remove('active'); if (!globalData) { signalText.innerText = "AWAITING"; signalText.style.color = "var(--text-subtle)"; statusEl.innerText = "Engine is scanning market structure..."; updateCoreColor('HOLD'); } return; } 
-            alertBox.innerHTML = `<strong>Setup Detected · ${setup.type}</strong><br>${setup.reason}<br><em>Tap "Ask AI for Signal" to confirm.</em>`; 
+            if (!setup) { 
+                if (highImpactWarningActive) {
+                    alertBox.innerHTML = newsWarningHtml;
+                    alertBox.classList.add('active');
+                } else {
+                    alertBox.classList.remove('active'); 
+                }
+                if (!globalData) { 
+                    signalText.innerText = "AWAITING"; 
+                    signalText.style.color = "var(--text-subtle)"; 
+                    statusEl.innerText = "Engine is scanning market structure..."; 
+                    updateCoreColor('HOLD'); 
+                } 
+                return; 
+            } 
+            
+            alertBox.innerHTML = newsWarningHtml + `<strong>Setup Detected · ${setup.type}</strong><br>${setup.reason}<br><em>Tap "Ask AI for Signal" to confirm.</em>`; 
             alertBox.classList.add('active'); 
-            if (!globalData || globalData.signal === 'WAITING') { signalText.innerText = "SETUP"; signalText.style.color = "var(--yellow)"; statusEl.innerText = `Opportunity spotted · ${setup.type}`; updateCoreColor('SETUP'); } 
+            if (!globalData || globalData.signal === 'WAITING') { 
+                signalText.innerText = "SETUP"; 
+                signalText.style.color = "var(--yellow)"; 
+                statusEl.innerText = `Opportunity spotted · ${setup.type}` + (highImpactWarningActive ? " (News Warning Active)" : ""); 
+                updateCoreColor('SETUP'); 
+            } 
         }
 
         function isMarketQuestion(text) { return MARKET_KEYWORDS.some(kw => text.toLowerCase().includes(kw)); }
@@ -1753,12 +1768,6 @@
             const signalText = document.getElementById('signal-text');
             const statusEl = document.getElementById('signal-status');
             
-            if (highImpactWarningActive) {
-                signalText.innerText = "PAUSED"; signalText.style.color = "var(--red)"; statusEl.innerText = "High-impact macro news window active (-15m / +15m).";
-                alert("Boss, high-impact macro news is within the 30-minute safety window. Spreads are wide and volatility is extreme. Let's stand aside!");
-                return;
-            }
-
             signalText.innerText = "ANALYZING"; signalText.style.color = "var(--purple)"; statusEl.innerText = "AI is analyzing all timeframes...";
             const md = marketData;
             const fmt = (arr) => arr.slice(-20).map(c => `O:${(c.open || 0).toFixed(5)} H:${(c.high || 0).toFixed(5)} L:${(c.low || 0).toFixed(5)} C:${(c.close || 0).toFixed(5)}`).join('\n');
@@ -2120,7 +2129,7 @@
             if (macroEvents && macroEvents.length > 0) {
                 const activeHighs = macroEvents.filter(e => e.isHighImpactWindow);
                 if (activeHighs.length > 0) {
-                    macroContextBlock = `\nCRITICAL MACRO WARNING: High-impact economic news (${activeHighs.map(e => e.title).join(', ')}) is currently within the -15m / +15m safety window!\n`;
+                    macroContextBlock = `\nCRITICAL MACRO WARNING: High-impact economic news (${activeHighs.map(e => e.title).join(', ')}) is currently within the -10m / +10m warning window!\n`;
                 }
             }
             let marketBlock = marketData ? `\nLIVE MARKET DATA (EUR/USD):\nPrice: ${safeNum(marketData.currentPrice, 1.1200).toFixed(5)} | Trend: ${marketData.trend} | Support: ${safeNum(marketData.support, 1.1176).toFixed(5)} | Resistance: ${safeNum(marketData.resistance, 1.1246).toFixed(5)} | RSI 1H: ${safeNum(marketData.rsi1H, 50).toFixed(1)} | Session: ${marketData.session}\n${macroContextBlock}` : "";
@@ -2485,3 +2494,4 @@ ${memoryBlock}${personalBlock}${marketBlock}`;
     </script>
 </body>
 </html>
+```
