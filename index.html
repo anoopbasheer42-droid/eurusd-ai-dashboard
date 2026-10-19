@@ -799,7 +799,7 @@
         (function buildMeteoroids() {
             const geoTypes = [() => new THREE.DodecahedronGeometry(0.4 + Math.random() * 0.9, 0), () => new THREE.IcosahedronGeometry(0.3 + Math.random() * 0.8, 0), () => new THREE.BoxGeometry(0.6 + Math.random() * 0.7, 0.4 + Math.random() * 0.5, 0.5 + Math.random() * 0.6)];
             const colors = [0x554433, 0x777777, 0x444a55, 0x665555];
-            for (let i = 0; i < 15; i++) { const mg = new THREE.Group(); const geoFn = geoTypes[Math.floor(Math.random() * geoTypes.length)]; const col = colors[Math.floor(Math.random() * colors.length)]; const mMesh = new THREE.Mesh(geoFn(), new THREE.MeshStandardMaterial({ color: col, roughness: 0.85, metalness: 0.2 })); mMesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI); mg.add(mMesh); const angle = Math.random() * Math.PI * 2; const dist = 60 + Math.random() * 120; mg.position.set(Math.cos(angle) * dist, (Math.random() - 0.5) * 60, Math.sin(angle) * dist); milkyWayGroup.add(mg); meteoroids.push({ grp: mg, rotSpd: new THREE.Vector3((Math.random()-0.5)*0.025, (Math.random()-0.5)*0.025, (Math.random()-0.5)*0.025) }); }
+            for (let i = 0; i < 15; i++) { const mg = new THREE.Group(); const geoFn = geoTypes[Math.floor(Math.random() * geoTypes.length)]; const col = colors[Math.floor(Math.random() * colors.length)]; const mMesh = new THREE.Mesh(geoFn(), new THREE.MeshStandardMaterial({ color: col, roughness: 0.85, metalness: 0.2 )); mMesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI); mg.add(mMesh); const angle = Math.random() * Math.PI * 2; const dist = 60 + Math.random() * 120; mg.position.set(Math.cos(angle) * dist, (Math.random() - 0.5) * 60, Math.sin(angle) * dist); milkyWayGroup.add(mg); meteoroids.push({ grp: mg, rotSpd: new THREE.Vector3((Math.random()-0.5)*0.025, (Math.random()-0.5)*0.025, (Math.random()-0.5)*0.025) }); }
         })();
 
         const solarSystemGroup = new THREE.Group();
@@ -1770,44 +1770,53 @@
 
         function isMarketQuestion(text) { return MARKET_KEYWORDS.some(kw => text.toLowerCase().includes(kw)); }
 
-        // Bulletproof AI Call: Tries Gemini First (Direct Browser Support), then Groq with Multiple Proxies
+        // Bulletproof AI Call: Tries Gemini First (Direct Browser Support), then Groq with Multiple CORS Proxies & Fallbacks
         async function callAI(systemPrompt, userText, conversationHistory, useFastModel = true) {
-            const messages = [
-                { role: 'system', content: systemPrompt }, 
-                ...conversationHistory.map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text })), 
-                { role: 'user', content: userText }
+            const contents = [
+                { role: 'user', parts: [{ text: systemPrompt }] }, 
+                ...conversationHistory.map(m => ({ role: m.role === 'ai' ? 'model' : 'user', parts: [{ text: m.text }] })), 
+                { role: 'user', parts: [{ text: userText }] }
             ];
 
-            // 1. Try Gemini First (No CORS browser blocks)
+            // 1. Try Gemini First (Direct & Proxy Fallback Chain)
             if (apiKey) {
-                const contents = [
-                    { role: 'user', parts: [{ text: systemPrompt }] }, 
-                    ...conversationHistory.map(m => ({ role: m.role === 'ai' ? 'model' : 'user', parts: [{ text: m.text }] })), 
-                    { role: 'user', parts: [{ text: userText }] }
-                ];
                 for (const model of GEMINI_MODELS) {
-                    try {
-                        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-                        const r = await fetch(geminiUrl, { 
-                            method: 'POST', 
-                            headers: {'Content-Type': 'application/json'}, 
-                            body: JSON.stringify({ 
-                                contents, 
-                                generationConfig: { maxOutputTokens: 350, temperature: 0.3 } 
-                            }) 
-                        });
-                        if (r.ok) {
-                            const data = await r.json();
-                            return data.candidates[0].content.parts[0].text;
+                    const geminiEndpoints = [
+                        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+                        `https://api.allorigins.win/raw?url=` + encodeURIComponent(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`),
+                        `https://corsproxy.io/?` + encodeURIComponent(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`)
+                    ];
+                    for (const endpoint of geminiEndpoints) {
+                        try {
+                            const r = await fetch(endpoint, { 
+                                method: 'POST', 
+                                headers: {'Content-Type': 'application/json'}, 
+                                body: JSON.stringify({ 
+                                    contents, 
+                                    generationConfig: { maxOutputTokens: 350, temperature: 0.3 } 
+                                }),
+                                signal: AbortSignal.timeout(12000)
+                            });
+                            if (r.ok) {
+                                const data = await r.json();
+                                if (data.candidates && data.candidates[0].content.parts[0].text) {
+                                    return data.candidates[0].content.parts[0].text;
+                                }
+                            }
+                        } catch(e) {
+                            console.warn(`Gemini endpoint failed:`, e);
                         }
-                    } catch(e) {
-                        console.warn(`Gemini model ${model} network error:`, e);
                     }
                 }
             }
 
             // 2. Fallback to Groq with CORS Proxy Support
             if (groqKey) {
+                const messages = [
+                    { role: 'system', content: systemPrompt }, 
+                    ...conversationHistory.map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text })), 
+                    { role: 'user', content: userText }
+                ];
                 const modelsToTry = useFastModel ? ['llama-3.1-8b-instant', 'llama-3.3-70b-versatile'] : ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
                 for (const model of modelsToTry) {
                     const requestUrls = [
@@ -1828,18 +1837,21 @@
                                     messages: messages, 
                                     temperature: 0.3,
                                     max_tokens: 350
-                                }) 
+                                }),
+                                signal: AbortSignal.timeout(12000)
                             });
                             if (res.ok) {
                                 const data = await res.json();
-                                return data.choices[0].message.content;
+                                if (data.choices && data.choices[0].message.content) {
+                                    return data.choices[0].message.content;
+                                }
                             }
                         } catch(e) {}
                     }
                 }
             }
 
-            throw new Error("All AI providers failed. Please add a Gemini API key (`AIzaSy...`) in the 'Key' panel for direct browser support.");
+            throw new Error("Connection failed. Please check your API keys (Groq/Gemini) and internet connection.");
         }
 
         async function askAIForSignal() {
