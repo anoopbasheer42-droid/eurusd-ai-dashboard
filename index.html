@@ -1,12 +1,3 @@
-I completely understand. Setting up servers and workers is annoying when you just want the dashboard to work.
-
-Let's do it the easy way. We don't need a Cloudflare Worker. We will use a public CORS proxy directly in the code. It acts as a middleman so the browser allows the connection. No setup required.
-
-Here is the complete, fully updated file with the proxy built-in and the correct, active AI models.
-
-Just copy all of this, replace your current file, save, and hard refresh.
-
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -91,7 +82,6 @@ Just copy all of this, replace your current file, save, and hard refresh.
             z-index: 100000; display: none; gap: 12px;
         }
         #map-exit.active { display: flex; animation: fadeIn 0.5s ease; }
-        .plane-icon { background: transparent; font-size: 20px; text-align: center; line-height: 20px; }
 
         .signal-card { text-align: center; padding: 30px 24px; }
         #signal-text { font-family: 'Space Grotesk', sans-serif; font-size: 2.8rem; font-weight: 700; letter-spacing: 0.08em; color: var(--text-subtle); transition: all 0.4s ease; margin-bottom: 12px; line-height: 1; text-shadow: 0 0 30px currentColor; }
@@ -246,14 +236,15 @@ Just copy all of this, replace your current file, save, and hard refresh.
                 <div style="font-size:0.7rem; color:var(--text-muted); margin-top:8px;">If the premium voice fails, it will immediately fall back to your device's browser voice.</div>
             </div>
             <div class="panel" id="panel-key">
-                <strong>Groq API Key (primary AI)</strong>
+                <strong>Gemini API Key (Primary & Direct Browser Support)</strong>
+                <input type="password" id="api-key-input" placeholder="AIzaSy..." style="width:100%; padding:10px; margin-top:8px; border-radius:8px; border:1px solid rgba(139,92,246,0.2); background:rgba(0,0,0,0.4); color:white;">
+                <button class="btn" style="margin-top:10px;" onclick="saveApiKey()">Save Gemini Key</button>
+                <div id="gemini-status" style="font-size:0.7rem; margin-top:8px; color:var(--yellow);"></div>
+                <hr style="border:none; border-top:1px solid rgba(139,92,246,0.15); margin:16px 0;">
+                <strong>Groq API Key (Secondary)</strong>
                 <input type="password" id="groq-key-input" placeholder="gsk_..." style="width:100%; padding:10px; margin-top:8px; border-radius:8px; border:1px solid rgba(139,92,246,0.2); background:rgba(0,0,0,0.4); color:white;">
                 <button class="btn" style="margin-top:10px;" onclick="saveGroqKey()">Save Groq Key</button>
                 <div id="groq-status" style="font-size:0.7rem; margin-top:8px; color:var(--yellow);"></div>
-                <hr style="border:none; border-top:1px solid rgba(139,92,246,0.15); margin:16px 0;">
-                <strong>Gemini API Key (fallback AI)</strong>
-                <input type="password" id="api-key-input" placeholder="AIzaSy..." style="width:100%; padding:10px; margin-top:8px; border-radius:8px; border:1px solid rgba(139,92,246,0.2); background:rgba(0,0,0,0.4); color:white;">
-                <button class="btn" style="margin-top:10px;" onclick="saveApiKey()">Save Gemini Key</button>
             </div>
             <div class="chat-history" id="chat-history">
                 <div class="msg ai fade-in"><span class="pulse-dot"></span>Hey Boss. I'm locked onto the charts. What are we looking at on EUR/USD today?</div>
@@ -282,7 +273,6 @@ Just copy all of this, replace your current file, save, and hard refresh.
                 <div id="val-candle-4h">—</div>
             </div>
         </div>
-        <!-- NEW: Live Macro News & Economic Calendar -->
         <div class="card" style="border: 2px solid rgba(59, 130, 246, 0.4); box-shadow: 0 0 30px rgba(59, 130, 246, 0.15);">
             <div class="card-title" style="color: var(--blue);">Live Macro News & Economic Calendar Feed</div>
             <div id="macro-news-container" style="font-size:0.75rem; color:var(--text-body); line-height:1.6;">
@@ -303,10 +293,9 @@ Just copy all of this, replace your current file, save, and hard refresh.
         </div>
     </div>
     <script>
-        // --- ACTIVE MODELS ---
-        const GROQ_MODELS = ['openai/gpt-oss-120b', 'llama-3.1-8b-instant'];
-        const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.5-pro'];
-        
+        const GROQ_MODELS = ['llama-3.1-8b-instant', 'llama-3.3-70b-versatile'];
+        const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
+        const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
         const MARKET_KEYWORDS = ['market','buy','sell','trade','signal','entry','sl','tp','stop loss','take profit','setup','chart','trend','support','resistance','eur/usd','eurusd','should i','analysis','long','short','position','pip','bullish','bearish','candle','indicator','rsi','ema','atr','scalp','day trade'];
         const LOCAL_QUOTES = ["Discipline beats conviction every single time...", "Every loss is just expensive tuition, Boss...", "Protect your capital like your life depends on it...", "Cut losses short and let the winners run...", "A calm mind catches more pips than a frantic one...", "You don't need to be right on every trade...", "The trend is your friend until it suddenly punches you...", "Patience isn't waiting, it's knowing when to strike...", "The market rewards preparation, not hope...", "Trade like a sniper, not machine gunner..."];
         const LOCAL_JOKES = ["Why don't traders ever play hide and seek? Because good support levels are impossible to find...", "I told my wife I was a professional forex trader... she told me to clean the kitchen instead.", "My stop loss is remarkably similar to my ex—it gets hit when I least expect it.", "What's the difference between a forex trader and a large pizza? A pizza can feed a family of four."];
@@ -386,7 +375,7 @@ Just copy all of this, replace your current file, save, and hard refresh.
                     if (resultText) return resultText.trim();
                 }
                 const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
-                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(searchUrl)}`;
+                const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(searchUrl)}`;
                 const scrapeRes = await fetch(proxyUrl, { signal: AbortSignal.timeout(15000) });
                 if (scrapeRes.ok) {
                     const html = await scrapeRes.text();
@@ -489,7 +478,6 @@ Just copy all of this, replace your current file, save, and hard refresh.
             }).join('');
         }
 
-        // === AUDIO ENGINE ===
         let audioCtx = null;
         let chargeOsc1 = null, chargeOsc2 = null, chargeGain = null, chargeTickGain = null, chargeTickOsc = null;
         function initAudio() {
@@ -670,7 +658,6 @@ Just copy all of this, replace your current file, save, and hard refresh.
             }, 350);
         }
 
-        // === THREE.JS COSMIC ENGINE ===
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 8000);
@@ -815,7 +802,6 @@ Just copy all of this, replace your current file, save, and hard refresh.
             for (let i = 0; i < 15; i++) { const mg = new THREE.Group(); const geoFn = geoTypes[Math.floor(Math.random() * geoTypes.length)]; const col = colors[Math.floor(Math.random() * colors.length)]; const mMesh = new THREE.Mesh(geoFn(), new THREE.MeshStandardMaterial({ color: col, roughness: 0.85, metalness: 0.2 })); mMesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI); mg.add(mMesh); const angle = Math.random() * Math.PI * 2; const dist = 60 + Math.random() * 120; mg.position.set(Math.cos(angle) * dist, (Math.random() - 0.5) * 60, Math.sin(angle) * dist); milkyWayGroup.add(mg); meteoroids.push({ grp: mg, rotSpd: new THREE.Vector3((Math.random()-0.5)*0.025, (Math.random()-0.5)*0.025, (Math.random()-0.5)*0.025) }); }
         })();
 
-        // === SOLAR SYSTEM ===
         const solarSystemGroup = new THREE.Group();
         solarSystemGroup.visible = false;
         scene.add(solarSystemGroup);
@@ -1680,6 +1666,7 @@ Just copy all of this, replace your current file, save, and hard refresh.
 
             if (isCharging) { const elapsed = Date.now() - chargeStartTime; chargeLevel = Math.min(1, elapsed / CHARGE_FULL_MS); updateChargeSound(chargeLevel); }
             const spin = 1 + chargeLevel * 15 + touchBoost * 0.5; pulseTime += 0.04 * spin; touchBoost *= 0.94; const chargeScale = 1 + chargeLevel * 1.1; const brightScale = (1 + Math.sin(pulseTime * 1.5) * 0.15 + touchBoost * 0.25) * chargeScale; innerBright.scale.set(brightScale, brightScale, brightScale); innerBright.material.opacity = 0.3 + Math.sin(pulseTime * 1.5) * 0.1 + touchBoost * 0.2 + chargeLevel * 0.6; innerCore.rotation.x += 0.008 * spin; innerCore.rotation.y += 0.012 * spin; midShell.rotation.x -= 0.004 * spin; midShell.rotation.y -= 0.006 * spin; outerShell.rotation.x += 0.002 * spin; outerShell.rotation.y -= 0.003 * spin; coreGroup.rotation.y += coreRotVelY; coreGroup.rotation.x += coreRotVelX; coreRotVelY *= 0.92; coreRotVelX *= 0.92; const scaleForce = (1 - coreScale) * 0.15; coreScaleVel += scaleForce; coreScaleVel *= 0.85; coreScale += coreScaleVel; const _coreSpaceScale = coreScale * (1 - ep * 0.85); coreGroup.scale.set(_coreSpaceScale, _coreSpaceScale, _coreSpaceScale); coreGroup.visible = (spaceState === 'core' || spaceState === 'collapsing') && spaceProgress < 0.98; const rumble = touchBoost * 0.08 + chargeLevel * 0.35; if (rumble > 0.01) { coreGroup.position.x = (Math.random() - 0.5) * rumble; coreGroup.position.y = (Math.random() - 0.5) * rumble; } else { coreGroup.position.x *= 0.9; coreGroup.position.y *= 0.9; } glowSphere.material.opacity = 0.08 + Math.sin(pulseTime * 0.6) * 0.04 + touchBoost * 0.15 + chargeLevel * 0.6; if (chargeLevel > 0.01) { const c = new THREE.Color(); if (chargeLevel < 0.5) c.lerpColors(new THREE.Color(0x8b5cf6), new THREE.Color(0xf59e0b), chargeLevel / 0.5); else c.lerpColors(new THREE.Color(0xf59e0b), new THREE.Color(0xef4444), (chargeLevel - 0.5) / 0.5); glowSphere.material.color.copy(c); innerBright.material.color.copy(c); innerCore.material.color.copy(c); midShell.material.color.copy(c); outerShell.material.color.copy(c); } if (isCharging && chargeLevel > 0.08) { boltTimer -= 1; const boltInterval = Math.max(1, Math.floor(14 - chargeLevel * 13)); if (boltTimer <= 0) { spawnBolt(); if (chargeLevel > 0.3 && Math.random() < 0.6) spawnBolt(); if (chargeLevel > 0.6 && Math.random() < 0.7) spawnBolt(); if (chargeLevel > 0.85 && Math.random() < 0.8) spawnBolt(); boltTimer = boltInterval; } } for (const b of boltPool) { if (b.life > 0) { b.life -= 0.12 + chargeLevel * 0.08; b.line.material.opacity = Math.max(0, b.life * 1.2); if (b.life <= 0) { b.line.visible = false; b.line.material.opacity = 0; } } } for (let i = ripples.length - 1; i >= 0; i--) { const r = ripples[i]; r.life -= 0.03; r.mesh.scale.setScalar(1 + (1 - r.life) * 4); r.mesh.material.opacity = r.life * 0.8; if (r.life <= 0) { scene.remove(r.mesh); r.mesh.geometry.dispose(); r.mesh.material.dispose(); ripples.splice(i, 1); } } 
+
             updateCosmicBirth();
             renderer.render(scene, camera);
         }
@@ -1719,7 +1706,6 @@ Just copy all of this, replace your current file, save, and hard refresh.
             const resistance = safeNum(Math.max(...highs1H.slice(-50)), 1.1246); 
             const currentPrice = safeNum(closes5m[closes5m.length - 1] || closes1H[closes1H.length - 1], 1.1200); 
             
-            // CALCULATE TODAY'S ABSOLUTE HIGH AND LOW FROM AVAILABLE CANDLES
             const allCandlesToday = [...candles5m, ...candles15m, ...candles1H];
             const todayHigh = allCandlesToday.length > 0 ? Math.max(...allCandlesToday.map(c => c.high)) : currentPrice;
             const todayLow = allCandlesToday.length > 0 ? Math.min(...allCandlesToday.map(c => c.low)) : currentPrice;
@@ -1784,74 +1770,80 @@ Just copy all of this, replace your current file, save, and hard refresh.
 
         function isMarketQuestion(text) { return MARKET_KEYWORDS.some(kw => text.toLowerCase().includes(kw)); }
 
-        // === FIXED AI CALLING LOGIC WITH PUBLIC PROXY ===
-        async function callAI(systemPrompt, userText, conversationHistory) {
-            const messages = [{ role: 'system', content: systemPrompt }, ...conversationHistory.map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text })), { role: 'user', content: userText }];
-            
-            // 1. Try Groq via Proxy
-            if (groqKey) {
-                for (const model of GROQ_MODELS) {
-                    try {
-                        const targetUrl = `https://api.groq.com/openai/v1/chat/completions`;
-                        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
-                        const res = await fetch(proxyUrl, { 
-                            method: 'POST', 
-                            headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' }, 
-                            body: JSON.stringify({ 
-                                model: model, 
-                                messages: messages, 
-                                temperature: 0.95, 
-                                max_tokens: 2000
-                            }),
-                            signal: AbortSignal.timeout(20000)
-                        });
-                        if (res.ok) {
-                            const json = await res.json();
-                            return json.choices[0].message.content;
-                        } else {
-                            const errText = await res.text();
-                            console.warn(`Groq proxy failed for ${model}:`, res.status, errText);
-                        }
-                    } catch(e) { console.warn(`Groq network error for ${model}:`, e); }
-                }
-            }
+        // Bulletproof AI Call: Tries Gemini First (Direct Browser Support), then Groq with Multiple Proxies
+        async function callAI(systemPrompt, userText, conversationHistory, useFastModel = true) {
+            const messages = [
+                { role: 'system', content: systemPrompt }, 
+                ...conversationHistory.map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text })), 
+                { role: 'user', content: userText }
+            ];
 
-            // 2. Try Gemini via Proxy
+            // 1. Try Gemini First (No CORS browser blocks)
             if (apiKey) {
-                const contents = [{ role: 'user', parts: [{ text: systemPrompt }] }, ...conversationHistory.map(m => ({ role: m.role === 'ai' ? 'model' : 'user', parts: [{ text: m.text }] })), { role: 'user', parts: [{ text: userText }] }];
+                const contents = [
+                    { role: 'user', parts: [{ text: systemPrompt }] }, 
+                    ...conversationHistory.map(m => ({ role: m.role === 'ai' ? 'model' : 'user', parts: [{ text: m.text }] })), 
+                    { role: 'user', parts: [{ text: userText }] }
+                ];
                 for (const model of GEMINI_MODELS) {
                     try {
-                        const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-                        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
-                        
-                        const r = await fetch(proxyUrl, { 
+                        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+                        const r = await fetch(geminiUrl, { 
                             method: 'POST', 
-                            headers: {'Content-Type':'application/json'}, 
+                            headers: {'Content-Type': 'application/json'}, 
                             body: JSON.stringify({ 
                                 contents, 
-                                generationConfig: { 
-                                    maxOutputTokens: 2000, 
-                                    temperature: 0.95 
-                                } 
-                            }),
-                            signal: AbortSignal.timeout(20000)
+                                generationConfig: { maxOutputTokens: 350, temperature: 0.3 } 
+                            }) 
                         });
                         if (r.ok) {
-                            const json = await r.json();
-                            return json.candidates[0].content.parts[0].text;
-                        } else {
-                            const errText = await r.text();
-                            console.warn(`Gemini Proxy failed for ${model}:`, r.status, errText);
+                            const data = await r.json();
+                            return data.candidates[0].content.parts[0].text;
                         }
-                    } catch(e) { console.warn(`Gemini network error for ${model}:`, e); }
+                    } catch(e) {
+                        console.warn(`Gemini model ${model} network error:`, e);
+                    }
                 }
             }
 
-            throw new Error("Connection failed. Please check your API keys (Groq/Gemini) and internet connection.");
+            // 2. Fallback to Groq with CORS Proxy Support
+            if (groqKey) {
+                const modelsToTry = useFastModel ? ['llama-3.1-8b-instant', 'llama-3.3-70b-versatile'] : ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
+                for (const model of modelsToTry) {
+                    const requestUrls = [
+                        GROQ_URL,
+                        `https://api.allorigins.win/raw?url=` + encodeURIComponent(GROQ_URL),
+                        `https://corsproxy.io/?` + encodeURIComponent(GROQ_URL)
+                    ];
+                    for (const url of requestUrls) {
+                        try {
+                            const res = await fetch(url, { 
+                                method: 'POST', 
+                                headers: { 
+                                    'Authorization': `Bearer ${groqKey}`, 
+                                    'Content-Type': 'application/json' 
+                                }, 
+                                body: JSON.stringify({ 
+                                    model: model, 
+                                    messages: messages, 
+                                    temperature: 0.3,
+                                    max_tokens: 350
+                                }) 
+                            });
+                            if (res.ok) {
+                                const data = await res.json();
+                                return data.choices[0].message.content;
+                            }
+                        } catch(e) {}
+                    }
+                }
+            }
+
+            throw new Error("All AI providers failed. Please add a Gemini API key (`AIzaSy...`) in the 'Key' panel for direct browser support.");
         }
 
         async function askAIForSignal() {
-            if (!groqKey && !apiKey) { alert("Please set your Groq or Gemini API Key first."); togglePanel('panel-key'); return; }
+            if (!groqKey && !apiKey) { alert("Please set your Gemini or Groq API Key first."); togglePanel('panel-key'); return; }
             if (!marketData) { await refreshMarketData(); }
             const signalText = document.getElementById('signal-text');
             const statusEl = document.getElementById('signal-status');
@@ -1873,9 +1865,8 @@ Just copy all of this, replace your current file, save, and hard refresh.
             const signalPrompt = `You are Alex — Boss's trusted trading partner. TIME: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.\n\n${dataString}\n${newsInfo}\nAnalyze the provided candle data, structure, and risk levels.\nCRITICAL RULE: Never guess, estimate, or fabricate historical prices, timestamps, or session hours. If a specific price level or historical time is not explicitly present in the live market data block provided above, state clearly that it is not visible in current data rather than guessing.\n\nCRITICAL RISK GEOMETRY RULES FOR STOP-LOSS (SL) & TAKE-PROFIT (TP):\n- If signal is BUY: SL MUST be strictly below the entry price and support. TP MUST be above entry.\n- If signal is SELL: SL MUST be strictly above the entry price and resistance. TP MUST be below entry.\nRespond ONLY valid JSON: {"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences of natural market analysis in simple layman words, explaining what the price is doing without making yourself sound weak","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
             
             try {
-                const reply = await callAI(signalPrompt, "Give me the signal.", []);
+                const reply = await callAI(signalPrompt, "Give me the signal.", [], false);
                 
-                // Robust JSON extraction handling markdown
                 let cleanedReply = reply.replace(/```json/g, '').replace(/```/g, '').trim();
                 const jsonMatch = cleanedReply.match(/\{[\s\S]*?"signal"[\s\S]*?\}/);
                 
@@ -1889,6 +1880,7 @@ Just copy all of this, replace your current file, save, and hard refresh.
                 }
 
                 globalData = { price: md.currentPrice.toFixed(5), signal: sig.signal, reason: sig.reason, confidence: sig.confidence, entry: sig.entry, sl: sig.sl, tp: sig.tp, atr: md.atr.toFixed(5), support: md.support.toFixed(5), resistance: md.resistance.toFixed(5), trend: md.trend, session: md.session, valid: new Date(Date.now()+1800000).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})+" IST", wise_words: sig.wise_words };
+
                 signalText.innerText = sig.signal;
                 if (sig.signal === 'BUY') { signalText.style.color = 'var(--green)'; statusEl.innerText = 'Bullish day trading setup confirmed'; }
                 else if (sig.signal === 'SELL') { signalText.style.color = 'var(--red)'; statusEl.innerText = 'Bearish day trading setup confirmed'; }
@@ -2257,7 +2249,9 @@ ${routinePromptBlock}
 - If Boss says "Remember", "Save this", or tells you an important fact, append this tag at the very end of your reply: [REMEMBER: Exact fact to save].
 - If Boss asks for a reminder, append: [REMINDER: Day HH:MM - message] or [REMINDER: HH:MM - message].
 - Today is ${dayName}, ${istTime} IST.
+
 ${askedBlock}
+
 ${memoryBlock}${personalBlock}${marketBlock}`;
             
             if (includeSignal) { 
@@ -2299,7 +2293,7 @@ ${memoryBlock}${personalBlock}${marketBlock}`;
             const input = document.getElementById('chat-input');
             const text = input.value.trim();
             if (!text) return;
-            if (!groqKey && !apiKey) { alert("Set your Groq or Gemini API Key first."); togglePanel('panel-key'); return; }
+            if (!groqKey && !apiKey) { alert("Set your Gemini or Groq API Key first."); togglePanel('panel-key'); return; }
             chatInProgress = true; input.value = '';
             chatHistory.push({role:'user', text}); renderChat(); saveChatHistory();
             const loading = document.createElement('div'); loading.className = 'msg ai thinking fade-in'; loading.innerText = '...';
@@ -2309,9 +2303,9 @@ ${memoryBlock}${personalBlock}${marketBlock}`;
                 if (webSearchEnabled) {
                     const searchResults = await searchWeb(text);
                     const searchPrompt = `Web search results:\n${searchResults}\n\nUser Question: ${text}\n\nAnswer concisely like a human desk partner.`;
-                    response = await callAI(buildPersonalityPrompt(false, text), searchPrompt, chatHistory.slice(-4));
+                    response = await callAI(buildPersonalityPrompt(false, text), searchPrompt, chatHistory.slice(-4), true);
                 } else {
-                    response = await callAI(buildPersonalityPrompt(isMarketQuestion(text), text), text, chatHistory.slice(-6));
+                    response = await callAI(buildPersonalityPrompt(isMarketQuestion(text), text), text, chatHistory.slice(-6), true);
                 }
                 
                 response = cleanResponse(response);
@@ -2394,10 +2388,12 @@ ${memoryBlock}${personalBlock}${marketBlock}`;
                 askedBlock = `\nDO NOT ask about any of these again: ${recentCheckinTopics.slice(-15).join(', ')}`;
             }
             const prompt = `You are Alex, elite EUR/USD day trader and best friend. Check in on Boss casually in simple human words. Keep it to 1-2 short sentences.
+
 STRICT: Ask AT MOST ONE casual question.
+
 Time awareness (STRICT): ${mealContext}${askedBlock}`;
             try {
-                let response = await callAI(prompt, "Check in on Boss.", []);
+                let response = await callAI(prompt, "Check in on Boss.", [], true);
                 response = cleanResponse(response);
                 trackPersonalTopics(response);
                 chatHistory.push({role:'ai', text: response});
@@ -2548,7 +2544,16 @@ Time awareness (STRICT): ${mealContext}${askedBlock}`;
         function addLongTermMemory(fact) { longTermMemory.push({fact, added: new Date().toISOString().split('T')[0]}); localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); }
         function renderMemory() { const l = document.getElementById('memory-list'); l.innerHTML = longTermMemory.length === 0 ? 'No facts saved.' : longTermMemory.map(m => `<div>• ${m.fact} <span style="color:var(--text-subtle);">(${m.added})</span></div>`).join(''); }
         function clearLongTermMemory() { if (confirm("Clear memory?")) { longTermMemory = []; localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); renderMemory(); } }
-        function saveApiKey() { const v = document.getElementById('api-key-input').value.trim(); if (v) { apiKey = v; localStorage.setItem('eurusd_chat_key', apiKey); document.getElementById('groq-status').innerText = "✓ Gemini key saved"; } }
+        
+        async function saveApiKey() { 
+            const v = document.getElementById('api-key-input').value.trim(); 
+            if (!v) return; 
+            apiKey = v; 
+            localStorage.setItem('eurusd_chat_key', apiKey); 
+            document.getElementById('gemini-status').innerText = "✓ Gemini Key Saved & Active!"; 
+            document.getElementById('gemini-status').style.color = "var(--green)";
+            speakText("Gemini key saved, Boss.");
+        }
         
         async function saveGroqKey() {
             const v = document.getElementById('groq-key-input').value.trim();
@@ -2655,4 +2660,3 @@ Time awareness (STRICT): ${mealContext}${askedBlock}`;
     </script>
 </body>
 </html>
-```
