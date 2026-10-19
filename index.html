@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -293,7 +292,8 @@
         </div>
     </div>
     <script>
-        const GROQ_MODELS = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
+        // Speed Optimization: Instant model for fast UI chat, Versatile model for deep signals
+        const GROQ_MODELS = ['llama-3.1-8b-instant', 'llama-3.3-70b-versatile'];
         const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
         const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash'];
         const MARKET_KEYWORDS = ['market','buy','sell','trade','signal','entry','sl','tp','stop loss','take profit','setup','chart','trend','support','resistance','eur/usd','eurusd','should i','analysis','long','short','position','pip','bullish','bearish','candle','indicator','rsi','ema','atr','scalp','day trade'];
@@ -1770,7 +1770,8 @@
 
         function isMarketQuestion(text) { return MARKET_KEYWORDS.some(kw => text.toLowerCase().includes(kw)); }
 
-        async function callAI(systemPrompt, userText, conversationHistory) {
+        // Speed-Optimized Core AI Call with Model Switching and Strict Low Parameters
+        async function callAI(systemPrompt, userText, conversationHistory, useFastModel = true) {
             const messages = [
                 { role: 'system', content: systemPrompt }, 
                 ...conversationHistory.map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text })), 
@@ -1778,7 +1779,9 @@
             ];
 
             if (groqKey) {
-                for (const model of GROQ_MODELS) {
+                // Route through fast model (8B Instant) for UI chat/quick checks, or versatile (70B) if specified
+                const modelsToTry = useFastModel ? ['llama-3.1-8b-instant', 'llama-3.3-70b-versatile'] : ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
+                for (const model of modelsToTry) {
                     try {
                         const proxyGroqUrl = `https://corsproxy.io/?` + encodeURIComponent(GROQ_URL);
                         const res = await fetch(proxyGroqUrl, { 
@@ -1790,8 +1793,8 @@
                             body: JSON.stringify({ 
                                 model: model, 
                                 messages: messages, 
-                                temperature: 0.95, 
-                                max_tokens: 2000 
+                                temperature: 0.3, // Low temperature for fast, deterministic execution
+                                max_tokens: 350   // Strict token limit to accelerate response rendering
                             }) 
                         });
                         if (res.ok) {
@@ -1821,7 +1824,7 @@
                             headers: {'Content-Type': 'application/json'}, 
                             body: JSON.stringify({ 
                                 contents, 
-                                generationConfig: { maxOutputTokens: 2000, temperature: 0.95 } 
+                                generationConfig: { maxOutputTokens: 350, temperature: 0.3 } 
                             }) 
                         });
                         if (r.ok) {
@@ -1862,7 +1865,8 @@
             const signalPrompt = `You are Alex — Boss's trusted trading partner. TIME: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.\n\n${dataString}\n${newsInfo}\nAnalyze the provided candle data, structure, and risk levels.\nCRITICAL RULE: Never guess, estimate, or fabricate historical prices, timestamps, or session hours. If a specific price level or historical time is not explicitly present in the live market data block provided above, state clearly that it is not visible in current data rather than guessing.\n\nCRITICAL RISK GEOMETRY RULES FOR STOP-LOSS (SL) & TAKE-PROFIT (TP):\n- If signal is BUY: SL MUST be strictly below the entry price and support. TP MUST be above entry.\n- If signal is SELL: SL MUST be strictly above the entry price and resistance. TP MUST be below entry.\nRespond ONLY valid JSON: {"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences of natural market analysis in simple layman words, explaining what the price is doing without making yourself sound weak","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
             
             try {
-                const reply = await callAI(signalPrompt, "Give me the signal.", []);
+                // Use 70B versatile model (false) for deep structural market signal analysis
+                const reply = await callAI(signalPrompt, "Give me the signal.", [], false);
                 
                 let cleanedReply = reply.replace(/```json/g, '').replace(/```/g, '').trim();
                 const jsonMatch = cleanedReply.match(/\{[\s\S]*?"signal"[\s\S]*?\}/);
@@ -2300,9 +2304,11 @@ ${memoryBlock}${personalBlock}${marketBlock}`;
                 if (webSearchEnabled) {
                     const searchResults = await searchWeb(text);
                     const searchPrompt = `Web search results:\n${searchResults}\n\nUser Question: ${text}\n\nAnswer concisely like a human desk partner.`;
-                    response = await callAI(buildPersonalityPrompt(false, text), searchPrompt, chatHistory.slice(-4));
+                    // Use fast model (true) for responsive web queries
+                    response = await callAI(buildPersonalityPrompt(false, text), searchPrompt, chatHistory.slice(-4), true);
                 } else {
-                    response = await callAI(buildPersonalityPrompt(isMarketQuestion(text), text), text, chatHistory.slice(-6));
+                    // Use fast model (true) for lightning-fast chat replies
+                    response = await callAI(buildPersonalityPrompt(isMarketQuestion(text), text), text, chatHistory.slice(-6), true);
                 }
                 
                 response = cleanResponse(response);
@@ -2390,7 +2396,8 @@ STRICT: Ask AT MOST ONE casual question.
 
 Time awareness (STRICT): ${mealContext}${askedBlock}`;
             try {
-                let response = await callAI(prompt, "Check in on Boss.", []);
+                // Use fast model (true) for proactive check-ins
+                let response = await callAI(prompt, "Check in on Boss.", [], true);
                 response = cleanResponse(response);
                 trackPersonalTopics(response);
                 chatHistory.push({role:'ai', text: response});
@@ -2648,6 +2655,3 @@ Time awareness (STRICT): ${mealContext}${askedBlock}`;
     </script>
 </body>
 </html>
-
-```
-
