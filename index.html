@@ -1,13 +1,3 @@
-Here is the updated file. I have made only the changes you requested to the news section:
-
-1. Removed the fake "ECB President Lagarde" fallback entirely. If the feed fails to load, it will now honestly say there is no news scheduled (or just show empty).
-2. Changed the window from 15 minutes to 10 minutes before and after high-impact news.
-3. Removed the trade blocker. The AI will no longer pause or refuse to give a signal. The dashboard will simply display a prominent "Fair Warning" in the alert box, but the engine will keep running and allow you to trade.
-4. Updated the text at the bottom of the news card to reflect the new 10-minute window.
-
-Everything else (the 3D core, the AI logic, the UI, the chat, the map, the voice, etc.) is completely untouched.
-
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -2494,4 +2484,3 @@ ${memoryBlock}${personalBlock}${marketBlock}`;
     </script>
 </body>
 </html>
-```
