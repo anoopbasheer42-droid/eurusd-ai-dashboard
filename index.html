@@ -83,7 +83,6 @@
             z-index: 100000; display: none; gap: 12px;
         }
         #map-exit.active { display: flex; animation: fadeIn 0.5s ease; }
-        .plane-icon { background: transparent; font-size: 20px; text-align: center; line-height: 20px; }
 
         .signal-card { text-align: center; padding: 30px 24px; }
         #signal-text { font-family: 'Space Grotesk', sans-serif; font-size: 2.8rem; font-weight: 700; letter-spacing: 0.08em; color: var(--text-subtle); transition: all 0.4s ease; margin-bottom: 12px; line-height: 1; text-shadow: 0 0 30px currentColor; }
@@ -274,6 +273,16 @@
                 <div id="val-candle-4h">—</div>
             </div>
         </div>
+        <div class="card" style="border: 2px solid rgba(59, 130, 246, 0.4); box-shadow: 0 0 30px rgba(59, 130, 246, 0.15);">
+            <div class="card-title" style="color: var(--blue);">Live Macro News & Economic Calendar Feed</div>
+            <div id="macro-news-container" style="font-size:0.75rem; color:var(--text-body); line-height:1.6;">
+                <em>Scanning macroeconomic feeds for high-impact USD & EUR events...</em>
+            </div>
+            <div style="margin-top:12px; display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:0.65rem; color:var(--text-subtle); font-family:'JetBrains Mono', monospace;">30-min window (-15m / +15m warning active)</span>
+                <button class="btn" onclick="refreshMacroNews()" style="font-size:0.65rem; padding:4px 10px;">Refresh News</button>
+            </div>
+        </div>
         <div class="card">
             <div class="card-title">Engine Alerts — Last 5</div>
             <div id="alert-log">No alerts yet. Engine scanning...</div>
@@ -284,9 +293,9 @@
         </div>
     </div>
     <script>
-        const GROQ_MODELS = ['meta-llama/llama-4-scout-17b-16e-instruct','llama-3.3-70b-versatile','openai/gpt-oss-120b'];
+        const GROQ_MODELS = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
         const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
-        const GEMINI_MODELS = ['gemini-3.8-flash','gemini-flash-latest','gemini-2.5-flash'];
+        const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash'];
         const MARKET_KEYWORDS = ['market','buy','sell','trade','signal','entry','sl','tp','stop loss','take profit','setup','chart','trend','support','resistance','eur/usd','eurusd','should i','analysis','long','short','position','pip','bullish','bearish','candle','indicator','rsi','ema','atr','scalp','day trade'];
         const LOCAL_QUOTES = ["Discipline beats conviction every single time...", "Every loss is just expensive tuition, Boss...", "Protect your capital like your life depends on it...", "Cut losses short and let the winners run...", "A calm mind catches more pips than a frantic one...", "You don't need to be right on every trade...", "The trend is your friend until it suddenly punches you...", "Patience isn't waiting, it's knowing when to strike...", "The market rewards preparation, not hope...", "Trade like a sniper, not machine gunner..."];
         const LOCAL_JOKES = ["Why don't traders ever play hide and seek? Because good support levels are impossible to find...", "I told my wife I was a professional forex trader... she told me to clean the kitchen instead.", "My stop loss is remarkably similar to my ex—it gets hit when I least expect it.", "What's the difference between a forex trader and a large pizza? A pizza can feed a family of four."];
@@ -298,6 +307,10 @@
         let reminders = JSON.parse(localStorage.getItem('eurusd_reminders') || '[]');
         let scheduledSearches = JSON.parse(localStorage.getItem('eurusd_scheduled_searches') || '[]');
         let recentCheckinTopics = JSON.parse(localStorage.getItem('eurusd_recent_checkin_topics') || '[]');
+        
+        let macroEvents = [];
+        let highImpactWarningActive = false;
+
         let groqKey = localStorage.getItem('eurusd_groq_key') || '';
         let apiKey = localStorage.getItem('eurusd_chat_key') || '';
         let gistToken = localStorage.getItem('eurusd_gist_token') || '';
@@ -308,7 +321,6 @@
         let voiceEngineMode = localStorage.getItem('eurusd_voice_engine_mode') || 'cloud';
         let currentAudio = null;
 
-        // Daily tracking state for new daily routines
         let dailyRoutineState = JSON.parse(localStorage.getItem('eurusd_daily_routine_state') || '{}');
 
         document.body.addEventListener('click', () => { if ('speechSynthesis' in window) window.speechSynthesis.getVoices(); }, { once: true });
@@ -389,7 +401,83 @@
             }
         }
 
-        // === AUDIO ENGINE ===
+        async function refreshMacroNews() {
+            const container = document.getElementById('macro-news-container');
+            container.innerHTML = '<em>Refreshing live macroeconomic events...</em>';
+            try {
+                const now = Date.now();
+                const currentDateObj = new Date(now);
+                const dayOfWeek = currentDateObj.getUTCDay();
+
+                if (dayOfWeek === 0 || dayOfWeek === 6) {
+                    macroEvents = [];
+                    highImpactWarningActive = false;
+                    renderMacroNewsUI();
+                    return;
+                }
+
+                const res = await fetch('https://nfs.faireconomy.media/ff_calendar_thisweek.json');
+                if (!res.ok) throw new Error('Network response failed');
+                const data = await res.json();
+                
+                macroEvents = data.filter(e => {
+                    if (e.country !== 'USD' && e.country !== 'EUR') return false;
+                    if (e.impact !== 'High') return false;
+                    const eventDate = new Date(e.date);
+                    return eventDate.getUTCFullYear() === currentDateObj.getUTCFullYear() &&
+                           eventDate.getUTCMonth() === currentDateObj.getUTCMonth() &&
+                           eventDate.getUTCDate() === currentDateObj.getUTCDate();
+                }).map(e => {
+                    const eventTime = new Date(e.date).getTime();
+                    const diffMins = (eventTime - now) / 60000;
+                    return {
+                        title: e.title,
+                        country: e.country,
+                        time: new Date(e.date).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false }),
+                        timestamp: eventTime,
+                        diffMins: diffMins,
+                        isHighImpactWindow: diffMins >= -15 && diffMins <= 15
+                    };
+                });
+
+                highImpactWarningActive = macroEvents.some(e => e.isHighImpactWindow);
+                renderMacroNewsUI();
+            } catch (e) {
+                console.warn('Live macro fetch failed:', e);
+                macroEvents = [];
+                highImpactWarningActive = false;
+                renderMacroNewsUI();
+            }
+        }
+
+        function renderMacroNewsUI() {
+            const container = document.getElementById('macro-news-container');
+            if (!macroEvents || macroEvents.length === 0) {
+                container.innerHTML = '<span>Market Closed / No high-impact USD/EUR news scheduled for today. Spreads normal.</span>';
+                return;
+            }
+
+            container.innerHTML = macroEvents.map(e => {
+                let badgeStyle = e.isHighImpactWindow 
+                    ? 'background:rgba(239,68,68,0.2); border:1px solid rgba(239,68,68,0.5); color:#fca5a5; padding:2px 8px; border-radius:6px;' 
+                    : 'background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.3); color:#93c5fd; padding:2px 8px; border-radius:6px;';
+                let statusText = '';
+                if (e.diffMins >= -15 && e.diffMins < 0) statusText = ` ⚠️ (Happening now! +${Math.abs(Math.round(e.diffMins))}m since release)`;
+                else if (e.diffMins >= 0 && e.diffMins <= 15) statusText = ` 🚨 (Dropping in ${Math.round(e.diffMins)}m - High Volatility!)`;
+                else if (e.diffMins > 15) statusText = ` (In ${Math.round(e.diffMins)} mins)`;
+
+                return `
+                    <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.4); padding:10px 12px; border-radius:10px; margin-bottom:8px; border:1px solid rgba(139,92,246,0.1);">
+                        <div>
+                            <span style="${badgeStyle}">${e.country} High Impact</span>
+                            <strong style="margin-left:8px; color:var(--text-main);">${e.title}</strong>
+                            <div style="font-size:0.68rem; color:var(--text-muted); margin-top:2px;">Scheduled: ${e.time} IST ${statusText}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
         let audioCtx = null;
         let chargeOsc1 = null, chargeOsc2 = null, chargeGain = null, chargeTickGain = null, chargeTickOsc = null;
         function initAudio() {
@@ -570,7 +658,6 @@
             }, 350);
         }
 
-        // === THREE.JS COSMIC ENGINE ===
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 8000);
@@ -715,7 +802,6 @@
             for (let i = 0; i < 15; i++) { const mg = new THREE.Group(); const geoFn = geoTypes[Math.floor(Math.random() * geoTypes.length)]; const col = colors[Math.floor(Math.random() * colors.length)]; const mMesh = new THREE.Mesh(geoFn(), new THREE.MeshStandardMaterial({ color: col, roughness: 0.85, metalness: 0.2 })); mMesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI); mg.add(mMesh); const angle = Math.random() * Math.PI * 2; const dist = 60 + Math.random() * 120; mg.position.set(Math.cos(angle) * dist, (Math.random() - 0.5) * 60, Math.sin(angle) * dist); milkyWayGroup.add(mg); meteoroids.push({ grp: mg, rotSpd: new THREE.Vector3((Math.random()-0.5)*0.025, (Math.random()-0.5)*0.025, (Math.random()-0.5)*0.025) }); }
         })();
 
-        // === SOLAR SYSTEM ===
         const solarSystemGroup = new THREE.Group();
         solarSystemGroup.visible = false;
         scene.add(solarSystemGroup);
@@ -1580,6 +1666,7 @@
 
             if (isCharging) { const elapsed = Date.now() - chargeStartTime; chargeLevel = Math.min(1, elapsed / CHARGE_FULL_MS); updateChargeSound(chargeLevel); }
             const spin = 1 + chargeLevel * 15 + touchBoost * 0.5; pulseTime += 0.04 * spin; touchBoost *= 0.94; const chargeScale = 1 + chargeLevel * 1.1; const brightScale = (1 + Math.sin(pulseTime * 1.5) * 0.15 + touchBoost * 0.25) * chargeScale; innerBright.scale.set(brightScale, brightScale, brightScale); innerBright.material.opacity = 0.3 + Math.sin(pulseTime * 1.5) * 0.1 + touchBoost * 0.2 + chargeLevel * 0.6; innerCore.rotation.x += 0.008 * spin; innerCore.rotation.y += 0.012 * spin; midShell.rotation.x -= 0.004 * spin; midShell.rotation.y -= 0.006 * spin; outerShell.rotation.x += 0.002 * spin; outerShell.rotation.y -= 0.003 * spin; coreGroup.rotation.y += coreRotVelY; coreGroup.rotation.x += coreRotVelX; coreRotVelY *= 0.92; coreRotVelX *= 0.92; const scaleForce = (1 - coreScale) * 0.15; coreScaleVel += scaleForce; coreScaleVel *= 0.85; coreScale += coreScaleVel; const _coreSpaceScale = coreScale * (1 - ep * 0.85); coreGroup.scale.set(_coreSpaceScale, _coreSpaceScale, _coreSpaceScale); coreGroup.visible = (spaceState === 'core' || spaceState === 'collapsing') && spaceProgress < 0.98; const rumble = touchBoost * 0.08 + chargeLevel * 0.35; if (rumble > 0.01) { coreGroup.position.x = (Math.random() - 0.5) * rumble; coreGroup.position.y = (Math.random() - 0.5) * rumble; } else { coreGroup.position.x *= 0.9; coreGroup.position.y *= 0.9; } glowSphere.material.opacity = 0.08 + Math.sin(pulseTime * 0.6) * 0.04 + touchBoost * 0.15 + chargeLevel * 0.6; if (chargeLevel > 0.01) { const c = new THREE.Color(); if (chargeLevel < 0.5) c.lerpColors(new THREE.Color(0x8b5cf6), new THREE.Color(0xf59e0b), chargeLevel / 0.5); else c.lerpColors(new THREE.Color(0xf59e0b), new THREE.Color(0xef4444), (chargeLevel - 0.5) / 0.5); glowSphere.material.color.copy(c); innerBright.material.color.copy(c); innerCore.material.color.copy(c); midShell.material.color.copy(c); outerShell.material.color.copy(c); } if (isCharging && chargeLevel > 0.08) { boltTimer -= 1; const boltInterval = Math.max(1, Math.floor(14 - chargeLevel * 13)); if (boltTimer <= 0) { spawnBolt(); if (chargeLevel > 0.3 && Math.random() < 0.6) spawnBolt(); if (chargeLevel > 0.6 && Math.random() < 0.7) spawnBolt(); if (chargeLevel > 0.85 && Math.random() < 0.8) spawnBolt(); boltTimer = boltInterval; } } for (const b of boltPool) { if (b.life > 0) { b.life -= 0.12 + chargeLevel * 0.08; b.line.material.opacity = Math.max(0, b.life * 1.2); if (b.life <= 0) { b.line.visible = false; b.line.material.opacity = 0; } } } for (let i = ripples.length - 1; i >= 0; i--) { const r = ripples[i]; r.life -= 0.03; r.mesh.scale.setScalar(1 + (1 - r.life) * 4); r.mesh.material.opacity = r.life * 0.8; if (r.life <= 0) { scene.remove(r.mesh); r.mesh.geometry.dispose(); r.mesh.material.dispose(); ripples.splice(i, 1); } } 
+
             updateCosmicBirth();
             renderer.render(scene, camera);
         }
@@ -1595,34 +1682,161 @@
         function calculateATR(highs, lows, closes, period = 14) { let trs = []; for (let i = 1; i < highs.length; i++) trs.push(Math.max(highs[i]-lows[i], Math.abs(highs[i]-closes[i-1]), Math.abs(lows[i]-closes[i-1]))); return trs.slice(-period).reduce((a,b) => a+b, 0) / period; }
         function detectSetup(md) { const setups = []; if (!md || !md.candles1H || md.candles1H.length < 3) return null; const last = md.candles1H[md.candles1H.length - 1]; const prev = md.candles1H[md.candles1H.length - 2]; const bodySize = Math.abs(last.close - last.open); const upperWick = last.high - Math.max(last.open, last.close); const lowerWick = Math.min(last.open, last.close) - last.low; const range = last.high - last.low; if (md.rsi1H < 30 && md.currentPrice <= md.support * 1.001) setups.push({ type:'BUY', reason:`RSI oversold (${md.rsi1H.toFixed(1)}) + price at support ${md.support.toFixed(5)}`, strength:'STRONG' }); if (md.rsi1H > 70 && md.currentPrice >= md.resistance * 0.999) setups.push({ type:'SELL', reason:`RSI overbought (${md.rsi1H.toFixed(1)}) + price at resistance ${md.resistance.toFixed(5)}`, strength:'STRONG' }); if (md.currentPrice > md.resistance * 1.0005) setups.push({ type:'BUY', reason:`Breakout above resistance ${md.resistance.toFixed(5)}`, strength:'STRONG' }); if (md.currentPrice < md.support * 0.9995) setups.push({ type:'SELL', reason:`Breakdown below support ${md.support.toFixed(5)}`, strength:'STRONG' }); if (range > md.atr * 0.8) { if (lowerWick > bodySize * 2 && upperWick < bodySize && md.currentPrice <= md.support * 1.005) setups.push({ type:'BUY', reason:`Bullish Pin Bar rejection at support`, strength:'MEDIUM' }); if (upperWick > bodySize * 2 && lowerWick < bodySize && md.currentPrice >= md.resistance * 0.995) setups.push({ type:'SELL', reason:`Bearish Pin Bar rejection at resistance`, strength:'MEDIUM' }); } if (last.high < prev.high && last.low > prev.low) { if (md.currentPrice > prev.high) setups.push({ type:'BUY', reason:`Inside Bar breakout`, strength:'MEDIUM' }); if (md.currentPrice < prev.low) setups.push({ type:'SELL', reason:`Inside Bar breakdown`, strength:'MEDIUM' }); } if (bodySize > md.atr * 1.5) { const direction = last.close > last.open ? 'BUY' : 'SELL'; setups.push({ type: direction, reason:`Strong momentum candle`, strength:'MEDIUM' }); } if (md.ema20 && md.ema50) { if (md.ema20 > md.ema50 && md.currentPrice > md.ema20 && md.rsi1H > 50 && md.rsi1H < 70) setups.push({ type:'BUY', reason:`Bullish EMA alignment`, strength:'MEDIUM' }); if (md.ema20 < md.ema50 && md.currentPrice < md.ema20 && md.rsi1H < 50 && md.rsi1H > 30) setups.push({ type:'SELL', reason:`Bearish EMA alignment`, strength:'MEDIUM' }); } if (setups.length === 0) return null; return setups.find(s => s.strength === 'STRONG') || setups[0]; }
 
-        async function refreshMarketData() { const statusEl = document.getElementById('signal-status'); const livePriceEl = document.getElementById('live-price'); const lastUpdatedEl = document.getElementById('last-updated'); const [candles5m, candles15m, candles1H, candles4H] = await Promise.all([ fetchBiquoteCandles('5m', 50), fetchBiquoteCandles('15m', 50), fetchBiquoteCandles('1h', 50), fetchBiquoteCandles('4h', 50) ]); if (candles1H.length === 0) { statusEl.innerText = "Biquote data unavailable. Retrying..."; return; } const closes1H = candles1H.map(c => c.close), highs1H = candles1H.map(c => c.high), lows1H = candles1H.map(c => c.low); const closes5m = candles5m.map(c => c.close); const closes15m = candles15m.map(c => c.close); const ema20 = calculateEMA(closes1H, 20), ema50 = calculateEMA(closes1H, 50); const rsi1H = safeNum(calculateRSI(closes1H, 14), 50); const rsi15m = safeNum(calculateRSI(closes15m, 14), 50); const rsi5m = safeNum(calculateRSI(closes5m, 14), 50); const atr = safeNum(calculateATR(highs1H, lows1H, closes1H, 14), 0.001); const support = safeNum(Math.min(...lows1H.slice(-50)), 1.1176); const resistance = safeNum(Math.max(...highs1H.slice(-50)), 1.1246); const currentPrice = safeNum(closes5m[closes5m.length - 1] || closes1H[closes1H.length - 1], 1.1200); let trend = "Sideways"; const rh = highs1H.slice(-20), rl = lows1H.slice(-20); if (rh[rh.length-1] > rh[0] && rl[rl.length-1] > rl[0]) trend = "Uptrend"; if (rh[rh.length-1] < rh[0] && rl[rl.length-1] < rl[0]) trend = "Downtrend"; const hour = new Date().getUTCHours(); let session = "Off-Session"; if (hour >= 7 && hour < 16) session = "London Session"; else if (hour >= 12 && hour < 21) session = "New York Session"; else if (hour >= 0 && hour < 8) session = "Asian Session"; if (hour >= 12 && hour < 16) session = "London / NY Overlap"; marketData = { candles5m, candles15m, candles1H, candles4H, currentPrice, trend, support, resistance, session, rsi1H, rsi15m, rsi5m, ema20: ema20[ema20.length-1], ema50: ema50[ema50.length-1], atr }; livePriceEl.innerText = currentPrice.toFixed(5); lastUpdatedEl.innerText = `BIQUOTE LIVE · ${new Date().toLocaleTimeString('en-IN',{hour12:false})}`; document.getElementById('val-trend').innerText = trend; document.getElementById('val-session').innerText = session; document.getElementById('val-support').innerText = support.toFixed(5); document.getElementById('val-resistance').innerText = resistance.toFixed(5); document.getElementById('val-candle-current').innerText = `5m · ${currentPrice.toFixed(5)} · RSI ${rsi5m.toFixed(1)}`; document.getElementById('val-candle-1h').innerText = `1H · ${trend} · RSI ${rsi1H.toFixed(1)} · EMA20 ${ema20[ema20.length-1].toFixed(5)}`; document.getElementById('val-candle-4h').innerText = `4H bars loaded · ATR ${atr.toFixed(5)}`; const setup = detectSetup(marketData); if (setup) { addAlertToLog(setup); showSetupAlert(setup); } else { showSetupAlert(null); if (statusEl) statusEl.innerText = "Engine scanning — no setup detected"; } }
+        async function refreshMarketData() { 
+            const statusEl = document.getElementById('signal-status'); 
+            const livePriceEl = document.getElementById('live-price'); 
+            const lastUpdatedEl = document.getElementById('last-updated'); 
+            const [candles5m, candles15m, candles1H, candles4H] = await Promise.all([ 
+                fetchBiquoteCandles('5m', 50), 
+                fetchBiquoteCandles('15m', 50), 
+                fetchBiquoteCandles('1h', 50), 
+                fetchBiquoteCandles('4h', 50)
+            ]); 
+            
+            if (candles1H.length === 0) { statusEl.innerText = "Biquote data unavailable. Retrying..."; return; } 
+            const closes1H = candles1H.map(c => c.close), highs1H = candles1H.map(c => c.high), lows1H = candles1H.map(c => c.low); 
+            const closes5m = candles5m.map(c => c.close); 
+            const closes15m = candles15m.map(c => c.close); 
+            const ema20 = calculateEMA(closes1H, 20), ema50 = calculateEMA(closes1H, 50); 
+            const rsi1H = safeNum(calculateRSI(closes1H, 14), 50); 
+            const rsi15m = safeNum(calculateRSI(closes15m, 14), 50); 
+            const rsi5m = safeNum(calculateRSI(closes5m, 14), 50); 
+            const atr = safeNum(calculateATR(highs1H, lows1H, closes1H, 14), 0.001); 
+            const support = safeNum(Math.min(...lows1H.slice(-50)), 1.1176); 
+            const resistance = safeNum(Math.max(...highs1H.slice(-50)), 1.1246); 
+            const currentPrice = safeNum(closes5m[closes5m.length - 1] || closes1H[closes1H.length - 1], 1.1200); 
+            
+            const allCandlesToday = [...candles5m, ...candles15m, ...candles1H];
+            const todayHigh = allCandlesToday.length > 0 ? Math.max(...allCandlesToday.map(c => c.high)) : currentPrice;
+            const todayLow = allCandlesToday.length > 0 ? Math.min(...allCandlesToday.map(c => c.low)) : currentPrice;
+
+            let trend = "Sideways"; const rh = highs1H.slice(-20), rl = lows1H.slice(-20); if (rh[rh.length-1] > rh[0] && rl[rl.length-1] > rl[0]) trend = "Uptrend"; if (rh[rh.length-1] < rh[0] && rl[rl.length-1] < rl[0]) trend = "Downtrend"; 
+            const hour = new Date().getUTCHours(); 
+            let session = "Off-Session"; 
+            if (hour >= 7 && hour < 16) session = "London Session"; else if (hour >= 12 && hour < 21) session = "New York Session"; else if (hour >= 0 && hour < 8) session = "Asian Session"; if (hour >= 12 && hour < 16) session = "London / NY Overlap"; 
+            
+            marketData = { candles5m, candles15m, candles1H, candles4H, currentPrice, todayHigh, todayLow, trend, support, resistance, session, rsi1H, rsi15m, rsi5m, ema20: ema20[ema20.length-1], ema50: ema50[ema50.length-1], atr }; 
+            livePriceEl.innerText = currentPrice.toFixed(5); 
+            lastUpdatedEl.innerText = `BIQUOTE LIVE · ${new Date().toLocaleTimeString('en-IN',{hour12:false})}`; 
+            document.getElementById('val-trend').innerText = trend; 
+            document.getElementById('val-session').innerText = session; 
+            document.getElementById('val-support').innerText = support.toFixed(5); 
+            document.getElementById('val-resistance').innerText = resistance.toFixed(5); 
+            document.getElementById('val-candle-current').innerText = `5m · ${currentPrice.toFixed(5)} · RSI ${rsi5m.toFixed(1)}`; 
+            document.getElementById('val-candle-1h').innerText = `1H · ${trend} · RSI ${rsi1H.toFixed(1)} · EMA20 ${ema20[ema20.length-1].toFixed(5)}`; 
+            document.getElementById('val-candle-4h').innerText = `4H bars loaded · ATR ${atr.toFixed(5)}`; 
+            const setup = detectSetup(marketData); 
+            if (setup) { addAlertToLog(setup); showSetupAlert(setup); } else { showSetupAlert(null); if (statusEl) statusEl.innerText = "Engine scanning — no setup detected"; } 
+        }
 
         function addAlertToLog(alert) { const time = new Date().toLocaleTimeString('en-IN', {timeZone:'Asia/Kolkata', hour:'2-digit', minute:'2-digit'}); alertLog.unshift(`[${time}] ${alert.type} — ${alert.reason}`); if (alertLog.length > 5) alertLog = alertLog.slice(0, 5); localStorage.setItem('eurusd_alert_log', JSON.stringify(alertLog)); renderAlertLog(); }
         function renderAlertLog() { const el = document.getElementById('alert-log'); if (el) el.innerHTML = alertLog.length === 0 ? 'No alerts yet. Engine scanning...' : alertLog.map(a => `<div class="alert-log-item">${a}</div>`).join(''); }
-        function showSetupAlert(setup) { const alertBox = document.getElementById('alert-box'); const signalText = document.getElementById('signal-text'); const statusEl = document.getElementById('signal-status'); if (!setup) { alertBox.classList.remove('active'); if (!globalData) { signalText.innerText = "AWAITING"; signalText.style.color = "var(--text-subtle)"; statusEl.innerText = "Engine is scanning market structure..."; updateCoreColor('HOLD'); } return; } alertBox.innerHTML = `<strong>Setup Detected · ${setup.type}</strong><br>${setup.reason}<br><em>Tap "Ask AI for Signal" to confirm.</em>`; alertBox.classList.add('active'); if (!globalData || globalData.signal === 'WAITING') { signalText.innerText = "SETUP"; signalText.style.color = "var(--yellow)"; statusEl.innerText = `Opportunity spotted · ${setup.type}`; updateCoreColor('SETUP'); } }
+        
+        function showSetupAlert(setup) { 
+            const alertBox = document.getElementById('alert-box'); 
+            const signalText = document.getElementById('signal-text'); 
+            const statusEl = document.getElementById('signal-status'); 
+            
+            let newsWarningHtml = "";
+            if (highImpactWarningActive) {
+                newsWarningHtml = `<strong>⚠️ HIGH-IMPACT NEWS WARNING (-15m / +15m)</strong><br>Spreads may widen and volatility is elevated due to major macro data.<br><em>Trade with caution. Monitor your risk closely.</em><br><br>`;
+            }
+
+            if (!setup) { 
+                if (highImpactWarningActive) {
+                    alertBox.innerHTML = newsWarningHtml;
+                    alertBox.classList.add('active');
+                } else {
+                    alertBox.classList.remove('active'); 
+                }
+                if (!globalData) { 
+                    signalText.innerText = "AWAITING"; 
+                    signalText.style.color = "var(--text-subtle)"; 
+                    statusEl.innerText = "Engine is scanning market structure..."; 
+                    updateCoreColor('HOLD'); 
+                } 
+                return; 
+            } 
+            
+            alertBox.innerHTML = newsWarningHtml + `<strong>Setup Detected · ${setup.type}</strong><br>${setup.reason}<br><em>Tap "Ask AI for Signal" to confirm.</em>`; 
+            alertBox.classList.add('active'); 
+            if (!globalData || globalData.signal === 'WAITING') { 
+                signalText.innerText = "SETUP"; 
+                signalText.style.color = "var(--yellow)"; 
+                statusEl.innerText = `Opportunity spotted · ${setup.type}` + (highImpactWarningActive ? " (News Warning Active)" : ""); 
+                updateCoreColor('SETUP'); 
+            } 
+        }
 
         function isMarketQuestion(text) { return MARKET_KEYWORDS.some(kw => text.toLowerCase().includes(kw)); }
 
         async function callAI(systemPrompt, userText, conversationHistory) {
-            const messages = [{ role: 'system', content: systemPrompt }, ...conversationHistory.map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text })), { role: 'user', content: userText }];
+            const messages = [
+                { role: 'system', content: systemPrompt }, 
+                ...conversationHistory.map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text })), 
+                { role: 'user', content: userText }
+            ];
+
             if (groqKey) {
                 for (const model of GROQ_MODELS) {
                     try {
-                        const res = await fetch(GROQ_URL, { method: 'POST', headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: model, messages: messages, temperature: 0.95, max_tokens: 800 }) });
-                        if (res.ok) return (await res.json()).choices[0].message.content;
-                    } catch(e) {}
+                        const proxyGroqUrl = `https://corsproxy.io/?` + encodeURIComponent(GROQ_URL);
+                        const res = await fetch(proxyGroqUrl, { 
+                            method: 'POST', 
+                            headers: { 
+                                'Authorization': `Bearer ${groqKey}`, 
+                                'Content-Type': 'application/json' 
+                            }, 
+                            body: JSON.stringify({ 
+                                model: model, 
+                                messages: messages, 
+                                temperature: 0.95, 
+                                max_tokens: 2000 
+                            }) 
+                        });
+                        if (res.ok) {
+                            const data = await res.json();
+                            return data.choices[0].message.content;
+                        } else {
+                            const errBody = await res.text();
+                            console.warn(`Groq model ${model} failed with status ${res.status}:`, errBody);
+                        }
+                    } catch(e) {
+                        console.warn(`Groq model ${model} network error:`, e);
+                    }
                 }
             }
+
             if (apiKey) {
-                const contents = [{ role: 'user', parts: [{ text: systemPrompt }] }, ...conversationHistory.map(m => ({ role: m.role === 'ai' ? 'model' : 'user', parts: [{ text: m.text }] })), { role: 'user', parts: [{ text: userText }] }];
+                const contents = [
+                    { role: 'user', parts: [{ text: systemPrompt }] }, 
+                    ...conversationHistory.map(m => ({ role: m.role === 'ai' ? 'model' : 'user', parts: [{ text: m.text }] })), 
+                    { role: 'user', parts: [{ text: userText }] }
+                ];
                 for (const model of GEMINI_MODELS) {
                     try {
-                        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ contents, generationConfig: { maxOutputTokens: 800, temperature: 0.95 } }) });
-                        if (r.ok) return (await r.json()).candidates[0].content.parts[0].text;
-                    } catch(e) {}
+                        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+                        const r = await fetch(geminiUrl, { 
+                            method: 'POST', 
+                            headers: {'Content-Type': 'application/json'}, 
+                            body: JSON.stringify({ 
+                                contents, 
+                                generationConfig: { maxOutputTokens: 2000, temperature: 0.95 } 
+                            }) 
+                        });
+                        if (r.ok) {
+                            const data = await r.json();
+                            return data.candidates[0].content.parts[0].text;
+                        } else {
+                            const errBody = await r.text();
+                            console.warn(`Gemini model ${model} failed with status ${r.status}:`, errBody);
+                        }
+                    } catch(e) {
+                        console.warn(`Gemini model ${model} network error:`, e);
+                    }
                 }
             }
-            throw new Error("All AI providers failed. Check your keys.");
+            throw new Error("All AI providers failed. Check your keys or browser console.");
         }
 
         async function askAIForSignal() {
@@ -1630,17 +1844,40 @@
             if (!marketData) { await refreshMarketData(); }
             const signalText = document.getElementById('signal-text');
             const statusEl = document.getElementById('signal-status');
+            
             signalText.innerText = "ANALYZING"; signalText.style.color = "var(--purple)"; statusEl.innerText = "AI is analyzing all timeframes...";
             const md = marketData;
-            const fmt = (arr) => arr.slice(-20).map(c => `O:${(c.open || 0).toFixed(5)} H:${(c.high || 0).toFixed(5)} L:${(c.low || 0).toFixed(5)} C:${(c.close || 0).toFixed(5)}`).join('\n');
-            const dataString = `PRICE: ${md.currentPrice.toFixed(5)} | Trend: ${md.trend} | RSI 1H: ${md.rsi1H.toFixed(1)} | RSI 15m: ${md.rsi15m.toFixed(1)} | RSI 5m: ${md.rsi5m.toFixed(1)} | EMA20: ${md.ema20.toFixed(5)} | EMA50: ${md.ema50.toFixed(5)} | ATR: ${md.atr.toFixed(5)} | Support: ${md.support.toFixed(5)} | Resistance: ${md.resistance.toFixed(5)} | Session: ${md.session}\n\n5m:\n${fmt(md.candles5m)}\n\n15m:\n${fmt(md.candles15m)}\n\n1H:\n${fmt(md.candles1H)}\n\n4H:\n${fmt(md.candles4H)}`;
-            const signalPrompt = `You are Alex — Boss's trusted trading partner. TIME: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.\n\n${dataString}\n\nAnalyze candles, structure, and risk levels.\nRespond ONLY valid JSON: {"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences of natural market analysis in simple layman words, explaining what the price is doing without making yourself sound weak","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
+            const fmt = (arr) => arr.slice(-20).map(c => {
+                const tStr = new Date(c.time).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false });
+                return `[${tStr}] O:${(c.open || 0).toFixed(5)} H:${(c.high || 0).toFixed(5)} L:${(c.low || 0).toFixed(5)} C:${(c.close || 0).toFixed(5)}`;
+            }).join('\n');
+            const dataString = `PRICE: ${md.currentPrice.toFixed(5)} | Today's High: ${md.todayHigh.toFixed(5)} | Today's Low: ${md.todayLow.toFixed(5)} | Trend: ${md.trend} | RSI 1H: ${md.rsi1H.toFixed(1)} | RSI 15m: ${md.rsi15m.toFixed(1)} | RSI 5m: ${md.rsi5m.toFixed(1)} | EMA20: ${md.ema20.toFixed(5)} | EMA50: ${md.ema50.toFixed(5)} | ATR: ${md.atr.toFixed(5)} | Support: ${md.support.toFixed(5)} | Resistance: ${md.resistance.toFixed(5)} | Session: ${md.session}\n\n5m:\n${fmt(md.candles5m)}\n\n15m:\n${fmt(md.candles15m)}\n\n1H:\n${fmt(md.candles1H)}\n\n4H:\n${fmt(md.candles4H)}`;
+            
+            let newsInfo = "";
+            if (highImpactWarningActive) {
+                const activeHighs = macroEvents.filter(e => e.isHighImpactWindow);
+                newsInfo = `\nCRITICAL NEWS WARNING: High-impact economic news (${activeHighs.map(e => e.title).join(', ')}) is currently within the -15m / +15m window. Spreads may widen. Factoring this into risk assessment.\n`;
+            }
+
+            const signalPrompt = `You are Alex — Boss's trusted trading partner. TIME: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.\n\n${dataString}\n${newsInfo}\nAnalyze the provided candle data, structure, and risk levels.\nCRITICAL RULE: Never guess, estimate, or fabricate historical prices, timestamps, or session hours. If a specific price level or historical time is not explicitly present in the live market data block provided above, state clearly that it is not visible in current data rather than guessing.\n\nCRITICAL RISK GEOMETRY RULES FOR STOP-LOSS (SL) & TAKE-PROFIT (TP):\n- If signal is BUY: SL MUST be strictly below the entry price and support. TP MUST be above entry.\n- If signal is SELL: SL MUST be strictly above the entry price and resistance. TP MUST be below entry.\nRespond ONLY valid JSON: {"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences of natural market analysis in simple layman words, explaining what the price is doing without making yourself sound weak","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
+            
             try {
                 const reply = await callAI(signalPrompt, "Give me the signal.", []);
-                const jsonMatch = reply.match(/\{[\s\S]*?"signal"[\s\S]*?\}/);
-                if (!jsonMatch) throw new Error("No JSON signal returned");
-                const sig = JSON.parse(jsonMatch[0]);
+                
+                let cleanedReply = reply.replace(/```json/g, '').replace(/```/g, '').trim();
+                const jsonMatch = cleanedReply.match(/\{[\s\S]*?"signal"[\s\S]*?\}/);
+                
+                if (!jsonMatch) throw new Error("No JSON signal returned. AI said: " + reply.substring(0, 50) + "...");
+                
+                let sig;
+                try {
+                    sig = JSON.parse(jsonMatch[0]);
+                } catch(e) {
+                    throw new Error("JSON Parse Error: The AI formatted the data incorrectly.");
+                }
+
                 globalData = { price: md.currentPrice.toFixed(5), signal: sig.signal, reason: sig.reason, confidence: sig.confidence, entry: sig.entry, sl: sig.sl, tp: sig.tp, atr: md.atr.toFixed(5), support: md.support.toFixed(5), resistance: md.resistance.toFixed(5), trend: md.trend, session: md.session, valid: new Date(Date.now()+1800000).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})+" IST", wise_words: sig.wise_words };
+
                 signalText.innerText = sig.signal;
                 if (sig.signal === 'BUY') { signalText.style.color = 'var(--green)'; statusEl.innerText = 'Bullish day trading setup confirmed'; }
                 else if (sig.signal === 'SELL') { signalText.style.color = 'var(--red)'; statusEl.innerText = 'Bearish day trading setup confirmed'; }
@@ -1864,14 +2101,12 @@
 
             let routineDirectives = [];
             
-            // 1. Greeting on 1st chat reply of the day
             if (!dailyRoutineState.greeted) {
                 const greeting = istHour < 12 ? "Good morning" : (istHour < 17 ? "Good afternoon" : "Good evening");
                 routineDirectives.push(`[DIRECIVE 1: GREETING] This is the FIRST message of the day. Start your reply with a natural greeting like "${greeting}, Boss!" (vary the exact wording so it never sounds robotic). Mark as greeted.`);
                 dailyRoutineState.greeted = true;
             }
 
-            // 2. BP Tablets after 9:30 AM (once), and 1 hr reminder if no reply
             if (timeInMinutes >= 570 && !dailyRoutineState.bpAsked) {
                 routineDirectives.push(`[DIRECTIVE 2: BP TABLET] Ask naturally if Boss has taken his BP tablets today (ask only once in your own words, caring and friendly).`);
                 dailyRoutineState.bpAsked = true;
@@ -1881,38 +2116,31 @@
                 dailyRoutineState.bpReminderSent = true;
             }
 
-            // 3. Evening after 8 PM (dinner & BP tablets)
             if (istHour >= 20 && !dailyRoutineState.dinnerAsked) {
                 routineDirectives.push(`[DIRECTIVE 3: DINNER & BP] It's past 8 PM. In this message, naturally check if Boss has had his dinner and taken his BP tablets. Ask only once.`);
                 dailyRoutineState.dinnerAsked = true;
             }
 
-            // 4. Monday to Friday school routines
             if (!isWeekend) {
-                // School Bus: 8:00 AM to 8:45 AM (480 to 525 minutes)
                 if (timeInMinutes >= 480 && timeInMinutes <= 525 && !dailyRoutineState.schoolBusAsked) {
                     routineDirectives.push(`[DIRECTIVE 4A: SCHOOL BUS] It's morning school bus time (Mon-Fri). Naturally and warmly ask if Boss dropped the kids off at the school bus. Change the wording so it doesn't sound like a template.`);
                     dailyRoutineState.schoolBusAsked = true;
                 }
-                // Pick from school: 3:30 PM to 3:55 PM (930 to 955 minutes)
                 if (timeInMinutes >= 930 && timeInMinutes <= 955 && !dailyRoutineState.schoolPickAsked) {
                     routineDirectives.push(`[DIRECTIVE 4B: SCHOOL PICKUP] It's afternoon school pickup time (3:30 to 3:55 PM). Remind Boss naturally to go pick up the kids from school.`);
                     dailyRoutineState.schoolPickAsked = true;
                 }
-                // Kids back from school: 4:15 PM to 4:40 PM (955 to 980 minutes)
                 if (timeInMinutes >= 855 && timeInMinutes <= 880 && !dailyRoutineState.schoolBackAsked) {
                     routineDirectives.push(`[DIRECTIVE 4C: KIDS BACK] Check naturally if the kids are back safely from school.`);
                     dailyRoutineState.schoolBackAsked = true;
                 }
             }
 
-            // 5. Sadia called from Dubai: 10:30 AM to 11:15 AM (630 to 675 minutes)
             if (timeInMinutes >= 630 && timeInMinutes <= 675 && !dailyRoutineState.sadiaCalledAsked) {
                 routineDirectives.push(`[DIRECTIVE 5: SADIA CALL] Ask naturally if Sadia has called from Dubai yet today.`);
                 dailyRoutineState.sadiaCalledAsked = true;
             }
 
-            // 6. Cookie check: 9 AM to 8 PM (540 to 1200 minutes), max 3 times per day with interval rules (1st: any time, 2nd: >=3 hrs after, 3rd: >=4 hrs after)
             if (timeInMinutes >= 540 && timeInMinutes <= 1200 && dailyRoutineState.cookieCheckCount < 3) {
                 const nowTime = Date.now();
                 const canCheck = dailyRoutineState.cookieCheckCount === 0 || 
@@ -1951,7 +2179,23 @@
                 }
             }
             
-            let marketBlock = marketData ? `\nLIVE MARKET DATA (EUR/USD):\nPrice: ${safeNum(marketData.currentPrice, 1.1200).toFixed(5)} | Trend: ${marketData.trend} | Support: ${safeNum(marketData.support, 1.1176).toFixed(5)} | Resistance: ${safeNum(marketData.resistance, 1.1246).toFixed(5)} | RSI 1H: ${safeNum(marketData.rsi1H, 50).toFixed(1)} | Session: ${marketData.session}\n` : "";
+            let macroContextBlock = "";
+            if (macroEvents && macroEvents.length > 0) {
+                const activeHighs = macroEvents.filter(e => e.isHighImpactWindow);
+                if (activeHighs.length > 0) {
+                    macroContextBlock = `\nCRITICAL MACRO WARNING: High-impact economic news (${activeHighs.map(e => e.title).join(', ')}) is currently within the -15m / +15m window! Ensure you mention this to Boss and factor it into your risk warning.\n`;
+                }
+            }
+            
+            let marketBlock = "";
+            if (marketData) {
+                const fmt = (arr) => arr.slice(-10).map(c => {
+                    const tStr = new Date(c.time).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false });
+                    return `[${tStr}] O:${(c.open || 0).toFixed(5)} H:${(c.high || 0).toFixed(5)} L:${(c.low || 0).toFixed(5)} C:${(c.close || 0).toFixed(5)}`;
+                }).join('\n');
+                
+                marketBlock = `\nLIVE MARKET DATA (EUR/USD):\nPrice: ${safeNum(marketData.currentPrice, 1.1200).toFixed(5)} | Today's High: ${safeNum(marketData.todayHigh, marketData.currentPrice).toFixed(5)} | Today's Low: ${safeNum(marketData.todayLow, marketData.currentPrice).toFixed(5)} | Trend: ${marketData.trend} | Support: ${safeNum(marketData.support, 1.1176).toFixed(5)} | Resistance: ${safeNum(marketData.resistance, 1.1246).toFixed(5)} | RSI 1H: ${safeNum(marketData.rsi1H, 50).toFixed(1)} | Session: ${marketData.session}\n\nRECENT CANDLES (Last 10):\n5m:\n${fmt(marketData.candles5m)}\n\n15m:\n${fmt(marketData.candles15m)}\n\n1H:\n${fmt(marketData.candles1H)}\n\n4H:\n${fmt(marketData.candles4H)}\n${macroContextBlock}`;
+            }
 
             let personalBlock = "";
             if (personalContext && typeof personalContext === 'object') {
@@ -1968,6 +2212,10 @@
 
 ${routinePromptBlock}
 
+=== HALLUCINATION GUARDRAIL (STRICT) ===
+- Never guess, estimate, or fabricate historical prices, timestamps, or session hours. 
+- If a specific price level or historical time is not explicitly present in the live market data block provided to you, state clearly that it is not visible in current data rather than guessing.
+
 === REPLY STYLE (STRICT — READ THIS FIRST) ===
 - Talk like you're actually sitting next to Boss, having a real conversation. Natural flowing sentences, not bullet-point lists or scripted formats.
 - NEVER ramble, NEVER repeat the question, NEVER pad with disclaimers, preambles, or "as an AI".
@@ -1977,7 +2225,7 @@ ${routinePromptBlock}
 - Your analysis depth stays FULL — every key level, risk, and opportunity must still be delivered. Just spoken naturally, not in list format.
 - NEVER sound weak, hesitant, or unsure. Confidence and expertise stay at 100%.
 - Do NOT overuse "Boss" — once per reply is plenty, sometimes zero is fine.
-- ONLY for trading/market answers: if Boss might want more, you may end with ONE short line like "Want the full breakdown?" — nothing more. Skip it entirely if the reply already felt complete. NEVER use this offer line for personal, casual, family, or chit-chat replies.
+- ONLY for trading/market answers: if Boss might want more, you may end one short line like "Want the full breakdown?" — nothing more. Skip it entirely if the reply already felt complete. NEVER use this offer line for personal, casual, family, or chit-chat replies.
 - The JSON block at the very end of a market reply is stripped by the app before Boss sees it. Never narrate it, never say "signal colon" or "open bracket" — just write the JSON silently on its own final line.
 
 === PERSONALITY & TONE GUIDELINES ===
@@ -1993,10 +2241,14 @@ ${routinePromptBlock}
 - Time awareness (STRICT): Current IST time is ${istTime}.
 
 === RULES ===
+- If signal is BUY, the Stop-Loss (SL) MUST be strictly placed BELOW the entry price and support.
+- If signal is SELL, the Stop-Loss (SL) MUST be strictly placed ABOVE the entry price and resistance.
 - If Boss says "Remember", "Save this", or tells you an important fact, append this tag at the very end of your reply: [REMEMBER: Exact fact to save].
 - If Boss asks for a reminder, append: [REMINDER: Day HH:MM - message] or [REMINDER: HH:MM - message].
 - Today is ${dayName}, ${istTime} IST.
+
 ${askedBlock}
+
 ${memoryBlock}${personalBlock}${marketBlock}`;
             
             if (includeSignal) { 
@@ -2056,7 +2308,14 @@ ${memoryBlock}${personalBlock}${marketBlock}`;
                 response = cleanResponse(response);
                 let signalData = null;
                 const jsonMatch = response.match(/\{[\s\S]*?"signal"[\s\S]*?\}/);
-                if (jsonMatch) { try { signalData = JSON.parse(jsonMatch[0]); response = response.replace(jsonMatch[0], '').trim(); } catch(e) {} }
+                if (jsonMatch) { 
+                    try { 
+                        signalData = JSON.parse(jsonMatch[0]); 
+                        response = response.replace(jsonMatch[0], '').trim(); 
+                    } catch(e) {
+                        console.warn("Failed to parse JSON from chat response:", e);
+                    } 
+                }
                 document.getElementById('chat-history').removeChild(loading);
                 
                 const rmTags = response.match(/\[\s*REMINDER\s*[:：][^\]]*\]/gi);
@@ -2126,7 +2385,9 @@ ${memoryBlock}${personalBlock}${marketBlock}`;
                 askedBlock = `\nDO NOT ask about any of these again: ${recentCheckinTopics.slice(-15).join(', ')}`;
             }
             const prompt = `You are Alex, elite EUR/USD day trader and best friend. Check in on Boss casually in simple human words. Keep it to 1-2 short sentences.
+
 STRICT: Ask AT MOST ONE casual question.
+
 Time awareness (STRICT): ${mealContext}${askedBlock}`;
             try {
                 let response = await callAI(prompt, "Check in on Boss.", []);
@@ -2378,10 +2639,15 @@ Time awareness (STRICT): ${mealContext}${askedBlock}`;
             updateCoreColor('HOLD'); updateISTClock();
             if ('Notification' in window && Notification.permission === 'default') { setTimeout(() => Notification.requestPermission(), 2000); }
             refreshMarketData();
+            refreshMacroNews();
             setInterval(() => { if (chatInProgress) return; refreshMarketData(); }, 60000);
+            setInterval(() => { if (chatInProgress) return; refreshMacroNews(); }, 300000);
             setInterval(() => { if (chatInProgress) return; askAIForSignal(); }, 3600000);
             setInterval(() => { if (chatInProgress) return; triggerProactiveCheckin(); }, 7200000);
         };
     </script>
 </body>
 </html>
+
+```
+
