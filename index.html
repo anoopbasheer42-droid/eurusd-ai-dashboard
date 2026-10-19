@@ -273,7 +273,6 @@
                 <div id="val-candle-4h">—</div>
             </div>
         </div>
-        <!-- NEW: Live Macro News & Economic Calendar -->
         <div class="card" style="border: 2px solid rgba(59, 130, 246, 0.4); box-shadow: 0 0 30px rgba(59, 130, 246, 0.15);">
             <div class="card-title" style="color: var(--blue);">Live Macro News & Economic Calendar Feed</div>
             <div id="macro-news-container" style="font-size:0.75rem; color:var(--text-body); line-height:1.6;">
@@ -309,7 +308,6 @@
         let scheduledSearches = JSON.parse(localStorage.getItem('eurusd_scheduled_searches') || '[]');
         let recentCheckinTopics = JSON.parse(localStorage.getItem('eurusd_recent_checkin_topics') || '[]');
         
-        // Macro News State
         let macroEvents = [];
         let highImpactWarningActive = false;
 
@@ -323,7 +321,6 @@
         let voiceEngineMode = localStorage.getItem('eurusd_voice_engine_mode') || 'cloud';
         let currentAudio = null;
 
-        // Daily tracking state for new daily routines
         let dailyRoutineState = JSON.parse(localStorage.getItem('eurusd_daily_routine_state') || '{}');
 
         document.body.addEventListener('click', () => { if ('speechSynthesis' in window) window.speechSynthesis.getVoices(); }, { once: true });
@@ -404,7 +401,6 @@
             }
         }
 
-        // === MACRO NEWS ENGINE ===
         async function refreshMacroNews() {
             const container = document.getElementById('macro-news-container');
             container.innerHTML = '<em>Refreshing live macroeconomic events...</em>';
@@ -482,7 +478,6 @@
             }).join('');
         }
 
-        // === AUDIO ENGINE ===
         let audioCtx = null;
         let chargeOsc1 = null, chargeOsc2 = null, chargeGain = null, chargeTickGain = null, chargeTickOsc = null;
         function initAudio() {
@@ -663,7 +658,6 @@
             }, 350);
         }
 
-        // === THREE.JS COSMIC ENGINE ===
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 8000);
@@ -808,7 +802,6 @@
             for (let i = 0; i < 15; i++) { const mg = new THREE.Group(); const geoFn = geoTypes[Math.floor(Math.random() * geoTypes.length)]; const col = colors[Math.floor(Math.random() * colors.length)]; const mMesh = new THREE.Mesh(geoFn(), new THREE.MeshStandardMaterial({ color: col, roughness: 0.85, metalness: 0.2 })); mMesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI); mg.add(mMesh); const angle = Math.random() * Math.PI * 2; const dist = 60 + Math.random() * 120; mg.position.set(Math.cos(angle) * dist, (Math.random() - 0.5) * 60, Math.sin(angle) * dist); milkyWayGroup.add(mg); meteoroids.push({ grp: mg, rotSpd: new THREE.Vector3((Math.random()-0.5)*0.025, (Math.random()-0.5)*0.025, (Math.random()-0.5)*0.025) }); }
         })();
 
-        // === SOLAR SYSTEM ===
         const solarSystemGroup = new THREE.Group();
         solarSystemGroup.visible = false;
         scene.add(solarSystemGroup);
@@ -1787,8 +1780,7 @@
             if (groqKey) {
                 for (const model of GROQ_MODELS) {
                     try {
-                        const proxyTarget = encodeURIComponent(GROQ_URL);
-                        const res = await fetch(`https://corsproxy.io/?${proxyTarget}`, { 
+                        const res = await fetch(GROQ_URL, { 
                             method: 'POST', 
                             headers: { 
                                 'Authorization': `Bearer ${groqKey}`, 
@@ -1798,16 +1790,18 @@
                                 model: model, 
                                 messages: messages, 
                                 temperature: 0.95, 
-                                max_tokens: 2000,
-                                stop: ["<|eot_id|>", "<|end_of_text|>"]
+                                max_tokens: 2000 
                             }) 
                         });
                         if (res.ok) {
                             const data = await res.json();
                             return data.choices[0].message.content;
+                        } else {
+                            const errBody = await res.text();
+                            console.warn(`Groq model ${model} failed with status ${res.status}:`, errBody);
                         }
                     } catch(e) {
-                        console.warn(`Groq model ${model} failed:`, e);
+                        console.warn(`Groq model ${model} network error:`, e);
                     }
                 }
             }
@@ -1821,8 +1815,7 @@
                 for (const model of GEMINI_MODELS) {
                     try {
                         const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-                        const proxyTarget = encodeURIComponent(geminiUrl);
-                        const r = await fetch(`https://corsproxy.io/?${proxyTarget}`, { 
+                        const r = await fetch(geminiUrl, { 
                             method: 'POST', 
                             headers: {'Content-Type': 'application/json'}, 
                             body: JSON.stringify({ 
@@ -1833,9 +1826,12 @@
                         if (r.ok) {
                             const data = await r.json();
                             return data.candidates[0].content.parts[0].text;
+                        } else {
+                            const errBody = await r.text();
+                            console.warn(`Gemini model ${model} failed with status ${r.status}:`, errBody);
                         }
                     } catch(e) {
-                        console.warn(`Gemini model ${model} failed:`, e);
+                        console.warn(`Gemini model ${model} network error:`, e);
                     }
                 }
             }
