@@ -1,3 +1,8 @@
+Here is the complete file. I have removed the 1D (Daily) and 1W (Weekly) timeframes from the data fetching, the chat prompt, and the signal prompt, leaving only 5m, 15m, 1H, and 4H.
+
+Everything else (including the API token fixes and JSON error handling we just fixed) is left exactly as it was.
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1692,13 +1697,11 @@
             const statusEl = document.getElementById('signal-status'); 
             const livePriceEl = document.getElementById('live-price'); 
             const lastUpdatedEl = document.getElementById('last-updated'); 
-            const [candles5m, candles15m, candles1H, candles4H, candles1D, candles1W] = await Promise.all([ 
+            const [candles5m, candles15m, candles1H, candles4H] = await Promise.all([ 
                 fetchBiquoteCandles('5m', 50), 
                 fetchBiquoteCandles('15m', 50), 
                 fetchBiquoteCandles('1h', 50), 
-                fetchBiquoteCandles('4h', 50),
-                fetchBiquoteCandles('1d', 50),
-                fetchBiquoteCandles('1w', 50)
+                fetchBiquoteCandles('4h', 50)
             ]); 
             
             if (candles1H.length === 0) { statusEl.innerText = "Biquote data unavailable. Retrying..."; return; } 
@@ -1724,7 +1727,7 @@
             let session = "Off-Session"; 
             if (hour >= 7 && hour < 16) session = "London Session"; else if (hour >= 12 && hour < 21) session = "New York Session"; else if (hour >= 0 && hour < 8) session = "Asian Session"; if (hour >= 12 && hour < 16) session = "London / NY Overlap"; 
             
-            marketData = { candles5m, candles15m, candles1H, candles4H, candles1D, candles1W, currentPrice, todayHigh, todayLow, trend, support, resistance, session, rsi1H, rsi15m, rsi5m, ema20: ema20[ema20.length-1], ema50: ema50[ema50.length-1], atr }; 
+            marketData = { candles5m, candles15m, candles1H, candles4H, currentPrice, todayHigh, todayLow, trend, support, resistance, session, rsi1H, rsi15m, rsi5m, ema20: ema20[ema20.length-1], ema50: ema50[ema50.length-1], atr }; 
             livePriceEl.innerText = currentPrice.toFixed(5); 
             lastUpdatedEl.innerText = `BIQUOTE LIVE · ${new Date().toLocaleTimeString('en-IN',{hour12:false})}`; 
             document.getElementById('val-trend').innerText = trend; 
@@ -1833,7 +1836,7 @@
                 const tStr = new Date(c.time).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false });
                 return `[${tStr}] O:${(c.open || 0).toFixed(5)} H:${(c.high || 0).toFixed(5)} L:${(c.low || 0).toFixed(5)} C:${(c.close || 0).toFixed(5)}`;
             }).join('\n');
-            const dataString = `PRICE: ${md.currentPrice.toFixed(5)} | Today's High: ${md.todayHigh.toFixed(5)} | Today's Low: ${md.todayLow.toFixed(5)} | Trend: ${md.trend} | RSI 1H: ${md.rsi1H.toFixed(1)} | RSI 15m: ${md.rsi15m.toFixed(1)} | RSI 5m: ${md.rsi5m.toFixed(1)} | EMA20: ${md.ema20.toFixed(5)} | EMA50: ${md.ema50.toFixed(5)} | ATR: ${md.atr.toFixed(5)} | Support: ${md.support.toFixed(5)} | Resistance: ${md.resistance.toFixed(5)} | Session: ${md.session}\n\n5m:\n${fmt(md.candles5m)}\n\n15m:\n${fmt(md.candles15m)}\n\n1H:\n${fmt(md.candles1H)}\n\n4H:\n${fmt(md.candles4H)}\n\n1D:\n${fmt(md.candles1D)}\n\n1W:\n${fmt(md.candles1W)}`;
+            const dataString = `PRICE: ${md.currentPrice.toFixed(5)} | Today's High: ${md.todayHigh.toFixed(5)} | Today's Low: ${md.todayLow.toFixed(5)} | Trend: ${md.trend} | RSI 1H: ${md.rsi1H.toFixed(1)} | RSI 15m: ${md.rsi15m.toFixed(1)} | RSI 5m: ${md.rsi5m.toFixed(1)} | EMA20: ${md.ema20.toFixed(5)} | EMA50: ${md.ema50.toFixed(5)} | ATR: ${md.atr.toFixed(5)} | Support: ${md.support.toFixed(5)} | Resistance: ${md.resistance.toFixed(5)} | Session: ${md.session}\n\n5m:\n${fmt(md.candles5m)}\n\n15m:\n${fmt(md.candles15m)}\n\n1H:\n${fmt(md.candles1H)}\n\n4H:\n${fmt(md.candles4H)}`;
             
             let newsInfo = "";
             if (highImpactWarningActive) {
@@ -2176,7 +2179,7 @@
                     return `[${tStr}] O:${(c.open || 0).toFixed(5)} H:${(c.high || 0).toFixed(5)} L:${(c.low || 0).toFixed(5)} C:${(c.close || 0).toFixed(5)}`;
                 }).join('\n');
                 
-                marketBlock = `\nLIVE MARKET DATA (EUR/USD):\nPrice: ${safeNum(marketData.currentPrice, 1.1200).toFixed(5)} | Today's High: ${safeNum(marketData.todayHigh, marketData.currentPrice).toFixed(5)} | Today's Low: ${safeNum(marketData.todayLow, marketData.currentPrice).toFixed(5)} | Trend: ${marketData.trend} | Support: ${safeNum(marketData.support, 1.1176).toFixed(5)} | Resistance: ${safeNum(marketData.resistance, 1.1246).toFixed(5)} | RSI 1H: ${safeNum(marketData.rsi1H, 50).toFixed(1)} | Session: ${marketData.session}\n\nRECENT CANDLES (Last 10):\n5m:\n${fmt(marketData.candles5m)}\n\n15m:\n${fmt(marketData.candles15m)}\n\n1H:\n${fmt(marketData.candles1H)}\n\n4H:\n${fmt(marketData.candles4H)}\n\n1D:\n${fmt(marketData.candles1D)}\n\n1W:\n${fmt(marketData.candles1W)}\n${macroContextBlock}`;
+                marketBlock = `\nLIVE MARKET DATA (EUR/USD):\nPrice: ${safeNum(marketData.currentPrice, 1.1200).toFixed(5)} | Today's High: ${safeNum(marketData.todayHigh, marketData.currentPrice).toFixed(5)} | Today's Low: ${safeNum(marketData.todayLow, marketData.currentPrice).toFixed(5)} | Trend: ${marketData.trend} | Support: ${safeNum(marketData.support, 1.1176).toFixed(5)} | Resistance: ${safeNum(marketData.resistance, 1.1246).toFixed(5)} | RSI 1H: ${safeNum(marketData.rsi1H, 50).toFixed(1)} | Session: ${marketData.session}\n\nRECENT CANDLES (Last 10):\n5m:\n${fmt(marketData.candles5m)}\n\n15m:\n${fmt(marketData.candles15m)}\n\n1H:\n${fmt(marketData.candles1H)}\n\n4H:\n${fmt(marketData.candles4H)}\n${macroContextBlock}`;
             }
 
             let personalBlock = "";
@@ -2626,4 +2629,4 @@ Time awareness (STRICT): ${mealContext}${askedBlock}`;
     </script>
 </body>
 </html>
-
+```
