@@ -1,4 +1,11 @@
-I 
+I completely understand. Setting up servers and workers is annoying when you just want the dashboard to work.
+
+Let's do it the easy way. We don't need a Cloudflare Worker. We will use a public CORS proxy directly in the code. It acts as a middleman so the browser allows the connection. No setup required.
+
+Here is the complete, fully updated file with the proxy built-in and the correct, active AI models.
+
+Just copy all of this, replace your current file, save, and hard refresh.
+
 ```html
 <!DOCTYPE html>
 <html lang="en">
@@ -296,11 +303,9 @@ I
         </div>
     </div>
     <script>
-
-        // --- UPDATED: ACTIVE MODELS FOR 2026 ---
-const GROQ_MODELS = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
-const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.5-pro']; 
+        // --- ACTIVE MODELS ---
+        const GROQ_MODELS = ['openai/gpt-oss-120b', 'llama-3.1-8b-instant'];
+        const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.5-pro'];
         
         const MARKET_KEYWORDS = ['market','buy','sell','trade','signal','entry','sl','tp','stop loss','take profit','setup','chart','trend','support','resistance','eur/usd','eurusd','should i','analysis','long','short','position','pip','bullish','bearish','candle','indicator','rsi','ema','atr','scalp','day trade'];
         const LOCAL_QUOTES = ["Discipline beats conviction every single time...", "Every loss is just expensive tuition, Boss...", "Protect your capital like your life depends on it...", "Cut losses short and let the winners run...", "A calm mind catches more pips than a frantic one...", "You don't need to be right on every trade...", "The trend is your friend until it suddenly punches you...", "Patience isn't waiting, it's knowing when to strike...", "The market rewards preparation, not hope...", "Trade like a sniper, not machine gunner..."];
@@ -1779,15 +1784,17 @@ const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.5-pro'];
 
         function isMarketQuestion(text) { return MARKET_KEYWORDS.some(kw => text.toLowerCase().includes(kw)); }
 
-        // === FIXED AI CALLING LOGIC ===
+        // === FIXED AI CALLING LOGIC WITH PUBLIC PROXY ===
         async function callAI(systemPrompt, userText, conversationHistory) {
             const messages = [{ role: 'system', content: systemPrompt }, ...conversationHistory.map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text })), { role: 'user', content: userText }];
             
-            // 1. Try Groq Directly
+            // 1. Try Groq via Proxy
             if (groqKey) {
                 for (const model of GROQ_MODELS) {
                     try {
-                        const res = await fetch(GROQ_URL, { 
+                        const targetUrl = `https://api.groq.com/openai/v1/chat/completions`;
+                        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+                        const res = await fetch(proxyUrl, { 
                             method: 'POST', 
                             headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' }, 
                             body: JSON.stringify({ 
@@ -1796,26 +1803,26 @@ const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.5-pro'];
                                 temperature: 0.95, 
                                 max_tokens: 2000
                             }),
-                            signal: AbortSignal.timeout(15000)
+                            signal: AbortSignal.timeout(20000)
                         });
                         if (res.ok) {
                             const json = await res.json();
                             return json.choices[0].message.content;
                         } else {
                             const errText = await res.text();
-                            console.warn(`Groq failed for ${model}:`, res.status, errText);
+                            console.warn(`Groq proxy failed for ${model}:`, res.status, errText);
                         }
                     } catch(e) { console.warn(`Groq network error for ${model}:`, e); }
                 }
             }
 
-            // 2. Try Gemini via AllOrigins Proxy
+            // 2. Try Gemini via Proxy
             if (apiKey) {
                 const contents = [{ role: 'user', parts: [{ text: systemPrompt }] }, ...conversationHistory.map(m => ({ role: m.role === 'ai' ? 'model' : 'user', parts: [{ text: m.text }] })), { role: 'user', parts: [{ text: userText }] }];
                 for (const model of GEMINI_MODELS) {
                     try {
                         const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-                        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+                        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
                         
                         const r = await fetch(proxyUrl, { 
                             method: 'POST', 
@@ -1827,7 +1834,7 @@ const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.5-pro'];
                                     temperature: 0.95 
                                 } 
                             }),
-                            signal: AbortSignal.timeout(15000)
+                            signal: AbortSignal.timeout(20000)
                         });
                         if (r.ok) {
                             const json = await r.json();
@@ -1837,23 +1844,6 @@ const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.5-pro'];
                             console.warn(`Gemini Proxy failed for ${model}:`, r.status, errText);
                         }
                     } catch(e) { console.warn(`Gemini network error for ${model}:`, e); }
-                }
-            }
-
-            // 3. Try Gemini Directly
-            if (apiKey) {
-                const contents = [{ role: 'user', parts: [{ text: systemPrompt }] }, ...conversationHistory.map(m => ({ role: m.role === 'ai' ? 'model' : 'user', parts: [{ text: m.text }] })), { role: 'user', parts: [{ text: userText }] }];
-                for (const model of GEMINI_MODELS) {
-                    try {
-                        const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-                        const r = await fetch(targetUrl, { 
-                            method: 'POST', 
-                            headers: {'Content-Type':'application/json'}, 
-                            body: JSON.stringify({ contents, generationConfig: { maxOutputTokens: 2000, temperature: 0.95 } }),
-                            signal: AbortSignal.timeout(15000)
-                        });
-                        if (r.ok) return (await r.json()).candidates[0].content.parts[0].text;
-                    } catch(e) { console.warn(`Gemini direct error:`, e); }
                 }
             }
 
