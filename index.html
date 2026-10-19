@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1770,7 +1771,7 @@
                 newsInfo = `\nCRITICAL NEWS WARNING: High-impact economic news (${activeHighs.map(e => e.title).join(', ')}) is currently within the -15m / +15m window. Spreads may widen. Factoring this into risk assessment.\n`;
             }
 
-            const signalPrompt = `You are Alex — Boss's trusted trading partner. TIME: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.\n\n${dataString}\n${newsInfo}\nAnalyze candles, structure, and risk levels.\nRespond ONLY valid JSON: {"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences of natural market analysis in simple layman words, explaining what the price is doing without making yourself sound weak","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
+            const signalPrompt = `You are Alex — Boss's trusted trading partner. TIME: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.\n\n${dataString}\n${newsInfo}\nAnalyze candles, structure, and risk levels.\nCRITICAL RISK GEOMETRY RULES FOR STOP-LOSS (SL) & TAKE-PROFIT (TP):\n- If signal is BUY: SL MUST be strictly below the entry price and support. TP MUST be above entry.\n- If signal is SELL: SL MUST be strictly above the entry price and resistance. TP MUST be below entry.\nRespond ONLY valid JSON: {"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences of natural market analysis in simple layman words, explaining what the price is doing without making yourself sound weak","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
             try {
                 const reply = await callAI(signalPrompt, "Give me the signal.", []);
                 const jsonMatch = reply.match(/\{[\s\S]*?"signal"[\s\S]*?\}/);
@@ -2137,6 +2138,8 @@ ${routinePromptBlock}
 - Time awareness (STRICT): Current IST time is ${istTime}.
 
 === RULES ===
+- If signal is BUY, the Stop-Loss (SL) MUST be strictly placed BELOW the entry price and support.
+- If signal is SELL, the Stop-Loss (SL) MUST be strictly placed ABOVE the entry price and resistance.
 - If Boss says "Remember", "Save this", or tells you an important fact, append this tag at the very end of your reply: [REMEMBER: Exact fact to save].
 - If Boss asks for a reminder, append: [REMINDER: Day HH:MM - message] or [REMINDER: HH:MM - message].
 - Today is ${dayName}, ${istTime} IST.
@@ -2532,3 +2535,4 @@ Time awareness (STRICT): ${mealContext}${askedBlock}`;
 </body>
 </html>
 
+```
