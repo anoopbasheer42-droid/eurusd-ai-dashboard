@@ -1770,7 +1770,7 @@
                 newsInfo = `\nCRITICAL NEWS WARNING: High-impact economic news (${activeHighs.map(e => e.title).join(', ')}) is currently within the -15m / +15m window. Spreads may widen. Factoring this into risk assessment.\n`;
             }
 
-            const signalPrompt = `You are Alex — Boss's trusted trading partner. TIME: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.\n\n${dataString}\n${newsInfo}\nAnalyze candles, structure, and risk levels.\nCRITICAL RISK GEOMETRY RULES FOR STOP-LOSS (SL) & TAKE-PROFIT (TP):\n- If signal is BUY: SL MUST be strictly below the entry price and support. TP MUST be above entry.\n- If signal is SELL: SL MUST be strictly above the entry price and resistance. TP MUST be below entry.\nRespond ONLY valid JSON: {"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences of natural market analysis in simple layman words, explaining what the price is doing without making yourself sound weak","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
+            const signalPrompt = `You are Alex — Boss's trusted trading partner. TIME: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.\n\n${dataString}\n${newsInfo}\nAnalyze candles, structure, and risk levels.\nCRITICAL RULE: Never guess, estimate, or fabricate historical prices, timestamps, or session hours. If a specific price level or historical time is not explicitly present in the live market data block provided above, state clearly that it is not visible in current data rather than guessing.\n\nCRITICAL RISK GEOMETRY RULES FOR STOP-LOSS (SL) & TAKE-PROFIT (TP):\n- If signal is BUY: SL MUST be strictly below the entry price and support. TP MUST be above entry.\n- If signal is SELL: SL MUST be strictly above the entry price and resistance. TP MUST be below entry.\nRespond ONLY valid JSON: {"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences of natural market analysis in simple layman words, explaining what the price is doing without making yourself sound weak","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
             try {
                 const reply = await callAI(signalPrompt, "Give me the signal.", []);
                 const jsonMatch = reply.match(/\{[\s\S]*?"signal"[\s\S]*?\}/);
@@ -2111,6 +2111,10 @@
 - Always provide available trade options (e.g., waiting for pullback, breakout, or standing aside), explicitly assess the session/timing risk (e.g., wide spreads, low liquidity, weekend gap risk), and tell Boss what YOU personally would do in this exact situation as a human trader sitting right beside him.
 
 ${routinePromptBlock}
+
+=== HALLUCINATION GUARDRAIL (STRICT) ===
+- Never guess, estimate, or fabricate historical prices, timestamps, or session hours. 
+- If a specific price level or historical time is not explicitly present in the live market data block provided to you, state clearly that it is not visible in current data rather than guessing.
 
 === REPLY STYLE (STRICT — READ THIS FIRST) ===
 - Talk like you're actually sitting next to Boss, having a real conversation. Natural flowing sentences, not bullet-point lists or scripted formats.
