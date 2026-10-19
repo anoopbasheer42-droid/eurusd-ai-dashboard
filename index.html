@@ -1688,14 +1688,55 @@
         function calculateATR(highs, lows, closes, period = 14) { let trs = []; for (let i = 1; i < highs.length; i++) trs.push(Math.max(highs[i]-lows[i], Math.abs(highs[i]-closes[i-1]), Math.abs(lows[i]-closes[i-1]))); return trs.slice(-period).reduce((a,b) => a+b, 0) / period; }
         function detectSetup(md) { const setups = []; if (!md || !md.candles1H || md.candles1H.length < 3) return null; const last = md.candles1H[md.candles1H.length - 1]; const prev = md.candles1H[md.candles1H.length - 2]; const bodySize = Math.abs(last.close - last.open); const upperWick = last.high - Math.max(last.open, last.close); const lowerWick = Math.min(last.open, last.close) - last.low; const range = last.high - last.low; if (md.rsi1H < 30 && md.currentPrice <= md.support * 1.001) setups.push({ type:'BUY', reason:`RSI oversold (${md.rsi1H.toFixed(1)}) + price at support ${md.support.toFixed(5)}`, strength:'STRONG' }); if (md.rsi1H > 70 && md.currentPrice >= md.resistance * 0.999) setups.push({ type:'SELL', reason:`RSI overbought (${md.rsi1H.toFixed(1)}) + price at resistance ${md.resistance.toFixed(5)}`, strength:'STRONG' }); if (md.currentPrice > md.resistance * 1.0005) setups.push({ type:'BUY', reason:`Breakout above resistance ${md.resistance.toFixed(5)}`, strength:'STRONG' }); if (md.currentPrice < md.support * 0.9995) setups.push({ type:'SELL', reason:`Breakdown below support ${md.support.toFixed(5)}`, strength:'STRONG' }); if (range > md.atr * 0.8) { if (lowerWick > bodySize * 2 && upperWick < bodySize && md.currentPrice <= md.support * 1.005) setups.push({ type:'BUY', reason:`Bullish Pin Bar rejection at support`, strength:'MEDIUM' }); if (upperWick > bodySize * 2 && lowerWick < bodySize && md.currentPrice >= md.resistance * 0.995) setups.push({ type:'SELL', reason:`Bearish Pin Bar rejection at resistance`, strength:'MEDIUM' }); } if (last.high < prev.high && last.low > prev.low) { if (md.currentPrice > prev.high) setups.push({ type:'BUY', reason:`Inside Bar breakout`, strength:'MEDIUM' }); if (md.currentPrice < prev.low) setups.push({ type:'SELL', reason:`Inside Bar breakdown`, strength:'MEDIUM' }); } if (bodySize > md.atr * 1.5) { const direction = last.close > last.open ? 'BUY' : 'SELL'; setups.push({ type: direction, reason:`Strong momentum candle`, strength:'MEDIUM' }); } if (md.ema20 && md.ema50) { if (md.ema20 > md.ema50 && md.currentPrice > md.ema20 && md.rsi1H > 50 && md.rsi1H < 70) setups.push({ type:'BUY', reason:`Bullish EMA alignment`, strength:'MEDIUM' }); if (md.ema20 < md.ema50 && md.currentPrice < md.ema20 && md.rsi1H < 50 && md.rsi1H > 30) setups.push({ type:'SELL', reason:`Bearish EMA alignment`, strength:'MEDIUM' }); } if (setups.length === 0) return null; return setups.find(s => s.strength === 'STRONG') || setups[0]; }
 
-        async function refreshMarketData() { const statusEl = document.getElementById('signal-status'); const livePriceEl = document.getElementById('live-price'); const lastUpdatedEl = document.getElementById('last-updated'); const [candles5m, candles15m, candles1H, candles4H] = await Promise.all([ fetchBiquoteCandles('5m', 50), fetchBiquoteCandles('15m', 50), fetchBiquoteCandles('1h', 50), fetchBiquoteCandles('4h', 50) ]); if (candles1H.length === 0) { statusEl.innerText = "Biquote data unavailable. Retrying..."; return; } const closes1H = candles1H.map(c => c.close), highs1H = candles1H.map(c => c.high), lows1H = candles1H.map(c => c.low); const closes5m = candles5m.map(c => c.close); const closes15m = candles15m.map(c => c.close); const ema20 = calculateEMA(closes1H, 20), ema50 = calculateEMA(closes1H, 50); const rsi1H = safeNum(calculateRSI(closes1H, 14), 50); const rsi15m = safeNum(calculateRSI(closes15m, 14), 50); const rsi5m = safeNum(calculateRSI(closes5m, 14), 50); const atr = safeNum(calculateATR(highs1H, lows1H, closes1H, 14), 0.001); const support = safeNum(Math.min(...lows1H.slice(-50)), 1.1176); const resistance = safeNum(Math.max(...highs1H.slice(-50)), 1.1246); const currentPrice = safeNum(closes5m[closes5m.length - 1] || closes1H[closes1H.length - 1], 1.1200); 
+        async function refreshMarketData() { 
+            const statusEl = document.getElementById('signal-status'); 
+            const livePriceEl = document.getElementById('live-price'); 
+            const lastUpdatedEl = document.getElementById('last-updated'); 
+            const [candles5m, candles15m, candles1H, candles4H, candles1D, candles1W] = await Promise.all([ 
+                fetchBiquoteCandles('5m', 50), 
+                fetchBiquoteCandles('15m', 50), 
+                fetchBiquoteCandles('1h', 50), 
+                fetchBiquoteCandles('4h', 50),
+                fetchBiquoteCandles('1d', 50),
+                fetchBiquoteCandles('1w', 50)
+            ]); 
+            
+            if (candles1H.length === 0) { statusEl.innerText = "Biquote data unavailable. Retrying..."; return; } 
+            const closes1H = candles1H.map(c => c.close), highs1H = candles1H.map(c => c.high), lows1H = candles1H.map(c => c.low); 
+            const closes5m = candles5m.map(c => c.close); 
+            const closes15m = candles15m.map(c => c.close); 
+            const ema20 = calculateEMA(closes1H, 20), ema50 = calculateEMA(closes1H, 50); 
+            const rsi1H = safeNum(calculateRSI(closes1H, 14), 50); 
+            const rsi15m = safeNum(calculateRSI(closes15m, 14), 50); 
+            const rsi5m = safeNum(calculateRSI(closes5m, 14), 50); 
+            const atr = safeNum(calculateATR(highs1H, lows1H, closes1H, 14), 0.001); 
+            const support = safeNum(Math.min(...lows1H.slice(-50)), 1.1176); 
+            const resistance = safeNum(Math.max(...highs1H.slice(-50)), 1.1246); 
+            const currentPrice = safeNum(closes5m[closes5m.length - 1] || closes1H[closes1H.length - 1], 1.1200); 
             
             // CALCULATE TODAY'S ABSOLUTE HIGH AND LOW FROM AVAILABLE CANDLES
             const allCandlesToday = [...candles5m, ...candles15m, ...candles1H];
             const todayHigh = allCandlesToday.length > 0 ? Math.max(...allCandlesToday.map(c => c.high)) : currentPrice;
             const todayLow = allCandlesToday.length > 0 ? Math.min(...allCandlesToday.map(c => c.low)) : currentPrice;
 
-            let trend = "Sideways"; const rh = highs1H.slice(-20), rl = lows1H.slice(-20); if (rh[rh.length-1] > rh[0] && rl[rl.length-1] > rl[0]) trend = "Uptrend"; if (rh[rh.length-1] < rh[0] && rl[rl.length-1] < rl[0]) trend = "Downtrend"; const hour = new Date().getUTCHours(); let session = "Off-Session"; if (hour >= 7 && hour < 16) session = "London Session"; else if (hour >= 12 && hour < 21) session = "New York Session"; else if (hour >= 0 && hour < 8) session = "Asian Session"; if (hour >= 12 && hour < 16) session = "London / NY Overlap"; marketData = { candles5m, candles15m, candles1H, candles4H, currentPrice, todayHigh, todayLow, trend, support, resistance, session, rsi1H, rsi15m, rsi5m, ema20: ema20[ema20.length-1], ema50: ema50[ema50.length-1], atr }; livePriceEl.innerText = currentPrice.toFixed(5); lastUpdatedEl.innerText = `BIQUOTE LIVE · ${new Date().toLocaleTimeString('en-IN',{hour12:false})}`; document.getElementById('val-trend').innerText = trend; document.getElementById('val-session').innerText = session; document.getElementById('val-support').innerText = support.toFixed(5); document.getElementById('val-resistance').innerText = resistance.toFixed(5); document.getElementById('val-candle-current').innerText = `5m · ${currentPrice.toFixed(5)} · RSI ${rsi5m.toFixed(1)}`; document.getElementById('val-candle-1h').innerText = `1H · ${trend} · RSI ${rsi1H.toFixed(1)} · EMA20 ${ema20[ema20.length-1].toFixed(5)}`; document.getElementById('val-candle-4h').innerText = `4H bars loaded · ATR ${atr.toFixed(5)}`; const setup = detectSetup(marketData); if (setup) { addAlertToLog(setup); showSetupAlert(setup); } else { showSetupAlert(null); if (statusEl) statusEl.innerText = "Engine scanning — no setup detected"; } }
+            let trend = "Sideways"; const rh = highs1H.slice(-20), rl = lows1H.slice(-20); if (rh[rh.length-1] > rh[0] && rl[rl.length-1] > rl[0]) trend = "Uptrend"; if (rh[rh.length-1] < rh[0] && rl[rl.length-1] < rl[0]) trend = "Downtrend"; 
+            const hour = new Date().getUTCHours(); 
+            let session = "Off-Session"; 
+            if (hour >= 7 && hour < 16) session = "London Session"; else if (hour >= 12 && hour < 21) session = "New York Session"; else if (hour >= 0 && hour < 8) session = "Asian Session"; if (hour >= 12 && hour < 16) session = "London / NY Overlap"; 
+            
+            marketData = { candles5m, candles15m, candles1H, candles4H, candles1D, candles1W, currentPrice, todayHigh, todayLow, trend, support, resistance, session, rsi1H, rsi15m, rsi5m, ema20: ema20[ema20.length-1], ema50: ema50[ema50.length-1], atr }; 
+            livePriceEl.innerText = currentPrice.toFixed(5); 
+            lastUpdatedEl.innerText = `BIQUOTE LIVE · ${new Date().toLocaleTimeString('en-IN',{hour12:false})}`; 
+            document.getElementById('val-trend').innerText = trend; 
+            document.getElementById('val-session').innerText = session; 
+            document.getElementById('val-support').innerText = support.toFixed(5); 
+            document.getElementById('val-resistance').innerText = resistance.toFixed(5); 
+            document.getElementById('val-candle-current').innerText = `5m · ${currentPrice.toFixed(5)} · RSI ${rsi5m.toFixed(1)}`; 
+            document.getElementById('val-candle-1h').innerText = `1H · ${trend} · RSI ${rsi1H.toFixed(1)} · EMA20 ${ema20[ema20.length-1].toFixed(5)}`; 
+            document.getElementById('val-candle-4h').innerText = `4H bars loaded · ATR ${atr.toFixed(5)}`; 
+            const setup = detectSetup(marketData); 
+            if (setup) { addAlertToLog(setup); showSetupAlert(setup); } else { showSetupAlert(null); if (statusEl) statusEl.innerText = "Engine scanning — no setup detected"; } 
+        }
 
         function addAlertToLog(alert) { const time = new Date().toLocaleTimeString('en-IN', {timeZone:'Asia/Kolkata', hour:'2-digit', minute:'2-digit'}); alertLog.unshift(`[${time}] ${alert.type} — ${alert.reason}`); if (alertLog.length > 5) alertLog = alertLog.slice(0, 5); localStorage.setItem('eurusd_alert_log', JSON.stringify(alertLog)); renderAlertLog(); }
         function renderAlertLog() { const el = document.getElementById('alert-log'); if (el) el.innerHTML = alertLog.length === 0 ? 'No alerts yet. Engine scanning...' : alertLog.map(a => `<div class="alert-log-item">${a}</div>`).join(''); }
@@ -1772,7 +1813,7 @@
                 const tStr = new Date(c.time).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false });
                 return `[${tStr}] O:${(c.open || 0).toFixed(5)} H:${(c.high || 0).toFixed(5)} L:${(c.low || 0).toFixed(5)} C:${(c.close || 0).toFixed(5)}`;
             }).join('\n');
-            const dataString = `PRICE: ${md.currentPrice.toFixed(5)} | Today's High: ${md.todayHigh.toFixed(5)} | Today's Low: ${md.todayLow.toFixed(5)} | Trend: ${md.trend} | RSI 1H: ${md.rsi1H.toFixed(1)} | RSI 15m: ${md.rsi15m.toFixed(1)} | RSI 5m: ${md.rsi5m.toFixed(1)} | EMA20: ${md.ema20.toFixed(5)} | EMA50: ${md.ema50.toFixed(5)} | ATR: ${md.atr.toFixed(5)} | Support: ${md.support.toFixed(5)} | Resistance: ${md.resistance.toFixed(5)} | Session: ${md.session}\n\n5m:\n${fmt(md.candles5m)}\n\n15m:\n${fmt(md.candles15m)}\n\n1H:\n${fmt(md.candles1H)}\n\n4H:\n${fmt(md.candles4H)}`;
+            const dataString = `PRICE: ${md.currentPrice.toFixed(5)} | Today's High: ${md.todayHigh.toFixed(5)} | Today's Low: ${md.todayLow.toFixed(5)} | Trend: ${md.trend} | RSI 1H: ${md.rsi1H.toFixed(1)} | RSI 15m: ${md.rsi15m.toFixed(1)} | RSI 5m: ${md.rsi5m.toFixed(1)} | EMA20: ${md.ema20.toFixed(5)} | EMA50: ${md.ema50.toFixed(5)} | ATR: ${md.atr.toFixed(5)} | Support: ${md.support.toFixed(5)} | Resistance: ${md.resistance.toFixed(5)} | Session: ${md.session}\n\n5m:\n${fmt(md.candles5m)}\n\n15m:\n${fmt(md.candles15m)}\n\n1H:\n${fmt(md.candles1H)}\n\n4H:\n${fmt(md.candles4H)}\n\n1D:\n${fmt(md.candles1D)}\n\n1W:\n${fmt(md.candles1W)}`;
             
             let newsInfo = "";
             if (highImpactWarningActive) {
@@ -2115,7 +2156,7 @@
                     return `[${tStr}] O:${(c.open || 0).toFixed(5)} H:${(c.high || 0).toFixed(5)} L:${(c.low || 0).toFixed(5)} C:${(c.close || 0).toFixed(5)}`;
                 }).join('\n');
                 
-                marketBlock = `\nLIVE MARKET DATA (EUR/USD):\nPrice: ${safeNum(marketData.currentPrice, 1.1200).toFixed(5)} | Today's High: ${safeNum(marketData.todayHigh, marketData.currentPrice).toFixed(5)} | Today's Low: ${safeNum(marketData.todayLow, marketData.currentPrice).toFixed(5)} | Trend: ${marketData.trend} | Support: ${safeNum(marketData.support, 1.1176).toFixed(5)} | Resistance: ${safeNum(marketData.resistance, 1.1246).toFixed(5)} | RSI 1H: ${safeNum(marketData.rsi1H, 50).toFixed(1)} | Session: ${marketData.session}\n\nRECENT CANDLES (Last 10):\n5m:\n${fmt(marketData.candles5m)}\n\n15m:\n${fmt(marketData.candles15m)}\n\n1H:\n${fmt(marketData.candles1H)}\n${macroContextBlock}`;
+                marketBlock = `\nLIVE MARKET DATA (EUR/USD):\nPrice: ${safeNum(marketData.currentPrice, 1.1200).toFixed(5)} | Today's High: ${safeNum(marketData.todayHigh, marketData.currentPrice).toFixed(5)} | Today's Low: ${safeNum(marketData.todayLow, marketData.currentPrice).toFixed(5)} | Trend: ${marketData.trend} | Support: ${safeNum(marketData.support, 1.1176).toFixed(5)} | Resistance: ${safeNum(marketData.resistance, 1.1246).toFixed(5)} | RSI 1H: ${safeNum(marketData.rsi1H, 50).toFixed(1)} | Session: ${marketData.session}\n\nRECENT CANDLES (Last 10):\n5m:\n${fmt(marketData.candles5m)}\n\n15m:\n${fmt(marketData.candles15m)}\n\n1H:\n${fmt(marketData.candles1H)}\n\n4H:\n${fmt(marketData.candles4H)}\n\n1D:\n${fmt(marketData.candles1D)}\n\n1W:\n${fmt(marketData.candles1W)}\n${macroContextBlock}`;
             }
 
             let personalBlock = "";
