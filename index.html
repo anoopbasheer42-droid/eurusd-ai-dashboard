@@ -1780,12 +1780,24 @@
                 newsInfo = `\nCRITICAL NEWS WARNING: High-impact economic news (${activeHighs.map(e => e.title).join(', ')}) is currently within the -15m / +15m window. Spreads may widen. Factoring this into risk assessment.\n`;
             }
 
-            const signalPrompt = `You are Alex — Boss's trusted trading partner. TIME: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.\n\n${dataString}\n${newsInfo}\nAnalyze candles, structure, and risk levels.\nCRITICAL RULE: Never guess, estimate, or fabricate historical prices, timestamps, or session hours. If a specific price level or historical time is not explicitly present in the live market data block provided above, state clearly that it is not visible in current data rather than guessing.\n\nCRITICAL RISK GEOMETRY RULES FOR STOP-LOSS (SL) & TAKE-PROFIT (TP):\n- If signal is BUY: SL MUST be strictly below the entry price and support. TP MUST be above entry.\n- If signal is SELL: SL MUST be strictly above the entry price and resistance. TP MUST be below entry.\nRespond ONLY valid JSON: {"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences of natural market analysis in simple layman words, explaining what the price is doing without making yourself sound weak","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
+            const signalPrompt = `You are Alex — Boss's trusted trading partner. TIME: ${new Date().toLocaleString('en-IN', {timeZone:'Asia/Kolkata'})} IST.\n\n${dataString}\n${newsInfo}\nAnalyze the provided candle data, structure, and risk levels.\nCRITICAL RULE: Never guess, estimate, or fabricate historical prices, timestamps, or session hours. If a specific price level or historical time is not explicitly present in the live market data block provided above, state clearly that it is not visible in current data rather than guessing.\n\nCRITICAL RISK GEOMETRY RULES FOR STOP-LOSS (SL) & TAKE-PROFIT (TP):\n- If signal is BUY: SL MUST be strictly below the entry price and support. TP MUST be above entry.\n- If signal is SELL: SL MUST be strictly above the entry price and resistance. TP MUST be below entry.\nRespond ONLY valid JSON: {"signal":"BUY"|"SELL"|"HOLD","reason":"3-5 sentences of natural market analysis in simple layman words, explaining what the price is doing without making yourself sound weak","confidence":"LOW"|"MEDIUM"|"HIGH","entry":"1.XXXXX","sl":"1.XXXXX","tp":"1.XXXXX","wise_words":"short quote"}`;
+            
             try {
                 const reply = await callAI(signalPrompt, "Give me the signal.", []);
-                const jsonMatch = reply.match(/\{[\s\S]*?"signal"[\s\S]*?\}/);
-                if (!jsonMatch) throw new Error("No JSON signal returned");
-                const sig = JSON.parse(jsonMatch[0]);
+                
+                // Robust JSON extraction handling markdown
+                let cleanedReply = reply.replace(/```json/g, '').replace(/```/g, '').trim();
+                const jsonMatch = cleanedReply.match(/\{[\s\S]*?"signal"[\s\S]*?\}/);
+                
+                if (!jsonMatch) throw new Error("No JSON signal returned. AI said: " + reply.substring(0, 50) + "...");
+                
+                let sig;
+                try {
+                    sig = JSON.parse(jsonMatch[0]);
+                } catch(e) {
+                    throw new Error("JSON Parse Error: The AI formatted the data incorrectly.");
+                }
+
                 globalData = { price: md.currentPrice.toFixed(5), signal: sig.signal, reason: sig.reason, confidence: sig.confidence, entry: sig.entry, sl: sig.sl, tp: sig.tp, atr: md.atr.toFixed(5), support: md.support.toFixed(5), resistance: md.resistance.toFixed(5), trend: md.trend, session: md.session, valid: new Date(Date.now()+1800000).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})+" IST", wise_words: sig.wise_words };
                 signalText.innerText = sig.signal;
                 if (sig.signal === 'BUY') { signalText.style.color = 'var(--green)'; statusEl.innerText = 'Bullish day trading setup confirmed'; }
@@ -2096,7 +2108,15 @@
                 }
             }
             
-            let marketBlock = marketData ? `\nLIVE MARKET DATA (EUR/USD):\nPrice: ${safeNum(marketData.currentPrice, 1.1200).toFixed(5)} | Today's High: ${safeNum(marketData.todayHigh, marketData.currentPrice).toFixed(5)} | Today's Low: ${safeNum(marketData.todayLow, marketData.currentPrice).toFixed(5)} | Trend: ${marketData.trend} | Support: ${safeNum(marketData.support, 1.1176).toFixed(5)} | Resistance: ${safeNum(marketData.resistance, 1.1246).toFixed(5)} | RSI 1H: ${safeNum(marketData.rsi1H, 50).toFixed(1)} | Session: ${marketData.session}\n${macroContextBlock}` : "";
+            let marketBlock = "";
+            if (marketData) {
+                const fmt = (arr) => arr.slice(-10).map(c => {
+                    const tStr = new Date(c.time).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false });
+                    return `[${tStr}] O:${(c.open || 0).toFixed(5)} H:${(c.high || 0).toFixed(5)} L:${(c.low || 0).toFixed(5)} C:${(c.close || 0).toFixed(5)}`;
+                }).join('\n');
+                
+                marketBlock = `\nLIVE MARKET DATA (EUR/USD):\nPrice: ${safeNum(marketData.currentPrice, 1.1200).toFixed(5)} | Today's High: ${safeNum(marketData.todayHigh, marketData.currentPrice).toFixed(5)} | Today's Low: ${safeNum(marketData.todayLow, marketData.currentPrice).toFixed(5)} | Trend: ${marketData.trend} | Support: ${safeNum(marketData.support, 1.1176).toFixed(5)} | Resistance: ${safeNum(marketData.resistance, 1.1246).toFixed(5)} | RSI 1H: ${safeNum(marketData.rsi1H, 50).toFixed(1)} | Session: ${marketData.session}\n\nRECENT CANDLES (Last 10):\n5m:\n${fmt(marketData.candles5m)}\n\n15m:\n${fmt(marketData.candles15m)}\n\n1H:\n${fmt(marketData.candles1H)}\n${macroContextBlock}`;
+            }
 
             let personalBlock = "";
             if (personalContext && typeof personalContext === 'object') {
