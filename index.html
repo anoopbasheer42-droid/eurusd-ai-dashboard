@@ -82,7 +82,6 @@
             z-index: 100000; display: none; gap: 12px;
         }
         #map-exit.active { display: flex; animation: fadeIn 0.5s ease; }
-        .plane-icon { background: transparent; font-size: 20px; text-align: center; line-height: 20px; }
 
         .signal-card { text-align: center; padding: 30px 24px; }
         #signal-text { font-family: 'Space Grotesk', sans-serif; font-size: 2.8rem; font-weight: 700; letter-spacing: 0.08em; color: var(--text-subtle); transition: all 0.4s ease; margin-bottom: 12px; line-height: 1; text-shadow: 0 0 30px currentColor; }
@@ -295,7 +294,7 @@
     <script>
         const GROQ_MODELS = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
         const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
-        const GEMINI_MODELS = ['gemini-3.8-flash', 'gemini-3.6-flash'];
+        const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash'];
         const MARKET_KEYWORDS = ['market','buy','sell','trade','signal','entry','sl','tp','stop loss','take profit','setup','chart','trend','support','resistance','eur/usd','eurusd','should i','analysis','long','short','position','pip','bullish','bearish','candle','indicator','rsi','ema','atr','scalp','day trade'];
         const LOCAL_QUOTES = ["Discipline beats conviction every single time...", "Every loss is just expensive tuition, Boss...", "Protect your capital like your life depends on it...", "Cut losses short and let the winners run...", "A calm mind catches more pips than a frantic one...", "You don't need to be right on every trade...", "The trend is your friend until it suddenly punches you...", "Patience isn't waiting, it's knowing when to strike...", "The market rewards preparation, not hope...", "Trade like a sniper, not machine gunner..."];
         const LOCAL_JOKES = ["Why don't traders ever play hide and seek? Because good support levels are impossible to find...", "I told my wife I was a professional forex trader... she told me to clean the kitchen instead.", "My stop loss is remarkably similar to my ex—it gets hit when I least expect it.", "What's the difference between a forex trader and a large pizza? A pizza can feed a family of four."];
@@ -1780,7 +1779,8 @@
             if (groqKey) {
                 for (const model of GROQ_MODELS) {
                     try {
-                        const res = await fetch(GROQ_URL, { 
+                        const proxyGroqUrl = `https://corsproxy.io/?` + encodeURIComponent(GROQ_URL);
+                        const res = await fetch(proxyGroqUrl, { 
                             method: 'POST', 
                             headers: { 
                                 'Authorization': `Bearer ${groqKey}`, 
