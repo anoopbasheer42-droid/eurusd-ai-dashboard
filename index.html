@@ -1,12 +1,3 @@
-The issue is that the AI is hitting its maximum output token limit (specifically max_tokens: 800).
-
-Because I added 6 timeframes of candle data (5m, 15m, 1H, 4H, 1D, 1W) to the prompt, the context is much larger now. When the AI tries to generate a detailed response along with the hidden JSON block at the end, it runs out of "breathing room" and gets cut off mid-sentence.
-
-Here is the fully updated file. I have increased the max_tokens limit to 2000 for both Groq and Gemini, and added a stop sequence to Groq to prevent it from rambling. I also added a safety check in sendChat so if the AI outputs a broken JSON block, it won't accidentally delete your text.
-
-Copy and paste this entire code:
-
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -2635,4 +2626,4 @@ Time awareness (STRICT): ${mealContext}${askedBlock}`;
     </script>
 </body>
 </html>
-```
+
