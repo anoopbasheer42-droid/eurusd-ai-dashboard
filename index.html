@@ -96,7 +96,6 @@
         let apiKey = localStorage.getItem('eurusd_chat_key') || '';
         let chatHistory = JSON.parse(localStorage.getItem('eurusd_chat_history') || '[]');
 
-        // Canvas Core Animation
         const canvas = document.getElementById('coreCanvas');
         const ctx = canvas.getContext('2d');
         let angle = 0;
@@ -153,27 +152,26 @@
                 return "Boss, you haven't saved your Gemini API Key yet! Tap the '🔑 API Key' button above to save it.";
             }
             
-            // Direct Gemini endpoint request with fallback simulation if network blocks local file requests
             try {
                 const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
                 const res = await fetch(url, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] }),
-                    signal: AbortSignal.timeout(8000)
+                    body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
                 });
                 if(res.ok) {
                     const data = await res.json();
                     if(data.candidates && data.candidates[0].content.parts[0].text) {
                         return data.candidates[0].content.parts[0].text;
                     }
+                } else {
+                    const errData = await res.json();
+                    return `API Error: ${errData.error?.message || res.statusText}`;
                 }
             } catch(e) {
-                console.warn("Direct fetch blocked by local file sandbox, using smart assistant simulation:", e);
+                return `Connection Error: ${e.message}`;
             }
-
-            // Local fallback response so it NEVER shows connection failed
-            return "Boss, your local file browser is blocking the direct API call outbound. For full live AI generation, upload this file to your GitHub repository (anoopbasheer42-droid.github.io) where hosting allows full cross-origin network requests!";
+            return "No response received from Gemini cloud.";
         }
 
         async function runAnalysis() {
