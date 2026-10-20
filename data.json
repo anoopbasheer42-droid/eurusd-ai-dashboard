@@ -1,13 +1,13 @@
 {
     "signal": "HOLD",
-    "reason": "Higher timeframes (Daily, 4H, and 1H) show EUR/USD stuck in a tight consolidation range around 1.1221, trapped right between the 1H EMA20 and EMA50. Lower timeframes (15m and 5m) reflect virtually dead momentum with flat candle bodies during this Asian off-session. As conservative traders targeting our monthly goal, entering right now means paying spread for zero follow-through. We need to wait for London open to confirm a clean break above 1.1235 before buying, while a breakdown below 1.1191 completely invalidates any bullish bias.",
-    "personal_message": "Good morning, Boss! Hope you and Cookie are up and ready to tackle the day\u2014make sure you get a solid breakfast ready for Emy and Bismah, and don't forget to take your morning BP tablet right after you eat. Let the market sleep for now; we'll strike when London brings the real liquidity!",
+    "reason": "Higher timeframes (Daily, 4H, and 1H) show EUR/USD grinding sideways in a tight consolidation around 1.1220 with a mild bearish tilt, but no clear directional drive. Lower timeframes (5m and 15m) are practically flatlining with zero volume in this Asian off-session lull, offering no clean entry structure. As conservative traders, we stay patient and keep our powder dry until European money steps in. A high-volume push beyond 1.1235 resistance or a breakdown under 1.1200 support would invalidate this neutral range and signal our next move.",
+    "personal_message": "Good morning, Boss! Make sure you fuel up with a solid breakfast, get the cooking sorted for Emy and Bismah, and take your morning BP tablet right after. The charts are lazier than Cookie right now anyway, so take your time\u2014we'll strike when London rings the bell!",
     "confidence": "LOW",
-    "price": "1.1221",
-    "entry": "1.1221",
+    "price": "1.122",
+    "entry": "1.122",
     "sl": "1.1208",
-    "tp": "1.1248",
-    "atr": "0.0009",
+    "tp": "1.1244",
+    "atr": "0.0008",
     "support": "1.1191",
     "resistance": "1.1273",
     "mid_range": "1.1232",
@@ -20,101 +20,17 @@
         "1.1233"
     ],
     "swing_lows": [
-        "1.1212",
         "1.1217",
         "1.1215",
         "1.1191",
-        "1.1207"
+        "1.1207",
+        "1.1213"
     ],
-    "valid": "07:01 IST",
-    "candle_current": "Bullish candle. Open: 1.1218, Now: 1.1221. Buyers in control.",
-    "candle_1h": "1H candle at 1.1221. Above 20 EMA - uptrend.",
+    "valid": "08:01 IST",
+    "candle_current": "Bullish candle. Open: 1.1218, Now: 1.122. Buyers in control.",
+    "candle_1h": "1H candle at 1.122. Below 20 EMA - downtrend.",
     "candle_4h": "4H trend: bearish below moving averages.",
     "candles_5m": [
-        {
-            "time": "2026-10-19 21:25",
-            "open": 1.1215,
-            "high": 1.1216,
-            "low": 1.1215,
-            "close": 1.1215
-        },
-        {
-            "time": "2026-10-19 21:30",
-            "open": 1.1215,
-            "high": 1.1216,
-            "low": 1.1215,
-            "close": 1.1215
-        },
-        {
-            "time": "2026-10-19 21:35",
-            "open": 1.1213,
-            "high": 1.1213,
-            "low": 1.1213,
-            "close": 1.1213
-        },
-        {
-            "time": "2026-10-19 21:40",
-            "open": 1.1213,
-            "high": 1.1213,
-            "low": 1.1213,
-            "close": 1.1213
-        },
-        {
-            "time": "2026-10-19 21:45",
-            "open": 1.1213,
-            "high": 1.1215,
-            "low": 1.1213,
-            "close": 1.1213
-        },
-        {
-            "time": "2026-10-19 21:50",
-            "open": 1.1213,
-            "high": 1.1213,
-            "low": 1.1213,
-            "close": 1.1213
-        },
-        {
-            "time": "2026-10-19 21:55",
-            "open": 1.1215,
-            "high": 1.1215,
-            "low": 1.1213,
-            "close": 1.1215
-        },
-        {
-            "time": "2026-10-19 22:00",
-            "open": 1.1217,
-            "high": 1.1217,
-            "low": 1.1215,
-            "close": 1.1217
-        },
-        {
-            "time": "2026-10-19 22:05",
-            "open": 1.1215,
-            "high": 1.1215,
-            "low": 1.1213,
-            "close": 1.1215
-        },
-        {
-            "time": "2026-10-19 22:10",
-            "open": 1.1213,
-            "high": 1.1215,
-            "low": 1.1213,
-            "close": 1.1213
-        },
-        {
-            "time": "2026-10-19 22:15",
-            "open": 1.1215,
-            "high": 1.1215,
-            "low": 1.1213,
-            "close": 1.1213
-        },
-        {
-            "time": "2026-10-20 00:00",
-            "open": 1.1216,
-            "high": 1.1216,
-            "low": 1.1216,
-            "close": 1.1216
-        },
         {
             "time": "2026-10-20 00:05",
             "open": 1.1216,
@@ -237,82 +153,96 @@
         {
             "time": "2026-10-20 01:30",
             "open": 1.1221,
+            "high": 1.1222,
+            "low": 1.1221,
+            "close": 1.1221
+        },
+        {
+            "time": "2026-10-20 01:35",
+            "open": 1.1221,
+            "high": 1.1222,
+            "low": 1.1221,
+            "close": 1.1222
+        },
+        {
+            "time": "2026-10-20 01:40",
+            "open": 1.1222,
+            "high": 1.1222,
+            "low": 1.1222,
+            "close": 1.1222
+        },
+        {
+            "time": "2026-10-20 01:45",
+            "open": 1.1222,
+            "high": 1.1222,
+            "low": 1.1221,
+            "close": 1.1221
+        },
+        {
+            "time": "2026-10-20 01:50",
+            "open": 1.1221,
+            "high": 1.1221,
+            "low": 1.122,
+            "close": 1.122
+        },
+        {
+            "time": "2026-10-20 01:55",
+            "open": 1.122,
+            "high": 1.122,
+            "low": 1.1218,
+            "close": 1.1218
+        },
+        {
+            "time": "2026-10-20 02:00",
+            "open": 1.1218,
+            "high": 1.1218,
+            "low": 1.1218,
+            "close": 1.1218
+        },
+        {
+            "time": "2026-10-20 02:05",
+            "open": 1.1218,
+            "high": 1.1221,
+            "low": 1.1218,
+            "close": 1.122
+        },
+        {
+            "time": "2026-10-20 02:10",
+            "open": 1.122,
+            "high": 1.1221,
+            "low": 1.122,
+            "close": 1.1221
+        },
+        {
+            "time": "2026-10-20 02:15",
+            "open": 1.1222,
+            "high": 1.1223,
+            "low": 1.1222,
+            "close": 1.1222
+        },
+        {
+            "time": "2026-10-20 02:20",
+            "open": 1.1222,
+            "high": 1.1222,
+            "low": 1.1221,
+            "close": 1.1221
+        },
+        {
+            "time": "2026-10-20 02:25",
+            "open": 1.1221,
             "high": 1.1221,
             "low": 1.1221,
             "close": 1.1221
+        },
+        {
+            "time": "2026-10-20 02:30",
+            "open": 1.122,
+            "high": 1.122,
+            "low": 1.122,
+            "close": 1.122
         }
     ],
     "candles_15m": [
-        {
-            "time": "2026-10-19 19:15",
-            "open": 1.122,
-            "high": 1.122,
-            "low": 1.1216,
-            "close": 1.1217
-        },
-        {
-            "time": "2026-10-19 19:30",
-            "open": 1.1217,
-            "high": 1.1217,
-            "low": 1.1213,
-            "close": 1.1215
-        },
-        {
-            "time": "2026-10-19 19:45",
-            "open": 1.1216,
-            "high": 1.1217,
-            "low": 1.1215,
-            "close": 1.1216
-        },
-        {
-            "time": "2026-10-19 20:00",
-            "open": 1.1216,
-            "high": 1.1217,
-            "low": 1.1213,
-            "close": 1.1215
-        },
-        {
-            "time": "2026-10-19 20:15",
-            "open": 1.1215,
-            "high": 1.1216,
-            "low": 1.1215,
-            "close": 1.1215
-        },
-        {
-            "time": "2026-10-19 20:30",
-            "open": 1.1215,
-            "high": 1.1216,
-            "low": 1.1213,
-            "close": 1.1213
-        },
-        {
-            "time": "2026-10-19 20:45",
-            "open": 1.1213,
-            "high": 1.1216,
-            "low": 1.1213,
-            "close": 1.1215
-        },
-        {
-            "time": "2026-10-19 21:00",
-            "open": 1.1213,
-            "high": 1.1216,
-            "low": 1.1213,
-            "close": 1.1216
-        },
-        {
-            "time": "2026-10-19 21:15",
-            "open": 1.1215,
-            "high": 1.1216,
-            "low": 1.1213,
-            "close": 1.1215
-        },
-        {
-            "time": "2026-10-19 21:30",
-            "open": 1.1215,
-            "high": 1.1216,
-            "low": 1.1213,
-            "close": 1.1213
-        },
         {
             "time": "2026-10-19 21:45",
             "open": 1.1213,
@@ -330,9 +260,51 @@
         {
             "time": "2026-10-19 22:15",
             "open": 1.1215,
-            "high": 1.1215,
+            "high": 1.122,
             "low": 1.1213,
-            "close": 1.1213
+            "close": 1.1217
+        },
+        {
+            "time": "2026-10-19 22:30",
+            "open": 1.1215,
+            "high": 1.1216,
+            "low": 1.1215,
+            "close": 1.1216
+        },
+        {
+            "time": "2026-10-19 22:45",
+            "open": 1.1215,
+            "high": 1.1221,
+            "low": 1.1215,
+            "close": 1.1217
+        },
+        {
+            "time": "2026-10-19 23:00",
+            "open": 1.1217,
+            "high": 1.1217,
+            "low": 1.1216,
+            "close": 1.1216
+        },
+        {
+            "time": "2026-10-19 23:15",
+            "open": 1.1216,
+            "high": 1.1217,
+            "low": 1.1216,
+            "close": 1.1217
+        },
+        {
+            "time": "2026-10-19 23:30",
+            "open": 1.1216,
+            "high": 1.1217,
+            "low": 1.1216,
+            "close": 1.1216
+        },
+        {
+            "time": "2026-10-19 23:45",
+            "open": 1.1216,
+            "high": 1.1217,
+            "low": 1.1216,
+            "close": 1.1216
         },
         {
             "time": "2026-10-20 00:00",
@@ -379,26 +351,40 @@
         {
             "time": "2026-10-20 01:30",
             "open": 1.1221,
+            "high": 1.1222,
+            "low": 1.1221,
+            "close": 1.1222
+        },
+        {
+            "time": "2026-10-20 01:45",
+            "open": 1.1222,
+            "high": 1.1222,
+            "low": 1.1218,
+            "close": 1.1218
+        },
+        {
+            "time": "2026-10-20 02:00",
+            "open": 1.1218,
             "high": 1.1221,
+            "low": 1.1218,
+            "close": 1.1221
+        },
+        {
+            "time": "2026-10-20 02:15",
+            "open": 1.1222,
+            "high": 1.1223,
             "low": 1.1221,
             "close": 1.1221
+        },
+        {
+            "time": "2026-10-20 02:30",
+            "open": 1.122,
+            "high": 1.122,
+            "low": 1.122,
+            "close": 1.122
         }
     ],
     "candles_h1": [
-        {
-            "time": "2026-10-16 18:00",
-            "open": 1.1223,
-            "high": 1.1236,
-            "low": 1.1221,
-            "close": 1.123
-        },
-        {
-            "time": "2026-10-16 19:00",
-            "open": 1.1231,
-            "high": 1.1237,
-            "low": 1.123,
-            "close": 1.1236
-        },
         {
             "time": "2026-10-16 20:00",
             "open": 1.1237,
@@ -577,9 +563,16 @@
         {
             "time": "2026-10-19 22:00",
             "open": 1.1217,
-            "high": 1.1217,
+            "high": 1.1221,
             "low": 1.1213,
-            "close": 1.1213
+            "close": 1.1217
+        },
+        {
+            "time": "2026-10-19 23:00",
+            "open": 1.1217,
+            "high": 1.1217,
+            "low": 1.1216,
+            "close": 1.1216
         },
         {
             "time": "2026-10-20 00:00",
@@ -593,7 +586,14 @@
             "open": 1.1218,
             "high": 1.1222,
             "low": 1.1218,
-            "close": 1.1221
+            "close": 1.1218
+        },
+        {
+            "time": "2026-10-20 02:00",
+            "open": 1.1218,
+            "high": 1.1223,
+            "low": 1.1218,
+            "close": 1.122
         }
     ],
     "candles_h4": [
@@ -656,16 +656,16 @@
         {
             "time": "2026-10-19 20:00",
             "open": 1.1216,
-            "high": 1.1217,
+            "high": 1.1221,
             "low": 1.1213,
-            "close": 1.1213
+            "close": 1.1216
         },
         {
             "time": "2026-10-20 00:00",
             "open": 1.1216,
-            "high": 1.1222,
+            "high": 1.1223,
             "low": 1.1215,
-            "close": 1.1221
+            "close": 1.122
         }
     ],
     "candles_daily": [
@@ -700,9 +700,9 @@
         {
             "time": "2026-10-20 00:00",
             "open": 1.1218,
-            "high": 1.1222,
+            "high": 1.1223,
             "low": 1.1215,
-            "close": 1.1221
+            "close": 1.122
         }
     ],
     "news_bias": "unavailable",
@@ -712,5 +712,5 @@
     ],
     "session": "Off-Session",
     "volatility": "low",
-    "wise_words": "Motivation: Every loss is tuition. The market is the teacher, and you are the student."
+    "wise_words": "Joke: The market can stay irrational longer than you can stay solvent. That's not a joke, that's just life."
 }
