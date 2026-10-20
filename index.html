@@ -279,7 +279,6 @@
                 <div id="val-candle-4h">—</div>
             </div>
         </div>
-        <!-- NEW: Live Macro News & Economic Calendar -->
         <div class="card" style="border: 2px solid rgba(59, 130, 246, 0.4); box-shadow: 0 0 30px rgba(59, 130, 246, 0.15);">
             <div class="card-title" style="color: var(--blue);">Live Macro News & Economic Calendar Feed</div>
             <div id="macro-news-container" style="font-size:0.75rem; color:var(--text-body); line-height:1.6;">
@@ -317,7 +316,6 @@
         let scheduledSearches = JSON.parse(localStorage.getItem('eurusd_scheduled_searches') || '[]');
         let recentCheckinTopics = JSON.parse(localStorage.getItem('eurusd_recent_checkin_topics') || '[]');
         
-        // Macro News State
         let macroEvents = [];
         let highImpactWarningActive = false;
 
@@ -332,7 +330,6 @@
         let voiceEngineMode = localStorage.getItem('eurusd_voice_engine_mode') || 'cloud';
         let currentAudio = null;
 
-        // Daily tracking state for new daily routines
         let dailyRoutineState = JSON.parse(localStorage.getItem('eurusd_daily_routine_state') || '{}');
 
         document.body.addEventListener('click', () => { if ('speechSynthesis' in window) window.speechSynthesis.getVoices(); }, { once: true });
@@ -413,7 +410,6 @@
             }
         }
 
-        // === MACRO NEWS ENGINE ===
         async function refreshMacroNews() {
             const container = document.getElementById('macro-news-container');
             container.innerHTML = '<em>Refreshing live macroeconomic events...</em>';
@@ -491,7 +487,6 @@
             }).join('');
         }
 
-        // === AUDIO ENGINE ===
         let audioCtx = null;
         let chargeOsc1 = null, chargeOsc2 = null, chargeGain = null, chargeTickGain = null, chargeTickOsc = null;
         function initAudio() {
@@ -672,7 +667,6 @@
             }, 350);
         }
 
-        // === THREE.JS COSMIC ENGINE ===
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 8000);
@@ -817,7 +811,6 @@
             for (let i = 0; i < 15; i++) { const mg = new THREE.Group(); const geoFn = geoTypes[Math.floor(Math.random() * geoTypes.length)]; const col = colors[Math.floor(Math.random() * colors.length)]; const mMesh = new THREE.Mesh(geoFn(), new THREE.MeshStandardMaterial({ color: col, roughness: 0.85, metalness: 0.2 })); mMesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI); mg.add(mMesh); const angle = Math.random() * Math.PI * 2; const dist = 60 + Math.random() * 120; mg.position.set(Math.cos(angle) * dist, (Math.random() - 0.5) * 60, Math.sin(angle) * dist); milkyWayGroup.add(mg); meteoroids.push({ grp: mg, rotSpd: new THREE.Vector3((Math.random()-0.5)*0.025, (Math.random()-0.5)*0.025, (Math.random()-0.5)*0.025) }); }
         })();
 
-        // === SOLAR SYSTEM ===
         const solarSystemGroup = new THREE.Group();
         solarSystemGroup.visible = false;
         scene.add(solarSystemGroup);
@@ -853,16 +846,17 @@
 
         solarSystemGroup.add(sunGroup);
 
+        // ==== REALISTIC PLANET DATA ====
         const PLANET_DATA = [
-            { name:'Mercury', r:0.20, o:6,   fb:['#8a7f75', '100,90,80'],   spd:0.42, rotSpd:0.005, roughness:0.95, metalness:0.05 },
-            { name:'Venus',   r:0.30, o:9,   fb:['#d8b87a', '240,225,190'], spd:0.32, rotSpd:-0.003, roughness:0.85, metalness:0.08 },
-            { name:'Earth',   r:0.36, o:13,  fb:null, clouds:true, atmo:0x3b82f6, spd:0.24, rotSpd:0.01, roughness:0.7, metalness:0.1, moons:[{ r:0.10, o:0.85, spd:1.8 }] },
-            { name:'Mars',    r:0.26, o:17,  fb:['#c4653a', '230,160,120'], spd:0.19, rotSpd:0.009, roughness:0.9, metalness:0.08 },
-            { name:'Jupiter', r:1.10, o:25,  fb:['#d9b88a', '200,170,130'], spd:0.11, rotSpd:0.02, roughness:0.75, metalness:0.1 },
-            { name:'Saturn',  r:0.95, o:34,  fb:['#e8d5a0', '225,205,165'], spd:0.08, rotSpd:0.018, roughness:0.8, metalness:0.1, ring:true },
-            { name:'Uranus',  r:0.62, o:43,  fb:['#b0e0e6', '190,235,240'], spd:0.055, rotSpd:0.012, roughness:0.6, metalness:0.12, ring:true, ringColor:0x88ccee },
-            { name:'Neptune', r:0.60, o:52,  fb:['#3b6cc0', '90,140,220'], spd:0.042, rotSpd:0.011, roughness:0.6, metalness:0.12 },
-            { name:'Pluto',   r:0.15, o:62,  fb:['#9a8878', '210,190,160'], spd:0.028, rotSpd:0.005, roughness:0.95, metalness:0.05 }
+            { name:'Mercury', r:0.20, o:6,   fb:['#8a7f75', '100,90,80'],   spd:0.42, rotSpd:0.005, roughness:0.95, metalness:0.05, bumpScale:0.015 },
+            { name:'Venus',   r:0.30, o:9,   fb:['#e8c880', '240,225,190'], spd:0.32, rotSpd:-0.003, roughness:0.72, metalness:0.06, atmo:0xffd890, atmoOpacity:0.42, atmoScale:2.0 },
+            { name:'Earth',   r:0.36, o:13,  fb:null, clouds:true, atmo:0x4a90e2, spd:0.24, rotSpd:0.01, roughness:0.72, metalness:0.06, bumpScale:0.03, moons:[{ r:0.10, o:0.85, spd:1.8 }] },
+            { name:'Mars',    r:0.26, o:17,  fb:['#c4653a', '230,160,120'], spd:0.19, rotSpd:0.009, roughness:0.92, metalness:0.06, bumpScale:0.02, atmo:0xd68b6b, atmoOpacity:0.28, atmoScale:1.9 },
+            { name:'Jupiter', r:1.10, o:25,  fb:['#d9b88a', '200,170,130'], spd:0.11, rotSpd:0.02, roughness:0.88, metalness:0.05, atmo:0xe8c88a, atmoOpacity:0.18, atmoScale:1.5 },
+            { name:'Saturn',  r:0.95, o:34,  fb:['#e8d5a0', '225,205,165'], spd:0.08, rotSpd:0.018, roughness:0.88, metalness:0.05, ring:true, atmo:0xf0dba0, atmoOpacity:0.15, atmoScale:1.5 },
+            { name:'Uranus',  r:0.62, o:43,  fb:['#b0e0e6', '190,235,240'], spd:0.055, rotSpd:0.012, roughness:0.6, metalness:0.12, ring:true, ringColor:0xa8dde5, atmo:0xa8dde5, atmoOpacity:0.35, atmoScale:1.8 },
+            { name:'Neptune', r:0.60, o:52,  fb:['#3b6cc0', '90,140,220'], spd:0.042, rotSpd:0.011, roughness:0.6, metalness:0.12, atmo:0x4a7cd6, atmoOpacity:0.35, atmoScale:1.8 },
+            { name:'Pluto',   r:0.15, o:62,  fb:['#9a8878', '210,190,160'], spd:0.028, rotSpd:0.005, roughness:0.95, metalness:0.05, bumpScale:0.01 }
         ];
         const planetObjs = [];
         for (const p of PLANET_DATA) {
@@ -905,45 +899,101 @@
             if (p.atmo) {
                 const aCanvas = _canvas(512, 512);
                 const actx = aCanvas.getContext('2d');
-                const ag = actx.createRadialGradient(256, 256, 40, 256, 256, 256);
+                const ag = actx.createRadialGradient(256, 256, 30, 256, 256, 256);
                 const ahex = '#' + p.atmo.toString(16).padStart(6,'0');
-                ag.addColorStop(0, ahex + 'ff');
-                ag.addColorStop(0.4, ahex + '80');
-                ag.addColorStop(0.75, ahex + '20');
+                ag.addColorStop(0, ahex + 'cc');
+                ag.addColorStop(0.35, ahex + '80');
+                ag.addColorStop(0.70, ahex + '25');
                 ag.addColorStop(1, ahex + '00');
                 actx.fillStyle = ag;
                 actx.fillRect(0, 0, 512, 512);
+                const atmoOpacity = (p.atmoOpacity !== undefined) ? p.atmoOpacity : 0.55;
+                const atmoScale = (p.atmoScale !== undefined) ? p.atmoScale : 2.7;
                 const atmo = new THREE.Sprite(new THREE.SpriteMaterial({ 
                     map: new THREE.CanvasTexture(aCanvas), 
                     transparent: true, 
-                    opacity: 0.55, 
+                    opacity: atmoOpacity, 
                     depthWrite: false, 
                     blending: THREE.AdditiveBlending 
                 }));
-                atmo.scale.set(p.r * 2.7, p.r * 2.7, 1);
+                atmo.scale.set(p.r * atmoScale, p.r * atmoScale, 1);
                 grp.add(atmo);
                 const atmo2 = new THREE.Sprite(new THREE.SpriteMaterial({ 
                     map: new THREE.CanvasTexture(aCanvas), 
                     transparent: true, 
-                    opacity: 0.3, 
+                    opacity: atmoOpacity * 0.55, 
                     depthWrite: false, 
                     blending: THREE.AdditiveBlending 
                 }));
-                atmo2.scale.set(p.r * 4.2, p.r * 4.2, 1);
+                atmo2.scale.set(p.r * atmoScale * 1.55, p.r * atmoScale * 1.55, 1);
                 grp.add(atmo2);
             }
             if (p.ring) {
-                const ringColor = p.ringColor || 0xd9c89a;
-                const rg1 = new THREE.RingGeometry(p.r * 1.35, p.r * 2.0, 128);
-                const rm1 = new THREE.MeshStandardMaterial({ color: ringColor, side: THREE.DoubleSide, transparent: true, opacity: 0.85, roughness: 0.85, metalness: 0.05 });
-                const ring1 = new THREE.Mesh(rg1, rm1);
-                ring1.rotation.x = Math.PI / 2.2;
-                grp.add(ring1);
-                const rg2 = new THREE.RingGeometry(p.r * 2.05, p.r * 2.5, 128);
-                const rm2 = new THREE.MeshStandardMaterial({ color: ringColor, side: THREE.DoubleSide, transparent: true, opacity: 0.4, roughness: 0.9 });
-                const ring2 = new THREE.Mesh(rg2, rm2);
-                ring2.rotation.x = Math.PI / 2.2;
-                grp.add(ring2);
+                if (p.name === 'Saturn') {
+                    const ringCanvas = _canvas(2048, 128);
+                    const rctx = ringCanvas.getContext('2d');
+                    const grad = rctx.createLinearGradient(0, 0, 2048, 0);
+                    grad.addColorStop(0.00, 'rgba(180,160,130,0)');
+                    grad.addColorStop(0.05, 'rgba(200,180,150,0.15)');
+                    grad.addColorStop(0.10, 'rgba(224,204,174,0.55)');
+                    grad.addColorStop(0.18, 'rgba(238,218,182,0.88)');
+                    grad.addColorStop(0.28, 'rgba(224,204,168,0.78)');
+                    grad.addColorStop(0.34, 'rgba(190,170,140,0.45)');
+                    grad.addColorStop(0.37, 'rgba(110,92,72,0.06)');
+                    grad.addColorStop(0.40, 'rgba(230,210,175,0.82)');
+                    grad.addColorStop(0.55, 'rgba(215,195,160,0.72)');
+                    grad.addColorStop(0.68, 'rgba(200,180,150,0.55)');
+                    grad.addColorStop(0.72, 'rgba(140,120,96,0.08)');
+                    grad.addColorStop(0.75, 'rgba(212,192,158,0.62)');
+                    grad.addColorStop(0.88, 'rgba(190,170,140,0.42)');
+                    grad.addColorStop(0.95, 'rgba(170,150,125,0.15)');
+                    grad.addColorStop(1.00, 'rgba(150,130,110,0)');
+                    rctx.fillStyle = grad;
+                    rctx.fillRect(0, 0, 2048, 128);
+                    const ringTex = new THREE.CanvasTexture(ringCanvas);
+                    ringTex.anisotropy = 16;
+                    ringTex.encoding = THREE.sRGBEncoding;
+                    const innerR = p.r * 1.24;
+                    const outerR = p.r * 2.36;
+                    const rg = new THREE.RingGeometry(innerR, outerR, 256, 1);
+                    const uvAttr = rg.attributes.uv;
+                    const posAttr = rg.attributes.position;
+                    for (let i = 0; i < uvAttr.count; i++) {
+                        const x = posAttr.getX(i);
+                        const y = posAttr.getY(i);
+                        const r = Math.sqrt(x*x + y*y);
+                        const t = (r - innerR) / (outerR - innerR);
+                        uvAttr.setXY(i, t, 0.5);
+                    }
+                    uvAttr.needsUpdate = true;
+                    const rm = new THREE.MeshStandardMaterial({
+                        map: ringTex,
+                        side: THREE.DoubleSide,
+                        transparent: true,
+                        opacity: 0.97,
+                        roughness: 0.85,
+                        metalness: 0.05,
+                        depthWrite: false,
+                        alphaTest: 0.01
+                    });
+                    const ring = new THREE.Mesh(rg, rm);
+                    ring.rotation.x = Math.PI / 2.2;
+                    grp.add(ring);
+                } else {
+                    const ringColor = p.ringColor || 0xa8dde5;
+                    const rg1 = new THREE.RingGeometry(p.r * 1.62, p.r * 1.70, 128);
+                    const rm1 = new THREE.MeshBasicMaterial({ color: ringColor, side: THREE.DoubleSide, transparent: true, opacity: 0.35, depthWrite: false });
+                    const ring1 = new THREE.Mesh(rg1, rm1);
+                    ring1.rotation.x = Math.PI / 2;
+                    ring1.rotation.z = Math.PI / 2.6;
+                    grp.add(ring1);
+                    const rg2 = new THREE.RingGeometry(p.r * 1.95, p.r * 2.05, 128);
+                    const rm2 = new THREE.MeshBasicMaterial({ color: ringColor, side: THREE.DoubleSide, transparent: true, opacity: 0.22, depthWrite: false });
+                    const ring2 = new THREE.Mesh(rg2, rm2);
+                    ring2.rotation.x = Math.PI / 2;
+                    ring2.rotation.z = Math.PI / 2.6;
+                    grp.add(ring2);
+                }
             }
             const pts = [];
             for (let i = 0; i <= 160; i++) { const a = (i / 160) * Math.PI * 2; pts.push(new THREE.Vector3(Math.cos(a) * p.o, 0, Math.sin(a) * p.o)); }
@@ -1024,21 +1074,24 @@
         }
 
         const TEX_BASE = 'https://threejs.org/examples/textures/planets/';
+        const THREE_X = 'https://raw.githubusercontent.com/jeromeetienne/threex.planets/master/images/';
         const REAL_TEX = {
-            Sun: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/sun_2k.jpg',
-            Mercury: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/mercury_1k.jpg',
-            Venus: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/venus_1k.jpg',
-            Earth: 'earth_atmos_2048.jpg',
-            EarthSpec: 'earth_specular_2048.jpg',
-            EarthClouds: 'earth_clouds_1024.png',
-            EarthBump: 'earth_normal_2048.jpg',
-            Moon: 'moon_1024.jpg',
-            Mars: 'mars_1k_color.jpg',
-            Jupiter: 'jupiter_2k.jpg',
-            Saturn: 'saturn_2k.jpg',
-            Uranus: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/uranus_1k.jpg',
-            Neptune: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/neptune_1k.jpg',
-            Pluto: 'https://raw.githubusercontent.com/jeromeetienne/threex.planets/master/images/plutomap1k.jpg'
+            Sun:        THREE_X + 'sunmap1k.jpg',
+            Mercury:    THREE_X + 'mercurymap1k.jpg',
+            Venus:      THREE_X + 'venusmap1k.jpg',
+            Earth:      'earth_atmos_2048.jpg',
+            EarthSpec:  'earth_specular_2048.jpg',
+            EarthClouds:'earth_clouds_1024.png',
+            EarthBump:  'earth_normal_2048.jpg',
+            Moon:       'moon_1024.jpg',
+            Mars:       THREE_X + 'marsmap1k.jpg',
+            MarsBump:   THREE_X + 'marsbump1k.jpg',
+            MoonBump:   THREE_X + 'moonbump1k.jpg',
+            Jupiter:    THREE_X + 'jupitermap1k.jpg',
+            Saturn:     THREE_X + 'saturnmap1k.jpg',
+            Uranus:     THREE_X + 'uranusmap1k.jpg',
+            Neptune:    THREE_X + 'neptunemap1k.jpg',
+            Pluto:      THREE_X + 'plutomap1k.jpg'
         };
         const texLoader = new THREE.TextureLoader();
         texLoader.setCrossOrigin('anonymous');
@@ -1078,11 +1131,29 @@
             loadRealTex(name, (tex) => {
                 if (grp.userData.sphere) {
                     tex.encoding = THREE.sRGBEncoding;
+                    tex.anisotropy = 16;
                     grp.userData.sphere.material.map = tex;
                     grp.userData.sphere.material.needsUpdate = true;
                 }
             });
         }
+
+        for (const grp of planetObjs) {
+            const name = grp.userData.name;
+            const sphere = grp.userData.sphere;
+            const pdata = PLANET_DATA.find(p => p.name === name);
+            if (!sphere || !pdata || !pdata.bumpScale) continue;
+            let bumpKey = null;
+            if (name === 'Mars') bumpKey = 'MarsBump';
+            if (bumpKey && REAL_TEX[bumpKey]) {
+                loadRealTex(bumpKey, (tex) => {
+                    sphere.material.bumpMap = tex;
+                    sphere.material.bumpScale = pdata.bumpScale;
+                    sphere.material.needsUpdate = true;
+                });
+            }
+        }
+
         if (earthObj) {
             const earthSphere = earthObj.userData.sphere;
             loadRealTex('EarthBump', (tex) => {
@@ -1115,7 +1186,17 @@
                     m.grp.traverse((c) => {
                         if (c.userData && c.userData.isMoon && c.material) {
                             tex.encoding = THREE.sRGBEncoding;
+                            tex.anisotropy = 16;
                             c.material.map = tex;
+                            c.material.needsUpdate = true;
+                        }
+                    });
+                });
+                loadRealTex('MoonBump', (tex) => {
+                    m.grp.traverse((c) => {
+                        if (c.userData && c.userData.isMoon && c.material) {
+                            c.material.bumpMap = tex;
+                            c.material.bumpScale = 0.01;
                             c.material.needsUpdate = true;
                         }
                     });
@@ -1721,7 +1802,6 @@
             const resistance = safeNum(Math.max(...highs1H.slice(-50)), 1.1246); 
             const currentPrice = safeNum(closes5m[closes5m.length - 1] || closes1H[closes1H.length - 1], 1.1200); 
             
-            // CALCULATE TODAY'S ABSOLUTE HIGH AND LOW FROM AVAILABLE CANDLES
             const allCandlesToday = [...candles5m, ...candles15m, ...candles1H];
             const todayHigh = allCandlesToday.length > 0 ? Math.max(...allCandlesToday.map(c => c.high)) : currentPrice;
             const todayLow = allCandlesToday.length > 0 ? Math.min(...allCandlesToday.map(c => c.low)) : currentPrice;
@@ -1789,7 +1869,6 @@
         async function callAI(systemPrompt, userText, conversationHistory) {
             const messages = [{ role: 'system', content: systemPrompt }, ...conversationHistory.map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text })), { role: 'user', content: userText }];
             
-            // 1. GROQ (Primary)
             if (groqKey) {
                 for (const model of GROQ_MODELS) {
                     try {
@@ -1812,7 +1891,6 @@
                 }
             }
 
-            // 2. GEMINI (First Fallback)
             if (apiKey) {
                 const contents = [{ role: 'user', parts: [{ text: systemPrompt }] }, ...conversationHistory.map(m => ({ role: m.role === 'ai' ? 'model' : 'user', parts: [{ text: m.text }] })), { role: 'user', parts: [{ text: userText }] }];
                 for (const model of GEMINI_MODELS) {
@@ -1836,7 +1914,6 @@
                 }
             }
 
-            // 3. OPENROUTER (Final Backup)
             if (openrouterKey) {
                 for (const model of OPENROUTER_MODELS) {
                     try {
@@ -1891,7 +1968,6 @@
             try {
                 const reply = await callAI(signalPrompt, "Give me the signal.", []);
                 
-                // Robust JSON extraction handling markdown
                 let cleanedReply = reply.replace(/```json/g, '').replace(/```/g, '').trim();
                 const jsonMatch = cleanedReply.match(/\{[\s\S]*?"signal"[\s\S]*?\}/);
                 
@@ -2053,7 +2129,6 @@
                 document.getElementById('api-key-input').value = apiKey;
                 document.getElementById('openrouter-key-input').value = openrouterKey;
                 
-                // Show active tick status indicator right away when opening Key panel
                 if (groqKey) document.getElementById('groq-status').innerHTML = '<span style="color:var(--green)">✓ Groq Active</span>';
                 if (apiKey) document.getElementById('gemini-status').innerHTML = '<span style="color:var(--green)">✓ Gemini Active</span>';
                 if (openrouterKey) document.getElementById('openrouter-status').innerHTML = '<span style="color:var(--green)">✓ OpenRouter Active</span>';
