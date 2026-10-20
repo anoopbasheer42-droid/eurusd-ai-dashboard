@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -298,6 +297,8 @@
         const GROQ_MODELS = ['meta-llama/llama-4-scout-17b-16e-instruct','llama-3.3-70b-versatile','openai/gpt-oss-120b'];
         const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
         const GEMINI_MODELS = ['gemini-3.8-flash','gemini-flash-latest','gemini-2.5-flash'];
+        const OPENROUTER_MODELS = ['openrouter/auto', 'meta-llama/llama-3.1-8b-instruct:free'];
+        const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
         const MARKET_KEYWORDS = ['market','buy','sell','trade','signal','entry','sl','tp','stop loss','take profit','setup','chart','trend','support','resistance','eur/usd','eurusd','should i','analysis','long','short','position','pip','bullish','bearish','candle','indicator','rsi','ema','atr','scalp','day trade'];
         const LOCAL_QUOTES = ["Discipline beats conviction every single time...", "Every loss is just expensive tuition, Boss...", "Protect your capital like your life depends on it...", "Cut losses short and let the winners run...", "A calm mind catches more pips than a frantic one...", "You don't need to be right on every trade...", "The trend is your friend until it suddenly punches you...", "Patience isn't waiting, it's knowing when to strike...", "The market rewards preparation, not hope...", "Trade like a sniper, not machine gunner..."];
         const LOCAL_JOKES = ["Why don't traders ever play hide and seek? Because good support levels are impossible to find...", "I told my wife I was a professional forex trader... she told me to clean the kitchen instead.", "My stop loss is remarkably similar to my ex—it gets hit when I least expect it.", "What's the difference between a forex trader and a large pizza? A pizza can feed a family of four."];
@@ -316,6 +317,7 @@
 
         let groqKey = localStorage.getItem('eurusd_groq_key') || '';
         let apiKey = localStorage.getItem('eurusd_chat_key') || '';
+        let openrouterKey = localStorage.getItem('eurusd_openrouter_key') || '';
         let gistToken = localStorage.getItem('eurusd_gist_token') || '';
         let gistId = localStorage.getItem('eurusd_gist_id') || '';
         let alertLog = JSON.parse(localStorage.getItem('eurusd_alert_log') || '[]');
@@ -1780,6 +1782,8 @@
 
         async function callAI(systemPrompt, userText, conversationHistory) {
             const messages = [{ role: 'system', content: systemPrompt }, ...conversationHistory.map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text })), { role: 'user', content: userText }];
+            
+            // 1. GROQ (Primary)
             if (groqKey) {
                 for (const model of GROQ_MODELS) {
                     try {
@@ -1798,6 +1802,8 @@
                     } catch(e) {}
                 }
             }
+
+            // 2. GEMINI (First Fallback)
             if (apiKey) {
                 const contents = [{ role: 'user', parts: [{ text: systemPrompt }] }, ...conversationHistory.map(m => ({ role: m.role === 'ai' ? 'model' : 'user', parts: [{ text: m.text }] })), { role: 'user', parts: [{ text: userText }] }];
                 for (const model of GEMINI_MODELS) {
@@ -1817,11 +1823,36 @@
                     } catch(e) {}
                 }
             }
-            throw new Error("All AI providers failed. Check your keys.");
+
+            // 3. OPENROUTER (Final Backup)
+            if (openrouterKey) {
+                for (const model of OPENROUTER_MODELS) {
+                    try {
+                        const res = await fetch(OPENROUTER_URL, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${openrouterKey}`,
+                                'Content-Type': 'application/json',
+                                'HTTP-Referer': window.location.origin,
+                                'X-Title': 'EUR/USD AI Pro Dashboard'
+                            },
+                            body: JSON.stringify({
+                                model: model,
+                                messages: messages,
+                                temperature: 0.95,
+                                max_tokens: 2000
+                            })
+                        });
+                        if (res.ok) return (await res.json()).choices[0].message.content;
+                    } catch(e) {}
+                }
+            }
+
+            throw new Error("All AI providers failed. Check your API keys.");
         }
 
         async function askAIForSignal() {
-            if (!groqKey && !apiKey) { alert("Please set your Groq or Gemini API Key first."); togglePanel('panel-key'); return; }
+            if (!groqKey && !apiKey && !openrouterKey) { alert("Please set your Groq, Gemini, or OpenRouter API Key first."); togglePanel('panel-key'); return; }
             if (!marketData) { await refreshMarketData(); }
             const signalText = document.getElementById('signal-text');
             const statusEl = document.getElementById('signal-status');
@@ -2269,7 +2300,7 @@ ${memoryBlock}${personalBlock}${marketBlock}`;
             const input = document.getElementById('chat-input');
             const text = input.value.trim();
             if (!text) return;
-            if (!groqKey && !apiKey) { alert("Set your Groq or Gemini API Key first."); togglePanel('panel-key'); return; }
+            if (!groqKey && !apiKey && !openrouterKey) { alert("Set your Groq, Gemini, or OpenRouter API Key first."); togglePanel('panel-key'); return; }
             chatInProgress = true; input.value = '';
             chatHistory.push({role:'user', text}); renderChat(); saveChatHistory();
             const loading = document.createElement('div'); loading.className = 'msg ai thinking fade-in'; loading.innerText = '...';
@@ -2349,7 +2380,7 @@ ${memoryBlock}${personalBlock}${marketBlock}`;
 
         async function triggerProactiveCheckin() {
             if (chatInProgress) return;
-            if (!groqKey && !apiKey) return;
+            if (!groqKey && !apiKey && !openrouterKey) return;
             const now = new Date();
             const istHour = parseInt(now.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', hour12: false }), 10);
             let mealContext = "";
@@ -2625,4 +2656,3 @@ Time awareness (STRICT): ${mealContext}${askedBlock}`;
     </script>
 </body>
 </html>
-
