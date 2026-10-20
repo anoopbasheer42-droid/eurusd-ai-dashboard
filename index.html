@@ -245,6 +245,11 @@
                 <strong>Gemini API Key (fallback AI)</strong>
                 <input type="password" id="api-key-input" placeholder="AIzaSy..." style="width:100%; padding:10px; margin-top:8px; border-radius:8px; border:1px solid rgba(139,92,246,0.2); background:rgba(0,0,0,0.4); color:white;">
                 <button class="btn" style="margin-top:10px;" onclick="saveApiKey()">Save Gemini Key</button>
+                <hr style="border:none; border-top:1px solid rgba(139,92,246,0.15); margin:16px 0;">
+                <strong>OpenRouter API Key (final backup AI)</strong>
+                <input type="password" id="openrouter-key-input" placeholder="sk-or-v1-..." style="width:100%; padding:10px; margin-top:8px; border-radius:8px; border:1px solid rgba(139,92,246,0.2); background:rgba(0,0,0,0.4); color:white;">
+                <button class="btn" style="margin-top:10px;" onclick="saveOpenRouterKey()">Save OpenRouter Key</button>
+                <div id="openrouter-status" style="font-size:0.7rem; margin-top:8px; color:var(--yellow);"></div>
             </div>
             <div class="chat-history" id="chat-history">
                 <div class="msg ai fade-in"><span class="pulse-dot"></span>Hey Boss. I'm locked onto the charts. What are we looking at on EUR/USD today?</div>
@@ -2031,7 +2036,11 @@
         function togglePanel(id) { const el = document.getElementById(id); el.classList.toggle('active');
             if (id === 'panel-reminders') renderReminders();
             if (id === 'panel-memory') renderMemory();
-            if (id === 'panel-key') { document.getElementById('groq-key-input').value = groqKey; document.getElementById('api-key-input').value = apiKey; }
+            if (id === 'panel-key') { 
+                document.getElementById('groq-key-input').value = groqKey; 
+                document.getElementById('api-key-input').value = apiKey;
+                document.getElementById('openrouter-key-input').value = openrouterKey;
+            }
             if (id === 'panel-gist') { document.getElementById('gist-token-input').value = gistToken; document.getElementById('gist-id-input').value = gistId; }
             if (id === 'panel-voice') {
                 document.getElementById('elevenlabs-voice-select').value = elevenLabsVoiceId;
@@ -2556,6 +2565,15 @@ Time awareness (STRICT): ${mealContext}${askedBlock}`;
             if (!v) return;
             groqKey = v; localStorage.setItem('eurusd_groq_key', groqKey);
             document.getElementById('groq-status').innerText = "✓ Groq Key Saved!"; document.getElementById('groq-status').style.color = "var(--green)";
+        }
+
+        async function saveOpenRouterKey() {
+            const v = document.getElementById('openrouter-key-input').value.trim();
+            if (!v) return;
+            openrouterKey = v; 
+            localStorage.setItem('eurusd_openrouter_key', openrouterKey);
+            document.getElementById('openrouter-status').innerText = "✓ OpenRouter Key Saved!"; 
+            document.getElementById('openrouter-status').style.color = "var(--green)";
         }
 
         let map = null;
