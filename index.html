@@ -245,6 +245,7 @@
                 <strong>Gemini API Key (fallback AI)</strong>
                 <input type="password" id="api-key-input" placeholder="AIzaSy..." style="width:100%; padding:10px; margin-top:8px; border-radius:8px; border:1px solid rgba(139,92,246,0.2); background:rgba(0,0,0,0.4); color:white;">
                 <button class="btn" style="margin-top:10px;" onclick="saveApiKey()">Save Gemini Key</button>
+                <div id="gemini-status" style="font-size:0.7rem; margin-top:8px; color:var(--yellow);"></div>
                 <hr style="border:none; border-top:1px solid rgba(139,92,246,0.15); margin:16px 0;">
                 <strong>OpenRouter API Key (final backup AI)</strong>
                 <input type="password" id="openrouter-key-input" placeholder="sk-or-v1-..." style="width:100%; padding:10px; margin-top:8px; border-radius:8px; border:1px solid rgba(139,92,246,0.2); background:rgba(0,0,0,0.4); color:white;">
@@ -1803,7 +1804,10 @@
                                 stop: ["<|eot_id|>", "<|end_of_text|>"]
                             }) 
                         });
-                        if (res.ok) return (await res.json()).choices[0].message.content;
+                        if (res.ok) {
+                            const data = await res.json();
+                            return data.choices[0].message.content;
+                        }
                     } catch(e) {}
                 }
             }
@@ -1824,7 +1828,10 @@
                                 } 
                             }) 
                         });
-                        if (r.ok) return (await r.json()).candidates[0].content.parts[0].text;
+                        if (r.ok) {
+                            const data = await r.json();
+                            return data.candidates[0].content.parts[0].text;
+                        }
                     } catch(e) {}
                 }
             }
@@ -1848,7 +1855,10 @@
                                 max_tokens: 2000
                             })
                         });
-                        if (res.ok) return (await res.json()).choices[0].message.content;
+                        if (res.ok) {
+                            const data = await res.json();
+                            return data.choices[0].message.content;
+                        }
                     } catch(e) {}
                 }
             }
@@ -2033,13 +2043,20 @@
         function clearChat() { chatHistory = []; saveChatHistory(); renderChat(); }
         function toggleDeepThink() { deepThinkEnabled = !deepThinkEnabled; const b = document.getElementById('deep-think-toggle'); b.classList.toggle('active', deepThinkEnabled); b.innerText = deepThinkEnabled ? 'Deep ON' : 'Deep OFF'; }
         function toggleWeb() { webSearchEnabled = !webSearchEnabled; const b = document.getElementById('web-toggle'); b.innerText = webSearchEnabled ? 'Web ON' : 'Web OFF'; b.classList.toggle('active', webSearchEnabled); }
-        function togglePanel(id) { const el = document.getElementById(id); el.classList.toggle('active');
+        function togglePanel(id) { 
+            const el = document.getElementById(id); 
+            el.classList.toggle('active');
             if (id === 'panel-reminders') renderReminders();
             if (id === 'panel-memory') renderMemory();
             if (id === 'panel-key') { 
                 document.getElementById('groq-key-input').value = groqKey; 
                 document.getElementById('api-key-input').value = apiKey;
                 document.getElementById('openrouter-key-input').value = openrouterKey;
+                
+                // Show active tick status indicator right away when opening Key panel
+                if (groqKey) document.getElementById('groq-status').innerHTML = '<span style="color:var(--green)">✓ Groq Active</span>';
+                if (apiKey) document.getElementById('gemini-status').innerHTML = '<span style="color:var(--green)">✓ Gemini Active</span>';
+                if (openrouterKey) document.getElementById('openrouter-status').innerHTML = '<span style="color:var(--green)">✓ OpenRouter Active</span>';
             }
             if (id === 'panel-gist') { document.getElementById('gist-token-input').value = gistToken; document.getElementById('gist-id-input').value = gistId; }
             if (id === 'panel-voice') {
@@ -2558,13 +2575,25 @@ Time awareness (STRICT): ${mealContext}${askedBlock}`;
         function addLongTermMemory(fact) { longTermMemory.push({fact, added: new Date().toISOString().split('T')[0]}); localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); }
         function renderMemory() { const l = document.getElementById('memory-list'); l.innerHTML = longTermMemory.length === 0 ? 'No facts saved.' : longTermMemory.map(m => `<div>• ${m.fact} <span style="color:var(--text-subtle);">(${m.added})</span></div>`).join(''); }
         function clearLongTermMemory() { if (confirm("Clear memory?")) { longTermMemory = []; localStorage.setItem('eurusd_long_term_memory', JSON.stringify(longTermMemory)); saveMemoryToGist(); renderMemory(); } }
-        function saveApiKey() { const v = document.getElementById('api-key-input').value.trim(); if (v) { apiKey = v; localStorage.setItem('eurusd_chat_key', apiKey); document.getElementById('groq-status').innerText = "✓ Gemini key saved"; } }
+        
+        function saveApiKey() { 
+            const v = document.getElementById('api-key-input').value.trim(); 
+            if (v) { 
+                apiKey = v; 
+                localStorage.setItem('eurusd_chat_key', apiKey); 
+                document.getElementById('gemini-status').innerHTML = '<span style="color:var(--green)">✓ Gemini Key Saved! (Active Fallback)</span>'; 
+            } else {
+                localStorage.removeItem('eurusd_chat_key');
+                apiKey = '';
+                document.getElementById('gemini-status').innerHTML = '<span style="color:var(--yellow)">Key removed</span>';
+            }
+        }
         
         async function saveGroqKey() {
             const v = document.getElementById('groq-key-input').value.trim();
             if (!v) return;
             groqKey = v; localStorage.setItem('eurusd_groq_key', groqKey);
-            document.getElementById('groq-status').innerText = "✓ Groq Key Saved!"; document.getElementById('groq-status').style.color = "var(--green)";
+            document.getElementById('groq-status').innerHTML = '<span style="color:var(--green)">✓ Groq Key Saved! (Active Primary)</span>'; 
         }
 
         async function saveOpenRouterKey() {
@@ -2572,8 +2601,7 @@ Time awareness (STRICT): ${mealContext}${askedBlock}`;
             if (!v) return;
             openrouterKey = v; 
             localStorage.setItem('eurusd_openrouter_key', openrouterKey);
-            document.getElementById('openrouter-status').innerText = "✓ OpenRouter Key Saved!"; 
-            document.getElementById('openrouter-status').style.color = "var(--green)";
+            document.getElementById('openrouter-status').innerHTML = '<span style="color:var(--green)">✓ OpenRouter Key Saved! (Active Backup)</span>'; 
         }
 
         let map = null;
