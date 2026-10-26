@@ -1,16 +1,16 @@
 {
     "signal": "SELL",
-    "reason": "Technical signal: Price below 20 EMA, RSI at 26.7.",
+    "reason": "Technical signal: Price below 20 EMA, RSI at 31.2.",
     "personal_message": "Good morning, Boss. Stay disciplined today.",
     "confidence": "MEDIUM",
     "price": "1.1178",
     "entry": "1.1178",
-    "sl": "1.1193",
-    "tp": "1.1148",
-    "atr": "0.001",
+    "sl": "1.1191",
+    "tp": "1.1151",
+    "atr": "0.0009",
     "support": "1.1177",
-    "resistance": "1.1233",
-    "mid_range": "1.1205",
+    "resistance": "1.123",
+    "mid_range": "1.1203",
     "trend": "Downtrend (lower highs + lower lows)",
     "swing_highs": [
         "1.123",
@@ -26,95 +26,11 @@
         "1.1193",
         "1.1177"
     ],
-    "valid": "02:56 IST",
-    "candle_current": "Bearish candle. Open: 1.1181, Now: 1.1178. Sellers pushing down.",
+    "valid": "03:58 IST",
+    "candle_current": "Bearish candle. Open: 1.1179, Now: 1.1178. Sellers pushing down.",
     "candle_1h": "1H candle at 1.1178. Below 20 EMA - downtrend.",
     "candle_4h": "4H trend: bearish below moving averages.",
     "candles_5m": [
-        {
-            "time": "2026-10-26 18:00",
-            "open": 1.1194,
-            "high": 1.1194,
-            "low": 1.1193,
-            "close": 1.1193
-        },
-        {
-            "time": "2026-10-26 18:05",
-            "open": 1.1193,
-            "high": 1.1193,
-            "low": 1.1193,
-            "close": 1.1193
-        },
-        {
-            "time": "2026-10-26 18:10",
-            "open": 1.1193,
-            "high": 1.1193,
-            "low": 1.1192,
-            "close": 1.1193
-        },
-        {
-            "time": "2026-10-26 18:15",
-            "open": 1.1192,
-            "high": 1.1192,
-            "low": 1.1191,
-            "close": 1.1191
-        },
-        {
-            "time": "2026-10-26 18:20",
-            "open": 1.1191,
-            "high": 1.1191,
-            "low": 1.1189,
-            "close": 1.1191
-        },
-        {
-            "time": "2026-10-26 18:25",
-            "open": 1.1189,
-            "high": 1.1191,
-            "low": 1.1189,
-            "close": 1.1191
-        },
-        {
-            "time": "2026-10-26 18:30",
-            "open": 1.1191,
-            "high": 1.1191,
-            "low": 1.1189,
-            "close": 1.1189
-        },
-        {
-            "time": "2026-10-26 18:35",
-            "open": 1.1189,
-            "high": 1.1189,
-            "low": 1.1188,
-            "close": 1.1188
-        },
-        {
-            "time": "2026-10-26 18:40",
-            "open": 1.1187,
-            "high": 1.1187,
-            "low": 1.1187,
-            "close": 1.1187
-        },
-        {
-            "time": "2026-10-26 18:45",
-            "open": 1.1186,
-            "high": 1.1188,
-            "low": 1.1186,
-            "close": 1.1187
-        },
-        {
-            "time": "2026-10-26 18:50",
-            "open": 1.1187,
-            "high": 1.1188,
-            "low": 1.1187,
-            "close": 1.1187
-        },
-        {
-            "time": "2026-10-26 18:55",
-            "open": 1.1187,
-            "high": 1.1187,
-            "low": 1.1186,
-            "close": 1.1186
-        },
         {
             "time": "2026-10-26 19:00",
             "open": 1.1186,
@@ -240,37 +156,93 @@
             "high": 1.1178,
             "low": 1.1178,
             "close": 1.1178
-        }
-    ],
-    "candles_15m": [
+        },
         {
-            "time": "2026-10-26 15:30",
+            "time": "2026-10-26 20:30",
+            "open": 1.1178,
+            "high": 1.1178,
+            "low": 1.1177,
+            "close": 1.1178
+        },
+        {
+            "time": "2026-10-26 20:35",
+            "open": 1.1177,
+            "high": 1.1178,
+            "low": 1.1177,
+            "close": 1.1178
+        },
+        {
+            "time": "2026-10-26 20:40",
             "open": 1.1179,
-            "high": 1.1182,
+            "high": 1.1179,
+            "low": 1.1177,
+            "close": 1.1177
+        },
+        {
+            "time": "2026-10-26 20:45",
+            "open": 1.1177,
+            "high": 1.1178,
+            "low": 1.1177,
+            "close": 1.1177
+        },
+        {
+            "time": "2026-10-26 20:50",
+            "open": 1.1177,
+            "high": 1.1178,
+            "low": 1.1177,
+            "close": 1.1178
+        },
+        {
+            "time": "2026-10-26 20:55",
+            "open": 1.1178,
+            "high": 1.1178,
+            "low": 1.1177,
+            "close": 1.1177
+        },
+        {
+            "time": "2026-10-26 21:00",
+            "open": 1.1179,
+            "high": 1.1179,
             "low": 1.1179,
             "close": 1.1179
         },
         {
-            "time": "2026-10-26 15:45",
+            "time": "2026-10-26 21:05",
             "open": 1.1179,
-            "high": 1.1184,
+            "high": 1.1179,
+            "low": 1.1177,
+            "close": 1.1179
+        },
+        {
+            "time": "2026-10-26 21:10",
+            "open": 1.1179,
+            "high": 1.1179,
+            "low": 1.1178,
+            "close": 1.1179
+        },
+        {
+            "time": "2026-10-26 21:15",
+            "open": 1.1179,
+            "high": 1.1181,
             "low": 1.1179,
-            "close": 1.1182
+            "close": 1.1179
         },
         {
-            "time": "2026-10-26 16:00",
-            "open": 1.1181,
-            "high": 1.1183,
-            "low": 1.1181,
-            "close": 1.1182
+            "time": "2026-10-26 21:20",
+            "open": 1.1179,
+            "high": 1.1179,
+            "low": 1.1178,
+            "close": 1.1178
         },
         {
-            "time": "2026-10-26 16:15",
-            "open": 1.1183,
-            "high": 1.1187,
-            "low": 1.1182,
-            "close": 1.1186
-        },
+            "time": "2026-10-26 21:25",
+            "open": 1.1178,
+            "high": 1.1178,
+            "low": 1.1178,
+            "close": 1.1178
+        }
+    ],
+    "candles_15m": [
         {
             "time": "2026-10-26 16:30",
             "open": 1.1186,
@@ -382,16 +354,37 @@
             "high": 1.1179,
             "low": 1.1178,
             "close": 1.1178
+        },
+        {
+            "time": "2026-10-26 20:30",
+            "open": 1.1178,
+            "high": 1.1179,
+            "low": 1.1177,
+            "close": 1.1177
+        },
+        {
+            "time": "2026-10-26 20:45",
+            "open": 1.1177,
+            "high": 1.1178,
+            "low": 1.1177,
+            "close": 1.1177
+        },
+        {
+            "time": "2026-10-26 21:00",
+            "open": 1.1179,
+            "high": 1.1179,
+            "low": 1.1177,
+            "close": 1.1179
+        },
+        {
+            "time": "2026-10-26 21:15",
+            "open": 1.1179,
+            "high": 1.1181,
+            "low": 1.1178,
+            "close": 1.1178
         }
     ],
     "candles_h1": [
-        {
-            "time": "2026-10-23 14:00",
-            "open": 1.1208,
-            "high": 1.1208,
-            "low": 1.1199,
-            "close": 1.1203
-        },
         {
             "time": "2026-10-23 15:00",
             "open": 1.1202,
@@ -592,7 +585,14 @@
             "time": "2026-10-26 20:00",
             "open": 1.1181,
             "high": 1.1181,
-            "low": 1.1178,
+            "low": 1.1177,
+            "close": 1.1177
+        },
+        {
+            "time": "2026-10-26 21:00",
+            "open": 1.1179,
+            "high": 1.1181,
+            "low": 1.1177,
             "close": 1.1178
         }
     ],
@@ -664,7 +664,7 @@
             "time": "2026-10-26 19:00",
             "open": 1.1186,
             "high": 1.1186,
-            "low": 1.1178,
+            "low": 1.1177,
             "close": 1.1178
         }
     ],
@@ -712,5 +712,5 @@
     ],
     "session": "Off-Session",
     "volatility": "low",
-    "wise_words": "Motivation: Discipline beats conviction. The best trade is often the one you don't take."
+    "wise_words": "Motivation: Every loss is tuition. The market is the teacher, and you are the student."
 }
