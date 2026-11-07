@@ -1,10 +1,3 @@
-I have added the new "Terminal" tab at the bottom, which acts like a new page in a book. It features a professional interactive TradingView candlestick chart, multiple timeframes, and toggles for Support/Resistance and Buy/Sell Zones.
-
-Nothing else in your dashboard was changed.
-
-Here is the updated code. Replace your entire file with this:
-
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -16,7 +9,7 @@ Here is the updated code. Replace your entire file with this:
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+    <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
@@ -203,9 +196,10 @@ Here is the updated code. Replace your entire file with this:
             color: #93c5fd;
             box-shadow: 0 0 10px rgba(59,130,246,0.2);
         }
+        /* Changed to explicit height to prevent flexbox collapse */
         #tv-chart-container {
-            flex: 1;
             width: 100%;
+            height: calc(100vh - 120px); 
             position: relative;
             background: #000;
         }
@@ -487,7 +481,10 @@ Here is the updated code. Replace your entire file with this:
             if (chart) return;
             const container = document.getElementById('tv-chart-container');
             
+            // Explicit width/height ensures chart draws even if hidden initially
             chart = LightweightCharts.createChart(container, {
+                width: container.clientWidth || window.innerWidth,
+                height: container.clientHeight || (window.innerHeight - 120),
                 layout: { background: { color: 'transparent' }, textColor: '#8b95a5' },
                 grid: { vertLines: { color: 'rgba(139, 92, 246, 0.05)' }, horzLines: { color: 'rgba(139, 92, 246, 0.05)' } },
                 crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
@@ -507,7 +504,6 @@ Here is the updated code. Replace your entire file with this:
                 }
             });
 
-            // Click event for showing S/R info
             chart.subscribeClick((param) => {
                 if (!param.point) return;
                 const price = candlestickSeries.coordinateToPrice(param.point.y);
@@ -528,41 +524,51 @@ Here is the updated code. Replace your entire file with this:
             
             let data = [];
             try {
-                // Map timeframes to Biquote intervals
                 let apiInterval = tf;
                 if (tf === '1d') apiInterval = '1d';
                 if (tf === '1w') apiInterval = '1w';
-                if (tf === '1M') apiInterval = '1M'; // Might not be supported, fallback to 4h if needed
+                if (tf === '1M') apiInterval = '1M'; // Might not be supported, fallback will handle it
 
-                const res = await fetch(`https://biquote.io/api/EURUSD/ohlc?interval=${apiInterval}&limit=200`);
+                const res = await fetch(`https://biquote.io/api/EURUSD/ohlc?interval=${apiInterval}&limit=300`);
                 if (res.ok) {
                     const json = await res.json();
                     if (json.bars && json.bars.length > 0) {
-                        data = json.bars.filter(b => !b.isOpen).reverse().map(b => ({
-                            time: new Date(b.openTime).getTime() / 1000,
-                            open: parseFloat(b.open),
-                            high: parseFloat(b.high),
-                            low: parseFloat(b.low),
-                            close: parseFloat(b.close)
-                        }));
+                        // Filter valid bars and sort by time (Lightweight Charts requirement)
+                        const validBars = json.bars
+                            .filter(b => !b.isOpen && !isNaN(new Date(b.openTime).getTime()))
+                            .map(b => ({
+                                time: Math.floor(new Date(b.openTime).getTime() / 1000), // Must be integer seconds
+                                open: parseFloat(b.open),
+                                high: parseFloat(b.high),
+                                low: parseFloat(b.low),
+                                close: parseFloat(b.close)
+                            }))
+                            .sort((a, b) => a.time - b.time);
+                        
+                        // Deduplicate (Lightweight charts will crash on duplicate times)
+                        for (let i = 0; i < validBars.length; i++) {
+                            if (i === 0 || validBars[i].time > validBars[i-1].time) {
+                                data.push(validBars[i]);
+                            }
+                        }
                     }
                 }
             } catch(e) {
                 console.warn("Biquote failed for TF", tf, e);
             }
 
-            // Fallback if API fails or doesn't support higher TFs
+            // Fallback if API fails, returns empty, or unsupported timeframe
             if (data.length === 0) {
-                let basePrice = marketData ? marketData.currentPrice : 1.1200;
+                let basePrice = (marketData && marketData.currentPrice) ? marketData.currentPrice : 1.1200;
                 let timeStep = 3600; // 1h default
                 if (tf === '5m') timeStep = 300;
-                if (tf === '4h') timeStep = 14400;
-                if (tf === '1d') timeStep = 86400;
-                if (tf === '1w') timeStep = 604800;
-                if (tf === '1M') timeStep = 2592000;
+                else if (tf === '4h') timeStep = 14400;
+                else if (tf === '1d') timeStep = 86400;
+                else if (tf === '1w') timeStep = 604800;
+                else if (tf === '1M') timeStep = 2592000;
 
                 let now = Math.floor(Date.now() / 1000);
-                for (let i = 100; i >= 0; i--) {
+                for (let i = 150; i >= 0; i--) {
                     const t = now - i * timeStep;
                     const open = basePrice + (Math.random() - 0.5) * 0.005;
                     const close = open + (Math.random() - 0.5) * 0.008;
@@ -575,6 +581,8 @@ Here is the updated code. Replace your entire file with this:
 
             chartDataCache[tf] = data;
             candlestickSeries.setData(data);
+            
+            chart.applyOptions({ width: document.getElementById('tv-chart-container').clientWidth, height: document.getElementById('tv-chart-container').clientHeight });
             chart.timeScale().fitContent();
 
             calculateAndDrawSR(data);
@@ -582,7 +590,6 @@ Here is the updated code. Replace your entire file with this:
         }
 
         function calculateAndDrawSR(data) {
-            // Clear existing lines
             srLines.forEach(line => candlestickSeries.removePriceLine(line));
             srLines = [];
 
@@ -615,7 +622,6 @@ Here is the updated code. Replace your entire file with this:
         }
 
         function calculateAndDrawZones(data) {
-            // Clear existing zones
             zoneLines.forEach(line => candlestickSeries.removePriceLine(line));
             zoneLines = [];
 
@@ -627,21 +633,17 @@ Here is the updated code. Replace your entire file with this:
             const min = Math.min(...lows);
             const range = max - min;
 
-            // Top 15% = Sell Zone, Bottom 15% = Buy Zone
             const sellZoneTop = max;
             const sellZoneBottom = max - (range * 0.15);
             const buyZoneTop = min + (range * 0.15);
             const buyZoneBottom = min;
 
-            // Draw Sell Zone (Thick red lines)
             zoneLines.push(candlestickSeries.createPriceLine({
                 price: sellZoneTop, color: 'rgba(239, 68, 68, 0.8)', lineWidth: 4, lineStyle: LightweightCharts.LineStyle.Solid, axisLabelVisible: true, title: 'Sell Zone'
             }));
             zoneLines.push(candlestickSeries.createPriceLine({
                 price: sellZoneBottom, color: 'rgba(239, 68, 68, 0.4)', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Dotted, axisLabelVisible: false
             }));
-
-            // Draw Buy Zone (Thick green lines)
             zoneLines.push(candlestickSeries.createPriceLine({
                 price: buyZoneTop, color: 'rgba(16, 185, 129, 0.4)', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Dotted, axisLabelVisible: false
             }));
@@ -676,10 +678,11 @@ Here is the updated code. Replace your entire file with this:
                 navDash.classList.remove('active');
                 navCharts.classList.add('active');
                 
-                // Init chart and load initial data
                 setTimeout(() => {
                     initChart();
-                    chart.applyOptions({ width: document.getElementById('tv-chart-container').clientWidth, height: document.getElementById('tv-chart-container').clientHeight });
+                    // Force dimensions before loading data
+                    const container = document.getElementById('tv-chart-container');
+                    chart.applyOptions({ width: container.clientWidth, height: container.clientHeight });
                     loadChartData(currentTimeframe);
                 }, 100);
             } else {
