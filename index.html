@@ -1,8 +1,8 @@
-I have updated the Analysis tab to show the actual price numbers instead of just the letters (e.g., "Pivot (1.12345)"), and changed the session times to IST.
+I found the issue. The TradingView chart library automatically tries to save space on mobile screens by shortening the numbers on the right axis (e.g., showing 1.13 instead of 1.13000).
 
-I did not touch anything else on the dashboard or the chart.
+To force it to show the full 5 decimal places, I added a priceFormat rule specifically to the candlestick series.
 
-Here is the complete updated code. Replace your entire file with this:
+Here is the complete updated code. Everything else is exactly the same.
 
 ```html
 <!DOCTYPE html>
@@ -627,9 +627,15 @@ Here is the complete updated code. Replace your entire file with this:
                 handleScroll: { vertTouchDrag: false }
             });
 
+            // THE FIX IS HERE: Added priceFormat to force 5 decimal places on the axis
             candlestickSeries = chart.addCandlestickSeries({
                 upColor: '#10b981', downColor: '#ef4444', borderVisible: false,
-                wickUpColor: '#10b981', wickDownColor: '#ef4444'
+                wickUpColor: '#10b981', wickDownColor: '#ef4444',
+                priceFormat: {
+                    type: 'price',
+                    precision: 5,
+                    minMove: 0.00001,
+                }
             });
 
             window.addEventListener('resize', () => {
