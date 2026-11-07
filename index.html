@@ -1,8 +1,4 @@
-I have added the vertical panning/scaling feature (just like MT5, where you can drag or pinch the chart up/down to see higher/lower prices) and fixed the bottom date/time axis so it's fully visible and doesn't hide behind the bottom menu.
 
-Nothing else was touched. Here is the complete file:
-
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -374,28 +370,7 @@ Nothing else was touched. Here is the complete file:
             <button class="back-btn" onclick="switchPage('dashboard')">← Dashboard</button>
         </div>
         <div class="analysis-content">
-            <div class="card">
-                <div class="card-title" style="color:var(--blue);">Previous Day Levels</div>
-                <div class="analysis-grid">
-                    <div class="pro-level-box">
-                        <div class="label">PDH (High)</div>
-                        <div class="value" id="val-pdh" style="color:var(--red);">—</div>
-                    </div>
-                    <div class="pro-level-box">
-                        <div class="label">PDL (Low)</div>
-                        <div class="value" id="val-pdl" style="color:var(--green);">—</div>
-                    </div>
-                    <div class="pro-level-box">
-                        <div class="label">PDC (Close)</div>
-                        <div class="value" id="val-pdc" style="color:var(--text-body);">—</div>
-                    </div>
-                    <div class="pro-level-box">
-                        <div class="label">Pivot (P)</div>
-                        <div class="value" id="val-pivot" style="color:var(--violet);">—</div>
-                    </div>
-                </div>
-            </div>
-
+            
             <div class="card">
                 <div class="card-title" style="color:var(--yellow);">Session Predictions (Pro Trader)</div>
                 <div class="analysis-grid" style="grid-template-columns: 1fr;">
@@ -619,14 +594,13 @@ Nothing else was touched. Here is the complete file:
                 rightPriceScale: { 
                     borderColor: 'rgba(139, 92, 246, 0.1)',
                     scaleMargins: { top: 0.1, bottom: 0.1 },
-                    entireTextOnly: false,
-                    visible: true
+                    entireTextOnly: false 
                 },
                 timeScale: { 
                     borderColor: 'rgba(139, 92, 246, 0.1)', 
                     timeVisible: true,
                     secondsVisible: false,
-                    visible: true, /* Forces the time axis to show */
+                    visible: true,
                     rightOffset: 5,
                     barSpacing: 10,
                     lockVisibleTimeRangeOnResize: true,
@@ -916,11 +890,6 @@ Nothing else was touched. Here is the complete file:
                     const s1 = (2 * pivot) - pdh;
                     const r2 = pivot + (pdh - pdl);
                     const s2 = pivot - (pdh - pdl);
-
-                    document.getElementById('val-pdh').innerText = pdh.toFixed(5);
-                    document.getElementById('val-pdl').innerText = pdl.toFixed(5);
-                    document.getElementById('val-pdc').innerText = pdc.toFixed(5);
-                    document.getElementById('val-pivot').innerText = pivot.toFixed(5);
 
                     if (marketData && marketData.currentPrice) {
                         const cp = marketData.currentPrice;
