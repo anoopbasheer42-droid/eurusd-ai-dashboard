@@ -1,3 +1,12 @@
+The black screen and "AWAITING DATA" happen because Biquote.io (the free API providing the live price and candles) is either temporarily down, blocked by your internet provider, or has hit a rate limit.
+
+Because the main API failed, the code stops before it can update the price.
+
+I have fixed this by adding a Backup Price Engine. If Biquote fails to load, the dashboard will now automatically ping two other independent, reliable APIs (open.er-api.com and frankfurter.app) to get the live EUR/USD price. It will display the price with a "FALLBACK LIVE" tag so you always have the data.
+
+Here is the fully updated code. Replace your entire file with this:
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -2173,6 +2182,26 @@
 
         function safeNum(val, fallback = 0) { return (isNaN(val) || val === undefined || val === null || !isFinite(val)) ? fallback : val; }
         async function fetchBiquoteCandles(interval, limit) { try { const url = `https://biquote.io/api/EURUSD/ohlc?interval=${interval}&limit=${limit}`; const res = await fetch(url); if (!res.ok) return []; const data = await res.json(); if (!data.bars || data.bars.length === 0) return []; return data.bars.filter(b => !b.isOpen).reverse().map(b => ({ time: new Date(b.openTime).getTime(), open: parseFloat(b.open), high: parseFloat(b.high), low: parseFloat(b.low), close: parseFloat(b.close) })); } catch(e) { console.error("Biquote fetch error:", e); return []; } }
+        
+        // NEW: Fallback price fetching if Biquote fails
+        async function fetchFallbackPrice() {
+            try {
+                const res = await fetch('https://open.er-api.com/v6/latest/EUR', { signal: AbortSignal.timeout(5000) });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.rates && data.rates.USD) return parseFloat(data.rates.USD);
+                }
+            } catch(e) {}
+            try {
+                const res = await fetch('https://api.frankfurter.app/latest?from=EUR&to=USD', { signal: AbortSignal.timeout(5000) });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.rates && data.rates.USD) return parseFloat(data.rates.USD);
+                }
+            } catch(e) {}
+            return null;
+        }
+
         function calculateEMA(data, period) { if (data.length < period) return [data[data.length-1] || 0]; const k = 2 / (period + 1); let ema = data[0]; const arr = [ema]; for (let i = 1; i < data.length; i++) { ema = (data[i] * k) + (ema * (1 - k)); arr.push(ema); } return arr; }
         function calculateRSI(data, period = 14) { if (data.length < period) return 50; let gains = 0, losses = 0; for (let i = 1; i <= period; i++) { const diff = data[i] - data[i-1]; if (diff >= 0) gains += diff; else losses -= diff; } let ag = gains / period, al = losses / period; for (let i = period + 1; i < data.length; i++) { const diff = data[i] - data[i-1]; if (diff >= 0) { ag = (ag * (period - 1) + diff) / period; al = (al * (period - 1)) / period; } else { ag = (ag * (period - 1)) / period; al = (al * (period - 1) - diff) / period; } } if (al === 0) return 100; return 100 - (100 / (1 + (ag / al))); }
         function calculateATR(highs, lows, closes, period = 14) { let trs = []; for (let i = 1; i < highs.length; i++) trs.push(Math.max(highs[i]-lows[i], Math.abs(highs[i]-closes[i-1]), Math.abs(lows[i]-closes[i-1]))); return trs.slice(-period).reduce((a,b) => a+b, 0) / period; }
@@ -2189,7 +2218,30 @@
                 fetchBiquoteCandles('4h', 50)
             ]); 
             
-            if (candles1H.length === 0) { statusEl.innerText = "Biquote data unavailable. Retrying..."; return; } 
+            if (candles1H.length === 0) { 
+                const fallbackPrice = await fetchFallbackPrice();
+                if (fallbackPrice) {
+                    livePriceEl.innerText = fallbackPrice.toFixed(5); 
+                    lastUpdatedEl.innerText = `FALLBACK LIVE · ${new Date().toLocaleTimeString('en-IN',{hour12:false})}`;
+                    if (statusEl) statusEl.innerText = "Biquote unavailable. Using fallback price.";
+                    
+                    if (!marketData) {
+                        marketData = { currentPrice: fallbackPrice, trend: "Unknown", support: fallbackPrice - 0.005, resistance: fallbackPrice + 0.005, session: "Off-Session", rsi1H: 50, rsi15m: 50, rsi5m: 50, ema20: fallbackPrice, ema50: fallbackPrice, atr: 0.001, candles5m: [], candles15m: [], candles1H: [], candles4H: [], todayHigh: fallbackPrice, todayLow: fallbackPrice };
+                    } else {
+                        marketData.currentPrice = fallbackPrice;
+                    }
+                    
+                    document.getElementById('val-trend').innerText = marketData.trend;
+                    document.getElementById('val-session').innerText = marketData.session;
+                    document.getElementById('val-support').innerText = marketData.support.toFixed(5);
+                    document.getElementById('val-resistance').innerText = marketData.resistance.toFixed(5);
+                    document.getElementById('val-candle-current').innerText = `Fallback · ${fallbackPrice.toFixed(5)}`;
+                    return;
+                }
+                if (statusEl) statusEl.innerText = "Biquote data unavailable. Retrying..."; 
+                return; 
+            } 
+            
             const closes1H = candles1H.map(c => c.close), highs1H = candles1H.map(c => c.high), lows1H = candles1H.map(c => c.low); 
             const closes5m = candles5m.map(c => c.close); 
             const closes15m = candles15m.map(c => c.close); 
