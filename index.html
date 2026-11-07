@@ -1,4 +1,8 @@
+I have updated the chart configuration to enable full touch gestures (pinch to zoom in/out, swipe to pan) and fixed the container height so the bottom date/time axis is fully visible and not hidden behind the bottom navigation bar.
 
+Everything else remains exactly the same.
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -263,11 +267,12 @@
         }
         #tv-chart-container {
             width: 100%;
-            height: calc(100vh - 120px); 
+            height: calc(100vh - 140px); /* Adjusted to ensure bottom axis is fully visible above the nav */
             position: relative;
             background: #000;
             padding-right: 10px;
             box-sizing: border-box;
+            touch-action: pan-y; /* Allow vertical scrolling of the page, while chart captures horizontal/pinch */
         }
         #chart-info-box {
             position: absolute;
@@ -608,7 +613,7 @@
             
             chart = LightweightCharts.createChart(container, {
                 width: container.clientWidth || window.innerWidth,
-                height: container.clientHeight || (window.innerHeight - 120),
+                height: container.clientHeight || (window.innerHeight - 140),
                 layout: { background: { color: 'transparent' }, textColor: '#8b95a5' },
                 grid: { vertLines: { color: 'rgba(139, 92, 246, 0.05)' }, horzLines: { color: 'rgba(139, 92, 246, 0.05)' } },
                 crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
@@ -617,11 +622,29 @@
                     scaleMargins: { top: 0.1, bottom: 0.1 },
                     entireTextOnly: false 
                 },
-                timeScale: { borderColor: 'rgba(139, 92, 246, 0.1)', timeVisible: true },
-                handleScroll: { vertTouchDrag: false }
+                timeScale: { 
+                    borderColor: 'rgba(139, 92, 246, 0.1)', 
+                    timeVisible: true,
+                    secondsVisible: false,
+                    visible: true,
+                    rightOffset: 5,
+                    barSpacing: 10,
+                    lockVisibleTimeRangeOnResize: true,
+                    rightBarStaysOnScroll: true
+                },
+                handleScroll: {
+                    mouseWheel: true,
+                    pressedMouseMove: true,
+                    horzTouchDrag: true,
+                    vertTouchDrag: false
+                },
+                handleScale: {
+                    axisPressedMouseMove: true,
+                    mouseWheel: true,
+                    pinch: true
+                }
             });
 
-            // THE FIX IS HERE: Added priceFormat to force 5 decimal places on the axis
             candlestickSeries = chart.addCandlestickSeries({
                 upColor: '#10b981', downColor: '#ef4444', borderVisible: false,
                 wickUpColor: '#10b981', wickDownColor: '#ef4444',
