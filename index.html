@@ -1,6 +1,6 @@
-I have added the two new toggles (PDH/PDL and Today H/L) right after the Zones button, implemented the logic to draw those levels on the chart, and fixed the right-side price scale so it is no longer cut off.
+I have updated the Analysis tab to show the actual price numbers instead of just the letters (e.g., "Pivot (1.12345)"), and changed the session times to IST.
 
-I left everything else (AI, 3D Core, Dashboard, Analysis tab) exactly as it is.
+I did not touch anything else on the dashboard or the chart.
 
 Here is the complete updated code. Replace your entire file with this:
 
@@ -272,7 +272,7 @@ Here is the complete updated code. Replace your entire file with this:
             height: calc(100vh - 120px); 
             position: relative;
             background: #000;
-            padding-right: 10px; /* Gives breathing room for the right price scale */
+            padding-right: 10px;
             box-sizing: border-box;
         }
         #chart-info-box {
@@ -402,15 +402,15 @@ Here is the complete updated code. Replace your entire file with this:
                 <div class="card-title" style="color:var(--yellow);">Session Predictions (Pro Trader)</div>
                 <div class="analysis-grid" style="grid-template-columns: 1fr;">
                     <div class="pro-level-box" style="text-align:left;">
-                        <div class="label" style="color:var(--text-main);">Asian Session (00:00 - 08:00 UTC)</div>
+                        <div class="label" style="color:var(--text-main);">Asian Session (05:30 - 13:30 IST)</div>
                         <div id="val-session-asian" style="font-family:Inter; font-size:0.85rem; margin-top:6px; color:var(--text-muted);">Calculating...</div>
                     </div>
                     <div class="pro-level-box" style="text-align:left;">
-                        <div class="label" style="color:var(--text-main);">London Session (07:00 - 16:00 UTC)</div>
+                        <div class="label" style="color:var(--text-main);">London Session (12:30 - 21:30 IST)</div>
                         <div id="val-session-london" style="font-family:Inter; font-size:0.85rem; margin-top:6px; color:var(--text-muted);">Calculating...</div>
                     </div>
                     <div class="pro-level-box" style="text-align:left;">
-                        <div class="label" style="color:var(--text-main);">New York Session (12:00 - 21:00 UTC)</div>
+                        <div class="label" style="color:var(--text-main);">New York Session (17:30 - 02:30 IST)</div>
                         <div id="val-session-ny" style="font-family:Inter; font-size:0.85rem; margin-top:6px; color:var(--text-muted);">Calculating...</div>
                     </div>
                 </div>
@@ -787,7 +787,6 @@ Here is the complete updated code. Replace your entire file with this:
                 pdhLines.push(candlestickSeries.createPriceLine({ price: window.pdhPdl.pdh, color: '#3b82f6', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: true, title: 'PDH' }));
                 pdhLines.push(candlestickSeries.createPriceLine({ price: window.pdhPdl.pdl, color: '#3b82f6', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: true, title: 'PDL' }));
             } else {
-                // Fallback fetch if analysis tab hasn't loaded yet
                 fetchBiquoteCandles('1d', 5).then(daily => {
                     if (daily.length >= 2) {
                         const prev = daily[daily.length - 2];
@@ -903,26 +902,33 @@ Here is the complete updated code. Replace your entire file with this:
                     if (marketData && marketData.currentPrice) {
                         const cp = marketData.currentPrice;
                         
+                        // Asian Prediction
                         let asianPred = "";
-                        if (cp > pivot) asianPred = "Price is above Daily Pivot. Asian session likely to test R1 as support. Bias: BULLISH.";
-                        else asianPred = "Price is below Daily Pivot. Asian session likely to test S1 as resistance. Bias: BEARISH.";
-                        if (cp > r1) asianPred += " Overextended above R1, watch for mean reversion to Pivot.";
-                        if (cp < s1) asianPred += " Overextended below S1, watch for mean reversion to Pivot.";
+                        if (cp > pivot) {
+                            asianPred = `Price is above Daily Pivot (${pivot.toFixed(5)}). Asian session likely to test R1 (${r1.toFixed(5)}) as support. Bias: BULLISH.`;
+                        } else {
+                            asianPred = `Price is below Daily Pivot (${pivot.toFixed(5)}). Asian session likely to test S1 (${s1.toFixed(5)}) as resistance. Bias: BEARISH.`;
+                        }
+                        if (cp > r1) asianPred += ` Overextended above R1 (${r1.toFixed(5)}), watch for mean reversion to Pivot (${pivot.toFixed(5)}).`;
+                        if (cp < s1) asianPred += ` Overextended below S1 (${s1.toFixed(5)}), watch for mean reversion to Pivot (${pivot.toFixed(5)}).`;
                         document.getElementById('val-session-asian').innerText = asianPred;
 
+                        // London Prediction
                         let londonPred = "";
-                        if (cp > pivot && cp < r1) londonPred = "Asian range was bullish. London Open likely to sweep Asian high and continue to R1. Look for BUY on pullback to Pivot.";
-                        else if (cp < pivot && cp > s1) londonPred = "Asian range was bearish. London Open likely to sweep Asian low and continue to S1. Look for SELL on pullback to Pivot.";
-                        else if (cp >= r1) londonPred = "Price is above R1. London may manipulate down to R1 before continuing higher. Beware of fakeouts.";
-                        else if (cp <= s1) londonPred = "Price is below S1. London may manipulate up to S1 before continuing lower. Beware of fakeouts.";
-                        else londonPred = "Consolidation expected. Wait for London to establish a clear direction off the Pivot.";
+                        if (cp > pivot && cp < r1) londonPred = `Asian range was bullish. London Open likely to sweep Asian high and continue to R1 (${r1.toFixed(5)}). Look for BUY on pullback to Pivot (${pivot.toFixed(5)}).`;
+                        else if (cp < pivot && cp > s1) londonPred = `Asian range was bearish. London Open likely to sweep Asian low and continue to S1 (${s1.toFixed(5)}). Look for SELL on pullback to Pivot (${pivot.toFixed(5)}).`;
+                        else if (cp >= r1) londonPred = `Price is above R1 (${r1.toFixed(5)}). London may manipulate down to R1 (${r1.toFixed(5)}) before continuing higher. Beware of fakeouts.`;
+                        else if (cp <= s1) londonPred = `Price is below S1 (${s1.toFixed(5)}). London may manipulate up to S1 (${s1.toFixed(5)}) before continuing lower. Beware of fakeouts.`;
+                        else londonPred = `Consolidation expected. Wait for London to establish a clear direction off the Pivot (${pivot.toFixed(5)}).`;
                         document.getElementById('val-session-london').innerText = londonPred;
 
+                        // NY Prediction
                         let nyPred = "";
-                        if (cp > pivot) nyPred = "London bias is BULLISH. NY session likely to sweep London high and target R2. Do not short into the trend unless NY makes a clear lower high.";
-                        else nyPred = "London bias is BEARISH. NY session likely to sweep London low and target S2. Do not buy into the trend unless NY makes a clear higher low.";
+                        if (cp > pivot) nyPred = `London bias is BULLISH. NY session likely to sweep London high and target R2 (${r2.toFixed(5)}). Do not short into the trend unless NY makes a clear lower high.`;
+                        else nyPred = `London bias is BEARISH. NY session likely to sweep London low and target S2 (${s2.toFixed(5)}). Do not buy into the trend unless NY makes a clear higher low.`;
                         document.getElementById('val-session-ny').innerText = nyPred;
 
+                        // Day Close Prediction
                         let closePred = "";
                         if (cp > pivot) {
                             closePred = `Bullish day expected. If price holds above Pivot (${pivot.toFixed(5)}), look for a close near R1 (${r1.toFixed(5)}). If R1 is rejected, expect a close back at Pivot.`;
