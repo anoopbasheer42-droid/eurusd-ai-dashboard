@@ -1,10 +1,4 @@
-I found the issue. The TradingView chart library automatically tries to save space on mobile screens by shortening the numbers on the right axis (e.g., showing 1.13 instead of 1.13000).
 
-To force it to show the full 5 decimal places, I added a priceFormat rule specifically to the candlestick series.
-
-Here is the complete updated code. Everything else is exactly the same.
-
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
