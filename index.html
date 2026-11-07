@@ -1,10 +1,6 @@
-The black screen and "AWAITING DATA" happen because Biquote.io (the free API providing the live price and candles) is either temporarily down, blocked by your internet provider, or has hit a rate limit.
+Here is the fully merged code. I have carefully integrated the entire Chart Terminal page (with the 1h, 5m, 4h, 1D, 1W, 1M timeframes, Support/Resistance, and Buy/Sell Zones) into your provided AI Dashboard, without changing any of your existing AI, news, or 3D Core functionality.
 
-Because the main API failed, the code stops before it can update the price.
-
-I have fixed this by adding a Backup Price Engine. If Biquote fails to load, the dashboard will now automatically ping two other independent, reliable APIs (open.er-api.com and frankfurter.app) to get the live EUR/USD price. It will display the price with a "FALLBACK LIVE" tag so you always have the data.
-
-Here is the fully updated code. Replace your entire file with this:
+Replace your entire file with this:
 
 ```html
 <!DOCTYPE html>
@@ -79,13 +75,72 @@ Here is the fully updated code. Replace your entire file with this:
         #canvas-container.touched { filter: drop-shadow(0 0 25px rgba(167,139,250,0.7)); transition: filter 0.3s ease; }
         .subtitle { text-align: center; font-family: 'Space Grotesk', sans-serif; font-size: 0.6rem; letter-spacing: 0.3em; color: var(--text-subtle); margin-top: 10px; font-weight: 500; text-transform: uppercase; }
         
-        #map-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 99999; opacity: 0; pointer-events: none; transition: opacity 1.5s ease; background: #000; display: flex; flex-direction: column; }
+        #map-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 99999; opacity: 0; pointer-events: none; transition: opacity 1.5s ease;
+            background: #000; display: flex; flex-direction: column;
+        }
         #map-overlay.active { opacity: 1; pointer-events: auto; }
         #map { width: 100%; height: 100%; background: #000; flex: 1; }
-        #street-view-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; z-index: 100000; background: #000; }
-        #map-exit { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 100000; display: none; gap: 12px; }
+        #street-view-container {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; z-index: 100000; background: #000;
+        }
+        #map-exit {
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            z-index: 100000; display: none; gap: 12px;
+        }
         #map-exit.active { display: flex; animation: fadeIn 0.5s ease; }
-        
+        .plane-icon { background: transparent; font-size: 20px; text-align: center; line-height: 20px; }
+
+        .signal-card { text-align: center; padding: 30px 24px; }
+        #signal-text { font-family: 'Space Grotesk', sans-serif; font-size: 2.8rem; font-weight: 700; letter-spacing: 0.08em; color: var(--text-subtle); transition: all 0.4s ease; margin-bottom: 12px; line-height: 1; text-shadow: 0 0 30px currentColor; }
+        .signal-status-line { font-family: 'JetBrains Mono', monospace; font-size: 0.66rem; color: var(--text-subtle); letter-spacing: 0.15em; margin-bottom: 24px; text-transform: uppercase; font-weight: 500; }
+        .alert-box { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.3); border-radius: 14px; padding: 16px 18px; margin-bottom: 18px; font-size: 0.78rem; color: #fbbf24; text-align: left; line-height: 1.6; display: none; font-weight: 500; box-shadow: 0 0 20px rgba(245,158,11,0.1); }
+        .alert-box.active { display: block; animation: fadeIn 0.4s ease-in; }
+        .signal-details { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; text-align: left; padding: 18px 0; border-top: 1px solid rgba(139, 92, 246, 0.1); border-bottom: 1px solid rgba(139, 92, 246, 0.1); margin-top: 10px; font-variant-numeric: tabular-nums; }
+        .signal-details div { display: flex; justify-content: space-between; }
+        .signal-details span:first-child { color: var(--text-muted); font-weight: 500; letter-spacing: 0.05em; }
+        .signal-details span:last-child { color: var(--text-body); font-weight: 600; }
+        .signal-hint { font-family: 'Inter', sans-serif; font-size: 0.68rem; color: var(--text-subtle); margin-top: 16px; line-height: 1.5; }
+        .btn { font-family: 'Inter', sans-serif; background: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.2); color: var(--text-body); padding: 8px 16px; border-radius: 10px; font-size: 0.72rem; font-weight: 500; cursor: pointer; transition: all 0.2s ease; }
+        .btn:hover { background: rgba(139, 92, 246, 0.15); border-color: rgba(139, 92, 246, 0.4); color: var(--text-main); box-shadow: 0 0 15px rgba(139, 92, 246, 0.2); }
+        .btn.active { background: rgba(59,130,246,0.15); border-color: rgba(59,130,246,0.4); color: #93c5fd; }
+        .btn.active.deep { background: rgba(139,92,246,0.2); border-color: rgba(139,92,246,0.5); color: #c4b5fd; box-shadow: 0 0 15px rgba(139, 92, 246, 0.2); }
+        .btn.danger { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.25); color: #fca5a5; }
+        .btn.primary { font-family: 'Space Grotesk', sans-serif; background: linear-gradient(135deg, #7c3aed 0%, #6366f1 50%, #3b82f6 100%); border: none; font-weight: 600; color: white; box-shadow: 0 4px 25px rgba(124,58,237,0.4), 0 0 0 1px rgba(255,255,255,0.1) inset; }
+        .btn.primary:hover { box-shadow: 0 6px 35px rgba(124,58,237,0.6); transform: translateY(-1px); }
+        .chat-card { border: 1px solid rgba(139, 92, 246, 0.4); box-shadow: 0 0 40px rgba(139, 92, 246, 0.15), inset 0 1px 0 rgba(255,255,255,0.1); }
+        .chat-controls { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+        .panel { display: none; background: rgba(0,0,0,0.4); padding: 16px; border-radius: 12px; margin-bottom: 14px; font-size: 0.78rem; border: 1px solid rgba(139, 92, 246, 0.1); }
+        .panel.active { display: block; }
+        .panel strong { font-family: 'Space Grotesk', sans-serif; color: var(--text-body); font-weight: 600; }
+        .panel input, .panel select { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; }
+        .chat-history { height: 280px; overflow-y: auto; background: rgba(0,0,0,0.6); border-radius: 14px; padding: 14px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 10px; border: 1px solid rgba(255,255,255,0.05); box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
+        .chat-history::-webkit-scrollbar { width: 4px; }
+        .chat-history::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.3); border-radius: 4px; }
+        .msg { font-family: 'Inter', sans-serif; padding: 10px 14px; border-radius: 14px; max-width: 85%; line-height: 1.5; font-size: 0.82rem; animation: fadeIn 0.3s ease-out; }
+        .msg.user { background: linear-gradient(135deg, #4f46e5, #3b82f6); color: white; align-self: flex-end; border-bottom-right-radius: 4px; box-shadow: 0 4px 20px rgba(59,130,246,0.3); }
+        .msg.ai { background: rgba(139, 92, 246, 0.08); align-self: flex-start; border-left: 3px solid var(--purple); color: var(--text-body); border-top-left-radius: 4px; box-shadow: 0 4px 20px rgba(139, 92, 246, 0.1); }
+        .msg.system { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); align-self: center; font-size: 0.7rem; text-align: center; color: #fbbf24; padding: 6px 12px; font-family: 'JetBrains Mono', monospace; }
+        .msg.thinking { background: rgba(139,92,246,0.1); border-left: 3px solid var(--violet); font-style: italic; color: #c4b5fd; }
+        .chat-input-row { display: flex; gap: 8px; }
+        .chat-input-row input { flex: 1; background: rgba(0,0,0,0.7); border: 1px solid rgba(139, 92, 246, 0.2); color: var(--text-main); padding: 10px 14px; border-radius: 12px; outline: none; font-family: 'Inter', sans-serif; font-size: 0.85rem; transition: all 0.2s ease; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); }
+        .chat-input-row input:focus { border-color: rgba(139,92,246,0.6); background: rgba(0,0,0,0.9); box-shadow: 0 0 20px rgba(139, 92, 246, 0.2), inset 0 2px 10px rgba(0,0,0,0.5); }
+        .chat-input-row input::placeholder { color: var(--text-subtle); }
+        .chat-input-row button { font-family: 'Space Grotesk', sans-serif; background: linear-gradient(135deg, #10b981, #059669); border: none; color: white; padding: 0 18px; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 0.85rem; box-shadow: 0 4px 20px rgba(16,185,129,0.3); transition: all 0.2s ease; }
+        .chat-input-row button:hover { box-shadow: 0 6px 30px rgba(16,185,129,0.5); transform: translateY(-1px); }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.8rem; }
+        .stat-item { background: rgba(139, 92, 246, 0.04); padding: 12px 16px; border-radius: 10px; display: flex; justify-content: space-between; border: 1px solid rgba(139, 92, 246, 0.08); }
+        .stat-label { font-family: 'Space Grotesk', sans-serif; color: var(--text-muted); font-weight: 500; font-size: 0.7rem; }
+        .stat-item span:last-child { color: var(--text-body); font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 0.78rem; font-variant-numeric: tabular-nums; }
+        .alert-log-item { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--text-muted); padding: 8px 0; border-bottom: 1px solid rgba(139, 92, 246, 0.08); line-height: 1.5; }
+        .alert-log-item:last-child { border-bottom: none; }
+        .reasoning-text { font-family: 'Inter', sans-serif; font-size: 0.85rem; line-height: 1.8; color: var(--text-body); }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        .pulse-dot { display: inline-block; width: 6px; height: 6px; background: var(--green); border-radius: 50%; margin-right: 6px; box-shadow: 0 0 10px var(--green); animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+
         /* === BOTTOM NAVIGATION === */
         .bottom-nav {
             position: fixed;
@@ -205,14 +260,12 @@ Here is the fully updated code. Replace your entire file with this:
             color: #93c5fd;
             box-shadow: 0 0 10px rgba(59,130,246,0.2);
         }
-        /* Changed to explicit height to prevent flexbox collapse */
         #tv-chart-container {
             width: 100%;
             height: calc(100vh - 120px); 
             position: relative;
             background: #000;
         }
-        /* Floating info box */
         #chart-info-box {
             position: absolute;
             top: 10px;
@@ -229,58 +282,21 @@ Here is the fully updated code. Replace your entire file with this:
             display: none;
         }
         #chart-info-box.show { display: block; animation: fadeIn 0.2s ease; }
-
-        .signal-card { text-align: center; padding: 30px 24px; }
-        #signal-text { font-family: 'Space Grotesk', sans-serif; font-size: 2.8rem; font-weight: 700; letter-spacing: 0.08em; color: var(--text-subtle); transition: all 0.4s ease; margin-bottom: 12px; line-height: 1; text-shadow: 0 0 30px currentColor; }
-        .signal-status-line { font-family: 'JetBrains Mono', monospace; font-size: 0.66rem; color: var(--text-subtle); letter-spacing: 0.15em; margin-bottom: 24px; text-transform: uppercase; font-weight: 500; }
-        .alert-box { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.3); border-radius: 14px; padding: 16px 18px; margin-bottom: 18px; font-size: 0.78rem; color: #fbbf24; text-align: left; line-height: 1.6; display: none; font-weight: 500; box-shadow: 0 0 20px rgba(245,158,11,0.1); }
-        .alert-box.active { display: block; animation: fadeIn 0.4s ease-in; }
-        .signal-details { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; text-align: left; padding: 18px 0; border-top: 1px solid rgba(139, 92, 246, 0.1); border-bottom: 1px solid rgba(139, 92, 246, 0.1); margin-top: 10px; font-variant-numeric: tabular-nums; }
-        .signal-details div { display: flex; justify-content: space-between; }
-        .signal-details span:first-child { color: var(--text-muted); font-weight: 500; letter-spacing: 0.05em; }
-        .signal-details span:last-child { color: var(--text-body); font-weight: 600; }
-        .signal-hint { font-family: 'Inter', sans-serif; font-size: 0.68rem; color: var(--text-subtle); margin-top: 16px; line-height: 1.5; }
-        .btn { font-family: 'Inter', sans-serif; background: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.2); color: var(--text-body); padding: 8px 16px; border-radius: 10px; font-size: 0.72rem; font-weight: 500; cursor: pointer; transition: all 0.2s ease; }
-        .btn:hover { background: rgba(139, 92, 246, 0.15); border-color: rgba(139, 92, 246, 0.4); color: var(--text-main); box-shadow: 0 0 15px rgba(139, 92, 246, 0.2); }
-        .btn.active { background: rgba(59,130,246,0.15); border-color: rgba(59,130,246,0.4); color: #93c5fd; }
-        .btn.active.deep { background: rgba(139,92,246,0.2); border-color: rgba(139,92,246,0.5); color: #c4b5fd; box-shadow: 0 0 15px rgba(139, 92, 246, 0.2); }
-        .btn.danger { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.25); color: #fca5a5; }
-        .btn.primary { font-family: 'Space Grotesk', sans-serif; background: linear-gradient(135deg, #7c3aed 0%, #6366f1 50%, #3b82f6 100%); border: none; font-weight: 600; color: white; box-shadow: 0 4px 25px rgba(124,58,237,0.4), 0 0 0 1px rgba(255,255,255,0.1) inset; }
-        .btn.primary:hover { box-shadow: 0 6px 35px rgba(124,58,237,0.6); transform: translateY(-1px); }
-        .chat-card { border: 1px solid rgba(139, 92, 246, 0.4); box-shadow: 0 0 40px rgba(139, 92, 246, 0.15), inset 0 1px 0 rgba(255,255,255,0.1); }
-        .chat-controls { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
-        .panel { display: none; background: rgba(0,0,0,0.4); padding: 16px; border-radius: 12px; margin-bottom: 14px; font-size: 0.78rem; border: 1px solid rgba(139, 92, 246, 0.1); }
-        .panel.active { display: block; }
-        .panel strong { font-family: 'Space Grotesk', sans-serif; color: var(--text-body); font-weight: 600; }
-        .panel input, .panel select { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; }
-        .chat-history { height: 280px; overflow-y: auto; background: rgba(0,0,0,0.6); border-radius: 14px; padding: 14px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 10px; border: 1px solid rgba(255,255,255,0.05); box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
-        .chat-history::-webkit-scrollbar { width: 4px; }
-        .chat-history::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.3); border-radius: 4px; }
-        .msg { font-family: 'Inter', sans-serif; padding: 10px 14px; border-radius: 14px; max-width: 85%; line-height: 1.5; font-size: 0.82rem; animation: fadeIn 0.3s ease-out; }
-        .msg.user { background: linear-gradient(135deg, #4f46e5, #3b82f6); color: white; align-self: flex-end; border-bottom-right-radius: 4px; box-shadow: 0 4px 20px rgba(59,130,246,0.3); }
-        .msg.ai { background: rgba(139, 92, 246, 0.08); align-self: flex-start; border-left: 3px solid var(--purple); color: var(--text-body); border-top-left-radius: 4px; box-shadow: 0 4px 20px rgba(139, 92, 246, 0.1); }
-        .msg.system { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); align-self: center; font-size: 0.7rem; text-align: center; color: #fbbf24; padding: 6px 12px; font-family: 'JetBrains Mono', monospace; }
-        .msg.thinking { background: rgba(139,92,246,0.1); border-left: 3px solid var(--violet); font-style: italic; color: #c4b5fd; }
-        .chat-input-row { display: flex; gap: 8px; }
-        .chat-input-row input { flex: 1; background: rgba(0,0,0,0.7); border: 1px solid rgba(139, 92, 246, 0.2); color: var(--text-main); padding: 10px 14px; border-radius: 12px; outline: none; font-family: 'Inter', sans-serif; font-size: 0.85rem; transition: all 0.2s ease; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); }
-        .chat-input-row input:focus { border-color: rgba(139,92,246,0.6); background: rgba(0,0,0,0.9); box-shadow: 0 0 20px rgba(139, 92, 246, 0.2), inset 0 2px 10px rgba(0,0,0,0.5); }
-        .chat-input-row input::placeholder { color: var(--text-subtle); }
-        .chat-input-row button { font-family: 'Space Grotesk', sans-serif; background: linear-gradient(135deg, #10b981, #059669); border: none; color: white; padding: 0 18px; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 0.85rem; box-shadow: 0 4px 20px rgba(16,185,129,0.3); transition: all 0.2s ease; }
-        .chat-input-row button:hover { box-shadow: 0 6px 30px rgba(16,185,129,0.5); transform: translateY(-1px); }
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.8rem; }
-        .stat-item { background: rgba(139, 92, 246, 0.04); padding: 12px 16px; border-radius: 10px; display: flex; justify-content: space-between; border: 1px solid rgba(139, 92, 246, 0.08); }
-        .stat-label { font-family: 'Space Grotesk', sans-serif; color: var(--text-muted); font-weight: 500; font-size: 0.7rem; }
-        .stat-item span:last-child { color: var(--text-body); font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 0.78rem; font-variant-numeric: tabular-nums; }
-        .alert-log-item { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--text-muted); padding: 8px 0; border-bottom: 1px solid rgba(139, 92, 246, 0.08); line-height: 1.5; }
-        .alert-log-item:last-child { border-bottom: none; }
-        .reasoning-text { font-family: 'Inter', sans-serif; font-size: 0.85rem; line-height: 1.8; color: var(--text-body); }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        .fade-in { animation: fadeIn 0.3s ease-in; }
-        .pulse-dot { display: inline-block; width: 6px; height: 6px; background: var(--green); border-radius: 50%; margin-right: 6px; box-shadow: 0 0 10px var(--green); animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
+    <div id="map-overlay">
+        <div id="map"></div>
+        <div id="street-view-container">
+            <iframe id="street-view-iframe" src="" width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+            <button class="btn primary" style="position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 100001;" onclick="closeStreetView()">Close Street View</button>
+        </div>
+        <div id="map-exit" class="active">
+            <button class="btn primary" onclick="flyToDubai()" id="btn-dubai" style="display: none;">Fly to Dubai ✈️</button>
+            <button class="btn danger" onclick="exitMap()">Return to Space</button>
+        </div>
+    </div>
+
     <!-- CHART PAGE -->
     <div id="chart-page">
         <div class="chart-header">
@@ -306,7 +322,6 @@ Here is the fully updated code. Replace your entire file with this:
         </div>
     </div>
 
-    <!-- DASHBOARD -->
     <div class="dashboard" id="dashboard-view">
         <header>
             <div class="logo-wrap">
@@ -318,13 +333,11 @@ Here is the fully updated code. Replace your entire file with this:
                 <div class="last-updated" id="last-updated">AWAITING DATA</div>
             </div>
         </header>
-        
         <div class="card">
             <div class="card-title">Neural Core</div>
             <div id="canvas-container"></div>
             <div class="subtitle">Cosmic Explorer · Pinch to Zoom</div>
         </div>
-        
         <div class="card signal-card">
             <div class="card-title">Current Signal</div>
             <div id="signal-text">AWAITING</div>
@@ -345,7 +358,6 @@ Here is the fully updated code. Replace your entire file with this:
             </div>
             <div class="signal-hint">Engine scans every 1:00 · AI auto-runs hourly + on demand</div>
         </div>
-        
         <div class="card chat-card">
             <div class="card-title">Ask Your AI Trader
                 <div class="chat-controls">
@@ -397,6 +409,7 @@ Here is the fully updated code. Replace your entire file with this:
                 </select>
                 <button class="btn" style="margin-top:12px; width:100%;" onclick="testCloudVoice()">Test Cloud Voice</button>
                 <button class="btn" style="margin-top:8px; width:100%;" onclick="fallbackSpeakText('Testing browser voice directly. If you hear this, the system works perfectly.')">Test Browser Voice Directly</button>
+                <div style="font-size:0.7rem; color:var(--text-muted); margin-top:8px;">If the premium voice fails, it will immediately fall back to your device's browser voice.</div>
             </div>
             <div class="panel" id="panel-key">
                 <strong>Groq API Key (primary AI)</strong>
@@ -490,7 +503,6 @@ Here is the fully updated code. Replace your entire file with this:
             if (chart) return;
             const container = document.getElementById('tv-chart-container');
             
-            // Explicit width/height ensures chart draws even if hidden initially
             chart = LightweightCharts.createChart(container, {
                 width: container.clientWidth || window.innerWidth,
                 height: container.clientHeight || (window.innerHeight - 120),
@@ -536,17 +548,16 @@ Here is the fully updated code. Replace your entire file with this:
                 let apiInterval = tf;
                 if (tf === '1d') apiInterval = '1d';
                 if (tf === '1w') apiInterval = '1w';
-                if (tf === '1M') apiInterval = '1M'; // Might not be supported, fallback will handle it
+                if (tf === '1M') apiInterval = '1M'; 
 
                 const res = await fetch(`https://biquote.io/api/EURUSD/ohlc?interval=${apiInterval}&limit=300`);
                 if (res.ok) {
                     const json = await res.json();
                     if (json.bars && json.bars.length > 0) {
-                        // Filter valid bars and sort by time (Lightweight Charts requirement)
                         const validBars = json.bars
                             .filter(b => !b.isOpen && !isNaN(new Date(b.openTime).getTime()))
                             .map(b => ({
-                                time: Math.floor(new Date(b.openTime).getTime() / 1000), // Must be integer seconds
+                                time: Math.floor(new Date(b.openTime).getTime() / 1000), 
                                 open: parseFloat(b.open),
                                 high: parseFloat(b.high),
                                 low: parseFloat(b.low),
@@ -554,7 +565,6 @@ Here is the fully updated code. Replace your entire file with this:
                             }))
                             .sort((a, b) => a.time - b.time);
                         
-                        // Deduplicate (Lightweight charts will crash on duplicate times)
                         for (let i = 0; i < validBars.length; i++) {
                             if (i === 0 || validBars[i].time > validBars[i-1].time) {
                                 data.push(validBars[i]);
@@ -566,10 +576,9 @@ Here is the fully updated code. Replace your entire file with this:
                 console.warn("Biquote failed for TF", tf, e);
             }
 
-            // Fallback if API fails, returns empty, or unsupported timeframe
             if (data.length === 0) {
                 let basePrice = (marketData && marketData.currentPrice) ? marketData.currentPrice : 1.1200;
-                let timeStep = 3600; // 1h default
+                let timeStep = 3600; 
                 if (tf === '5m') timeStep = 300;
                 else if (tf === '4h') timeStep = 14400;
                 else if (tf === '1d') timeStep = 86400;
@@ -610,21 +619,10 @@ Here is the fully updated code. Replace your entire file with this:
             const support = Math.min(...lows);
 
             const resLine = candlestickSeries.createPriceLine({
-                price: resistance,
-                color: '#ef4444',
-                lineWidth: 2,
-                lineStyle: LightweightCharts.LineStyle.Dashed,
-                axisLabelVisible: true,
-                title: 'Resistance',
+                price: resistance, color: '#ef4444', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: true, title: 'Resistance',
             });
-
             const supLine = candlestickSeries.createPriceLine({
-                price: support,
-                color: '#10b981',
-                lineWidth: 2,
-                lineStyle: LightweightCharts.LineStyle.Dashed,
-                axisLabelVisible: true,
-                title: 'Support',
+                price: support, color: '#10b981', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: true, title: 'Support',
             });
 
             srLines.push(resLine, supLine);
@@ -647,18 +645,10 @@ Here is the fully updated code. Replace your entire file with this:
             const buyZoneTop = min + (range * 0.15);
             const buyZoneBottom = min;
 
-            zoneLines.push(candlestickSeries.createPriceLine({
-                price: sellZoneTop, color: 'rgba(239, 68, 68, 0.8)', lineWidth: 4, lineStyle: LightweightCharts.LineStyle.Solid, axisLabelVisible: true, title: 'Sell Zone'
-            }));
-            zoneLines.push(candlestickSeries.createPriceLine({
-                price: sellZoneBottom, color: 'rgba(239, 68, 68, 0.4)', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Dotted, axisLabelVisible: false
-            }));
-            zoneLines.push(candlestickSeries.createPriceLine({
-                price: buyZoneTop, color: 'rgba(16, 185, 129, 0.4)', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Dotted, axisLabelVisible: false
-            }));
-            zoneLines.push(candlestickSeries.createPriceLine({
-                price: buyZoneBottom, color: 'rgba(16, 185, 129, 0.8)', lineWidth: 4, lineStyle: LightweightCharts.LineStyle.Solid, axisLabelVisible: true, title: 'Buy Zone'
-            }));
+            zoneLines.push(candlestickSeries.createPriceLine({ price: sellZoneTop, color: 'rgba(239, 68, 68, 0.8)', lineWidth: 4, lineStyle: LightweightCharts.LineStyle.Solid, axisLabelVisible: true, title: 'Sell Zone' }));
+            zoneLines.push(candlestickSeries.createPriceLine({ price: sellZoneBottom, color: 'rgba(239, 68, 68, 0.4)', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Dotted, axisLabelVisible: false }));
+            zoneLines.push(candlestickSeries.createPriceLine({ price: buyZoneTop, color: 'rgba(16, 185, 129, 0.4)', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Dotted, axisLabelVisible: false }));
+            zoneLines.push(candlestickSeries.createPriceLine({ price: buyZoneBottom, color: 'rgba(16, 185, 129, 0.8)', lineWidth: 4, lineStyle: LightweightCharts.LineStyle.Solid, axisLabelVisible: true, title: 'Buy Zone' }));
         }
 
         function toggleSR() {
@@ -689,7 +679,6 @@ Here is the fully updated code. Replace your entire file with this:
                 
                 setTimeout(() => {
                     initChart();
-                    // Force dimensions before loading data
                     const container = document.getElementById('tv-chart-container');
                     chart.applyOptions({ width: container.clientWidth, height: container.clientHeight });
                     loadChartData(currentTimeframe);
@@ -705,6 +694,7 @@ Here is the fully updated code. Replace your entire file with this:
         document.querySelectorAll('.tf-btn').forEach(btn => {
             btn.addEventListener('click', () => loadChartData(btn.dataset.tf));
         });
+
 
         // ============================================================
         // EXISTING DASHBOARD LOGIC
@@ -1256,6 +1246,7 @@ Here is the fully updated code. Replace your entire file with this:
 
         solarSystemGroup.add(sunGroup);
 
+        // ==== REALISTIC PLANET DATA ====
         const PLANET_DATA = [
             { name:'Mercury', r:0.20, o:6,   fb:['#8a7f75', '100,90,80'],   spd:0.42, rotSpd:0.005, roughness:0.95, metalness:0.05, bumpScale:0.015 },
             { name:'Venus',   r:0.30, o:9,   fb:['#e8c880', '240,225,190'], spd:0.32, rotSpd:-0.003, roughness:0.72, metalness:0.06, atmo:0xffd890, atmoOpacity:0.42, atmoScale:2.0 },
@@ -2182,26 +2173,6 @@ Here is the fully updated code. Replace your entire file with this:
 
         function safeNum(val, fallback = 0) { return (isNaN(val) || val === undefined || val === null || !isFinite(val)) ? fallback : val; }
         async function fetchBiquoteCandles(interval, limit) { try { const url = `https://biquote.io/api/EURUSD/ohlc?interval=${interval}&limit=${limit}`; const res = await fetch(url); if (!res.ok) return []; const data = await res.json(); if (!data.bars || data.bars.length === 0) return []; return data.bars.filter(b => !b.isOpen).reverse().map(b => ({ time: new Date(b.openTime).getTime(), open: parseFloat(b.open), high: parseFloat(b.high), low: parseFloat(b.low), close: parseFloat(b.close) })); } catch(e) { console.error("Biquote fetch error:", e); return []; } }
-        
-        // NEW: Fallback price fetching if Biquote fails
-        async function fetchFallbackPrice() {
-            try {
-                const res = await fetch('https://open.er-api.com/v6/latest/EUR', { signal: AbortSignal.timeout(5000) });
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.rates && data.rates.USD) return parseFloat(data.rates.USD);
-                }
-            } catch(e) {}
-            try {
-                const res = await fetch('https://api.frankfurter.app/latest?from=EUR&to=USD', { signal: AbortSignal.timeout(5000) });
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.rates && data.rates.USD) return parseFloat(data.rates.USD);
-                }
-            } catch(e) {}
-            return null;
-        }
-
         function calculateEMA(data, period) { if (data.length < period) return [data[data.length-1] || 0]; const k = 2 / (period + 1); let ema = data[0]; const arr = [ema]; for (let i = 1; i < data.length; i++) { ema = (data[i] * k) + (ema * (1 - k)); arr.push(ema); } return arr; }
         function calculateRSI(data, period = 14) { if (data.length < period) return 50; let gains = 0, losses = 0; for (let i = 1; i <= period; i++) { const diff = data[i] - data[i-1]; if (diff >= 0) gains += diff; else losses -= diff; } let ag = gains / period, al = losses / period; for (let i = period + 1; i < data.length; i++) { const diff = data[i] - data[i-1]; if (diff >= 0) { ag = (ag * (period - 1) + diff) / period; al = (al * (period - 1)) / period; } else { ag = (ag * (period - 1)) / period; al = (al * (period - 1) - diff) / period; } } if (al === 0) return 100; return 100 - (100 / (1 + (ag / al))); }
         function calculateATR(highs, lows, closes, period = 14) { let trs = []; for (let i = 1; i < highs.length; i++) trs.push(Math.max(highs[i]-lows[i], Math.abs(highs[i]-closes[i-1]), Math.abs(lows[i]-closes[i-1]))); return trs.slice(-period).reduce((a,b) => a+b, 0) / period; }
@@ -2218,30 +2189,7 @@ Here is the fully updated code. Replace your entire file with this:
                 fetchBiquoteCandles('4h', 50)
             ]); 
             
-            if (candles1H.length === 0) { 
-                const fallbackPrice = await fetchFallbackPrice();
-                if (fallbackPrice) {
-                    livePriceEl.innerText = fallbackPrice.toFixed(5); 
-                    lastUpdatedEl.innerText = `FALLBACK LIVE · ${new Date().toLocaleTimeString('en-IN',{hour12:false})}`;
-                    if (statusEl) statusEl.innerText = "Biquote unavailable. Using fallback price.";
-                    
-                    if (!marketData) {
-                        marketData = { currentPrice: fallbackPrice, trend: "Unknown", support: fallbackPrice - 0.005, resistance: fallbackPrice + 0.005, session: "Off-Session", rsi1H: 50, rsi15m: 50, rsi5m: 50, ema20: fallbackPrice, ema50: fallbackPrice, atr: 0.001, candles5m: [], candles15m: [], candles1H: [], candles4H: [], todayHigh: fallbackPrice, todayLow: fallbackPrice };
-                    } else {
-                        marketData.currentPrice = fallbackPrice;
-                    }
-                    
-                    document.getElementById('val-trend').innerText = marketData.trend;
-                    document.getElementById('val-session').innerText = marketData.session;
-                    document.getElementById('val-support').innerText = marketData.support.toFixed(5);
-                    document.getElementById('val-resistance').innerText = marketData.resistance.toFixed(5);
-                    document.getElementById('val-candle-current').innerText = `Fallback · ${fallbackPrice.toFixed(5)}`;
-                    return;
-                }
-                if (statusEl) statusEl.innerText = "Biquote data unavailable. Retrying..."; 
-                return; 
-            } 
-            
+            if (candles1H.length === 0) { statusEl.innerText = "Biquote data unavailable. Retrying..."; return; } 
             const closes1H = candles1H.map(c => c.close), highs1H = candles1H.map(c => c.high), lows1H = candles1H.map(c => c.low); 
             const closes5m = candles5m.map(c => c.close); 
             const closes15m = candles15m.map(c => c.close); 
