@@ -1,6 +1,17 @@
-Here is the fully merged code. I have carefully integrated the entire Chart Terminal page (with the 1h, 5m, 4h, 1D, 1W, 1M timeframes, Support/Resistance, and Buy/Sell Zones) into your provided AI Dashboard, without changing any of your existing AI, news, or 3D Core functionality.
+I have updated the calculateAndDrawZones function.
 
-Replace your entire file with this:
+To achieve the "10-year pro trader" logic, I replaced the basic 15% calculation with Institutional Premium/Discount (ICT) and Fibonacci 38.2% logic.
+
+Here is what it does now:
+
+· Timeframe Specific: When you click 1H, 4H, or 1W, the zones calculate specifically for that timeframe's recent structure (last 100 candles).
+· SELL ZONE (Premium): Marks the top 38.2% of the recent range (where institutions look to distribute/sell).
+· BUY ZONE (Discount): Marks the bottom 38.2% of the recent range (where institutions look to accumulate/buy).
+· Equilibrium (EQ): I added a subtle 50% dashed line, which pro traders use as the boundary between premium and discount pricing.
+
+I have left everything else exactly as it is (AI, 3D Core, News, Voice, Map, etc.).
+
+Replace your entire index.html with this updated code:
 
 ```html
 <!DOCTYPE html>
@@ -634,21 +645,40 @@ Replace your entire file with this:
 
             if (!showZones || data.length === 0) return;
 
-            const highs = data.map(d => d.high);
-            const lows = data.map(d => d.low);
+            // 10-Year Pro Trader Logic: Institutional Premium/Discount (ICT) + Fibonacci
+            // Use the recent structural range (last 100 candles for the specific timeframe)
+            const lookback = Math.min(data.length, 100);
+            const recentData = data.slice(-lookback);
+            
+            const highs = recentData.map(d => d.high);
+            const lows = recentData.map(d => d.low);
             const max = Math.max(...highs);
             const min = Math.min(...lows);
             const range = max - min;
 
+            if (range === 0) return;
+
+            // Premium (Sell Zone) - Top 38.2% of the range
             const sellZoneTop = max;
-            const sellZoneBottom = max - (range * 0.15);
-            const buyZoneTop = min + (range * 0.15);
+            const sellZoneBottom = max - (range * 0.382);
+
+            // Equilibrium (50% of the range)
+            const equilibrium = max - (range * 0.5);
+
+            // Discount (Buy Zone) - Bottom 38.2% of the range
+            const buyZoneTop = min + (range * 0.382);
             const buyZoneBottom = min;
 
-            zoneLines.push(candlestickSeries.createPriceLine({ price: sellZoneTop, color: 'rgba(239, 68, 68, 0.8)', lineWidth: 4, lineStyle: LightweightCharts.LineStyle.Solid, axisLabelVisible: true, title: 'Sell Zone' }));
-            zoneLines.push(candlestickSeries.createPriceLine({ price: sellZoneBottom, color: 'rgba(239, 68, 68, 0.4)', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Dotted, axisLabelVisible: false }));
-            zoneLines.push(candlestickSeries.createPriceLine({ price: buyZoneTop, color: 'rgba(16, 185, 129, 0.4)', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Dotted, axisLabelVisible: false }));
-            zoneLines.push(candlestickSeries.createPriceLine({ price: buyZoneBottom, color: 'rgba(16, 185, 129, 0.8)', lineWidth: 4, lineStyle: LightweightCharts.LineStyle.Solid, axisLabelVisible: true, title: 'Buy Zone' }));
+            // Draw Supply (Sell) Zone
+            zoneLines.push(candlestickSeries.createPriceLine({ price: sellZoneTop, color: 'rgba(239, 68, 68, 0.8)', lineWidth: 3, lineStyle: LightweightCharts.LineStyle.Solid, axisLabelVisible: true, title: 'SELL ZONE (Premium)' }));
+            zoneLines.push(candlestickSeries.createPriceLine({ price: sellZoneBottom, color: 'rgba(239, 68, 68, 0.4)', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dotted, axisLabelVisible: false }));
+            
+            // Draw Equilibrium (50%)
+            zoneLines.push(candlestickSeries.createPriceLine({ price: equilibrium, color: 'rgba(139, 92, 246, 0.5)', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: true, title: 'EQ (50%)' }));
+
+            // Draw Demand (Buy) Zone
+            zoneLines.push(candlestickSeries.createPriceLine({ price: buyZoneTop, color: 'rgba(16, 185, 129, 0.4)', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dotted, axisLabelVisible: false }));
+            zoneLines.push(candlestickSeries.createPriceLine({ price: buyZoneBottom, color: 'rgba(16, 185, 129, 0.8)', lineWidth: 3, lineStyle: LightweightCharts.LineStyle.Solid, axisLabelVisible: true, title: 'BUY ZONE (Discount)' }));
         }
 
         function toggleSR() {
