@@ -1,8 +1,4 @@
-I have added a dedicated News tab to your dashboard that fetches live, high-impact economic events for the US and EU (the currencies that drive EUR/USD). It uses the same free biquote.io API you already use for chart data—no new API keys needed.
 
-Here is the complete updated file. The News tab is accessible via the bottom navigation bar.
-
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -181,8 +177,8 @@ Here is the complete updated file. The News tab is accessible via the bottom nav
         .nav-btn.active { color: var(--violet); text-shadow: 0 0 10px rgba(139,92,246,0.6); }
         .nav-btn:hover { color: var(--text-main); }
 
-        /* === CHART, ANALYSIS & NEWS PAGES === */
-        #chart-page, #analysis-page, #news-page {
+        /* === CHART & ANALYSIS PAGES === */
+        #chart-page, #analysis-page {
             position: fixed;
             top: 0;
             left: 0;
@@ -201,7 +197,7 @@ Here is the complete updated file. The News tab is accessible via the bottom nav
             pointer-events: none;
             overflow-y: auto;
         }
-        #chart-page.active, #analysis-page.active, #news-page.active {
+        #chart-page.active, #analysis-page.active {
             transform: translateX(0);
             opacity: 1;
             pointer-events: auto;
@@ -267,11 +263,11 @@ Here is the complete updated file. The News tab is accessible via the bottom nav
         }
         #tv-chart-container {
             width: 100%;
-            height: calc(100vh - 160px);
+            height: calc(100vh - 160px); /* Adjusted to ensure time axis is above nav */
             position: relative;
             background: #000;
             box-sizing: border-box;
-            touch-action: pan-y;
+            touch-action: pan-y; /* Allows vertical page scroll while chart handles horizontal/pinch */
         }
         #chart-info-box {
             position: absolute;
@@ -325,15 +321,6 @@ Here is the complete updated file. The News tab is accessible via the bottom nav
             font-size: 1.2rem;
             font-weight: 700;
         }
-
-        /* === NEWS PAGE STYLES === */
-        #news-page .analysis-content { max-width: 680px; }
-        .news-item { border-left: 4px solid var(--red); margin-bottom: 12px; text-align: left; }
-        .news-item .news-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .news-item .news-time { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--text-muted); }
-        .news-item .news-country { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; font-weight: 700; color: var(--red); }
-        .news-item .news-title { font-family: 'Inter', sans-serif; font-size: 0.95rem; font-weight: 600; color: var(--text-main); margin-bottom: 4px; }
-        .news-item .news-details { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--text-body); }
     </style>
 </head>
 <body>
@@ -406,25 +393,6 @@ Here is the complete updated file. The News tab is accessible via the bottom nav
                 <div class="card-title" style="color:var(--green);">Day Close Prediction</div>
                 <div class="pro-level-box" style="text-align:left;">
                     <div id="val-day-close" style="font-family:Inter; font-size:0.9rem; line-height:1.6; color:var(--text-body);">Calculating...</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- NEWS PAGE -->
-    <div id="news-page">
-        <div class="chart-header">
-            <h2>Forex News — EUR/USD</h2>
-            <button class="back-btn" onclick="switchPage('dashboard')">← Dashboard</button>
-        </div>
-        <div class="analysis-content">
-            <div class="card">
-                <div class="card-title" style="color:var(--red);">
-                    High-Impact Events (US & EU)
-                    <button class="btn" onclick="fetchNews()" style="font-size:0.65rem; padding:4px 10px;">Refresh News</button>
-                </div>
-                <div id="news-list">
-                    <em>Loading high-impact news for EUR/USD...</em>
                 </div>
             </div>
         </div>
@@ -593,9 +561,6 @@ Here is the complete updated file. The News tab is accessible via the bottom nav
         <button class="nav-btn" id="nav-analysis" onclick="switchPage('analysis')">
             <span class="icon">🧠</span> Analysis
         </button>
-        <button class="nav-btn" id="nav-news" onclick="switchPage('news')">
-            <span class="icon">📰</span> News
-        </button>
     </div>
 
     <script>
@@ -645,7 +610,7 @@ Here is the complete updated file. The News tab is accessible via the bottom nav
                     mouseWheel: true,
                     pressedMouseMove: true,
                     horzTouchDrag: true,
-                    vertTouchDrag: true
+                    vertTouchDrag: true /* ENABLES VERTICAL DRAG (MT5 style) */
                 },
                 handleScale: {
                     axisPressedMouseMove: true,
@@ -871,23 +836,19 @@ Here is the complete updated file. The News tab is accessible via the bottom nav
             const dashboard = document.getElementById('dashboard-view');
             const chartPage = document.getElementById('chart-page');
             const analysisPage = document.getElementById('analysis-page');
-            const newsPage = document.getElementById('news-page');
             
             const navDash = document.getElementById('nav-dashboard');
             const navCharts = document.getElementById('nav-charts');
             const navAnalysis = document.getElementById('nav-analysis');
-            const navNews = document.getElementById('nav-news');
 
             // Hide all
             dashboard.classList.add('hidden');
             chartPage.classList.remove('active');
             analysisPage.classList.remove('active');
-            newsPage.classList.remove('active');
             
             navDash.classList.remove('active');
             navCharts.classList.remove('active');
             navAnalysis.classList.remove('active');
-            navNews.classList.remove('active');
 
             if (pageId === 'charts') {
                 chartPage.classList.add('active');
@@ -902,10 +863,6 @@ Here is the complete updated file. The News tab is accessible via the bottom nav
                 analysisPage.classList.add('active');
                 navAnalysis.classList.add('active');
                 loadAnalysisData();
-            } else if (pageId === 'news') {
-                newsPage.classList.add('active');
-                navNews.classList.add('active');
-                fetchNews();
             } else {
                 dashboard.classList.remove('hidden');
                 navDash.classList.add('active');
@@ -975,46 +932,6 @@ Here is the complete updated file. The News tab is accessible via the bottom nav
                 }
             } catch(e) {
                 console.warn("Analysis load failed", e);
-            }
-        }
-
-        // === NEWS LOGIC ===
-        async function fetchNews() {
-            const container = document.getElementById('news-list');
-            container.innerHTML = '<em>Loading high-impact news for EUR/USD...</em>';
-            try {
-                const res = await fetch('https://biquote.io/api/calendar/upcoming?countries=US,EU&importance=high');
-                if (!res.ok) throw new Error('Failed to fetch news');
-                const events = await res.json();
-                
-                if (!events || events.length === 0) {
-                    container.innerHTML = '<div class="pro-level-box" style="text-align:center;">No high-impact news scheduled for US/EU currencies.</div>';
-                    return;
-                }
-                
-                events.sort((a, b) => new Date(a.date) - new Date(b.date));
-                
-                container.innerHTML = events.map(e => {
-                    const dateObj = new Date(e.date);
-                    const istTime = dateObj.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false });
-                    const istDate = dateObj.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric' });
-                    
-                    return `
-                        <div class="pro-level-box news-item">
-                            <div class="news-meta">
-                                <span class="news-time">${istDate} | ${istTime} IST</span>
-                                <span class="news-country">${e.country} HIGH IMPACT</span>
-                            </div>
-                            <div class="news-title">${e.title}</div>
-                            <div class="news-details">
-                                Forecast: ${e.forecast || '—'} | Previous: ${e.previous || '—'}
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-            } catch (err) {
-                console.error(err);
-                container.innerHTML = '<div class="pro-level-box" style="text-align:center; color:var(--red);">Error loading news. Please try again.</div>';
             }
         }
 
