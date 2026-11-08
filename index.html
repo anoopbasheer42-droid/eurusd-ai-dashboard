@@ -1,10 +1,4 @@
-The reason the indicators are not showing visually on the chart is because the previous implementation only added the Buy/Sell markers (the arrows), but it didn't draw the actual indicator lines (like the EMA lines, Bollinger Bands, RSI curve, etc.) on the chart canvas.
 
-Also, for RSI and MACD, if we just draw them on the price chart, they will squish the price into a tiny line because RSI goes from 0-100 and price is around 1.12000. We need to add them to a separate price scale at the bottom of the chart.
-
-Here is the updated code. I have fixed the updateIndicators function to actually draw the visual lines and histograms for all the indicators, while keeping the Buy/Sell arrows. I also fixed the clustering so the arrows don't overlap messily.
-
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -408,8 +402,6 @@ Here is the updated code. I have fixed the updateIndicators function to actually
                     <button class="toggle-btn" id="btn-indicators" onclick="toggleIndicatorDropdown(event)">Indicators ▾</button>
                     <div class="dropdown-content" id="indicator-dropdown">
                         <a href="#" onclick="toggleIndicator('ema', event)">EMA (20 & 50)</a>
-                        <a href="#" onclick="toggleIndicator('rsi', event)">RSI (14)</a>
-                        <a href="#" onclick="toggleIndicator('macd', event)">MACD</a>
                         <a href="#" onclick="toggleIndicator('bb', event)">Bollinger Bands</a>
                         <a href="#" onclick="toggleIndicator('fib', event)">Fib / Pivot Points</a>
                     </div>
@@ -986,80 +978,6 @@ Here is the updated code. I have fixed the updateIndicators function to actually
                     if (ema20[i-1] <= ema50[i-1] && ema20[i] > ema50[i]) {
                         markers.push({ time: data[i].time, position: 'belowBar', color: '#10b981', shape: 'arrowUp', text: 'BUY' });
                     } else if (ema20[i-1] >= ema50[i-1] && ema20[i] < ema50[i]) {
-                        markers.push({ time: data[i].time, position: 'aboveBar', color: '#ef4444', shape: 'arrowDown', text: 'SELL' });
-                    }
-                }
-            } 
-            else if (activeIndicator === 'rsi') {
-                const rsiLine = chart.addLineSeries({ 
-                    color: '#8b5cf6', 
-                    lineWidth: 2, 
-                    priceScaleId: 'rsi', // Put it on a separate scale
-                    title: 'RSI',
-                    priceLineVisible: false,
-                    lastValueVisible: true
-                });
-                // Scale the RSI pane to the bottom 20% of the chart so it doesn't overlap price
-                chart.priceScale('rsi').applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
-
-                let rsiData = [];
-                let lastSignal = null;
-
-                for (let i = 0; i < closes.length; i++) {
-                    if (i < 14) {
-                        rsiData.push({ time: data[i].time, value: 50 });
-                        continue;
-                    }
-                    const rsi = calculateRSI(closes.slice(0, i+1), 14);
-                    rsiData.push({ time: data[i].time, value: rsi });
-
-                    // Only trigger marker when crossing into the zone, not every candle
-                    if (rsi < 30) {
-                        if (lastSignal !== 'BUY') {
-                            markers.push({ time: data[i].time, position: 'belowBar', color: '#10b981', shape: 'arrowUp', text: 'BUY' });
-                            lastSignal = 'BUY';
-                        }
-                    } else if (rsi > 70) {
-                        if (lastSignal !== 'SELL') {
-                            markers.push({ time: data[i].time, position: 'aboveBar', color: '#ef4444', shape: 'arrowDown', text: 'SELL' });
-                            lastSignal = 'SELL';
-                        }
-                    } else {
-                        lastSignal = null;
-                    }
-                }
-                rsiLine.setData(rsiData);
-                indicatorSeries.push(rsiLine);
-            } 
-            else if (activeIndicator === 'macd') {
-                const ema12 = calculateEMA(closes, 12);
-                const ema26 = calculateEMA(closes, 26);
-                const macdLine = ema12.map((v, i) => v - ema26[i]);
-                const signalLine = calculateEMA(macdLine, 9);
-                const histogram = macdLine.map((v, i) => v - signalLine[i]);
-
-                const macdSeries = chart.addLineSeries({ color: '#3b82f6', lineWidth: 2, priceScaleId: 'macd', title: 'MACD', priceLineVisible: false });
-                const signalSeries = chart.addLineSeries({ color: '#ef4444', lineWidth: 2, priceScaleId: 'macd', title: 'Signal', priceLineVisible: false });
-                const histSeries = chart.addHistogramSeries({ priceScaleId: 'macd', title: 'Histogram' });
-                
-                // Scale the MACD pane to the bottom 20%
-                chart.priceScale('macd').applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
-
-                macdSeries.setData(data.map((d, i) => ({ time: d.time, value: macdLine[i] })));
-                signalSeries.setData(data.map((d, i) => ({ time: d.time, value: signalLine[i] })));
-                histSeries.setData(data.map((d, i) => ({ 
-                    time: d.time, 
-                    value: histogram[i],
-                    color: histogram[i] >= 0 ? 'rgba(16, 185, 129, 0.5)' : 'rgba(239, 68, 68, 0.5)' 
-                })));
-
-                indicatorSeries.push(macdSeries, signalSeries, histSeries);
-
-                // Generate Markers
-                for (let i = 1; i < data.length; i++) {
-                    if (macdLine[i-1] <= signalLine[i-1] && macdLine[i] > signalLine[i]) {
-                        markers.push({ time: data[i].time, position: 'belowBar', color: '#10b981', shape: 'arrowUp', text: 'BUY' });
-                    } else if (macdLine[i-1] >= signalLine[i-1] && macdLine[i] < signalLine[i]) {
                         markers.push({ time: data[i].time, position: 'aboveBar', color: '#ef4444', shape: 'arrowDown', text: 'SELL' });
                     }
                 }
