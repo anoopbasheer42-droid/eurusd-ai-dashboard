@@ -1,3 +1,5 @@
+Here is the updated code with the requested "Indicator" feature added exactly as specified. I have only touched the chart controls, added the dropdown logic, and implemented the buy/sell markers for the 5 requested indicators. Everything else remains untouched.
+
 ```html
 <!DOCTYPE html>
 <html lang="en">
@@ -321,6 +323,48 @@
             font-size: 1.2rem;
             font-weight: 700;
         }
+        
+        /* === INDICATOR DROPDOWN STYLES === */
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            margin-top: 4px;
+            background-color: #0a0c14;
+            min-width: 180px;
+            box-shadow: 0 8px 16px 0 rgba(0,0,0,0.6);
+            z-index: 1000;
+            border: 1px solid rgba(139,92,246,0.3);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .dropdown-content a {
+            color: var(--text-body);
+            padding: 10px 16px;
+            text-decoration: none;
+            display: block;
+            font-size: 0.7rem;
+            font-family: 'JetBrains Mono', monospace;
+            border-bottom: 1px solid rgba(139, 92, 246, 0.1);
+            transition: background 0.2s;
+        }
+        .dropdown-content a:hover {
+            background-color: rgba(139, 92, 246, 0.2);
+            color: var(--text-main);
+        }
+        .dropdown-content a:last-child {
+            border-bottom: none;
+        }
+        .dropdown-content a.active-indicator {
+            color: var(--green);
+            font-weight: bold;
+            background: rgba(16, 185, 129, 0.05);
+        }
     </style>
 </head>
 <body>
@@ -354,6 +398,19 @@
                 <button class="toggle-btn" id="btn-zones" onclick="toggleZones()">Zones</button>
                 <button class="toggle-btn" id="btn-pdh" onclick="togglePDH()">PDH/PDL</button>
                 <button class="toggle-btn" id="btn-today" onclick="toggleToday()">Today H/L</button>
+                
+                <!-- NEW INDICATOR DROPDOWN -->
+                <div class="dropdown">
+                    <button class="toggle-btn" id="btn-indicators" onclick="toggleIndicatorDropdown(event)">Indicators ▾</button>
+                    <div class="dropdown-content" id="indicator-dropdown">
+                        <a href="#" onclick="toggleIndicator('ema', event)">EMA (20 & 50)</a>
+                        <a href="#" onclick="toggleIndicator('rsi', event)">RSI (14)</a>
+                        <a href="#" onclick="toggleIndicator('macd', event)">MACD</a>
+                        <a href="#" onclick="toggleIndicator('bb', event)">Bollinger Bands</a>
+                        <a href="#" onclick="toggleIndicator('fib', event)">Fib / Pivot Points</a>
+                    </div>
+                </div>
+                
             </div>
         </div>
         <div id="tv-chart-container">
@@ -578,6 +635,10 @@
         let zoneLines = [];
         let pdhLines = [];
         let todayLines = [];
+        
+        // NEW INDICATOR VARIABLES
+        let activeIndicator = null;
+        let indicatorLines = [];
 
         function initChart() {
             if (chart) return;
@@ -716,6 +777,9 @@
             calculateAndDrawZones(data);
             calculateAndDrawPDH(data);
             calculateAndDrawToday(data);
+            
+            // Re-apply indicator if active
+            updateIndicators(data);
         }
 
         function calculateAndDrawSR(data) {
@@ -830,6 +894,149 @@
             const data = chartDataCache[currentTimeframe] || [];
             calculateAndDrawToday(data);
         }
+
+        // ============================================
+        // NEW: INDICATOR DROPDOWN LOGIC & DRAWING
+        // ============================================
+        function toggleIndicatorDropdown(event) {
+            event.stopPropagation();
+            const dropdown = document.getElementById('indicator-dropdown');
+            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+        }
+
+        document.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('indicator-dropdown');
+            const btn = document.getElementById('btn-indicators');
+            if (dropdown && btn && !btn.contains(event.target) && !dropdown.contains(event.target)) {
+                dropdown.style.display = 'none';
+            }
+        });
+
+        function toggleIndicator(type, event) {
+            if (event) event.preventDefault();
+            
+            if (activeIndicator === type) {
+                activeIndicator = null; 
+            } else {
+                activeIndicator = type;
+            }
+
+            // Update UI
+            const btn = document.getElementById('btn-indicators');
+            const links = document.querySelectorAll('#indicator-dropdown a');
+            links.forEach(l => l.classList.remove('active-indicator'));
+
+            if (activeIndicator) {
+                btn.classList.add('active');
+                btn.innerText = `Indicators (${type.toUpperCase()}) ▾`;
+                const activeLink = document.querySelector(`#indicator-dropdown a[onclick*="toggleIndicator('${type}'"]`);
+                if(activeLink) activeLink.classList.add('active-indicator');
+            } else {
+                btn.classList.remove('active');
+                btn.innerText = `Indicators ▾`;
+            }
+
+            // Re-render
+            const data = chartDataCache[currentTimeframe] || [];
+            updateIndicators(data);
+            
+            // Close dropdown
+            document.getElementById('indicator-dropdown').style.display = 'none';
+        }
+
+        function updateIndicators(data) {
+            if (!candlestickSeries) return;
+            
+            // Clear existing indicators
+            candlestickSeries.setMarkers([]);
+            indicatorLines.forEach(line => candlestickSeries.removePriceLine(line));
+            indicatorLines = [];
+            
+            if (!activeIndicator || !data || data.length < 50) return;
+
+            const closes = data.map(d => d.close);
+            let markers = [];
+
+            if (activeIndicator === 'ema') {
+                const ema20 = calculateEMA(closes, 20);
+                const ema50 = calculateEMA(closes, 50);
+                for (let i = 1; i < data.length; i++) {
+                    if (ema20[i-1] <= ema50[i-1] && ema20[i] > ema50[i]) {
+                        markers.push({ time: data[i].time, position: 'belowBar', color: '#10b981', shape: 'arrowUp', text: 'BUY' });
+                    } else if (ema20[i-1] >= ema50[i-1] && ema20[i] < ema50[i]) {
+                        markers.push({ time: data[i].time, position: 'aboveBar', color: '#ef4444', shape: 'arrowDown', text: 'SELL' });
+                    }
+                }
+            } 
+            else if (activeIndicator === 'rsi') {
+                for (let i = 14; i < closes.length; i++) {
+                    const rsi = calculateRSI(closes.slice(0, i+1), 14);
+                    if (rsi < 30) markers.push({ time: data[i].time, position: 'belowBar', color: '#10b981', shape: 'circle', text: 'BUY' });
+                    if (rsi > 70) markers.push({ time: data[i].time, position: 'aboveBar', color: '#ef4444', shape: 'circle', text: 'SELL' });
+                }
+            } 
+            else if (activeIndicator === 'macd') {
+                const ema12 = calculateEMA(closes, 12);
+                const ema26 = calculateEMA(closes, 26);
+                const macdLine = ema12.map((v, i) => v - ema26[i]);
+                const signalLine = calculateEMA(macdLine, 9);
+                for (let i = 1; i < data.length; i++) {
+                    if (macdLine[i-1] <= signalLine[i-1] && macdLine[i] > signalLine[i]) {
+                        markers.push({ time: data[i].time, position: 'belowBar', color: '#10b981', shape: 'arrowUp', text: 'BUY' });
+                    } else if (macdLine[i-1] >= signalLine[i-1] && macdLine[i] < signalLine[i]) {
+                        markers.push({ time: data[i].time, position: 'aboveBar', color: '#ef4444', shape: 'arrowDown', text: 'SELL' });
+                    }
+                }
+            } 
+            else if (activeIndicator === 'bb') {
+                for (let i = 19; i < data.length; i++) {
+                    const slice = closes.slice(i-19, i+1);
+                    const sma = slice.reduce((a,b)=>a+b,0) / 20;
+                    const variance = slice.reduce((a,b)=>a + Math.pow(b-sma, 2), 0) / 20;
+                    const stdDev = Math.sqrt(variance);
+                    const upper = sma + (2 * stdDev);
+                    const lower = sma - (2 * stdDev);
+
+                    if (data[i].close < lower) markers.push({ time: data[i].time, position: 'belowBar', color: '#10b981', shape: 'arrowUp', text: 'BUY' });
+                    if (data[i].close > upper) markers.push({ time: data[i].time, position: 'aboveBar', color: '#ef4444', shape: 'arrowDown', text: 'SELL' });
+                }
+            } 
+            else if (activeIndicator === 'fib') {
+                const lookback = Math.min(data.length, 50);
+                const recent = data.slice(-lookback);
+                const high = Math.max(...recent.map(d => d.high));
+                const low = Math.min(...recent.map(d => d.low));
+                const diff = high - low;
+                
+                if (diff > 0) {
+                    const levels = [
+                        { level: high, color: '#ef4444', title: '0% (High)' },
+                        { level: high - diff * 0.236, color: '#f59e0b', title: '23.6%' },
+                        { level: high - diff * 0.382, color: '#f59e0b', title: '38.2%' },
+                        { level: high - diff * 0.5, color: '#8b5cf6', title: '50%' },
+                        { level: high - diff * 0.618, color: '#f59e0b', title: '61.8%' },
+                        { level: low, color: '#10b981', title: '100% (Low)' }
+                    ];
+
+                    levels.forEach(l => {
+                        indicatorLines.push(candlestickSeries.createPriceLine({
+                            price: l.level, color: l.color, lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: true, title: l.title
+                        }));
+                    });
+
+                    const lastCandle = data[data.length - 1];
+                    if (lastCandle.close <= low * 1.002) {
+                        markers.push({ time: lastCandle.time, position: 'belowBar', color: '#10b981', shape: 'arrowUp', text: 'BUY ZONE' });
+                    } else if (lastCandle.close >= high * 0.998) {
+                        markers.push({ time: lastCandle.time, position: 'aboveBar', color: '#ef4444', shape: 'arrowDown', text: 'SELL ZONE' });
+                    }
+                }
+            }
+
+            if (markers.length > 50) markers = markers.slice(-50);
+            candlestickSeries.setMarkers(markers);
+        }
+        // ============================================
 
         function switchPage(pageId) {
             const dashboard = document.getElementById('dashboard-view');
