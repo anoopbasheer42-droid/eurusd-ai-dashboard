@@ -1,4 +1,8 @@
-Here is the updated code with the requested "Indicator" feature added exactly as specified. I have only touched the chart controls, added the dropdown logic, and implemented the buy/sell markers for the 5 requested indicators. Everything else remains untouched.
+The reason the indicators are not showing visually on the chart is because the previous implementation only added the Buy/Sell markers (the arrows), but it didn't draw the actual indicator lines (like the EMA lines, Bollinger Bands, RSI curve, etc.) on the chart canvas.
+
+Also, for RSI and MACD, if we just draw them on the price chart, they will squish the price into a tiny line because RSI goes from 0-100 and price is around 1.12000. We need to add them to a separate price scale at the bottom of the chart.
+
+Here is the updated code. I have fixed the updateIndicators function to actually draw the visual lines and histograms for all the indicators, while keeping the Buy/Sell arrows. I also fixed the clustering so the arrows don't overlap messily.
 
 ```html
 <!DOCTYPE html>
@@ -639,6 +643,7 @@ Here is the updated code with the requested "Indicator" feature added exactly as
         // NEW INDICATOR VARIABLES
         let activeIndicator = null;
         let indicatorLines = [];
+        let indicatorSeries = []; // Stores the actual lines (EMA, BB, etc.)
 
         function initChart() {
             if (chart) return;
@@ -945,12 +950,18 @@ Here is the updated code with the requested "Indicator" feature added exactly as
         }
 
         function updateIndicators(data) {
-            if (!candlestickSeries) return;
+            if (!chart || !candlestickSeries) return;
             
-            // Clear existing indicators
+            // Clear existing markers and horizontal lines
             candlestickSeries.setMarkers([]);
             indicatorLines.forEach(line => candlestickSeries.removePriceLine(line));
             indicatorLines = [];
+
+            // Remove existing indicator series (lines, histograms)
+            indicatorSeries.forEach(series => {
+                try { chart.removeSeries(series); } catch(e) {}
+            });
+            indicatorSeries = [];
             
             if (!activeIndicator || !data || data.length < 50) return;
 
@@ -960,6 +971,17 @@ Here is the updated code with the requested "Indicator" feature added exactly as
             if (activeIndicator === 'ema') {
                 const ema20 = calculateEMA(closes, 20);
                 const ema50 = calculateEMA(closes, 50);
+
+                // Draw actual EMA lines
+                const ema20Line = chart.addLineSeries({ color: '#3b82f6', lineWidth: 2, title: 'EMA 20', priceLineVisible: false, lastValueVisible: true });
+                ema20Line.setData(data.map((d, i) => ({ time: d.time, value: ema20[i] })));
+                indicatorSeries.push(ema20Line);
+
+                const ema50Line = chart.addLineSeries({ color: '#f59e0b', lineWidth: 2, title: 'EMA 50', priceLineVisible: false, lastValueVisible: true });
+                ema50Line.setData(data.map((d, i) => ({ time: d.time, value: ema50[i] })));
+                indicatorSeries.push(ema50Line);
+
+                // Generate Markers
                 for (let i = 1; i < data.length; i++) {
                     if (ema20[i-1] <= ema50[i-1] && ema20[i] > ema50[i]) {
                         markers.push({ time: data[i].time, position: 'belowBar', color: '#10b981', shape: 'arrowUp', text: 'BUY' });
@@ -969,17 +991,71 @@ Here is the updated code with the requested "Indicator" feature added exactly as
                 }
             } 
             else if (activeIndicator === 'rsi') {
-                for (let i = 14; i < closes.length; i++) {
+                const rsiLine = chart.addLineSeries({ 
+                    color: '#8b5cf6', 
+                    lineWidth: 2, 
+                    priceScaleId: 'rsi', // Put it on a separate scale
+                    title: 'RSI',
+                    priceLineVisible: false,
+                    lastValueVisible: true
+                });
+                // Scale the RSI pane to the bottom 20% of the chart so it doesn't overlap price
+                chart.priceScale('rsi').applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
+
+                let rsiData = [];
+                let lastSignal = null;
+
+                for (let i = 0; i < closes.length; i++) {
+                    if (i < 14) {
+                        rsiData.push({ time: data[i].time, value: 50 });
+                        continue;
+                    }
                     const rsi = calculateRSI(closes.slice(0, i+1), 14);
-                    if (rsi < 30) markers.push({ time: data[i].time, position: 'belowBar', color: '#10b981', shape: 'circle', text: 'BUY' });
-                    if (rsi > 70) markers.push({ time: data[i].time, position: 'aboveBar', color: '#ef4444', shape: 'circle', text: 'SELL' });
+                    rsiData.push({ time: data[i].time, value: rsi });
+
+                    // Only trigger marker when crossing into the zone, not every candle
+                    if (rsi < 30) {
+                        if (lastSignal !== 'BUY') {
+                            markers.push({ time: data[i].time, position: 'belowBar', color: '#10b981', shape: 'arrowUp', text: 'BUY' });
+                            lastSignal = 'BUY';
+                        }
+                    } else if (rsi > 70) {
+                        if (lastSignal !== 'SELL') {
+                            markers.push({ time: data[i].time, position: 'aboveBar', color: '#ef4444', shape: 'arrowDown', text: 'SELL' });
+                            lastSignal = 'SELL';
+                        }
+                    } else {
+                        lastSignal = null;
+                    }
                 }
+                rsiLine.setData(rsiData);
+                indicatorSeries.push(rsiLine);
             } 
             else if (activeIndicator === 'macd') {
                 const ema12 = calculateEMA(closes, 12);
                 const ema26 = calculateEMA(closes, 26);
                 const macdLine = ema12.map((v, i) => v - ema26[i]);
                 const signalLine = calculateEMA(macdLine, 9);
+                const histogram = macdLine.map((v, i) => v - signalLine[i]);
+
+                const macdSeries = chart.addLineSeries({ color: '#3b82f6', lineWidth: 2, priceScaleId: 'macd', title: 'MACD', priceLineVisible: false });
+                const signalSeries = chart.addLineSeries({ color: '#ef4444', lineWidth: 2, priceScaleId: 'macd', title: 'Signal', priceLineVisible: false });
+                const histSeries = chart.addHistogramSeries({ priceScaleId: 'macd', title: 'Histogram' });
+                
+                // Scale the MACD pane to the bottom 20%
+                chart.priceScale('macd').applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
+
+                macdSeries.setData(data.map((d, i) => ({ time: d.time, value: macdLine[i] })));
+                signalSeries.setData(data.map((d, i) => ({ time: d.time, value: signalLine[i] })));
+                histSeries.setData(data.map((d, i) => ({ 
+                    time: d.time, 
+                    value: histogram[i],
+                    color: histogram[i] >= 0 ? 'rgba(16, 185, 129, 0.5)' : 'rgba(239, 68, 68, 0.5)' 
+                })));
+
+                indicatorSeries.push(macdSeries, signalSeries, histSeries);
+
+                // Generate Markers
                 for (let i = 1; i < data.length; i++) {
                     if (macdLine[i-1] <= signalLine[i-1] && macdLine[i] > signalLine[i]) {
                         markers.push({ time: data[i].time, position: 'belowBar', color: '#10b981', shape: 'arrowUp', text: 'BUY' });
@@ -989,7 +1065,20 @@ Here is the updated code with the requested "Indicator" feature added exactly as
                 }
             } 
             else if (activeIndicator === 'bb') {
-                for (let i = 19; i < data.length; i++) {
+                const bbUpper = chart.addLineSeries({ color: '#ef4444', lineWidth: 1, lineStyle: 2, title: 'Upper BB', priceLineVisible: false });
+                const bbMiddle = chart.addLineSeries({ color: '#8b5cf6', lineWidth: 1, title: 'Middle BB', priceLineVisible: false });
+                const bbLower = chart.addLineSeries({ color: '#10b981', lineWidth: 1, lineStyle: 2, title: 'Lower BB', priceLineVisible: false });
+
+                let upperData = [], middleData = [], lowerData = [];
+                let lastSignal = null;
+
+                for (let i = 0; i < data.length; i++) {
+                    if (i < 19) {
+                        upperData.push({ time: data[i].time, value: 0 });
+                        middleData.push({ time: data[i].time, value: 0 });
+                        lowerData.push({ time: data[i].time, value: 0 });
+                        continue;
+                    }
                     const slice = closes.slice(i-19, i+1);
                     const sma = slice.reduce((a,b)=>a+b,0) / 20;
                     const variance = slice.reduce((a,b)=>a + Math.pow(b-sma, 2), 0) / 20;
@@ -997,9 +1086,29 @@ Here is the updated code with the requested "Indicator" feature added exactly as
                     const upper = sma + (2 * stdDev);
                     const lower = sma - (2 * stdDev);
 
-                    if (data[i].close < lower) markers.push({ time: data[i].time, position: 'belowBar', color: '#10b981', shape: 'arrowUp', text: 'BUY' });
-                    if (data[i].close > upper) markers.push({ time: data[i].time, position: 'aboveBar', color: '#ef4444', shape: 'arrowDown', text: 'SELL' });
+                    upperData.push({ time: data[i].time, value: upper });
+                    middleData.push({ time: data[i].time, value: sma });
+                    lowerData.push({ time: data[i].time, value: lower });
+
+                    // Only trigger marker when price crosses out of the band, not every candle
+                    if (data[i].close < lower) {
+                        if (lastSignal !== 'BUY') {
+                            markers.push({ time: data[i].time, position: 'belowBar', color: '#10b981', shape: 'arrowUp', text: 'BUY' });
+                            lastSignal = 'BUY';
+                        }
+                    } else if (data[i].close > upper) {
+                        if (lastSignal !== 'SELL') {
+                            markers.push({ time: data[i].time, position: 'aboveBar', color: '#ef4444', shape: 'arrowDown', text: 'SELL' });
+                            lastSignal = 'SELL';
+                        }
+                    } else {
+                        lastSignal = null;
+                    }
                 }
+                bbUpper.setData(upperData);
+                bbMiddle.setData(middleData);
+                bbLower.setData(lowerData);
+                indicatorSeries.push(bbUpper, bbMiddle, bbLower);
             } 
             else if (activeIndicator === 'fib') {
                 const lookback = Math.min(data.length, 50);
@@ -1033,6 +1142,7 @@ Here is the updated code with the requested "Indicator" feature added exactly as
                 }
             }
 
+            // Limit markers so the chart isn't cluttered
             if (markers.length > 50) markers = markers.slice(-50);
             candlestickSeries.setMarkers(markers);
         }
