@@ -1,4 +1,8 @@
+Here is the updated code. I have added a new "Strategy" tab to the bottom navigation, created a dedicated page for it, and carefully formatted the text you provided into a clean, readable layout using the existing dark theme styles.
 
+Nothing else in the file was touched.
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -177,8 +181,8 @@
         .nav-btn.active { color: var(--violet); text-shadow: 0 0 10px rgba(139,92,246,0.6); }
         .nav-btn:hover { color: var(--text-main); }
 
-        /* === CHART & ANALYSIS PAGES === */
-        #chart-page, #analysis-page {
+        /* === CHART, ANALYSIS & STRATEGY PAGES === */
+        #chart-page, #analysis-page, #strategy-page {
             position: fixed;
             top: 0;
             left: 0;
@@ -197,7 +201,7 @@
             pointer-events: none;
             overflow-y: auto;
         }
-        #chart-page.active, #analysis-page.active {
+        #chart-page.active, #analysis-page.active, #strategy-page.active {
             transform: translateX(0);
             opacity: 1;
             pointer-events: auto;
@@ -363,6 +367,72 @@
             font-weight: bold;
             background: rgba(16, 185, 129, 0.05);
         }
+
+        /* === STRATEGY PAGE STYLES === */
+        .strategy-content {
+            padding: 20px;
+            max-width: 680px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        .strategy-content h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.9rem;
+            color: var(--violet);
+            margin-top: 24px;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+            padding-bottom: 6px;
+        }
+        .strategy-content h4 {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.85rem;
+            color: var(--text-main);
+            margin-top: 16px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        .strategy-content p {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.82rem;
+            color: var(--text-body);
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+        .strategy-content ul {
+            margin-left: 20px;
+            margin-bottom: 16px;
+        }
+        .strategy-content li {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.82rem;
+            color: var(--text-body);
+            line-height: 1.6;
+            margin-bottom: 6px;
+        }
+        .strategy-content strong {
+            color: var(--text-main);
+            font-weight: 600;
+        }
+        .score-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+        }
+        .score-table td {
+            padding: 8px;
+            border-bottom: 1px solid rgba(139, 92, 246, 0.1);
+            color: var(--text-body);
+        }
+        .score-table td:last-child {
+            text-align: right;
+            color: var(--yellow);
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -446,6 +516,237 @@
                     <div id="val-day-close" style="font-family:Inter; font-size:0.9rem; line-height:1.6; color:var(--text-body);">Calculating...</div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- STRATEGY PAGE -->
+    <div id="strategy-page">
+        <div class="chart-header">
+            <h2>Elite Trading Strategy</h2>
+            <button class="back-btn" onclick="switchPage('dashboard')">← Dashboard</button>
+        </div>
+        <div class="strategy-content">
+            
+            <h3>EUR/USD DUAL-MODE ELITE TRADING STRATEGY</h3>
+
+            <h4>OBJECTIVE:</h4>
+            <p>Active EUR/USD scalping + intraday trading.<br>
+            Priority: More qualified opportunities with good accuracy.<br>
+            Trade both BUY and SELL.<br>
+            Minimum Risk/Reward: 1:2.<br>
+            No guaranteed-profit or no-loss claims.</p>
+
+            <h3>1. INDICATOR SETTINGS</h3>
+            <ul>
+                <li><strong>EMA:</strong><br>H1: EMA 20, 50, 200<br>M15: EMA 9, 21, 50<br>M5: EMA 9, 21, 50</li>
+                <li><strong>RSI:</strong><br>Period: 14<br>Levels: 40, 50, 60</li>
+                <li><strong>ADX / DMI:</strong><br>Period: 14<br>Scalping threshold: 18<br>Intraday threshold: 20<br>Preferred trending threshold: 25</li>
+                <li><strong>ATR:</strong> Period: 14</li>
+                <li><strong>Bollinger Bands:</strong> Period: 20, Deviation: 2</li>
+                <li><strong>VWAP:</strong> Session VWAP</li>
+                <li><strong>Volume:</strong> Tick volume (confirmation only)</li>
+            </ul>
+
+            <h3>2. TIMEFRAME STRUCTURE</h3>
+            <ul>
+                <li><strong>H4:</strong> Major market direction and key zones.</li>
+                <li><strong>H1:</strong> Intraday directional bias.</li>
+                <li><strong>M15:</strong> Market structure and setup confirmation.</li>
+                <li><strong>M5:</strong> Scalping entry confirmation.</li>
+            </ul>
+
+            <h3>3. ENGINE A - ACTIVE SCALPER</h3>
+            <p><em>Entry timeframe: M5</em></p>
+            
+            <h4>BUY CONDITIONS:</h4>
+            <ul>
+                <li>H1 bullish OR M15 confirmed bullish structure shift.</li>
+                <li>M5 EMA 9 above EMA 21.</li>
+                <li>Price pulls back towards EMA 9 or EMA 21.</li>
+                <li>RSI between 52 and 68.</li>
+                <li>ADX above 18, preferably rising.</li>
+                <li>Bullish rejection or engulfing candle closes.</li>
+                <li>Enter on confirmation candle high break.</li>
+                <li>Confirm minimum RR of 1:2.</li>
+            </ul>
+
+            <h4>SELL CONDITIONS:</h4>
+            <ul>
+                <li>H1 bearish OR M15 confirmed bearish structure shift.</li>
+                <li>M5 EMA 9 below EMA 21.</li>
+                <li>Price retraces towards EMA 9 or EMA 21.</li>
+                <li>RSI between 32 and 48.</li>
+                <li>ADX above 18, preferably rising.</li>
+                <li>Bearish rejection or engulfing candle closes.</li>
+                <li>Enter on confirmation candle low break.</li>
+                <li>Confirm minimum RR of 1:2.</li>
+            </ul>
+
+            <h4>SCALPER EXIT:</h4>
+            <ul>
+                <li>SL: Beyond recent M5 structural swing.</li>
+                <li>TP: Minimum 2R.</li>
+                <li>Optional partial exit: 1R.</li>
+                <li>Breakeven: Only when market structure supports it.</li>
+                <li>Exit early if setup is invalidated.</li>
+            </ul>
+
+            <h3>4. ENGINE B - INTRADAY TRADER</h3>
+            <p><em>Entry timeframe: M15</em></p>
+
+            <h4>BUY CONDITIONS:</h4>
+            <ul>
+                <li>H4 or H1 bullish bias.</li>
+                <li>M15 EMA 9 above EMA 21.</li>
+                <li>Prefer price above EMA 50.</li>
+                <li>Market structure forms higher highs and higher lows.</li>
+                <li>Price retraces towards EMA 21 or support.</li>
+                <li>RSI above 50 and rising.</li>
+                <li>ADX above 20.</li>
+                <li>Bullish engulfing, rejection or displacement candle.</li>
+                <li>Enter on confirmation candle high break.</li>
+                <li>Confirm minimum RR of 1:2.</li>
+            </ul>
+
+            <h4>SELL CONDITIONS:</h4>
+            <ul>
+                <li>H4 or H1 bearish bias.</li>
+                <li>M15 EMA 9 below EMA 21.</li>
+                <li>Prefer price below EMA 50.</li>
+                <li>Market structure forms lower highs and lower lows.</li>
+                <li>Price retraces towards EMA 21 or resistance.</li>
+                <li>RSI below 50 and falling.</li>
+                <li>ADX above 20.</li>
+                <li>Bearish engulfing, rejection or displacement candle.</li>
+                <li>Enter on confirmation candle low break.</li>
+                <li>Confirm minimum RR of 1:2.</li>
+            </ul>
+
+            <h4>INTRADAY EXIT:</h4>
+            <ul>
+                <li>SL: Beyond M15 structural swing.</li>
+                <li>TP: 2R to 3R.</li>
+                <li>Optional partial exit: 1R.</li>
+                <li>Trail stop behind M15 swing structure.</li>
+                <li>Exit if original market structure is invalidated.</li>
+            </ul>
+
+            <h3>5. ENGINE C - LIQUIDITY SWEEP REVERSAL</h3>
+            
+            <h4>BUY CONDITIONS:</h4>
+            <ul>
+                <li>Price sweeps a previous M5/M15 swing low.</li>
+                <li>Candle closes back above swept level.</li>
+                <li>Bullish displacement appears.</li>
+                <li>M5 breaks recent lower high.</li>
+                <li>RSI recovers above 50 or shows bullish divergence.</li>
+                <li>Enter on retest or confirmation break.</li>
+            </ul>
+
+            <h4>SELL CONDITIONS:</h4>
+            <ul>
+                <li>Price sweeps previous M5/M15 swing high.</li>
+                <li>Candle closes back below swept level.</li>
+                <li>Bearish displacement appears.</li>
+                <li>M5 breaks recent higher low.</li>
+                <li>RSI falls below 50 or shows bearish divergence.</li>
+                <li>Enter on retest or confirmation break.</li>
+            </ul>
+
+            <h4>REVERSAL EXIT:</h4>
+            <ul>
+                <li>SL beyond sweep extreme.</li>
+                <li>TP minimum 2R.</li>
+                <li>Reject if next opposing liquidity level does not provide 2R.</li>
+            </ul>
+
+            <h3>6. ENTRY CONFIDENCE SCORING</h3>
+            <table class="score-table">
+                <tr><td>H1 directional alignment</td><td>20 points</td></tr>
+                <tr><td>M15 market structure</td><td>20 points</td></tr>
+                <tr><td>M5 EMA alignment</td><td>15 points</td></tr>
+                <tr><td>RSI momentum</td><td>10 points</td></tr>
+                <tr><td>ADX/DMI confirmation</td><td>10 points</td></tr>
+                <tr><td>Liquidity or breakout setup</td><td>15 points</td></tr>
+                <tr><td>Candle confirmation</td><td>10 points</td></tr>
+                <tr><td style="color:var(--text-main); font-weight:bold;">TOTAL</td><td style="color:var(--green);">100 POINTS</td></tr>
+            </table>
+
+            <ul>
+                <li><strong>80-100:</strong> A+ setup.</li>
+                <li><strong>70-79:</strong> Secondary setup, only if mandatory rules pass.</li>
+                <li><strong>Below 70:</strong> WAIT.</li>
+            </ul>
+            <p><em>Score cannot override news, spread, invalidation or RR filters.</em></p>
+
+            <h3>7. NEWS AND MARKET FILTERS</h3>
+            <h4>Avoid fresh entries:</h4>
+            <ul>
+                <li>15 minutes before high-impact news.</li>
+                <li>15-30 minutes after major releases.</li>
+                <li>Extend restrictions if volatility remains abnormal.</li>
+                <li>Apply stronger protection around ECB, Fed, CPI and NFP.</li>
+            </ul>
+            <h4>Other filters:</h4>
+            <ul>
+                <li>Preferred spread below 1.5 pips.</li>
+                <li>Avoid abnormally low ATR.</li>
+                <li>Avoid excessive EMA 21 extension.</li>
+                <li>Wait for candle close.</li>
+                <li>Reject RR below 1:2.</li>
+                <li>Reject unclear market structure.</li>
+                <li>Avoid entries directly into opposing support/resistance.</li>
+                <li>Do not chase large breakout candles.</li>
+            </ul>
+
+            <h3>8. TRADING SESSIONS (IST)</h3>
+            <ul>
+                <li><strong>London:</strong> 1:30 PM - 5:30 PM (winter approximation).</li>
+                <li><strong>New York:</strong> 6:30 PM - 10:30 PM (winter approximation).</li>
+                <li><strong>London/New York overlap:</strong> Highest priority.</li>
+                <li>Adjust for daylight saving changes.</li>
+            </ul>
+
+            <h3>9. RISK MANAGEMENT</h3>
+            <ul>
+                <li>Risk per trade: 0.25%-0.5%.</li>
+                <li>Maximum daily loss: 1.5%.</li>
+                <li>Maximum consecutive losses: 3.</li>
+                <li>Maximum simultaneous positions: 1.</li>
+                <li>Maximum executed trades: 8 per day.</li>
+                <li>No martingale.</li>
+                <li>No revenge trading.</li>
+                <li>No lot-size doubling.</li>
+                <li>Never widen SL after entry.</li>
+            </ul>
+
+            <h3>10. STOP LOSS AND TAKE PROFIT</h3>
+            <ul>
+                <li><strong>BUY:</strong> SL below structural swing low. TP = Entry + (2 x risk).</li>
+                <li><strong>SELL:</strong> SL above structural swing high. TP = Entry - (2 x risk).</li>
+                <li>ATR(14) can provide a volatility buffer.</li>
+                <li>Never use a fixed SL without considering market structure.</li>
+            </ul>
+
+            <h3>11. FINAL DECISION LOGIC</h3>
+            <ul>
+                <li><strong>STEP 1:</strong> Determine H4/H1 directional bias.</li>
+                <li><strong>STEP 2:</strong> Identify M15 market structure.</li>
+                <li><strong>STEP 3:</strong> Check EMA alignment.</li>
+                <li><strong>STEP 4:</strong> Scan M5 pullbacks, breakouts and liquidity sweeps.</li>
+                <li><strong>STEP 5:</strong> Validate RSI, ADX, ATR and candle confirmation.</li>
+                <li><strong>STEP 6:</strong> Check news, spread and volatility.</li>
+                <li><strong>STEP 7:</strong> Calculate structural SL and TP.</li>
+                <li><strong>STEP 8:</strong> Calculate position size.</li>
+                <li><strong>STEP 9:</strong> Check minimum RR 1:2.</li>
+                <li><strong>STEP 10:</strong> Generate BUY, SELL or WAIT.</li>
+            </ul>
+            <p><strong>FINAL RULE:</strong><br>
+            If mandatory conditions fail, output WAIT.<br>
+            Never manufacture a trade signal.<br>
+            Never promise a guaranteed win rate.<br>
+            Track each engine's performance separately.</p>
+
         </div>
     </div>
 
@@ -611,6 +912,9 @@
         </button>
         <button class="nav-btn" id="nav-analysis" onclick="switchPage('analysis')">
             <span class="icon">🧠</span> Analysis
+        </button>
+        <button class="nav-btn" id="nav-strategy" onclick="switchPage('strategy')">
+            <span class="icon">🎯</span> Strategy
         </button>
     </div>
 
@@ -1070,19 +1374,23 @@
             const dashboard = document.getElementById('dashboard-view');
             const chartPage = document.getElementById('chart-page');
             const analysisPage = document.getElementById('analysis-page');
+            const strategyPage = document.getElementById('strategy-page');
             
             const navDash = document.getElementById('nav-dashboard');
             const navCharts = document.getElementById('nav-charts');
             const navAnalysis = document.getElementById('nav-analysis');
+            const navStrategy = document.getElementById('nav-strategy');
 
             // Hide all
             dashboard.classList.add('hidden');
             chartPage.classList.remove('active');
             analysisPage.classList.remove('active');
+            strategyPage.classList.remove('active');
             
             navDash.classList.remove('active');
             navCharts.classList.remove('active');
             navAnalysis.classList.remove('active');
+            navStrategy.classList.remove('active');
 
             if (pageId === 'charts') {
                 chartPage.classList.add('active');
@@ -1097,6 +1405,9 @@
                 analysisPage.classList.add('active');
                 navAnalysis.classList.add('active');
                 loadAnalysisData();
+            } else if (pageId === 'strategy') {
+                strategyPage.classList.add('active');
+                navStrategy.classList.add('active');
             } else {
                 dashboard.classList.remove('hidden');
                 navDash.classList.add('active');
