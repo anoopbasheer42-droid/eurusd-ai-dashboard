@@ -1,4 +1,16 @@
+Here is the complete updated HTML file. I have added the Session (IST) indicator to the dropdown menu under the Terminal tab.
 
+When you click it, it will:
+
+1. Calculate the Asian Session High/Low (05:30 - 14:30 IST).
+2. Look for Breakouts during the London (12:30 - 21:30 IST) or New York (18:00 - 03:00 IST) sessions.
+3. Plot an Arrow with the exact Entry Price.
+4. Draw the TP and SL lines based on a 1:2 Risk/Reward ratio.
+5. Draw the Asian High/Low reference lines for the current day.
+
+I have made no other changes to your code.
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -505,6 +517,8 @@
                         <a href="#" onclick="toggleIndicator('fib', event)">Fib / Pivot Points</a>
                         <!-- NEW PRO INDICATOR -->
                         <a href="#" onclick="toggleIndicator('pro', event)">Pro (Swings & Targets)</a>
+                        <!-- NEW SESSION INDICATOR -->
+                        <a href="#" onclick="toggleIndicator('session', event)">Session (IST) Setup</a>
                     </div>
                 </div>
                 
@@ -1355,6 +1369,90 @@
                 }
             }
             // ============================================
+            // SESSION INDICATOR (IST)
+            // ============================================
+            else if (activeIndicator === 'session') {
+                // Helper to get IST time components from unix timestamp (seconds)
+                const getISTParts = (ts) => {
+                    const d = new Date(ts * 1000 + 19800000); // 5.5 hours in ms
+                    return {
+                        dateStr: d.getUTCFullYear() + '-' + String(d.getUTCMonth()+1).padStart(2,'0') + '-' + String(d.getUTCDate()).padStart(2,'0'),
+                        hours: d.getUTCHours(),
+                        mins: d.getUTCMinutes()
+                    };
+                };
+
+                let asiaRanges = {};
+                
+                // 1. Calculate Asian Session Highs/Lows (05:30 to 14:30 IST)
+                for (let i = 0; i < data.length; i++) {
+                    const ist = getISTParts(data[i].time);
+                    const timeVal = ist.hours * 60 + ist.mins;
+                    
+                    if (timeVal >= 330 && timeVal <= 870) { // 05:30 (330) to 14:30 (870)
+                        if (!asiaRanges[ist.dateStr]) {
+                            asiaRanges[ist.dateStr] = { high: data[i].high, low: data[i].low };
+                        } else {
+                            asiaRanges[ist.dateStr].high = Math.max(asiaRanges[ist.dateStr].high, data[i].high);
+                            asiaRanges[ist.dateStr].low = Math.min(asiaRanges[ist.dateStr].low, data[i].low);
+                        }
+                    }
+                }
+
+                // 2. Find Breakouts during London (12:30-21:30) or NY (18:00-03:00)
+                let lastBuyDay = {};
+                let lastSellDay = {};
+
+                for (let i = 1; i < data.length; i++) {
+                    const ist = getISTParts(data[i].time);
+                    const prevIst = getISTParts(data[i-1].time);
+                    const timeVal = ist.hours * 60 + ist.mins;
+                    
+                    const isAsia = timeVal >= 330 && timeVal <= 870;
+                    const inLondon = timeVal >= 750 && timeVal <= 1290; // 12:30 to 21:30
+                    const inNY = timeVal >= 1080 || timeVal <= 180; // 18:00 to 03:00 (next day)
+                    
+                    if ((inLondon || inNY) && !isAsia) {
+                        let range = asiaRanges[ist.dateStr];
+                        if (!range && asiaRanges[prevIst.dateStr]) {
+                            range = asiaRanges[prevIst.dateStr]; // Handle midnight crossover
+                        }
+                        
+                        if (!range) continue;
+
+                        // BUY Breakout
+                        if (data[i-1].close <= range.high && data[i].close > range.high && !lastBuyDay[ist.dateStr]) {
+                            lastBuyDay[ist.dateStr] = true;
+                            const entry = data[i].close;
+                            const sl = range.low;
+                            const tp = entry + (entry - sl) * 2; // 1:2 RR
+                            
+                            markers.push({ time: data[i].time, position: 'belowBar', color: '#10b981', shape: 'arrowUp', text: `BUY ${entry.toFixed(5)}` });
+                            indicatorLines.push(candlestickSeries.createPriceLine({ price: sl, color: '#ef4444', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: true, title: 'SL' }));
+                            indicatorLines.push(candlestickSeries.createPriceLine({ price: tp, color: '#10b981', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: true, title: 'TP' }));
+                        }
+                        
+                        // SELL Breakout
+                        if (data[i-1].close >= range.low && data[i].close < range.low && !lastSellDay[ist.dateStr]) {
+                            lastSellDay[ist.dateStr] = true;
+                            const entry = data[i].close;
+                            const sl = range.high;
+                            const tp = entry - (sl - entry) * 2; // 1:2 RR
+                            
+                            markers.push({ time: data[i].time, position: 'aboveBar', color: '#ef4444', shape: 'arrowDown', text: `SELL ${entry.toFixed(5)}` });
+                            indicatorLines.push(candlestickSeries.createPriceLine({ price: sl, color: '#ef4444', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: true, title: 'SL' }));
+                            indicatorLines.push(candlestickSeries.createPriceLine({ price: tp, color: '#10b981', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: true, title: 'TP' }));
+                        }
+                    }
+                }
+
+                // 3. Draw current day's Asian Range for reference
+                const todayIstStr = getISTParts(data[data.length-1].time).dateStr;
+                if (asiaRanges[todayIstStr]) {
+                    indicatorLines.push(candlestickSeries.createPriceLine({ price: asiaRanges[todayIstStr].high, color: 'rgba(245, 158, 11, 0.5)', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dotted, axisLabelVisible: true, title: 'Asia High' }));
+                    indicatorLines.push(candlestickSeries.createPriceLine({ price: asiaRanges[todayIstStr].low, color: 'rgba(245, 158, 11, 0.5)', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dotted, axisLabelVisible: true, title: 'Asia Low' }));
+                }
+            }
 
             // Limit markers so the chart isn't cluttered
             if (markers.length > 50) markers = markers.slice(-50);
