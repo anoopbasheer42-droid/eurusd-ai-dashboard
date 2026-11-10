@@ -1,4 +1,10 @@
+Here is the updated code. I have added a Target Calculator to the Strategy Engines.
 
+When an engine hits 70+ points and fires a BUY or SELL, it will now calculate a structural Stop Loss based on recent swing highs/lows, and display TP1 (1:2 RR) and TP2 (1:3 RR) right below the checklist.
+
+I only touched the Strategy Engine HTML and the evaluateStrategyEngines() JavaScript function. Everything else remains untouched.
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -573,6 +579,7 @@
                     <li><span>Liquidity Breakout (15)</span> <span class="check-fail" id="a-liq">-</span></li>
                     <li><span>Candle Confirmation (10)</span> <span class="check-fail" id="a-candle">-</span></li>
                 </ul>
+                <div id="engine-a-targets" style="font-size:0.75rem; color:var(--text-main); margin-top:8px; font-weight:600; display:none; background:rgba(0,0,0,0.3); padding:8px; border-radius:6px; border:1px solid rgba(139,92,246,0.2);"></div>
             </div>
 
             <!-- ENGINE B -->
@@ -592,6 +599,7 @@
                     <li><span>Liquidity Breakout (15)</span> <span class="check-fail" id="b-liq">-</span></li>
                     <li><span>Candle Confirmation (10)</span> <span class="check-fail" id="b-candle">-</span></li>
                 </ul>
+                <div id="engine-b-targets" style="font-size:0.75rem; color:var(--text-main); margin-top:8px; font-weight:600; display:none; background:rgba(0,0,0,0.3); padding:8px; border-radius:6px; border:1px solid rgba(139,92,246,0.2);"></div>
             </div>
 
             <!-- ENGINE C -->
@@ -608,6 +616,7 @@
                     <li><span>RSI Recovery > 50 (20)</span> <span class="check-fail" id="c-rsi">-</span></li>
                     <li><span>Structure Break (30)</span> <span class="check-fail" id="c-struct">-</span></li>
                 </ul>
+                <div id="engine-c-targets" style="font-size:0.75rem; color:var(--text-main); margin-top:8px; font-weight:600; display:none; background:rgba(0,0,0,0.3); padding:8px; border-radius:6px; border:1px solid rgba(139,92,246,0.2);"></div>
             </div>
 
             <!-- BLUEPRINT TEXT -->
@@ -1517,6 +1526,19 @@
             return 'FLAT';
         }
 
+        function calculateTargets(dir, entry, sl) {
+            const risk = Math.abs(entry - sl);
+            let tp1, tp2;
+            if (dir === 'BUY') {
+                tp1 = entry + (risk * 2); // 1:2 RR
+                tp2 = entry + (risk * 3); // 1:3 RR
+            } else {
+                tp1 = entry - (risk * 2);
+                tp2 = entry - (risk * 3);
+            }
+            return `TP1 (1:2): ${tp1.toFixed(5)} <br> TP2 (1:3): ${tp2.toFixed(5)}`;
+        }
+
         function evaluateStrategyEngines(md) {
             if (!md || !md.candles5m || !md.candles15m || !md.candles1H || !md.candles4H) return;
             
@@ -1568,6 +1590,7 @@
             // --- ENGINE A: ACTIVE SCALPER (M5) ---
             let engA_score = 0;
             let engA_dir = null;
+            let engA_targets = "";
             
             // 1. H1 Bias (20)
             let a_biasPass = false;
@@ -1581,27 +1604,27 @@
             else if (engA_dir && ((engA_dir === 'BUY' && struct15 === 'BULL') || (engA_dir === 'SELL' && struct15 === 'BEAR'))) { engA_score += 20; a_structPass = true; }
 
             if (engA_dir === 'BUY') {
-                // 3. M5 EMA (15)
                 let a_emaPass = ema9_5[ema9_5.length-1] > ema21_5[ema21_5.length-1];
                 if (a_emaPass) engA_score += 15;
                 
-                // 4. RSI (10)
                 let a_rsiPass = rsi5 >= 52 && rsi5 <= 68;
                 if (a_rsiPass) engA_score += 10;
                 
-                // 5. ADX (10)
                 let a_adxPass = adx5 > 18;
                 if (a_adxPass) engA_score += 10;
                 
-                // 6. Liquidity (15)
                 let a_liqPass = break5 === 'BULL';
                 if (a_liqPass) engA_score += 15;
                 
-                // 7. Candle (10)
                 let a_candlePass = bullEngulf5 || bullPin5;
                 if (a_candlePass) engA_score += 10;
+
+                if (engA_score >= 70) {
+                    let sl = Math.min(...low5.slice(-10));
+                    engA_targets = calculateTargets('BUY', close5[close5.length-1], sl);
+                }
                 
-                updateEngineAUI(engA_score, a_biasPass, a_structPass, a_emaPass, a_rsiPass, a_adxPass, a_liqPass, a_candlePass, 'BUY');
+                updateEngineAUI(engA_score, a_biasPass, a_structPass, a_emaPass, a_rsiPass, a_adxPass, a_liqPass, a_candlePass, 'BUY', engA_targets);
             } else if (engA_dir === 'SELL') {
                 let a_emaPass = ema9_5[ema9_5.length-1] < ema21_5[ema21_5.length-1];
                 if (a_emaPass) engA_score += 15;
@@ -1617,15 +1640,21 @@
                 
                 let a_candlePass = bearEngulf5 || bearPin5;
                 if (a_candlePass) engA_score += 10;
+
+                if (engA_score >= 70) {
+                    let sl = Math.max(...high5.slice(-10));
+                    engA_targets = calculateTargets('SELL', close5[close5.length-1], sl);
+                }
                 
-                updateEngineAUI(engA_score, a_biasPass, a_structPass, a_emaPass, a_rsiPass, a_adxPass, a_liqPass, a_candlePass, 'SELL');
+                updateEngineAUI(engA_score, a_biasPass, a_structPass, a_emaPass, a_rsiPass, a_adxPass, a_liqPass, a_candlePass, 'SELL', engA_targets);
             } else {
-                updateEngineAUI(0, false, false, false, false, false, false, false, null);
+                updateEngineAUI(0, false, false, false, false, false, false, false, null, "");
             }
 
             // --- ENGINE B: INTRADAY TRADER (M15) ---
             let engB_score = 0;
             let engB_dir = null;
+            let engB_targets = "";
             
             // 1. H1/H4 Bias (20)
             let b_biasPass = false;
@@ -1652,8 +1681,13 @@
                 
                 let b_candlePass = bullEngulf15 || bullPin15;
                 if (b_candlePass) engB_score += 10;
+
+                if (engB_score >= 70) {
+                    let sl = Math.min(...low15.slice(-10));
+                    engB_targets = calculateTargets('BUY', close15[close15.length-1], sl);
+                }
                 
-                updateEngineBUI(engB_score, b_biasPass, b_structPass, b_emaPass, b_rsiPass, b_adxPass, b_liqPass, b_candlePass, 'BUY');
+                updateEngineBUI(engB_score, b_biasPass, b_structPass, b_emaPass, b_rsiPass, b_adxPass, b_liqPass, b_candlePass, 'BUY', engB_targets);
             } else if (engB_dir === 'SELL') {
                 let b_emaPass = ema9_15[ema9_15.length-1] < ema21_15[ema21_15.length-1] && close15[close15.length-1] < ema50_15[ema50_15.length-1];
                 if (b_emaPass) engB_score += 15;
@@ -1669,15 +1703,21 @@
                 
                 let b_candlePass = bearEngulf15 || bearPin15;
                 if (b_candlePass) engB_score += 10;
+
+                if (engB_score >= 70) {
+                    let sl = Math.max(...high15.slice(-10));
+                    engB_targets = calculateTargets('SELL', close15[close15.length-1], sl);
+                }
                 
-                updateEngineBUI(engB_score, b_biasPass, b_structPass, b_emaPass, b_rsiPass, b_adxPass, b_liqPass, b_candlePass, 'SELL');
+                updateEngineBUI(engB_score, b_biasPass, b_structPass, b_emaPass, b_rsiPass, b_adxPass, b_liqPass, b_candlePass, 'SELL', engB_targets);
             } else {
-                updateEngineBUI(0, false, false, false, false, false, false, false, null);
+                updateEngineBUI(0, false, false, false, false, false, false, false, null, "");
             }
 
             // --- ENGINE C: SWEEP (M5) ---
             let engC_score = 0;
             let engC_dir = null;
+            let engC_targets = "";
             
             const recentLow5 = Math.min(...low5.slice(-10));
             const recentHigh5 = Math.max(...high5.slice(-10));
@@ -1707,10 +1747,18 @@
             if (engC_dir === 'BUY' && currClose5 > Math.max(...high5.slice(-5, -1))) { c_structPass = true; engC_score += 30; }
             if (engC_dir === 'SELL' && currClose5 < Math.min(...low5.slice(-5, -1))) { c_structPass = true; engC_score += 30; }
 
-            updateEngineCUI(engC_score, c_sweepPass, c_dispPass, c_rsiPass, c_structPass, engC_dir);
+            if (engC_score >= 70 && engC_dir === 'BUY') {
+                let sl = Math.min(currLow5, ...low5.slice(-3));
+                engC_targets = calculateTargets('BUY', currClose5, sl);
+            } else if (engC_score >= 70 && engC_dir === 'SELL') {
+                let sl = Math.max(currHigh5, ...high5.slice(-3));
+                engC_targets = calculateTargets('SELL', currClose5, sl);
+            }
+
+            updateEngineCUI(engC_score, c_sweepPass, c_dispPass, c_rsiPass, c_structPass, engC_dir, engC_targets);
         }
 
-        function updateEngineAUI(score, bias, struct, ema, rsi, adx, liq, candle, dir) {
+        function updateEngineAUI(score, bias, struct, ema, rsi, adx, liq, candle, dir, targetStr) {
             document.getElementById('engine-a-score').innerText = score;
             document.getElementById('engine-a-bar').style.width = `${score}%`;
             document.getElementById('engine-a-bar').style.background = score >= 70 ? 'var(--green)' : (score >= 50 ? 'var(--yellow)' : 'var(--red)');
@@ -1719,16 +1767,22 @@
             setStatus('a-rsi', rsi); setStatus('a-adx', adx); setStatus('a-liq', liq); setStatus('a-candle', candle);
             
             const badge = document.getElementById('engine-a-badge');
+            const targetEl = document.getElementById('engine-a-targets');
             if (score >= 70 && dir) {
                 badge.innerText = dir;
                 badge.className = `engine-signal-badge ${dir === 'BUY' ? 'sig-buy' : 'sig-sell'}`;
+                if (targetStr) {
+                    targetEl.innerHTML = `🎯 Targets:<br>${targetStr}`;
+                    targetEl.style.display = 'block';
+                }
             } else {
                 badge.innerText = 'WAIT';
                 badge.className = 'engine-signal-badge sig-wait';
+                targetEl.style.display = 'none';
             }
         }
 
-        function updateEngineBUI(score, bias, struct, ema, rsi, adx, liq, candle, dir) {
+        function updateEngineBUI(score, bias, struct, ema, rsi, adx, liq, candle, dir, targetStr) {
             document.getElementById('engine-b-score').innerText = score;
             document.getElementById('engine-b-bar').style.width = `${score}%`;
             document.getElementById('engine-b-bar').style.background = score >= 70 ? 'var(--green)' : (score >= 50 ? 'var(--yellow)' : 'var(--red)');
@@ -1737,16 +1791,22 @@
             setStatus('b-rsi', rsi); setStatus('b-adx', adx); setStatus('b-liq', liq); setStatus('b-candle', candle);
             
             const badge = document.getElementById('engine-b-badge');
+            const targetEl = document.getElementById('engine-b-targets');
             if (score >= 70 && dir) {
                 badge.innerText = dir;
                 badge.className = `engine-signal-badge ${dir === 'BUY' ? 'sig-buy' : 'sig-sell'}`;
+                if (targetStr) {
+                    targetEl.innerHTML = `🎯 Targets:<br>${targetStr}`;
+                    targetEl.style.display = 'block';
+                }
             } else {
                 badge.innerText = 'WAIT';
                 badge.className = 'engine-signal-badge sig-wait';
+                targetEl.style.display = 'none';
             }
         }
 
-        function updateEngineCUI(score, sweep, disp, rsi, struct, dir) {
+        function updateEngineCUI(score, sweep, disp, rsi, struct, dir, targetStr) {
             document.getElementById('engine-c-score').innerText = score;
             document.getElementById('engine-c-bar').style.width = `${score}%`;
             document.getElementById('engine-c-bar').style.background = score >= 70 ? 'var(--green)' : (score >= 50 ? 'var(--yellow)' : 'var(--red)');
@@ -1754,12 +1814,18 @@
             setStatus('c-sweep', sweep); setStatus('c-disp', disp); setStatus('c-rsi', rsi); setStatus('c-struct', struct);
             
             const badge = document.getElementById('engine-c-badge');
+            const targetEl = document.getElementById('engine-c-targets');
             if (score >= 70 && dir) {
                 badge.innerText = dir;
                 badge.className = `engine-signal-badge ${dir === 'BUY' ? 'sig-buy' : 'sig-sell'}`;
+                if (targetStr) {
+                    targetEl.innerHTML = `🎯 Targets:<br>${targetStr}`;
+                    targetEl.style.display = 'block';
+                }
             } else {
                 badge.innerText = 'WAIT';
                 badge.className = 'engine-signal-badge sig-wait';
+                targetEl.style.display = 'none';
             }
         }
         
