@@ -1,11 +1,26 @@
-Here is the completely updated file. I have fixed both issues you mentioned:
+The reason no lines are showing during the Asian session is actually by design based on the rules you gave me in your previous message.
 
-1. Pro (Swings & Targets) Fixed: The reason it wasn't working was a JavaScript array indexing bug (it was trying to look at "future" candles that didn't exist yet at the very end of the chart, causing it to crash and draw nothing). I fixed the loop bounds, and now it correctly finds the swings.
-2. Session Setup Cleaned Up: I rewrote the Session logic.
-   · It now only shows one BUY and one SELL on the chart (the most recent ones).
-   · The TP and SL lines are only drawn if the current time is inside the London or New York session. Once the session ends, the lines disappear, leaving the chart clean to wait for the next setup.
+Here is exactly why it's happening:
 
-Here is the full, corrected code:
+1. The Strategy Logic (Setup vs. Execution)
+
+The "Session" indicator uses the Asian Session to build the range (the High and Low). It does not trade during the Asian session. It waits for the Asian session to finish, and then looks for breakout signals during the London (12:30 - 21:30 IST) or New York (18:00 - 03:00 IST) sessions.
+
+· Since it's currently the Asian session, no breakout has happened yet, so there are no new Buy/Sell signals to show.
+
+2. Your Custom Rule ("Session Only")
+
+You specifically requested: "And also .. the buy and sell.. should be for that session only.... And after that it should be removed and wait for the new buy sell..."
+
+· The code I wrote strictly follows this. It checks the current time. If the time is not inside London or NY, it automatically hides the SL and TP lines. It is currently hiding them because it's waiting for the London/NY session to start.
+
+How to fix it?
+
+To make the chart useful during the Asian session, you need to see the Asian High and Asian Low lines. These act as the "trigger" lines. When price breaks above the Asian High, it's a Buy. When it breaks below, it's a Sell.
+
+I have updated the code to draw the Asian High and Asian Low as dotted yellow lines. This way, during the Asian session, you can see the range building, and you know exactly where the breakout will happen.
+
+Here is the complete updated code:
 
 ```html
 <!DOCTYPE html>
@@ -1276,7 +1291,6 @@ Here is the full, corrected code:
                 let lastHigh = -Infinity, lastLow = Infinity;
                 let lastHighIdx = -1, lastLowIdx = -1;
 
-                // FIX: Ensure we don't go out of bounds by starting at data.length - 1 - lookback
                 for (let i = data.length - 1 - lookback; i >= lookback; i--) {
                     let isHigh = true, isLow = true;
                     for (let j = 1; j <= lookback; j++) {
@@ -1374,7 +1388,6 @@ Here is the full, corrected code:
                 let latestBuy = null;
                 let latestSell = null;
 
-                // Find the ABSOLUTE LATEST valid signals
                 for (let i = 1; i < data.length; i++) {
                     const ist = getISTParts(data[i].time);
                     const prevIst = getISTParts(data[i-1].time);
@@ -1392,7 +1405,6 @@ Here is the full, corrected code:
                         
                         if (!range) continue;
 
-                        // Store the latest BUY
                         if (data[i-1].close <= range.high && data[i].close > range.high) {
                             latestBuy = { 
                                 time: data[i].time, 
@@ -1402,7 +1414,6 @@ Here is the full, corrected code:
                             };
                         }
                         
-                        // Store the latest SELL
                         if (data[i-1].close >= range.low && data[i].close < range.low) {
                             latestSell = { 
                                 time: data[i].time, 
@@ -1414,7 +1425,6 @@ Here is the full, corrected code:
                     }
                 }
 
-                // Determine if we should show the lines based on current time (session-specific)
                 const lastCandleTime = data[data.length-1].time;
                 const lastIst = getISTParts(lastCandleTime);
                 const lastTimeVal = lastIst.hours * 60 + lastIst.mins;
@@ -1438,6 +1448,13 @@ Here is the full, corrected code:
                         indicatorLines.push(candlestickSeries.createPriceLine({ price: latestSell.sl, color: '#ef4444', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: true, title: 'SELL SL' }));
                         indicatorLines.push(candlestickSeries.createPriceLine({ price: latestSell.tp, color: '#10b981', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: true, title: 'SELL TP' }));
                     }
+                }
+
+                // Draw today's Asian Range for reference (Yellow Dotted Lines)
+                const todayIstStr = getISTParts(data[data.length-1].time).dateStr;
+                if (asiaRanges[todayIstStr]) {
+                    indicatorLines.push(candlestickSeries.createPriceLine({ price: asiaRanges[todayIstStr].high, color: 'rgba(245, 158, 11, 0.5)', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dotted, axisLabelVisible: true, title: 'Asia High' }));
+                    indicatorLines.push(candlestickSeries.createPriceLine({ price: asiaRanges[todayIstStr].low, color: 'rgba(245, 158, 11, 0.5)', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dotted, axisLabelVisible: true, title: 'Asia Low' }));
                 }
             }
 
