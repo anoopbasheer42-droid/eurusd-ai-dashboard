@@ -1,28 +1,4 @@
-The reason no lines are showing during the Asian session is actually by design based on the rules you gave me in your previous message.
 
-Here is exactly why it's happening:
-
-1. The Strategy Logic (Setup vs. Execution)
-
-The "Session" indicator uses the Asian Session to build the range (the High and Low). It does not trade during the Asian session. It waits for the Asian session to finish, and then looks for breakout signals during the London (12:30 - 21:30 IST) or New York (18:00 - 03:00 IST) sessions.
-
-· Since it's currently the Asian session, no breakout has happened yet, so there are no new Buy/Sell signals to show.
-
-2. Your Custom Rule ("Session Only")
-
-You specifically requested: "And also .. the buy and sell.. should be for that session only.... And after that it should be removed and wait for the new buy sell..."
-
-· The code I wrote strictly follows this. It checks the current time. If the time is not inside London or NY, it automatically hides the SL and TP lines. It is currently hiding them because it's waiting for the London/NY session to start.
-
-How to fix it?
-
-To make the chart useful during the Asian session, you need to see the Asian High and Asian Low lines. These act as the "trigger" lines. When price breaks above the Asian High, it's a Buy. When it breaks below, it's a Sell.
-
-I have updated the code to draw the Asian High and Asian Low as dotted yellow lines. This way, during the Asian session, you can see the range building, and you know exactly where the breakout will happen.
-
-Here is the complete updated code:
-
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
