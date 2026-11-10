@@ -1,15 +1,4 @@
-I know exactly why your chart is exactly 1 hour behind and feels frozen.
 
-There are two main reasons this is happening in the code:
-
-1. The "Open" Candle is Being Hidden: The API sends the current "live" candle that is still forming, but your code has a filter (.filter(b => !b.isOpen)) that deliberately hides it. It only shows candles that have already closed. On a 1-Hour chart, this makes the chart exactly 1 hour behind!
-2. No Real-Time Updating: The chart fetches data once when you open the tab, but it never asks for updates afterward. It just sits there frozen until you refresh the page.
-
-I have fixed both issues. I removed the filter so you can see the current candle forming, and I added a live 5-second poller that will keep updating the chart in real-time while you have the Terminal tab open.
-
-Here is the complete, fully updated code. Replace your entire file with this:
-
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
