@@ -1,4 +1,13 @@
+Here is the updated code. I have added a new indicator called "Pro (Swings & Targets)" to the dropdown.
 
+When you select it, the script will scan the chart for the most recent major Swing High and Swing Low (ignoring small noise). It then calculates the Fibonacci levels like a professional trader.
+
+· If the recent trend is Bullish, it draws a BUY Zone and calculates the exact Entry, Stop Loss (SL), and Take Profit (TP).
+· If the recent trend is Bearish, it draws a SELL Zone and calculates the exact Entry, SL, and TP.
+
+I only touched the Indicator dropdown HTML and the updateIndicators JavaScript function. Everything else remains exactly as it was.
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -503,6 +512,8 @@
                         <a href="#" onclick="toggleIndicator('ema', event)">EMA (20 & 50)</a>
                         <a href="#" onclick="toggleIndicator('bb', event)">Bollinger Bands</a>
                         <a href="#" onclick="toggleIndicator('fib', event)">Fib / Pivot Points</a>
+                        <!-- NEW PRO INDICATOR -->
+                        <a href="#" onclick="toggleIndicator('pro', event)">Pro (Swings & Targets)</a>
                     </div>
                 </div>
                 
@@ -1274,6 +1285,85 @@
                     }
                 }
             }
+            // ============================================
+            // NEW PRO INDICATOR (SWINGS & TARGETS)
+            // ============================================
+            else if (activeIndicator === 'pro') {
+                const lookback = 5;
+                let lastHigh = -Infinity, lastLow = Infinity;
+                let lastHighIdx = -1, lastLowIdx = -1;
+
+                // Find the most recent swing high and low
+                for (let i = data.length - lookback; i >= lookback; i--) {
+                    let isHigh = true, isLow = true;
+                    for (let j = 1; j <= lookback; j++) {
+                        if (data[i].high <= data[i-j].high || data[i].high <= data[i+j].high) isHigh = false;
+                        if (data[i].low >= data[i-j].low || data[i].low >= data[i+j].low) isLow = false;
+                    }
+                    if (isHigh && lastHighIdx === -1) { lastHighIdx = i; lastHigh = data[i].high; }
+                    if (isLow && lastLowIdx === -1) { lastLowIdx = i; lastLow = data[i].low; }
+                    if (lastHighIdx !== -1 && lastLowIdx !== -1) break;
+                }
+
+                // Fallback if no clean swings found
+                if (lastHighIdx === -1 || lastLowIdx === -1) {
+                    const recent = data.slice(-50);
+                    lastHigh = Math.max(...recent.map(d => d.high));
+                    lastLow = Math.min(...recent.map(d => d.low));
+                }
+
+                const diff = lastHigh - lastLow;
+                const isBullish = lastHighIdx > lastLowIdx;
+
+                if (diff > 0) {
+                    const lvls = [
+                        { price: lastHigh, color: '#ef4444', title: '0% (Swing High)' },
+                        { price: lastHigh - diff * 0.236, color: '#94a3b8', title: '23.6%' },
+                        { price: lastHigh - diff * 0.382, color: '#f59e0b', title: '38.2%' },
+                        { price: lastHigh - diff * 0.5, color: '#8b5cf6', title: '50% (EQ)' },
+                        { price: lastHigh - diff * 0.618, color: '#f59e0b', title: '61.8%' },
+                        { price: lastLow, color: '#10b981', title: '100% (Swing Low)' }
+                    ];
+
+                    lvls.forEach(l => {
+                        indicatorLines.push(candlestickSeries.createPriceLine({
+                            price: l.price, color: l.color, lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: true, title: l.title
+                        }));
+                    });
+
+                    const lastCandle = data[data.length - 1];
+                    let entry, sl, tp, markerPos, markerColor, markerText;
+
+                    if (isBullish) {
+                        // Bullish Setup: Entry at 50-61.8% zone, SL below 100%, TP at 0%
+                        entry = lastHigh - diff * 0.5; 
+                        sl = lastLow - (diff * 0.05); // Slight buffer below swing low
+                        tp = lastHigh + (diff * 0.272); // -27.2% extension
+                        markerPos = 'belowBar';
+                        markerColor = '#10b981';
+                        markerText = 'BUY';
+                        
+                        indicatorLines.push(candlestickSeries.createPriceLine({ price: entry, color: '#3b82f6', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid, axisLabelVisible: true, title: 'BUY ENTRY' }));
+                        indicatorLines.push(candlestickSeries.createPriceLine({ price: sl, color: '#ef4444', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid, axisLabelVisible: true, title: 'SL' }));
+                        indicatorLines.push(candlestickSeries.createPriceLine({ price: tp, color: '#10b981', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid, axisLabelVisible: true, title: 'TP' }));
+                    } else {
+                        // Bearish Setup: Entry at 50-61.8% zone, SL above 0%, TP at 100%
+                        entry = lastLow + diff * 0.5;
+                        sl = lastHigh + (diff * 0.05);
+                        tp = lastLow - (diff * 0.272);
+                        markerPos = 'aboveBar';
+                        markerColor = '#ef4444';
+                        markerText = 'SELL';
+                        
+                        indicatorLines.push(candlestickSeries.createPriceLine({ price: entry, color: '#3b82f6', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid, axisLabelVisible: true, title: 'SELL ENTRY' }));
+                        indicatorLines.push(candlestickSeries.createPriceLine({ price: sl, color: '#ef4444', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid, axisLabelVisible: true, title: 'SL' }));
+                        indicatorLines.push(candlestickSeries.createPriceLine({ price: tp, color: '#10b981', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid, axisLabelVisible: true, title: 'TP' }));
+                    }
+
+                    markers.push({ time: lastCandle.time, position: markerPos, color: markerColor, shape: isBullish ? 'arrowUp' : 'arrowDown', text: `${markerText} PRO SETUP` });
+                }
+            }
+            // ============================================
 
             // Limit markers so the chart isn't cluttered
             if (markers.length > 50) markers = markers.slice(-50);
