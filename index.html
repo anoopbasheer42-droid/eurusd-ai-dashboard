@@ -1,11 +1,11 @@
-Here is the updated code. I have added a new indicator called "Pro (Swings & Targets)" to the dropdown.
+Here is the completely updated file. I have fixed both issues you mentioned:
 
-When you select it, the script will scan the chart for the most recent major Swing High and Swing Low (ignoring small noise). It then calculates the Fibonacci levels like a professional trader.
+1. Pro (Swings & Targets) Fixed: The reason it wasn't working was a JavaScript array indexing bug (it was trying to look at "future" candles that didn't exist yet at the very end of the chart, causing it to crash and draw nothing). I fixed the loop bounds, and now it correctly finds the swings.
+2. Session Setup Cleaned Up: I rewrote the Session logic.
+   · It now only shows one BUY and one SELL on the chart (the most recent ones).
+   · The TP and SL lines are only drawn if the current time is inside the London or New York session. Once the session ends, the lines disappear, leaving the chart clean to wait for the next setup.
 
-· If the recent trend is Bullish, it draws a BUY Zone and calculates the exact Entry, Stop Loss (SL), and Take Profit (TP).
-· If the recent trend is Bearish, it draws a SELL Zone and calculates the exact Entry, SL, and TP.
-
-I only touched the Indicator dropdown HTML and the updateIndicators JavaScript function. Everything else remains exactly as it was.
+Here is the full, corrected code:
 
 ```html
 <!DOCTYPE html>
@@ -272,11 +272,11 @@ I only touched the Indicator dropdown HTML and the updateIndicators JavaScript f
         }
         #tv-chart-container {
             width: 100%;
-            height: calc(100vh - 160px); /* Adjusted to ensure time axis is above nav */
+            height: calc(100vh - 160px);
             position: relative;
             background: #000;
             box-sizing: border-box;
-            touch-action: pan-y; /* Allows vertical page scroll while chart handles horizontal/pinch */
+            touch-action: pan-y;
         }
         #chart-info-box {
             position: absolute;
@@ -512,8 +512,8 @@ I only touched the Indicator dropdown HTML and the updateIndicators JavaScript f
                         <a href="#" onclick="toggleIndicator('ema', event)">EMA (20 & 50)</a>
                         <a href="#" onclick="toggleIndicator('bb', event)">Bollinger Bands</a>
                         <a href="#" onclick="toggleIndicator('fib', event)">Fib / Pivot Points</a>
-                        <!-- NEW PRO INDICATOR -->
                         <a href="#" onclick="toggleIndicator('pro', event)">Pro (Swings & Targets)</a>
+                        <a href="#" onclick="toggleIndicator('session', event)">Session (IST) Setup</a>
                     </div>
                 </div>
                 
@@ -858,10 +858,9 @@ I only touched the Indicator dropdown HTML and the updateIndicators JavaScript f
         let pdhLines = [];
         let todayLines = [];
         
-        // NEW INDICATOR VARIABLES
         let activeIndicator = null;
         let indicatorLines = [];
-        let indicatorSeries = []; // Stores the actual lines (EMA, BB, etc.)
+        let indicatorSeries = []; 
 
         function initChart() {
             if (chart) return;
@@ -892,7 +891,7 @@ I only touched the Indicator dropdown HTML and the updateIndicators JavaScript f
                     mouseWheel: true,
                     pressedMouseMove: true,
                     horzTouchDrag: true,
-                    vertTouchDrag: true /* ENABLES VERTICAL DRAG (MT5 style) */
+                    vertTouchDrag: true 
                 },
                 handleScale: {
                     axisPressedMouseMove: true,
@@ -1001,7 +1000,6 @@ I only touched the Indicator dropdown HTML and the updateIndicators JavaScript f
             calculateAndDrawPDH(data);
             calculateAndDrawToday(data);
             
-            // Re-apply indicator if active
             updateIndicators(data);
         }
 
@@ -1118,9 +1116,6 @@ I only touched the Indicator dropdown HTML and the updateIndicators JavaScript f
             calculateAndDrawToday(data);
         }
 
-        // ============================================
-        // NEW: INDICATOR DROPDOWN LOGIC & DRAWING
-        // ============================================
         function toggleIndicatorDropdown(event) {
             event.stopPropagation();
             const dropdown = document.getElementById('indicator-dropdown');
@@ -1144,7 +1139,6 @@ I only touched the Indicator dropdown HTML and the updateIndicators JavaScript f
                 activeIndicator = type;
             }
 
-            // Update UI
             const btn = document.getElementById('btn-indicators');
             const links = document.querySelectorAll('#indicator-dropdown a');
             links.forEach(l => l.classList.remove('active-indicator'));
@@ -1159,23 +1153,18 @@ I only touched the Indicator dropdown HTML and the updateIndicators JavaScript f
                 btn.innerText = `Indicators ▾`;
             }
 
-            // Re-render
             const data = chartDataCache[currentTimeframe] || [];
             updateIndicators(data);
-            
-            // Close dropdown
             document.getElementById('indicator-dropdown').style.display = 'none';
         }
 
         function updateIndicators(data) {
             if (!chart || !candlestickSeries) return;
             
-            // Clear existing markers and horizontal lines
             candlestickSeries.setMarkers([]);
             indicatorLines.forEach(line => candlestickSeries.removePriceLine(line));
             indicatorLines = [];
 
-            // Remove existing indicator series (lines, histograms)
             indicatorSeries.forEach(series => {
                 try { chart.removeSeries(series); } catch(e) {}
             });
@@ -1190,7 +1179,6 @@ I only touched the Indicator dropdown HTML and the updateIndicators JavaScript f
                 const ema20 = calculateEMA(closes, 20);
                 const ema50 = calculateEMA(closes, 50);
 
-                // Draw actual EMA lines
                 const ema20Line = chart.addLineSeries({ color: '#3b82f6', lineWidth: 2, title: 'EMA 20', priceLineVisible: false, lastValueVisible: true });
                 ema20Line.setData(data.map((d, i) => ({ time: d.time, value: ema20[i] })));
                 indicatorSeries.push(ema20Line);
@@ -1199,7 +1187,6 @@ I only touched the Indicator dropdown HTML and the updateIndicators JavaScript f
                 ema50Line.setData(data.map((d, i) => ({ time: d.time, value: ema50[i] })));
                 indicatorSeries.push(ema50Line);
 
-                // Generate Markers
                 for (let i = 1; i < data.length; i++) {
                     if (ema20[i-1] <= ema50[i-1] && ema20[i] > ema50[i]) {
                         markers.push({ time: data[i].time, position: 'belowBar', color: '#10b981', shape: 'arrowUp', text: 'BUY' });
@@ -1234,7 +1221,6 @@ I only touched the Indicator dropdown HTML and the updateIndicators JavaScript f
                     middleData.push({ time: data[i].time, value: sma });
                     lowerData.push({ time: data[i].time, value: lower });
 
-                    // Only trigger marker when price crosses out of the band, not every candle
                     if (data[i].close < lower) {
                         if (lastSignal !== 'BUY') {
                             markers.push({ time: data[i].time, position: 'belowBar', color: '#10b981', shape: 'arrowUp', text: 'BUY' });
@@ -1285,16 +1271,13 @@ I only touched the Indicator dropdown HTML and the updateIndicators JavaScript f
                     }
                 }
             }
-            // ============================================
-            // NEW PRO INDICATOR (SWINGS & TARGETS)
-            // ============================================
             else if (activeIndicator === 'pro') {
                 const lookback = 5;
                 let lastHigh = -Infinity, lastLow = Infinity;
                 let lastHighIdx = -1, lastLowIdx = -1;
 
-                // Find the most recent swing high and low
-                for (let i = data.length - lookback; i >= lookback; i--) {
+                // FIX: Ensure we don't go out of bounds by starting at data.length - 1 - lookback
+                for (let i = data.length - 1 - lookback; i >= lookback; i--) {
                     let isHigh = true, isLow = true;
                     for (let j = 1; j <= lookback; j++) {
                         if (data[i].high <= data[i-j].high || data[i].high <= data[i+j].high) isHigh = false;
@@ -1305,11 +1288,12 @@ I only touched the Indicator dropdown HTML and the updateIndicators JavaScript f
                     if (lastHighIdx !== -1 && lastLowIdx !== -1) break;
                 }
 
-                // Fallback if no clean swings found
                 if (lastHighIdx === -1 || lastLowIdx === -1) {
                     const recent = data.slice(-50);
                     lastHigh = Math.max(...recent.map(d => d.high));
                     lastLow = Math.min(...recent.map(d => d.low));
+                    lastHighIdx = data.length - 1;
+                    lastLowIdx = data.length - 50;
                 }
 
                 const diff = lastHigh - lastLow;
@@ -1335,10 +1319,9 @@ I only touched the Indicator dropdown HTML and the updateIndicators JavaScript f
                     let entry, sl, tp, markerPos, markerColor, markerText;
 
                     if (isBullish) {
-                        // Bullish Setup: Entry at 50-61.8% zone, SL below 100%, TP at 0%
                         entry = lastHigh - diff * 0.5; 
-                        sl = lastLow - (diff * 0.05); // Slight buffer below swing low
-                        tp = lastHigh + (diff * 0.272); // -27.2% extension
+                        sl = lastLow - (diff * 0.05); 
+                        tp = lastHigh + (diff * 0.272);
                         markerPos = 'belowBar';
                         markerColor = '#10b981';
                         markerText = 'BUY';
@@ -1347,7 +1330,6 @@ I only touched the Indicator dropdown HTML and the updateIndicators JavaScript f
                         indicatorLines.push(candlestickSeries.createPriceLine({ price: sl, color: '#ef4444', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid, axisLabelVisible: true, title: 'SL' }));
                         indicatorLines.push(candlestickSeries.createPriceLine({ price: tp, color: '#10b981', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Solid, axisLabelVisible: true, title: 'TP' }));
                     } else {
-                        // Bearish Setup: Entry at 50-61.8% zone, SL above 0%, TP at 100%
                         entry = lastLow + diff * 0.5;
                         sl = lastHigh + (diff * 0.05);
                         tp = lastLow - (diff * 0.272);
@@ -1363,13 +1345,105 @@ I only touched the Indicator dropdown HTML and the updateIndicators JavaScript f
                     markers.push({ time: lastCandle.time, position: markerPos, color: markerColor, shape: isBullish ? 'arrowUp' : 'arrowDown', text: `${markerText} PRO SETUP` });
                 }
             }
-            // ============================================
+            else if (activeIndicator === 'session') {
+                const getISTParts = (ts) => {
+                    const d = new Date(ts * 1000 + 19800000); 
+                    return {
+                        dateStr: d.getUTCFullYear() + '-' + String(d.getUTCMonth()+1).padStart(2,'0') + '-' + String(d.getUTCDate()).padStart(2,'0'),
+                        hours: d.getUTCHours(),
+                        mins: d.getUTCMinutes()
+                    };
+                };
 
-            // Limit markers so the chart isn't cluttered
+                let asiaRanges = {};
+                
+                for (let i = 0; i < data.length; i++) {
+                    const ist = getISTParts(data[i].time);
+                    const timeVal = ist.hours * 60 + ist.mins;
+                    
+                    if (timeVal >= 330 && timeVal <= 870) { 
+                        if (!asiaRanges[ist.dateStr]) {
+                            asiaRanges[ist.dateStr] = { high: data[i].high, low: data[i].low };
+                        } else {
+                            asiaRanges[ist.dateStr].high = Math.max(asiaRanges[ist.dateStr].high, data[i].high);
+                            asiaRanges[ist.dateStr].low = Math.min(asiaRanges[ist.dateStr].low, data[i].low);
+                        }
+                    }
+                }
+
+                let latestBuy = null;
+                let latestSell = null;
+
+                // Find the ABSOLUTE LATEST valid signals
+                for (let i = 1; i < data.length; i++) {
+                    const ist = getISTParts(data[i].time);
+                    const prevIst = getISTParts(data[i-1].time);
+                    const timeVal = ist.hours * 60 + ist.mins;
+                    
+                    const isAsia = timeVal >= 330 && timeVal <= 870;
+                    const inLondon = timeVal >= 750 && timeVal <= 1290; 
+                    const inNY = timeVal >= 1080 || timeVal <= 180; 
+                    
+                    if ((inLondon || inNY) && !isAsia) {
+                        let range = asiaRanges[ist.dateStr];
+                        if (!range && asiaRanges[prevIst.dateStr]) {
+                            range = asiaRanges[prevIst.dateStr]; 
+                        }
+                        
+                        if (!range) continue;
+
+                        // Store the latest BUY
+                        if (data[i-1].close <= range.high && data[i].close > range.high) {
+                            latestBuy = { 
+                                time: data[i].time, 
+                                entry: data[i].close, 
+                                sl: range.low, 
+                                tp: data[i].close + (data[i].close - range.low) * 2 
+                            };
+                        }
+                        
+                        // Store the latest SELL
+                        if (data[i-1].close >= range.low && data[i].close < range.low) {
+                            latestSell = { 
+                                time: data[i].time, 
+                                entry: data[i].close, 
+                                sl: range.high, 
+                                tp: data[i].close - (range.high - data[i].close) * 2 
+                            };
+                        }
+                    }
+                }
+
+                // Determine if we should show the lines based on current time (session-specific)
+                const lastCandleTime = data[data.length-1].time;
+                const lastIst = getISTParts(lastCandleTime);
+                const lastTimeVal = lastIst.hours * 60 + lastIst.mins;
+                const currentInLondon = lastTimeVal >= 750 && lastTimeVal <= 1290;
+                const currentInNY = lastTimeVal >= 1080 || lastTimeVal <= 180;
+                const currentInSession = currentInLondon || currentInNY;
+
+                // Draw latest Buy
+                if (latestBuy) {
+                    markers.push({ time: latestBuy.time, position: 'belowBar', color: '#10b981', shape: 'arrowUp', text: `BUY ${latestBuy.entry.toFixed(5)}` });
+                    if (currentInSession) {
+                        indicatorLines.push(candlestickSeries.createPriceLine({ price: latestBuy.sl, color: '#ef4444', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: true, title: 'BUY SL' }));
+                        indicatorLines.push(candlestickSeries.createPriceLine({ price: latestBuy.tp, color: '#10b981', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: true, title: 'BUY TP' }));
+                    }
+                }
+
+                // Draw latest Sell
+                if (latestSell) {
+                    markers.push({ time: latestSell.time, position: 'aboveBar', color: '#ef4444', shape: 'arrowDown', text: `SELL ${latestSell.entry.toFixed(5)}` });
+                    if (currentInSession) {
+                        indicatorLines.push(candlestickSeries.createPriceLine({ price: latestSell.sl, color: '#ef4444', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: true, title: 'SELL SL' }));
+                        indicatorLines.push(candlestickSeries.createPriceLine({ price: latestSell.tp, color: '#10b981', lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: true, title: 'SELL TP' }));
+                    }
+                }
+            }
+
             if (markers.length > 50) markers = markers.slice(-50);
             candlestickSeries.setMarkers(markers);
         }
-        // ============================================
 
         function switchPage(pageId) {
             const dashboard = document.getElementById('dashboard-view');
@@ -1382,7 +1456,6 @@ I only touched the Indicator dropdown HTML and the updateIndicators JavaScript f
             const navAnalysis = document.getElementById('nav-analysis');
             const navStrategy = document.getElementById('nav-strategy');
 
-            // Hide all
             dashboard.classList.add('hidden');
             chartPage.classList.remove('active');
             analysisPage.classList.remove('active');
@@ -1409,7 +1482,7 @@ I only touched the Indicator dropdown HTML and the updateIndicators JavaScript f
             } else if (pageId === 'strategy') {
                 strategyPage.classList.add('active');
                 navStrategy.classList.add('active');
-                if(marketData) evaluateStrategyEngines(marketData); // Immediate update on click
+                if(marketData) evaluateStrategyEngines(marketData);
             } else {
                 dashboard.classList.remove('hidden');
                 navDash.classList.add('active');
@@ -1420,12 +1493,11 @@ I only touched the Indicator dropdown HTML and the updateIndicators JavaScript f
             btn.addEventListener('click', () => loadChartData(btn.dataset.tf));
         });
 
-        // === PRO ANALYSIS LOGIC ===
         async function loadAnalysisData() {
             try {
                 const daily = await fetchBiquoteCandles('1d', 5);
                 if (daily.length >= 2) {
-                    const prevDay = daily[daily.length - 2]; // Yesterday
+                    const prevDay = daily[daily.length - 2]; 
                     const pdh = prevDay.high;
                     const pdl = prevDay.low;
                     const pdc = prevDay.close;
@@ -1444,7 +1516,6 @@ I only touched the Indicator dropdown HTML and the updateIndicators JavaScript f
                         const emaBull = marketData.ema20 > marketData.ema50;
                         const atr = marketData.atr;
 
-                        // --- ASIAN SESSION ---
                         let asianPred = "";
                         if (cp > r2) {
                             asianPred = `Price is EXTREMELY OVEREXTENDED above R2 (${r2.toFixed(5)}). RSI is at ${rsi.toFixed(1)}. Do not chase. Watch for a deep mean reversion pullback towards R1 (${r1.toFixed(5)}) or Pivot. If it bounces, it's a liquidity trap.`;
@@ -1461,7 +1532,6 @@ I only touched the Indicator dropdown HTML and the updateIndicators JavaScript f
                         }
                         document.getElementById('val-session-asian').innerText = asianPred;
 
-                        // --- LONDON SESSION ---
                         let londonPred = "";
                         if (cp > r2) {
                             londonPred = `Price is massively overextended above R2 (${r2.toFixed(5)}). Expect London Open to initiate a sharp fakeout manipulation down to R1 (${r1.toFixed(5)}) or Pivot before any further bullish continuation. Avoid chasing highs.`;
@@ -1480,7 +1550,6 @@ I only touched the Indicator dropdown HTML and the updateIndicators JavaScript f
                         }
                         document.getElementById('val-session-london').innerText = londonPred;
 
-                        // --- NEW YORK SESSION ---
                         let nyPred = "";
                         if (cp > r2) {
                             nyPred = `Price is already well above R2 (${r2.toFixed(5)}). NY session may see profit-taking and a deep pullback. 1H RSI is ${rsi.toFixed(1)}. Do not chase the trend here; wait for a retracement to R1 (${r1.toFixed(5)}) or Pivot.`;
@@ -1493,7 +1562,6 @@ I only touched the Indicator dropdown HTML and the updateIndicators JavaScript f
                         }
                         document.getElementById('val-session-ny').innerText = nyPred;
 
-                        // --- DAY CLOSE PREDICTION ---
                         let closePred = "";
                         if (cp > r2) {
                             closePred = `Extremely Bullish day. Price is above R2. Expect a close near the day's high (${marketData.todayHigh.toFixed(5)}) unless we see a massive late-day reversal. RSI overbought at ${rsi.toFixed(1)}.`;
@@ -1512,9 +1580,6 @@ I only touched the Indicator dropdown HTML and the updateIndicators JavaScript f
             }
         }
 
-        // ============================================================
-        // STRATEGY ENGINE EVALUATION LOGIC (100 POINT BLUEPRINT)
-        // ============================================================
         function calculateADX(highs, lows, closes, period = 14) {
             if (highs.length < period * 2) return 0;
             let trs = [], plusDMs = [], minusDMs = [];
@@ -1586,7 +1651,7 @@ I only touched the Indicator dropdown HTML and the updateIndicators JavaScript f
         function checkBreakout(candles, lookback) {
             if (candles.length < lookback) return null;
             const currentClose = candles[candles.length-1].close;
-            const recentCandles = candles.slice(-lookback-1, -1); // exclude current
+            const recentCandles = candles.slice(-lookback-1, -1); 
             const highest = Math.max(...recentCandles.map(c => c.high));
             const lowest = Math.min(...recentCandles.map(c => c.low));
             
@@ -1614,8 +1679,8 @@ I only touched the Indicator dropdown HTML and the updateIndicators JavaScript f
             const risk = Math.abs(entry - sl);
             let tp1, tp2;
             if (dir === 'BUY') {
-                tp1 = entry + (risk * 2); // 1:2 RR
-                tp2 = entry + (risk * 3); // 1:3 RR
+                tp1 = entry + (risk * 2);
+                tp2 = entry + (risk * 3);
             } else {
                 tp1 = entry - (risk * 2);
                 tp2 = entry - (risk * 3);
@@ -1626,7 +1691,6 @@ I only touched the Indicator dropdown HTML and the updateIndicators JavaScript f
         function evaluateStrategyEngines(md) {
             if (!md || !md.candles5m || !md.candles15m || !md.candles1H || !md.candles4H) return;
             
-            // --- DATA EXTRACTION ---
             const close5 = md.candles5m.map(c => c.close);
             const high5 = md.candles5m.map(c => c.high);
             const low5 = md.candles5m.map(c => c.low);
@@ -1636,7 +1700,6 @@ I only touched the Indicator dropdown HTML and the updateIndicators JavaScript f
             const close1H = md.candles1H.map(c => c.close);
             const close4H = md.candles4H.map(c => c.close);
             
-            // --- INDICATOR CALCULATIONS ---
             const ema9_5 = calculateEMA(close5, 9);
             const ema21_5 = calculateEMA(close5, 21);
             const ema9_15 = calculateEMA(close15, 9);
@@ -1651,7 +1714,6 @@ I only touched the Indicator dropdown HTML and the updateIndicators JavaScript f
             const adx5 = calculateADX(high5, low5, close5, 14);
             const adx15 = calculateADX(high15, low15, close15, 14);
             
-            // --- MARKET STRUCTURE & PATTERNS ---
             const struct15 = checkStructure(md.candles15m);
             const h1Bullish = close1H[close1H.length-1] > ema50_1H[ema50_1H.length-1];
             const h1Bearish = close1H[close1H.length-1] < ema50_1H[ema50_1H.length-1];
@@ -1671,17 +1733,14 @@ I only touched the Indicator dropdown HTML and the updateIndicators JavaScript f
             const bullPin15 = isBullishRejection(md.candles15m);
             const bearPin15 = isBearishRejection(md.candles15m);
 
-            // --- ENGINE A: ACTIVE SCALPER (M5) ---
             let engA_score = 0;
             let engA_dir = null;
             let engA_targets = "";
             
-            // 1. H1 Bias (20)
             let a_biasPass = false;
             if (h1Bullish) { engA_score += 20; a_biasPass = true; engA_dir = 'BUY'; }
             else if (h1Bearish) { engA_score += 20; a_biasPass = true; engA_dir = 'SELL'; }
             
-            // 2. M15 Structure (20)
             let a_structPass = false;
             if (struct15 === 'BULL' && (!engA_dir || engA_dir === 'BUY')) { engA_score += 20; a_structPass = true; engA_dir = 'BUY'; }
             else if (struct15 === 'BEAR' && (!engA_dir || engA_dir === 'SELL')) { engA_score += 20; a_structPass = true; engA_dir = 'SELL'; }
@@ -1735,17 +1794,14 @@ I only touched the Indicator dropdown HTML and the updateIndicators JavaScript f
                 updateEngineAUI(0, false, false, false, false, false, false, false, null, "");
             }
 
-            // --- ENGINE B: INTRADAY TRADER (M15) ---
             let engB_score = 0;
             let engB_dir = null;
             let engB_targets = "";
             
-            // 1. H1/H4 Bias (20)
             let b_biasPass = false;
             if (h4Bullish || h1Bullish) { engB_score += 20; b_biasPass = true; engB_dir = 'BUY'; }
             else if (h4Bearish || h1Bearish) { engB_score += 20; b_biasPass = true; engB_dir = 'SELL'; }
             
-            // 2. M15 Structure (20)
             let b_structPass = false;
             if (struct15 === 'BULL' && engB_dir === 'BUY') { engB_score += 20; b_structPass = true; }
             else if (struct15 === 'BEAR' && engB_dir === 'SELL') { engB_score += 20; b_structPass = true; }
@@ -1798,7 +1854,6 @@ I only touched the Indicator dropdown HTML and the updateIndicators JavaScript f
                 updateEngineBUI(0, false, false, false, false, false, false, false, null, "");
             }
 
-            // --- ENGINE C: SWEEP (M5) ---
             let engC_score = 0;
             let engC_dir = null;
             let engC_targets = "";
@@ -1919,12 +1974,7 @@ I only touched the Indicator dropdown HTML and the updateIndicators JavaScript f
             el.innerText = pass ? 'PASS' : 'FAIL';
             el.className = pass ? 'check-pass' : 'check-fail';
         }
-        // ============================================
 
-
-        // ============================================================
-        // EXISTING DASHBOARD LOGIC (Untouched)
-        // ============================================================
         const GROQ_MODELS = ['meta-llama/llama-4-scout-17b-16e-instruct','llama-3.3-70b-versatile','openai/gpt-oss-120b'];
         const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
         const GEMINI_MODELS = ['gemini-3.8-flash','gemini-flash-latest','gemini-2.5-flash'];
@@ -2472,7 +2522,6 @@ I only touched the Indicator dropdown HTML and the updateIndicators JavaScript f
 
         solarSystemGroup.add(sunGroup);
 
-        // ==== REALISTIC PLANET DATA ====
         const PLANET_DATA = [
             { name:'Mercury', r:0.20, o:6,   fb:['#8a7f75', '100,90,80'],   spd:0.42, rotSpd:0.005, roughness:0.95, metalness:0.05, bumpScale:0.015 },
             { name:'Venus',   r:0.30, o:9,   fb:['#e8c880', '240,225,190'], spd:0.32, rotSpd:-0.003, roughness:0.72, metalness:0.06, atmo:0xffd890, atmoOpacity:0.42, atmoScale:2.0 },
@@ -3450,14 +3499,12 @@ I only touched the Indicator dropdown HTML and the updateIndicators JavaScript f
             const setup = detectSetup(marketData); 
             if (setup) { addAlertToLog(setup); showSetupAlert(setup); } else { showSetupAlert(null); if (statusEl) statusEl.innerText = "Engine scanning — no setup detected"; } 
             
-            // Update analysis tab and chart lines if active
             if (document.getElementById('analysis-page').classList.contains('active')) {
                 loadAnalysisData();
             }
             if (document.getElementById('chart-page').classList.contains('active') && showToday) {
                  calculateAndDrawToday(chartDataCache[currentTimeframe] || []);
             }
-            // Update Strategy Engines
             evaluateStrategyEngines(marketData);
         }
 
@@ -4405,7 +4452,7 @@ Time awareness (STRICT): ${mealContext}${askedBlock}`;
             if ('Notification' in window && Notification.permission === 'default') { setTimeout(() => Notification.requestPermission(), 2000); }
             refreshMarketData();
             refreshMacroNews();
-            loadAnalysisData(); // Preload analysis data
+            loadAnalysisData(); 
             setInterval(() => { if (chatInProgress) return; refreshMarketData(); }, 60000);
             setInterval(() => { if (chatInProgress) return; refreshMacroNews(); }, 300000);
             setInterval(() => { if (chatInProgress) return; askAIForSignal(); }, 3600000);
