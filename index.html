@@ -937,7 +937,7 @@
                     const json = await res.json();
                     if (json.bars && json.bars.length > 0) {
                         const validBars = json.bars
-                            .filter(b => !isNaN(new Date(b.openTime).getTime())) // FIX: Removed !b.isOpen to allow live candle
+                            .filter(b => !isNaN(new Date(b.openTime).getTime()))
                             .map(b => ({
                                 time: Math.floor(new Date(b.openTime).getTime() / 1000), 
                                 open: parseFloat(b.open),
@@ -994,7 +994,6 @@
             updateIndicators(data);
         }
 
-        // --- NEW: Live Chart Updater ---
         function updateLiveChart() {
             if (!chart || !candlestickSeries || !document.getElementById('chart-page').classList.contains('active')) return;
 
@@ -1013,7 +1012,6 @@
                             };
                             candlestickSeries.update(liveCandle);
                             
-                            // Update cache
                             if (chartDataCache[currentTimeframe]) {
                                 let cache = chartDataCache[currentTimeframe];
                                 if (cache.length > 0 && cache[cache.length - 1].time === liveCandle.time) {
@@ -1517,6 +1515,7 @@
             btn.addEventListener('click', () => loadChartData(btn.dataset.tf));
         });
 
+        // === UPDATED: SUPER TRADER ANALYSIS LOGIC ===
         async function loadAnalysisData() {
             try {
                 const daily = await fetchBiquoteCandles('1d', 5);
@@ -1539,62 +1538,67 @@
                         const rsi = marketData.rsi1H;
                         const emaBull = marketData.ema20 > marketData.ema50;
                         const atr = marketData.atr;
+                        const trend = marketData.trend;
 
+                        // --- ASIAN SESSION PREDICTION (Super Trader Persona) ---
                         let asianPred = "";
                         if (cp > r2) {
-                            asianPred = `Price is EXTREMELY OVEREXTENDED above R2 (${r2.toFixed(5)}). RSI is at ${rsi.toFixed(1)}. Do not chase. Watch for a deep mean reversion pullback towards R1 (${r1.toFixed(5)}) or Pivot. If it bounces, it's a liquidity trap.`;
+                            asianPred = `Price is trading at ${cp.toFixed(5)}, massively overextended above R2 (${r2.toFixed(5)}). With 1H RSI at ${rsi.toFixed(1)}, momentum is exhausted. Expect the Asian session to form a high here. Watch for a mean reversion pullback targeting R1 (${r1.toFixed(5)}) or the Pivot (${pivot.toFixed(5)}). Do not chase longs.`;
                         } else if (cp > r1) {
-                            asianPred = `Price is above R1 (${r1.toFixed(5)}) and 1H RSI is ${rsi.toFixed(1)}. Bullish, but overextended. Asian range will likely form a ceiling here. Watch for fakeouts.`;
+                            asianPred = `Price is hovering at ${cp.toFixed(5)}, above R1 (${r1.toFixed(5)}). The 1H trend is ${trend} and RSI is ${rsi.toFixed(1)}. Asian session will likely consolidate here. If it breaks R2 (${r2.toFixed(5)}), we target PDH (${pdh.toFixed(5)}). Otherwise, look for a sweep of R1 down to the Pivot (${pivot.toFixed(5)}).`;
                         } else if (cp > pivot) {
-                            asianPred = `Price is above Daily Pivot (${pivot.toFixed(5)}). Trend is ${emaBull ? 'Bullish' : 'Bearish/Choppy'}. Asian session likely to consolidate between Pivot and R1 (${r1.toFixed(5)}). Look for BUY on dips.`;
+                            asianPred = `Price is holding at ${cp.toFixed(5)}, above the Daily Pivot (${pivot.toFixed(5)}). RSI is at ${rsi.toFixed(1)}. Expect the Asian session to build a base between Pivot and R1 (${r1.toFixed(5)}). A breakout above R1 targets ${r2.toFixed(5)}. Look for BUY setups on dips into ${pivot.toFixed(5)}.`;
                         } else if (cp < s2) {
-                            asianPred = `Price is EXTREMELY OVEREXTENDED below S2 (${s2.toFixed(5)}). RSI is at ${rsi.toFixed(1)}. Do not chase. Watch for a deep mean reversion pullback towards S1 (${s1.toFixed(5)}) or Pivot. If it bounces, it's a liquidity trap.`;
+                            asianPred = `Price is trading at ${cp.toFixed(5)}, severely extended below S2 (${s2.toFixed(5)}). RSI at ${rsi.toFixed(1)} signals a bounce is near. Expect Asian session consolidation or a sharp retracement towards S1 (${s1.toFixed(5)}) or Pivot (${pivot.toFixed(5)}). Do not chase shorts.`;
                         } else if (cp < s1) {
-                            asianPred = `Price is below S1 (${s1.toFixed(5)}) and 1H RSI is ${rsi.toFixed(1)}. Bearish, but overextended. Asian range will likely form a floor here. Watch for fakeouts.`;
+                            asianPred = `Price is at ${cp.toFixed(5)}, below S1 (${s1.toFixed(5)}). With 1H RSI at ${rsi.toFixed(1)}, the market is heavy. Asian range will likely cap here. If S2 (${s2.toFixed(5)}) breaks, target PDL (${pdl.toFixed(5)}). Otherwise, look for a pullback to S1 (${s1.toFixed(5)}) to reload shorts.`;
                         } else {
-                            asianPred = `Price is below Daily Pivot (${pivot.toFixed(5)}). Trend is ${emaBull ? 'Bullish' : 'Bearish/Choppy'}. Asian session likely to consolidate between Pivot and S1 (${s1.toFixed(5)}). Look for SELL on rallies.`;
+                            asianPred = `Price is sitting at ${cp.toFixed(5)}, below the Daily Pivot (${pivot.toFixed(5)}). The trend is ${trend}. Asian session will likely chop between Pivot and S1 (${s1.toFixed(5)}). A break above Pivot targets R1 (${r1.toFixed(5)}). Look for SELL setups on rallies into ${pivot.toFixed(5)}.`;
                         }
                         document.getElementById('val-session-asian').innerText = asianPred;
 
+                        // --- LONDON SESSION PREDICTION (Super Trader Persona) ---
                         let londonPred = "";
                         if (cp > r2) {
-                            londonPred = `Price is massively overextended above R2 (${r2.toFixed(5)}). Expect London Open to initiate a sharp fakeout manipulation down to R1 (${r1.toFixed(5)}) or Pivot before any further bullish continuation. Avoid chasing highs.`;
+                            londonPred = `With price at ${cp.toFixed(5)}, we are in thin air above R2 (${r2.toFixed(5)}). Expect London open to engineer a sharp liquidity trap down to R1 (${r1.toFixed(5)}) or Pivot (${pivot.toFixed(5)}) before any further upside. Anticipate a "Judas Swing" high.`;
                         } else if (cp > r1) {
-                            londonPred = `Price is above R1 (${r1.toFixed(5)}). London Open may sweep the Asian high, manipulate down to R1, before continuing higher. Look for the "London Trap" (sweep and reverse).`;
+                            londonPred = `Price at ${cp.toFixed(5)}. London open will likely sweep the Asian high, fake out breakout traders, and reverse. Watch for a strong rejection at R1 (${r1.toFixed(5)}) targeting the Pivot (${pivot.toFixed(5)}). If momentum is truly ${emaBull ? 'Bullish' : 'Bearish'}, a clean break of R2 (${r2.toFixed(5)}) targets ${pdh.toFixed(5)}.`;
                         } else if (cp > pivot) {
-                            londonPred = `Asian range was bullish. London Open likely to sweep Asian high and target R1 (${r1.toFixed(5)}). If EMA alignment is ${emaBull ? 'Bullish' : 'Bearish'}, look for ${emaBull ? 'BUY' : 'SELL'} on pullback to Pivot (${pivot.toFixed(5)}).`;
+                            londonPred = `Price at ${cp.toFixed(5)}. Asian range was bullish. London Open will likely sweep the Asian high (${r1.toFixed(5)}) and extend to R2 (${r2.toFixed(5)}). If EMA alignment is ${emaBull ? 'Bullish' : 'Bearish'}, look for ${emaBull ? 'BUY' : 'SELL'} on the pullback to Pivot (${pivot.toFixed(5)}). Expect high volatility.`;
                         } else if (cp < s2) {
-                            londonPred = `Price is massively overextended below S2 (${s2.toFixed(5)}). Expect London Open to initiate a sharp fakeout manipulation up to S1 (${s1.toFixed(5)}) or Pivot before any further bearish continuation. Avoid chasing lows.`;
+                            londonPred = `Price at ${cp.toFixed(5)}. Deeply oversold below S2 (${s2.toFixed(5)}). London Open will likely trigger a massive short squeeze (fakeout) up to S1 (${s1.toFixed(5)}) or Pivot (${pivot.toFixed(5)}) before continuing the downtrend. Do not sell at the bottom.`;
                         } else if (cp < s1) {
-                            londonPred = `Price is below S1 (${s1.toFixed(5)}). London Open may sweep the Asian low, manipulate up to S1, before continuing lower. Look for the "London Trap" (sweep and reverse).`;
+                            londonPred = `Price at ${cp.toFixed(5)}. London open will likely sweep the Asian low, manipulate up to S1 (${s1.toFixed(5)}), then continue lower. Look for the classic "London Trap" (sweep and reverse). Initial target is S2 (${s2.toFixed(5)}).`;
                         } else if (cp < pivot) {
-                            londonPred = `Asian range was bearish. London Open likely to sweep Asian low and target S1 (${s1.toFixed(5)}). If EMA alignment is ${emaBull ? 'Bullish' : 'Bearish'}, look for ${emaBull ? 'BUY' : 'SELL'} on pullback to Pivot (${pivot.toFixed(5)}).`;
+                            londonPred = `Price at ${cp.toFixed(5)}. Asian range was bearish. London Open likely to sweep Asian low and target S1 (${s1.toFixed(5)}). If EMA alignment is ${emaBull ? 'Bullish' : 'Bearish'}, look for ${emaBull ? 'BUY' : 'SELL'} on pullback to Pivot (${pivot.toFixed(5)}).`;
                         } else {
-                            londonPred = `Consolidation expected. RSI is neutral (${rsi.toFixed(1)}). Wait for London to establish a clear direction off the Pivot (${pivot.toFixed(5)}) and break the Asian range.`;
+                            londonPred = `Price at ${cp.toFixed(5)}. Consolidation. Wait for London to establish a clear direction off the Pivot (${pivot.toFixed(5)}). A break of the Asian range (above ${r1.toFixed(5)} or below ${s1.toFixed(5)}) will dictate the trend.`;
                         }
                         document.getElementById('val-session-london').innerText = londonPred;
 
+                        // --- NEW YORK SESSION PREDICTION (Super Trader Persona) ---
                         let nyPred = "";
                         if (cp > r2) {
-                            nyPred = `Price is already well above R2 (${r2.toFixed(5)}). NY session may see profit-taking and a deep pullback. 1H RSI is ${rsi.toFixed(1)}. Do not chase the trend here; wait for a retracement to R1 (${r1.toFixed(5)}) or Pivot.`;
+                            nyPred = `At ${cp.toFixed(5)}, price is stretched above R2 (${r2.toFixed(5)}). NY session may see aggressive profit-taking from London. Expect a deep pullback to R1 (${r1.toFixed(5)}) or Pivot. RSI at ${rsi.toFixed(1)} confirms exhaustion. Do not buy the top here.`;
                         } else if (cp > pivot) {
-                            nyPred = `London bias is BULLISH. NY session likely to sweep London high and target R2 (${r2.toFixed(5)}). Do not short into the trend unless NY makes a clear lower high and breaks the 1H EMA20.`;
+                            nyPred = `London bias is BULLISH with price at ${cp.toFixed(5)}. NY session will likely sweep the London high and target R2 (${r2.toFixed(5)}). Do not short into this trend unless NY makes a clear lower high and breaks the 1H EMA20. Target R2 (${r2.toFixed(5)}) for extension.`;
                         } else if (cp < s2) {
-                            nyPred = `Price is already well below S2 (${s2.toFixed(5)}). NY session may see profit-taking and a deep pullback. 1H RSI is ${rsi.toFixed(1)}. Do not chase the trend here; wait for a retracement to S1 (${s1.toFixed(5)}) or Pivot.`;
+                            nyPred = `At ${cp.toFixed(5)}, price is heavily discounted below S2 (${s2.toFixed(5)}). NY session will likely see a relief rally or profit-taking back to S1 (${s1.toFixed(5)}). RSI at ${rsi.toFixed(1)} means do not chase shorts.`;
                         } else {
-                            nyPred = `London bias is BEARISH. NY session likely to sweep London low and target S2 (${s2.toFixed(5)}). Do not buy into the trend unless NY makes a clear higher low and breaks the 1H EMA20.`;
+                            nyPred = `London bias is BEARISH with price at ${cp.toFixed(5)}. NY session likely to sweep London low and target S2 (${s2.toFixed(5)}). Do not buy into the trend unless NY makes a clear higher low and breaks the 1H EMA20. Target S2 (${s2.toFixed(5)}) for extension.`;
                         }
                         document.getElementById('val-session-ny').innerText = nyPred;
 
+                        // --- DAY CLOSE PREDICTION (Super Trader Persona) ---
                         let closePred = "";
                         if (cp > r2) {
-                            closePred = `Extremely Bullish day. Price is above R2. Expect a close near the day's high (${marketData.todayHigh.toFixed(5)}) unless we see a massive late-day reversal. RSI overbought at ${rsi.toFixed(1)}.`;
+                            closePred = `Extremely Bullish structure. Price (${cp.toFixed(5)}) is riding above R2. The 1H trend is ${trend} and RSI is ${rsi.toFixed(1)}. Unless we see a massive late-day institutional sell-off, expect the close near the day's high (${marketData.todayHigh.toFixed(5)}). Target ${r2.toFixed(5)} as the closing floor.`;
                         } else if (cp > pivot) {
-                            closePred = `Bullish day expected. If price holds above Pivot (${pivot.toFixed(5)}), look for a close near R1 (${r1.toFixed(5)}). If R1 is strongly rejected with volume, expect a close back at Pivot.`;
+                            closePred = `Bullish day confirmed. Price is holding above Pivot (${pivot.toFixed(5)}) at ${cp.toFixed(5)}. If momentum holds, look for a close near R1 (${r1.toFixed(5)}). If R1 is strongly rejected with high volume, expect a retracement to close exactly at the Pivot (${pivot.toFixed(5)}). Target close: ${r1.toFixed(5)}.`;
                         } else if (cp < s2) {
-                            closePred = `Extremely Bearish day. Price is below S2. Expect a close near the day's low (${marketData.todayLow.toFixed(5)}) unless we see a massive late-day reversal. RSI oversold at ${rsi.toFixed(1)}.`;
+                            closePred = `Extremely Bearish structure. Price (${cp.toFixed(5)}) has broken below S2. 1H trend is ${trend} and RSI is oversold at ${rsi.toFixed(1)}. Expect a close near the day's low (${marketData.todayLow.toFixed(5)}) unless a late V-shape reversal occurs. Target close: ${s2.toFixed(5)} as resistance.`;
                         } else {
-                            closePred = `Bearish day expected. If price holds below Pivot (${pivot.toFixed(5)}), look for a close near S1 (${s1.toFixed(5)}). If S1 is strongly rejected with volume, expect a close back at Pivot.`;
+                            closePred = `Bearish day confirmed. Price is struggling below Pivot (${pivot.toFixed(5)}) at ${cp.toFixed(5)}. Expect the daily close near S1 (${s1.toFixed(5)}). If S1 shows strong absorption, expect a late-day squeeze to close exactly at the Pivot (${pivot.toFixed(5)}). Target close: ${s1.toFixed(5)}.`;
                         }
                         document.getElementById('val-day-close').innerText = closePred;
                     }
